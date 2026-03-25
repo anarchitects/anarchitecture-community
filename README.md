@@ -1,109 +1,195 @@
-# AnarchitectureCommunity
+# Anarchitects Community Adapters
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Community-maintained integration packages for the Anarchitects ecosystem.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+This workspace hosts adapters and bridge libraries that are useful around the Anarchitects Bricks architecture, but do not belong in the core Bricks monorepo.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## Initial Focus
 
-## Generate a library
+This repo starts with two packages:
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
+- `@anarchitects/better-auth-typeorm-adapter`
+  - A Better Auth database adapter backed by TypeORM.
+  - First target: support the auth-domain use case proven in the Bricks monorepo.
+- `@anarchitects/nest-angular-ssr`
+  - A NestJS integration package for Angular SSR.
+  - Intended as a modern replacement path for the niche previously served by `@nestjs/ng-universal`.
+
+## Why This Repo Exists
+
+The main Bricks monorepo should stay focused on domain bricks and app-facing consumption.
+
+This repo exists for integrations that are:
+
+- reusable across projects,
+- valuable to the wider community,
+- not core domain contracts themselves,
+- best developed as standalone packages with their own release lifecycle.
+
+## Principles
+
+- Keep public APIs small and explicit.
+- Prefer framework adapters over framework leakage.
+- Keep package boundaries clean.
+- Ship minimal dependencies.
+- Start internal-first, extract only what proves stable.
+- Align with the Anarchitects flexibility paradigm:
+  - easy mode for common use,
+  - advanced mode for composition and overrides.
+
+## Planned Packages
+
+### `@anarchitects/better-auth-typeorm-adapter`
+
+Goal:
+Provide a production-usable Better Auth adapter for TypeORM without forcing Better Auth persistence details into app-level public contracts.
+
+Initial expectations:
+
+- TypeORM-backed persistence for Better Auth entities
+- explicit schema ownership
+- compatibility with isolated and app-integrated deployment models
+- internal-first contract hardening before broader extraction/adoption
+
+Non-goals for v1:
+
+- forcing reuse of arbitrary existing domain entities
+- exposing Better Auth table models as shared domain contracts
+- coupling the adapter to a single application architecture
+
+### `@anarchitects/nest-angular-ssr`
+
+Goal:
+Provide a clean NestJS module and integration path for Angular SSR applications in modern Nx/Nest/Angular workspaces.
+
+Initial expectations:
+
+- bootstrap helpers for Angular SSR inside Nest
+- configurable rendering pipeline
+- support for easy-mode setup and advanced composition
+- alignment with current Angular SSR and Nest modular patterns
+
+Non-goals for v1:
+
+- recreating deprecated APIs exactly
+- hiding all Angular SSR complexity
+- supporting every legacy universal setup
+
+## Workspace Structure
+
+Expected top-level layout:
+
+```text
+packages/
+  better-auth/
+    typeorm-adapter/
+  nest/
+    angular-ssr/
+tools/
+docs/
 ```
 
-## Run tasks
+Recommended package layering:
 
-To build the library use:
+- library source in packages/
+- shared tooling in tools/
+- design notes, ADRs, and package docs in docs/
 
-```sh
-npx nx build pkg1
+## Quick Start
+
+Install dependencies:
+
+```bash
+yarn install
 ```
 
-To run any task with Nx use:
+List projects:
 
-```sh
-npx nx <target> <project-name>
+```bash
+yarn nx show projects
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+Run tests for all packages:
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Versioning and releasing
-
-To version and release the library use
-
-```
-npx nx release
+```bash
+yarn nx run-many -t test
 ```
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+Build all packages:
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Keep TypeScript project references up to date
-
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
-
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
-
-```sh
-npx nx sync
+```bash
+yarn nx run-many -t build
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+Lint all packages:
 
-```sh
-npx nx sync:check
+```bash
+yarn nx run-many -t lint
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+## Suggested First Steps
 
-## Set up CI!
+1. Better Auth TypeORM Adapter
 
-### Step 1
+Start with:
 
-To connect to Nx Cloud, run the following command:
+- define package API surface
+- document adapter ownership and schema boundaries
+- model the minimum Better Auth persistence contract
+- add integration tests against a real database
+- keep extraction concerns secondary to correctness
 
-```sh
-npx nx connect
-```
+Suggested early deliverables:
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+- adapter contract draft
+- entity/schema strategy
+- repository mapping layer
+- smoke-tested login/session/account persistence flow
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+2. Nest Angular SSR Adapter
 
-### Step 2
+Start with:
 
-Use the following command to configure a CI workflow for your workspace:
+- define easy-mode Nest module API
+- define advanced composition entry points
+- validate Angular SSR bootstrapping inside Nest
+- add a minimal example app
+- document supported rendering model and limitations
 
-```sh
-npx nx g ci-workflow
-```
+Suggested early deliverables:
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- root module/facade
+- config contract
+- render service abstraction
+- example Nest + Angular SSR integration
 
-## Install Nx Console
+## Development Rules
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+- Keep packages independently publishable.
+- Do not leak repo-internal implementation details into public exports.
+- Prefer typed config and explicit module options.
+- Add docs and tests with each public API addition.
+- Treat examples as validation surfaces, not product packages.
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Relationship To Anarchitecture Bricks
 
-## Useful links
+This repo complements, but does not replace, the main Bricks monorepo.
 
-Learn more:
+General split:
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- core domain bricks and app-facing contracts:
+  -live in the main Bricks repo
+- community integrations and extracted adapters:
+  - live here
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+The Better Auth TypeORM adapter will be proven internally first, then matured here as a community package.
+The Nest Angular SSR adapter is intended as a standalone community integration from the start.
+
+## Status
+
+Early-stage workspace.
+APIs are expected to evolve quickly until the first stable package contracts are established.
+
+## License
+
+MIT
