@@ -10,7 +10,9 @@
     {
       "plugin": "@nx/js/typescript",
       "options": {
-        "typecheck": { "targetName": "typecheck" },
+        "typecheck": {
+          "targetName": "typecheck"
+        },
         "build": {
           "targetName": "build",
           "configName": "tsconfig.lib.json",
@@ -23,6 +25,7 @@
   "nxCloudId": "69c3ab46bf33a362f847a654",
   "release": {
     "version": {
+      "preVersionCommand": "yarn dlx nx run-many -t build",
       "conventionalCommits": true,
       "updateDependents": "never"
     },
