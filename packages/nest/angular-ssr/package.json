@@ -19,7 +19,11 @@
     "!**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@angular/ssr": "^21.0.0"
+    "@angular/ssr": "^21.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.0.0",
+    "fastify": "^5.0.0"
   },
   "nx": {
     "name": "nest-angular-ssr",
