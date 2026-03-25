@@ -9,6 +9,12 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 type FastifyInstanceLike = {
+  register(plugin: unknown, options: unknown): Promise<unknown>;
+  route(options: {
+    method: string[];
+    url: string;
+    handler: (request: FastifyRequest, reply: FastifyReply) => unknown;
+  }): unknown;
   get(
     path: string,
     handler: (request: FastifyRequest, reply: FastifyReply) => unknown,
