@@ -26,7 +26,7 @@ This repo is an Nx workspace for publishable libraries.
 
 General expectations:
 
-- source code lives under `libs/`
+- source code lives under `packages/`
 - shared tooling lives under `tools/`
 - documentation and design notes live under `docs/`
 - examples, if added later, exist only to validate package integration
