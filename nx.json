@@ -20,5 +20,57 @@
       }
     }
   ],
-  "nxCloudId": "69c3ab46bf33a362f847a654"
+  "nxCloudId": "69c3ab46bf33a362f847a654",
+  "release": {
+    "version": {
+      "conventionalCommits": true,
+      "updateDependents": "never"
+    },
+    "projectsRelationship": "independent",
+    "releaseTag": {
+      "pattern": "{projectName}@{version}"
+    },
+    "changelog": {
+      "projectChangelogs": {
+        "file": false,
+        "createRelease": "github"
+      }
+    },
+    "conventionalCommits": {
+      "useCommitScope": false,
+      "types": {
+        "feat": {
+          "semverBump": "minor"
+        },
+        "fix": {
+          "semverBump": "patch"
+        },
+        "init": {
+          "semverBump": "none",
+          "message": "init: initial commit"
+        },
+        "docs": {
+          "semverBump": "none"
+        },
+        "chore": {
+          "semverBump": "none"
+        },
+        "style": {
+          "semverBump": "none"
+        },
+        "refactor": {
+          "semverBump": "patch"
+        },
+        "ci": {
+          "semverBump": "none"
+        },
+        "test": {
+          "semverBump": "none"
+        },
+        "e2e": {
+          "semverBump": "none"
+        }
+      }
+    }
+  }
 }
