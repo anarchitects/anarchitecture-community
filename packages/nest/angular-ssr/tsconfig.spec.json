@@ -13,8 +13,6 @@
   "include": [
     "vite.config.ts",
     "vite.config.mts",
-    "vitest.config.ts",
-    "vitest.config.mts",
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.js",
