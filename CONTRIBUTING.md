@@ -108,6 +108,49 @@ yarn nx run-many -t build
 
 If only one project is affected, prefer project-scoped runs.
 
+## Releasing `@anarchitects/nest-angular-ssr`
+
+The package is intended to publish to the public npm registry through GitHub Actions using npm trusted publishing.
+
+### One-time prerequisite
+
+Before the first publish, configure npm trusted publishing for this GitHub repository and the publish workflow. Provenance is expected to come from GitHub Actions OIDC, not from long-lived npm tokens.
+
+### First release
+
+For the first package release, use Nx's first-release flow locally:
+
+```bash
+yarn nx release --projects nest-angular-ssr --skip-publish --first-release
+git push && git push --tags
+```
+
+This creates the version/tag locally. The publish workflow then publishes the package from the pushed tag.
+
+If the first CI publish needs explicit first-release handling as well, treat that as a one-time release operation and keep the steady-state workflow unchanged afterward.
+
+### Ongoing releases
+
+After the package already exists on npm:
+
+```bash
+yarn nx release --projects nest-angular-ssr --skip-publish
+git push && git push --tags
+```
+
+The publish workflow is tag-driven and will publish `@anarchitects/nest-angular-ssr` on tags matching `nest-angular-ssr@*`.
+
+### Local verification before releasing
+
+Recommended package-scoped checks:
+
+```bash
+yarn nx build nest-angular-ssr
+yarn nx typecheck nest-angular-ssr
+yarn nx test nest-angular-ssr
+yarn nx release publish --projects nest-angular-ssr --dry-run
+```
+
 ## Documentation
 
 Public API changes should update docs in the same change.
