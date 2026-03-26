@@ -1,0 +1,67 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "nest-cjs-consumer",
+  "projectType": "application",
+  "root": "apps/fixtures/nest-cjs-consumer",
+  "sourceRoot": "apps/fixtures/nest-cjs-consumer/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run build",
+        "cwd": "apps/fixtures/nest-cjs-consumer"
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "npm run start",
+        "cwd": "apps/fixtures/nest-cjs-consumer"
+      }
+    },
+    "validate-consumption": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs nest-cjs-consumer"
+      }
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/package.json",
+        "{projectRoot}/tsconfig.json",
+        "{projectRoot}/tsconfig.app.json",
+        "{projectRoot}/src/**/*.ts",
+        {
+          "dependentTasksOutputFiles": "**/*.{d.ts,tsbuildinfo}",
+          "transitive": true
+        },
+        "^{projectRoot}/tsconfig.lib.json"
+      ],
+      "outputs": [
+        "{projectRoot}/dist/**/*.d.ts",
+        "{projectRoot}/dist/tsconfig.app.tsbuildinfo"
+      ],
+      "syncGenerators": ["@nx/js:typescript-sync"],
+      "metadata": {
+        "technologies": ["typescript"],
+        "description": "Runs type-checking for the project.",
+        "help": {
+          "command": "yarn tsc --build --help",
+          "example": {
+            "args": ["--force"]
+          }
+        }
+      },
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/fixtures/nest-cjs-consumer",
+        "command": "tsc --build --emitDeclarationOnly"
+      }
+    }
+  },
+  "tags": []
+}

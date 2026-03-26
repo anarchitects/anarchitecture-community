@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmitOnError": true,
+    "noUnusedLocals": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2022",
+    "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo",
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": []
+}

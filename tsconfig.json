@@ -5,6 +5,12 @@
   "references": [
     {
       "path": "./packages/nest/angular-ssr"
+    },
+    {
+      "path": "./apps/fixtures/nest-esm-consumer"
+    },
+    {
+      "path": "./apps/fixtures/nest-cjs-consumer"
     }
   ]
 }
