@@ -15,10 +15,15 @@
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-fastify": "^11.1.6",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
     "@nx/js": "22.6.1",
+    "@nx/nest": "22.6.1",
+    "@nx/node": "22.6.1",
     "@nx/vite": "22.6.1",
     "@nx/vitest": "22.6.1",
     "@nx/web": "22.6.1",
+    "@nx/webpack": "22.6.1",
     "@swc-node/register": "~1.11.1",
     "@swc/core": "~1.15.5",
     "@swc/helpers": "~0.5.18",
@@ -48,6 +53,12 @@
   "nx": {
     "includedScripts": [],
     "targets": {
+      "validate-nest-angular-ssr-consumers": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
+        }
+      },
       "local-registry": {
         "executor": "@nx/js:verdaccio",
         "options": {
