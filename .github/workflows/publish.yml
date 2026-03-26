@@ -1,0 +1,35 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'nest-angular-ssr@*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - run: corepack enable
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - run: yarn install --immutable
+
+      - run: yarn nx build nest-angular-ssr
+
+      - run: yarn nx release publish --projects nest-angular-ssr
+        env:
+          NPM_CONFIG_PROVENANCE: true

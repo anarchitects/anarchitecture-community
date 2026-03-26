@@ -1,10 +1,20 @@
 {
   "name": "@anarchitects/nest-angular-ssr",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/nest/angular-ssr"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/nest/angular-ssr#readme",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -18,6 +28,9 @@
     "dist",
     "!**/*.tsbuildinfo"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@angular/ssr": "^21.0.0",
     "@nestjs/common": "^11.0.0",

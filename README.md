@@ -12,8 +12,9 @@ This repo starts with two packages:
   - A Better Auth database adapter backed by TypeORM.
   - First target: support the auth-domain use case proven in the Bricks monorepo.
 - `@anarchitects/nest-angular-ssr`
-  - A NestJS integration package for Angular SSR.
-  - Intended as a modern replacement path for the niche previously served by `@nestjs/ng-universal`.
+  - A Fastify-first NestJS integration package for Angular SSR.
+  - Provides a Nest module facade, explicit bootstrap helper, and lower-level composition APIs.
+  - Validated for direct consumption from both CommonJS-oriented and ESM Nest apps.
 
 ## Why This Repo Exists
 
@@ -62,18 +63,20 @@ Non-goals for v1:
 Goal:
 Provide a clean NestJS module and integration path for Angular SSR applications in modern Nx/Nest/Angular workspaces.
 
-Initial expectations:
+Current v1 surface:
 
-- bootstrap helpers for Angular SSR inside Nest
-- configurable rendering pipeline
-- support for easy-mode setup and advanced composition
-- alignment with current Angular SSR and Nest modular patterns
+- `NestAngularSsrModule.forRoot(...)` and `forRootAsync(...)`
+- explicit `bootstrapNestAngularSsr(...)` wiring
+- lower-level renderer, integration, and routing APIs for advanced composition
+- Fastify-native static asset serving and SSR fallback routing
+- validated direct consumption from CommonJS-oriented and ESM Nest apps
 
 Non-goals for v1:
 
 - recreating deprecated APIs exactly
 - hiding all Angular SSR complexity
 - supporting every legacy universal setup
+- supporting non-Fastify Nest adapters
 
 ## Workspace Structure
 
@@ -148,20 +151,17 @@ Suggested early deliverables:
 
 2. Nest Angular SSR Adapter
 
-Start with:
+Current status:
 
-- define easy-mode Nest module API
-- define advanced composition entry points
-- validate Angular SSR bootstrapping inside Nest
-- add a minimal example app
-- document supported rendering model and limitations
+- package implemented under `packages/nest/angular-ssr`
+- Nest module facade, explicit bootstrap helper, and advanced composition entry points in place
+- runtime behavior and CJS/ESM consumer validation implemented with fixture apps
+- package-local documentation should be treated as the source of truth
 
-Suggested early deliverables:
+Key v1 references:
 
-- root module/facade
-- config contract
-- render service abstraction
-- example Nest + Angular SSR integration
+- `packages/nest/angular-ssr/README.md`
+- `docs/validation/nest-angular-ssr-consumers.md`
 
 ## Development Rules
 
