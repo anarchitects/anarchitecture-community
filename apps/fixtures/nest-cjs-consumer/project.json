@@ -45,21 +45,10 @@
         "{projectRoot}/dist/**/*.d.ts",
         "{projectRoot}/dist/tsconfig.app.tsbuildinfo"
       ],
-      "syncGenerators": ["@nx/js:typescript-sync"],
-      "metadata": {
-        "technologies": ["typescript"],
-        "description": "Runs type-checking for the project.",
-        "help": {
-          "command": "yarn tsc --build --help",
-          "example": {
-            "args": ["--force"]
-          }
-        }
-      },
       "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/fixtures/nest-cjs-consumer",
-        "command": "tsc --build --emitDeclarationOnly"
+        "command": "tsc --project tsconfig.app.json --noEmit"
       }
     }
   },
