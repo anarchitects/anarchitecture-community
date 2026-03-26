@@ -4,9 +4,11 @@
   "projectType": "application",
   "root": "apps/fixtures/nest-esm-consumer",
   "sourceRoot": "apps/fixtures/nest-esm-consumer/src",
+  "implicitDependencies": ["nest-angular-ssr"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
       "options": {
         "command": "npm run build",
         "cwd": "apps/fixtures/nest-esm-consumer"
