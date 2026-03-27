@@ -1,0 +1,113 @@
+name: Feature request
+description: Propose a new capability, improvement, or follow-up enhancement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: dropdown
+    id: affected-project
+    attributes:
+      label: Affected package or project
+      description: Pick the package, project, or repo area this request is about.
+      options:
+        - "@anarchitects/nest-angular-ssr"
+        - "Better Auth TypeORM adapter"
+        - "Release / publish tooling"
+        - "Documentation"
+        - "Fixture apps"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature-area
+    attributes:
+      label: Area
+      description: Which area best matches the request?
+      options:
+        - integration
+        - routing
+        - adapter support
+        - caching
+        - observability
+        - edge
+        - multi-app
+        - docs
+        - release tooling
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement or use case
+      description: What problem are you trying to solve?
+      placeholder: Describe the real-world use case or current limitation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-capability
+    attributes:
+      label: Proposed capability
+      description: What would you like the package or repo to support?
+      placeholder: Describe the capability, workflow, or API you want.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-value
+    attributes:
+      label: Expected value or outcome
+      description: Why would this matter? How would it improve adoption, DX, or runtime behavior?
+      placeholder: Explain the expected benefit.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: blocking-adoption
+    attributes:
+      label: Is this blocking adoption?
+      description: For launch feedback, tell us whether this request is preventing practical use.
+      options:
+        - "Yes"
+        - "No"
+        - "Unsure"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        For `@anarchitects/nest-angular-ssr` requests, extra context around adapters, routing, or SSR behavior is helpful. For non-SSR requests, keep the details generic.
+
+  - type: textarea
+    id: proposed-api
+    attributes:
+      label: Proposed API shape
+      description: Optional. Sketch the API, config shape, or usage you have in mind.
+      placeholder: |
+        Example:
+        NestAngularSsrModule.forRoot({
+          ...
+        })
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What alternatives, workarounds, or competing approaches have you considered?
+    validations:
+      required: false
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related issues, roadmap items, or prior art
+      description: Link related issues, discussions, packages, or prior art if relevant.
+      placeholder: "#33, #34, npm package link, blog post, docs URL, etc."
+    validations:
+      required: false
