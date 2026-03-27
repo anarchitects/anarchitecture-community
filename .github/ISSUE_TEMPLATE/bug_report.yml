@@ -1,0 +1,130 @@
+name: Bug report
+description: Report a defect or regression in a package, workflow, or documentation path.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: dropdown
+    id: affected-project
+    attributes:
+      label: Affected package or project
+      description: Pick the package, project, or repo area that is primarily affected.
+      options:
+        - "@anarchitects/nest-angular-ssr"
+        - "Better Auth TypeORM adapter"
+        - "Release / publish tooling"
+        - "Documentation"
+        - "Fixture apps"
+        - "Other"
+    validations:
+      required: true
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One concise sentence describing the bug.
+      placeholder: SSR fallback route returns 500 when rendering through Fastify
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: What is happening now?
+      placeholder: Describe the observed bug, error, or regression.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+      placeholder: Describe the expected outcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: List the shortest reliable steps to reproduce the issue.
+      placeholder: |
+        1. Create a Nest Fastify app with NestAngularSsrModule.forRoot(...)
+        2. Request /
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        If this is **not** about `@anarchitects/nest-angular-ssr`, leave the SSR-specific fields below as `N/A` or `unknown`.
+
+  - type: dropdown
+    id: ssr-adapter
+    attributes:
+      label: SSR adapter
+      description: For `@anarchitects/nest-angular-ssr` issues, which adapter is involved?
+      options:
+        - fastify
+        - express
+        - other
+        - N/A
+    validations:
+      required: false
+
+  - type: dropdown
+    id: runtime-mode
+    attributes:
+      label: Runtime mode
+      description: For `@anarchitects/nest-angular-ssr` issues, which module/runtime mode is involved?
+      options:
+        - CommonJS
+        - ESM
+        - unknown
+        - N/A
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment details
+      description: Include the relevant versions and runtime details.
+      placeholder: |
+        Package version: 0.1.0
+        Nest version: 11.x
+        Angular / @angular/ssr version: 21.x
+        Node version: 22.x
+        OS: macOS / Linux / Windows
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or stack traces
+      description: Paste relevant logs, stack traces, or failing output.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or visual evidence
+      description: Add screenshots, screen recordings, or copied output if helpful.
+    validations:
+      required: false
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround found
+      description: If you found a temporary workaround, describe it here.
+      placeholder: Optional
+    validations:
+      required: false
