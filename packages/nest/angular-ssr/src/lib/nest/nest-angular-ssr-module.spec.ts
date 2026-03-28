@@ -265,10 +265,17 @@ async function createRealModuleFixture(
       return 'ok';
     }
   }
+  const healthDescriptor = Object.getOwnPropertyDescriptor(
+    HealthController.prototype,
+    'getHealth',
+  );
+  if (!healthDescriptor) {
+    throw new Error('HealthController#getHealth descriptor is required.');
+  }
   Get('health')(
     HealthController.prototype,
     'getHealth',
-    Object.getOwnPropertyDescriptor(HealthController.prototype, 'getHealth')!,
+    healthDescriptor,
   );
   Controller('api')(HealthController);
 
