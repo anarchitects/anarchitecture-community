@@ -299,7 +299,7 @@ function createMockRoutingContext(overrides: {
 }
 
 function createMockIntegration(
-  handled: boolean = true,
+  handled = true,
 ): NestAngularSsrIntegration<unknown> & {
   handle: ReturnType<typeof vi.fn>;
 } {

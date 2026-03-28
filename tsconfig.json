@@ -11,6 +11,9 @@
     },
     {
       "path": "./apps/fixtures/nest-cjs-consumer"
+    },
+    {
+      "path": "./packages/better-auth/typeorm-adapter"
     }
   ]
 }

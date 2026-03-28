@@ -1,6 +1,7 @@
 {
-  "name": "@anarchitects/nest-angular-ssr",
-  "version": "0.1.0",
+  "name": "@anarchitects/better-auth-typeorm-adapter",
+  "version": "0.0.1",
+  "description": "Framework-neutral Better Auth database adapter infrastructure for TypeORM.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -9,12 +10,12 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
-    "directory": "packages/nest/angular-ssr"
+    "directory": "packages/better-auth/typeorm-adapter"
   },
   "bugs": {
     "url": "https://github.com/anarchitects/anarchitecture-community/issues"
   },
-  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/nest/angular-ssr#readme",
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/better-auth/typeorm-adapter#readme",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -31,19 +32,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "peerDependencies": {
-    "@angular/core": "^21.0.0",
-    "@angular/platform-browser": "^21.0.0",
-    "@angular/router": "^21.0.0",
-    "@angular/ssr": "^21.0.0",
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-fastify": "^11.0.0",
-    "fastify": "^5.0.0",
-    "reflect-metadata": "^0.2.0"
-  },
   "nx": {
-    "name": "nest-angular-ssr",
+    "name": "better-auth-typeorm-adapter",
     "targets": {
       "test": {
         "executor": "@nx/vitest:test",
@@ -51,12 +41,9 @@
           "{options.reportsDirectory}"
         ],
         "options": {
-          "reportsDirectory": "coverage/packages/nest/angular-ssr"
+          "reportsDirectory": "coverage/packages/better-auth/typeorm-adapter"
         }
       }
     }
-  },
-  "dependencies": {
-    "@fastify/static": "^8.2.0"
   }
 }
