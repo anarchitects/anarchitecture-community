@@ -45,5 +45,13 @@
         }
       }
     }
+  },
+  "peerDependencies": {
+    "better-auth": "^1.0.0",
+    "typeorm": "^0.3.0"
+  },
+  "devDependencies": {
+    "better-auth": "^1.0.0",
+    "typeorm": "^0.3.0"
   }
 }
