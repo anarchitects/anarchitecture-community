@@ -11,6 +11,9 @@ __metadata:
   dependencies:
     better-auth: "npm:^1.0.0"
     typeorm: "npm:^0.3.0"
+  peerDependencies:
+    better-auth: ^1.0.0
+    typeorm: ^0.3.0
   languageName: unknown
   linkType: soft
 
