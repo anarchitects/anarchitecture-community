@@ -8,18 +8,46 @@ import {
 } from './index.js';
 
 describe('package entrypoint', () => {
-  it('exports the stub adapter factory and throws until runtime support lands', async () => {
+  it('exports a Better Auth database adapter factory', async () => {
     const entrypoint = await import('./index.js');
+    const database = createBetterAuthTypeormAdapter({
+      dataSource: { manager: {} } as DataSource,
+      models: {},
+    });
+    const adapter = database({});
 
     expect(entrypoint.createBetterAuthTypeormAdapter).toBe(
       createBetterAuthTypeormAdapter,
     );
-    expect(() =>
-      createBetterAuthTypeormAdapter({
-        dataSource: {} as DataSource,
-        models: {},
-      }),
-    ).toThrowError('createBetterAuthTypeormAdapter is not implemented yet.');
+    expect(database).toBeTypeOf('function');
+    expect(adapter.id).toBe('typeorm');
+    expect(adapter.options?.adapterConfig).toMatchObject({
+      adapterId: 'typeorm',
+      adapterName: 'TypeORM',
+      usePlural: false,
+      supportsNumericIds: false,
+      supportsUUIDs: true,
+      supportsJSON: true,
+      supportsDates: true,
+      supportsBooleans: true,
+      supportsArrays: false,
+    });
+  });
+
+  it('respects adapter metadata overrides', () => {
+    const database = createBetterAuthTypeormAdapter({
+      dataSource: { manager: {} } as DataSource,
+      models: {},
+      adapterId: 'custom-typeorm',
+      adapterName: 'Custom TypeORM',
+    });
+    const adapter = database({});
+
+    expect(adapter.id).toBe('custom-typeorm');
+    expect(adapter.options?.adapterConfig).toMatchObject({
+      adapterId: 'custom-typeorm',
+      adapterName: 'Custom TypeORM',
+    });
   });
 
   it('locks the public type contract', () => {

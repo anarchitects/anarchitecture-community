@@ -9,6 +9,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitects/better-auth-typeorm-adapter@workspace:packages/better-auth/typeorm-adapter"
   dependencies:
+    "@opentelemetry/api": "npm:^1.9.0"
     better-auth: "npm:^1.0.0"
     typeorm: "npm:^0.3.0"
   peerDependencies:
@@ -3396,6 +3397,13 @@ __metadata:
     tslib: "npm:^2.3.0"
     yargs-parser: "npm:21.1.1"
   checksum: 10c0/0f25f86d60cecac4e8e9024f870df2e4fad0c095b8511c4c2c6d37d7d9dd75ff42b903943f08d50440ac49873cd99acfe6b2d62129c25e032ba16bdd407c544a
+  languageName: node
+  linkType: hard
+
+"@opentelemetry/api@npm:^1.9.0":
+  version: 1.9.1
+  resolution: "@opentelemetry/api@npm:1.9.1"
+  checksum: 10c0/c608485fc8b5a91e1f7e05e843b45b509307456b31cd2ad365933d90813e40ebfedf179f1451c762037e82d7c76aa8500e95d2da3609f640a1206cde5322cd14
   languageName: node
   linkType: hard
 

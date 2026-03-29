@@ -36,7 +36,7 @@ export default defineConfig(() => ({
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
-      external: [],
+      external: ['better-auth', 'better-auth/adapters', 'typeorm'],
     },
   },
   test: {
