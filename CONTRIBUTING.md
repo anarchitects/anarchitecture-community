@@ -151,6 +151,53 @@ yarn nx test nest-angular-ssr
 yarn nx release publish --projects nest-angular-ssr --dry-run
 ```
 
+## Releasing `@anarchitects/better-auth-typeorm-adapter`
+
+The package is intended to publish to the public npm registry through GitHub Actions using npm trusted publishing.
+
+### One-time prerequisite
+
+Before the first publish, configure npm trusted publishing for this GitHub repository and the publish workflow. Provenance is expected to come from GitHub Actions OIDC, not from long-lived npm tokens.
+
+### First release
+
+For the first package release, use Nx's first-release flow locally:
+
+```bash
+yarn nx release --projects better-auth-typeorm-adapter --skip-publish --first-release
+git push && git push --tags
+```
+
+This creates the version/tag locally. The publish workflow then publishes the package from the pushed tag.
+
+The tag-driven publish workflow watches tags matching `better-auth-typeorm-adapter@*`.
+
+### Ongoing releases
+
+After the package already exists on npm:
+
+```bash
+yarn nx release --projects better-auth-typeorm-adapter --skip-publish
+git push && git push --tags
+```
+
+The publish workflow remains tag-driven and will publish `@anarchitects/better-auth-typeorm-adapter` on tags matching `better-auth-typeorm-adapter@*`.
+
+### Local verification before releasing
+
+Recommended package-scoped checks:
+
+```bash
+yarn nx build better-auth-typeorm-adapter
+yarn nx typecheck better-auth-typeorm-adapter
+yarn nx test better-auth-typeorm-adapter
+yarn nx run better-auth-typeorm-adapter:test-postgres
+yarn nx run better-auth-typeorm-adapter:test-better-auth
+yarn nx release publish --projects better-auth-typeorm-adapter --dry-run
+```
+
+The release notes are expected to come from Nx's GitHub release flow using the repository's conventional commits configuration. No separate handwritten changelog file is required for the adapter.
+
 ## Documentation
 
 Public API changes should update docs in the same change.

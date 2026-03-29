@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/better-auth-typeorm-adapter",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Framework-neutral Better Auth database adapter infrastructure for TypeORM.",
   "license": "MIT",
   "type": "module",
@@ -16,6 +16,13 @@
     "url": "https://github.com/anarchitects/anarchitecture-community/issues"
   },
   "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/better-auth/typeorm-adapter#readme",
+  "keywords": [
+    "better-auth",
+    "typeorm",
+    "postgresql",
+    "adapter",
+    "auth"
+  ],
   "exports": {
     "./package.json": "./package.json",
     ".": {
