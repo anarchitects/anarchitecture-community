@@ -4,13 +4,15 @@ on:
   push:
     tags:
       - 'nest-angular-ssr@*'
+      - 'better-auth-typeorm-adapter@*'
 
 permissions:
   contents: read
   id-token: write
 
 jobs:
-  publish:
+  publish-nest-angular-ssr:
+    if: startsWith(github.ref_name, 'nest-angular-ssr@')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -31,5 +33,34 @@ jobs:
       - run: yarn nx build nest-angular-ssr
 
       - run: yarn nx release publish --projects nest-angular-ssr
+        env:
+          NPM_CONFIG_PROVENANCE: true
+
+  publish-better-auth-typeorm-adapter:
+    if: startsWith(github.ref_name, 'better-auth-typeorm-adapter@')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - run: corepack enable
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - run: yarn install --immutable
+
+      - run: yarn nx build better-auth-typeorm-adapter
+      - run: yarn nx typecheck better-auth-typeorm-adapter
+      - run: yarn nx test better-auth-typeorm-adapter
+      - run: yarn nx run better-auth-typeorm-adapter:test-postgres
+      - run: yarn nx run better-auth-typeorm-adapter:test-better-auth
+
+      - run: yarn nx release publish --projects better-auth-typeorm-adapter
         env:
           NPM_CONFIG_PROVENANCE: true
