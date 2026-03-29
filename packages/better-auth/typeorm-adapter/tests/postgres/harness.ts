@@ -10,6 +10,15 @@ const INITIALIZE_RETRY_DELAY_MS = 500;
 
 type EntityList = NonNullable<DataSourceOptions['entities']>;
 
+export interface PostgresHarnessConnectionDetails {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  database: string;
+  connectionString: string;
+}
+
 function sleep(milliseconds: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
@@ -17,7 +26,15 @@ function sleep(milliseconds: number) {
 }
 
 export interface PostgresHarness {
-  createDataSource: (entities: EntityList) => Promise<DataSource>;
+  createDataSource: (
+    entities: EntityList,
+    options?: {
+      dropSchema?: boolean;
+      logging?: boolean;
+      synchronize?: boolean;
+    },
+  ) => Promise<DataSource>;
+  getConnectionDetails: () => PostgresHarnessConnectionDetails;
   stop: () => Promise<void>;
 }
 
@@ -33,9 +50,17 @@ export async function startPostgresHarness(): Promise<PostgresHarness> {
 
   const host = container.getHost();
   const port = container.getMappedPort(POSTGRES_PORT);
+  const connectionString = `postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${host}:${port}/${POSTGRES_DB}`;
 
   return {
-    async createDataSource(entities: EntityList) {
+    async createDataSource(
+      entities: EntityList,
+      options?: {
+        dropSchema?: boolean;
+        logging?: boolean;
+        synchronize?: boolean;
+      },
+    ) {
       const dataSource = new DataSource({
         type: 'postgres',
         host,
@@ -44,8 +69,9 @@ export async function startPostgresHarness(): Promise<PostgresHarness> {
         password: POSTGRES_PASSWORD,
         database: POSTGRES_DB,
         entities,
-        synchronize: true,
-        dropSchema: true,
+        synchronize: options?.synchronize ?? true,
+        dropSchema: options?.dropSchema ?? true,
+        logging: options?.logging ?? false,
       });
 
       for (let attempt = 1; attempt <= MAX_INITIALIZE_ATTEMPTS; attempt += 1) {
@@ -62,6 +88,16 @@ export async function startPostgresHarness(): Promise<PostgresHarness> {
       }
 
       throw new Error('Failed to initialize PostgreSQL test data source.');
+    },
+    getConnectionDetails() {
+      return {
+        host,
+        port,
+        username: POSTGRES_USER,
+        password: POSTGRES_PASSWORD,
+        database: POSTGRES_DB,
+        connectionString,
+      };
     },
     async stop() {
       await container.stop();
