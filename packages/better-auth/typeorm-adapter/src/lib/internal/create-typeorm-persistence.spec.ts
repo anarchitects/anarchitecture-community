@@ -37,6 +37,7 @@ class FakeQueryBuilder {
   readonly skips: number[] = [];
   readonly sets: Record<string, unknown>[] = [];
   readonly modes: string[] = [];
+  readonly fromTargets: unknown[] = [];
   readonly executions: QueryExecution[];
 
   constructor(executions: QueryExecution[]) {
@@ -85,6 +86,11 @@ class FakeQueryBuilder {
 
   delete() {
     this.modes.push('delete');
+    return this;
+  }
+
+  from(target: unknown) {
+    this.fromTargets.push(target);
     return this;
   }
 
@@ -559,7 +565,14 @@ describe('createTypeormPersistence', () => {
   it('returns counts and affected rows for bulk operations', async () => {
     const userRepository = createFakeRepository({
       metadataName: 'UserEntity',
-      queryExecutions: [[{ count: 7 }], [{ affected: 3 }], [{ affected: 2 }], [{ affected: 1 }]],
+      queryExecutions: [
+        [{ count: 7 }],
+        [{ count: 3 }],
+        [{ affected: 0 }],
+        [{ count: 2 }],
+        [{ affected: 0 }],
+        [{ affected: 1 }],
+      ],
     });
     const manager = createFakeManager({ UserEntity: userRepository });
     const dataSource = createFakeDataSource(manager);

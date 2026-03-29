@@ -4,10 +4,11 @@ import type { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import type { ModelRepositoryContext, ResolvedField } from './metadata.js';
 import { resolveField } from './metadata.js';
 
-type WhereCapableQueryBuilder = Pick<
-  SelectQueryBuilder<ObjectLiteral>,
-  'where' | 'andWhere' | 'orWhere'
->;
+type WhereCapableQueryBuilder = {
+  where: (expression: string, parameters?: Record<string, unknown>) => unknown;
+  andWhere: (expression: string, parameters?: Record<string, unknown>) => unknown;
+  orWhere: (expression: string, parameters?: Record<string, unknown>) => unknown;
+};
 
 const DEFAULT_ALIAS = 'entity';
 
@@ -23,7 +24,9 @@ function createClauseExpression(
   where: CleanedWhere,
   alias: string,
 ): { expression: string; parameters: Record<string, unknown> } {
-  const fieldExpression = `${alias}.${resolvedField.propertyPath}`;
+  const fieldExpression = alias
+    ? `${alias}.${resolvedField.propertyPath}`
+    : `"${resolvedField.databaseName}"`;
   const operator = where.operator;
   const value = where.value;
 
