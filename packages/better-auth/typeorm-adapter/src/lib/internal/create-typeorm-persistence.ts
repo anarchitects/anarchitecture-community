@@ -154,6 +154,17 @@ function applySelect(
   }
 }
 
+async function countMatchingRows(
+  repositoryContext: ReturnType<typeof resolveModelRepository>,
+  where: CleanedWhere[],
+): Promise<number> {
+  const queryBuilder = createRepositoryQueryBuilder(repositoryContext);
+
+  applyWhereClauses(queryBuilder, repositoryContext, where);
+
+  return queryBuilder.getCount();
+}
+
 export function createTypeormPersistence(
   options: CreateTypeormPersistenceOptions,
 ): BetterAuthTypeormPersistence {
@@ -329,15 +340,23 @@ export function createTypeormPersistence(
       update: Record<string, unknown>;
     }): Promise<number> {
       const repositoryContext = resolveModelRepository(scope, model);
-      const queryBuilder = createRepositoryQueryBuilder(repositoryContext);
-      const mappedUpdate = mapUpdateRecordToEntityProperties(repositoryContext, update);
+      const matchedCount = await countMatchingRows(repositoryContext, where);
 
-      queryBuilder.update().set(mappedUpdate);
-      applyWhereClauses(queryBuilder, repositoryContext, where);
+      if (matchedCount === 0) {
+        return 0;
+      }
+
+      const mappedUpdate = mapUpdateRecordToEntityProperties(repositoryContext, update);
+      const queryBuilder = repositoryContext.repository
+        .createQueryBuilder()
+        .update(repositoryContext.target)
+        .set(mappedUpdate);
+
+      applyWhereClauses(queryBuilder, repositoryContext, where, '');
 
       const result = await queryBuilder.execute();
 
-      return result.affected ?? 0;
+      return result.affected && result.affected > 0 ? result.affected : matchedCount;
     },
 
     async delete({
@@ -348,10 +367,12 @@ export function createTypeormPersistence(
       where: CleanedWhere[];
     }): Promise<void> {
       const repositoryContext = resolveModelRepository(scope, model);
-      const queryBuilder = createRepositoryQueryBuilder(repositoryContext);
+      const queryBuilder = repositoryContext.repository
+        .createQueryBuilder()
+        .delete()
+        .from(repositoryContext.target);
 
-      queryBuilder.delete();
-      applyWhereClauses(queryBuilder, repositoryContext, where);
+      applyWhereClauses(queryBuilder, repositoryContext, where, '');
       await queryBuilder.execute();
     },
 
@@ -363,14 +384,22 @@ export function createTypeormPersistence(
       where: CleanedWhere[];
     }): Promise<number> {
       const repositoryContext = resolveModelRepository(scope, model);
-      const queryBuilder = createRepositoryQueryBuilder(repositoryContext);
+      const matchedCount = await countMatchingRows(repositoryContext, where);
 
-      queryBuilder.delete();
-      applyWhereClauses(queryBuilder, repositoryContext, where);
+      if (matchedCount === 0) {
+        return 0;
+      }
+
+      const queryBuilder = repositoryContext.repository
+        .createQueryBuilder()
+        .delete()
+        .from(repositoryContext.target);
+
+      applyWhereClauses(queryBuilder, repositoryContext, where, '');
 
       const result = await queryBuilder.execute();
 
-      return result.affected ?? 0;
+      return result.affected && result.affected > 0 ? result.affected : matchedCount;
     },
 
     async transaction<R>(

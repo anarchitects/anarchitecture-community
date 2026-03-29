@@ -43,6 +43,13 @@
         "options": {
           "reportsDirectory": "coverage/packages/better-auth/typeorm-adapter"
         }
+      },
+      "test-postgres": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "packages/better-auth/typeorm-adapter",
+          "command": "vitest run --config vitest.postgres.config.mts"
+        }
       }
     }
   },
@@ -53,6 +60,8 @@
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
     "better-auth": "^1.0.0",
+    "pg": "^8.0.0",
+    "testcontainers": "^10.0.0",
     "typeorm": "^0.3.0"
   }
 }
