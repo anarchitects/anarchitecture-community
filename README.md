@@ -52,6 +52,11 @@ Initial expectations:
 - compatibility with isolated and app-integrated deployment models
 - internal-first contract hardening before broader extraction/adoption
 
+Current documentation:
+
+- `packages/better-auth/typeorm-adapter/README.md`
+- `docs/examples/better-auth-typeorm-adapter-composition.md`
+
 Non-goals for v1:
 
 - forcing reuse of arbitrary existing domain entities
@@ -148,6 +153,11 @@ Suggested early deliverables:
 - entity/schema strategy
 - repository mapping layer
 - smoke-tested login/session/account persistence flow
+
+Key v1 references:
+
+- `packages/better-auth/typeorm-adapter/README.md`
+- `docs/examples/better-auth-typeorm-adapter-composition.md`
 
 2. Nest Angular SSR Adapter
 

@@ -2,62 +2,248 @@
 
 Framework-neutral Better Auth database adapter infrastructure for TypeORM.
 
-This README defines the v1 schema ownership and migration boundary for consumers of the package. It is intentionally focused on what schema shape the adapter expects, what the host application still owns, and what the package does not do for you automatically.
+This package turns a TypeORM `DataSource` plus a caller-owned model map into a Better Auth database adapter. It is intended for host repositories that want Better Auth persistence over TypeORM without inheriting Nest-specific or app-specific integration code.
+
+Longer wrapper and composition examples live in [`docs/examples/better-auth-typeorm-adapter-composition.md`](../../../docs/examples/better-auth-typeorm-adapter-composition.md).
 
 ## Purpose
 
-This package exists to turn a TypeORM `DataSource` plus a caller-provided model map into a Better Auth-compatible database adapter.
+This package is responsible for:
 
-The public package boundary stays intentionally small:
+- adapting Better Auth database operations onto TypeORM
+- resolving models through a caller-provided `models` map
+- resolving fields through the mapped entity metadata
+- staying framework-neutral so host repos keep their own wrappers
 
-- `createBetterAuthTypeormAdapter(...)`
-- `BetterAuthTypeormAdapterOptions`
-- caller-owned `models` map registration
+This package is not responsible for:
 
-This package is framework-neutral. It does not own Nest wrappers, app composition layers, or host-repo migrations.
+- generating or owning your TypeORM migrations
+- reusing arbitrary existing app entities automatically
+- choosing which Better Auth plugins your app enables
+- exporting Nest providers, module wrappers, or repo-local helpers
 
-## Validated v1 Support
+## v1 Support
 
-The current validation story for this package covers:
+The validated v1 support claim for this package is:
 
-- PostgreSQL-backed adapter validation
-- string and UUID-style identifier support
+- PostgreSQL only
+- string-shaped IDs at the Better Auth API boundary
+- PostgreSQL UUID-backed persistence
 - JSON support on the supported PostgreSQL scope
 - boolean support on the supported PostgreSQL scope
 - date support on the supported PostgreSQL scope
-- core Better Auth model support through the caller-provided `models` map
+- core Better Auth model support through the caller-owned `models` map
 
 The package validation flow includes:
 
-- unit, lint, build, and typecheck
-- a low-level PostgreSQL persistence harness
-- a Better Auth utility suite using `better-auth/test`
+- `yarn nx lint better-auth-typeorm-adapter`
+- `yarn nx test better-auth-typeorm-adapter`
+- `yarn nx run better-auth-typeorm-adapter:test-postgres`
+- `yarn nx run better-auth-typeorm-adapter:test-better-auth`
 
-## Ownership Model
+Deferred or unsupported for v1:
 
-The adapter is model-map driven, not schema-magic driven.
+- numeric IDs
+- arrays
+- non-PostgreSQL database claims
+- broad plugin-by-plugin compatibility claims
 
-Consumers provide:
+## Installation
 
-- their TypeORM `DataSource`
-- their TypeORM entity classes
-- their Better Auth model-to-entity map
-- their migration strategy
+Install the adapter plus its required Better Auth and TypeORM dependencies in your host repo:
 
-The adapter provides:
+```bash
+yarn add @anarchitects/better-auth-typeorm-adapter better-auth typeorm pg
+```
 
-- Better Auth adapter behavior over TypeORM
-- model resolution through the provided `models` map
-- field resolution through mapped entity metadata
+The package currently expects:
 
-The adapter does not:
+- `better-auth` `^1.0.0`
+- `typeorm` `^0.3.0`
+- a PostgreSQL driver such as `pg`
 
-- generate or own host-repo migrations
-- infer a complete application schema automatically
-- promise automatic reuse of arbitrary pre-existing domain entities
-- turn Better Auth persistence tables into shared domain contracts
+## Public API
 
-## Core Schema Expectations
+The public package surface is intentionally small:
+
+```ts
+import {
+  createBetterAuthTypeormAdapter,
+  type BetterAuthTypeormAdapterOptions,
+  type BetterAuthTypeormModelMap,
+} from '@anarchitects/better-auth-typeorm-adapter';
+```
+
+```ts
+type BetterAuthTypeormModelMap = Record<string, EntityTarget<ObjectLiteral>>;
+
+interface BetterAuthTypeormAdapterOptions {
+  dataSource: DataSource;
+  models: BetterAuthTypeormModelMap;
+  adapterId?: string;
+  adapterName?: string;
+}
+
+function createBetterAuthTypeormAdapter(
+  options: BetterAuthTypeormAdapterOptions,
+): BetterAuthOptions['database'];
+```
+
+`adapterId` and `adapterName` are optional metadata overrides. The package defaults remain PostgreSQL-oriented internally.
+
+## Minimal Example
+
+The example below uses `EntitySchema` to keep the setup framework-neutral and decorator-free. It shows the minimum moving parts:
+
+- a PostgreSQL `DataSource`
+- Better Auth-oriented persistence entities
+- a caller-owned `models` map
+- Better Auth configured with `createBetterAuthTypeormAdapter(...)`
+
+```ts
+import { betterAuth } from 'better-auth';
+import { DataSource, EntitySchema } from 'typeorm';
+
+import { createBetterAuthTypeormAdapter } from '@anarchitects/better-auth-typeorm-adapter';
+
+const UsersEntity = new EntitySchema({
+  name: 'UsersEntity',
+  tableName: 'users',
+  columns: {
+    id: { type: 'uuid', primary: true, generated: 'uuid' },
+    email: { type: 'varchar', unique: true },
+    name: { type: 'varchar' },
+    emailVerified: { type: 'boolean' },
+    image: { type: 'varchar', nullable: true },
+    createdAt: { type: 'timestamptz' },
+    updatedAt: { type: 'timestamptz' },
+  },
+});
+
+const AccountsEntity = new EntitySchema({
+  name: 'AccountsEntity',
+  tableName: 'accounts',
+  columns: {
+    id: { type: 'uuid', primary: true, generated: 'uuid' },
+    accountId: { type: 'varchar' },
+    providerId: { type: 'varchar' },
+    userId: { type: 'uuid' },
+    accessToken: { type: 'varchar', nullable: true },
+    refreshToken: { type: 'varchar', nullable: true },
+    idToken: { type: 'varchar', nullable: true },
+    accessTokenExpiresAt: { type: 'timestamptz', nullable: true },
+    refreshTokenExpiresAt: { type: 'timestamptz', nullable: true },
+    scope: { type: 'varchar', nullable: true },
+    password: { type: 'varchar', nullable: true },
+    createdAt: { type: 'timestamptz' },
+    updatedAt: { type: 'timestamptz' },
+  },
+});
+
+const SessionsEntity = new EntitySchema({
+  name: 'SessionsEntity',
+  tableName: 'sessions',
+  columns: {
+    id: { type: 'uuid', primary: true, generated: 'uuid' },
+    userId: { type: 'uuid' },
+    expiresAt: { type: 'timestamptz' },
+    token: { type: 'varchar', unique: true },
+    ipAddress: { type: 'varchar', nullable: true },
+    userAgent: { type: 'varchar', nullable: true },
+    createdAt: { type: 'timestamptz' },
+    updatedAt: { type: 'timestamptz' },
+  },
+});
+
+const VerificationsEntity = new EntitySchema({
+  name: 'VerificationsEntity',
+  tableName: 'verifications',
+  columns: {
+    id: { type: 'uuid', primary: true, generated: 'uuid' },
+    identifier: { type: 'varchar' },
+    value: { type: 'varchar' },
+    expiresAt: { type: 'timestamptz' },
+    createdAt: { type: 'timestamptz' },
+    updatedAt: { type: 'timestamptz' },
+  },
+});
+
+export const dataSource = new DataSource({
+  type: 'postgres',
+  url: process.env.DATABASE_URL,
+  entities: [
+    UsersEntity,
+    AccountsEntity,
+    SessionsEntity,
+    VerificationsEntity,
+  ],
+});
+
+await dataSource.initialize();
+
+export const auth = betterAuth({
+  database: createBetterAuthTypeormAdapter({
+    dataSource,
+    models: {
+      users: UsersEntity,
+      accounts: AccountsEntity,
+      sessions: SessionsEntity,
+      verifications: VerificationsEntity,
+    },
+  }),
+  advanced: {
+    database: {
+      generateId: 'uuid',
+    },
+  },
+  user: {
+    modelName: 'users',
+  },
+  account: {
+    modelName: 'accounts',
+  },
+  session: {
+    modelName: 'sessions',
+  },
+  verification: {
+    modelName: 'verifications',
+  },
+});
+```
+
+## `DataSource` Expectations
+
+Your host repository owns the `DataSource`.
+
+Recommended expectations for v1:
+
+- initialize the `DataSource` before Better Auth starts using it
+- register explicit Better Auth persistence entities in that `DataSource`
+- target PostgreSQL
+- prefer UUID-backed primary keys for Better Auth persistence tables
+
+This package does not create or configure the `DataSource` for you.
+
+## Model Map Expectations
+
+The adapter is model-map driven.
+
+You must provide a `models` map that matches the Better Auth model names your configuration uses. In the minimal example above, Better Auth is configured to use plural model names, so the `models` map uses:
+
+- `users`
+- `accounts`
+- `sessions`
+- `verifications`
+
+If your Better Auth configuration uses singular names or plugin-specific names, the `models` map must match those names instead.
+
+Field handling is also explicit:
+
+- Better Auth field names may differ from TypeORM property names
+- the adapter resolves fields through mapped entity metadata
+- customization comes from Better Auth model/field transforms plus the `models` map
+
+## Schema Ownership
 
 The supported v1 scope assumes Better Auth-oriented tables and entities.
 
@@ -117,41 +303,9 @@ Consumers should model explicit Better Auth persistence entities for the core ta
 | `createdAt` | Creation timestamp |
 | `updatedAt` | Last update timestamp |
 
-## Optional Plugin Models
+## Migration Ownership
 
-Optional Better Auth plugin models are opt-in through the `models` map.
-
-For example, a host application that enables passkeys may register a `passkeys` model in addition to the core models above. That remains optional plugin-owned scope, not part of the core v1 table story documented here.
-
-This package does not decide which Better Auth plugins a host application uses.
-
-## Model Naming and Field Transforms
-
-Model resolution is explicit.
-
-- Better Auth-facing model names are resolved through the caller-provided `models` map.
-- Better Auth field transforms may differ from TypeORM property names.
-- v1 assumes the adapter resolves fields through the mapped entity metadata rather than requiring identical property names and column names everywhere.
-- Customization comes from Better Auth transforms plus the model map, not from hidden schema inference.
-
-In practice, that means consumers stay responsible for registering the correct entity for each Better Auth model and for ensuring the mapped entity exposes the fields Better Auth expects for that model.
-
-## IDs and Database Scope
-
-The required v1 support scope is PostgreSQL.
-
-Within that scope:
-
-- Better Auth-facing IDs remain string-shaped at the API boundary.
-- PostgreSQL `uuid` columns are a valid and recommended persistence choice.
-- Numeric IDs are not part of the required v1 support claim.
-- Arrays are not part of the required v1 support claim.
-
-Consumers may choose their own concrete PostgreSQL column definitions, but they remain responsible for keeping those choices compatible with Better Auth's string-oriented ID expectations.
-
-## Migrations
-
-Consumers own their migrations.
+Host repositories own their migrations.
 
 This package does not:
 
@@ -163,25 +317,49 @@ Better Auth CLI behavior for built-in adapters does not automatically become the
 
 If you use this package, you still need to choose and maintain your own TypeORM migration strategy in your host repository.
 
-## v1 Boundaries
+## Optional Plugin Models
 
-This package is intentionally scoped.
+Optional Better Auth plugin models are opt-in through the `models` map.
 
-It documents and targets:
+For example, if your host application enables passkeys, you can register a plugin-specific model alongside the core models:
 
-- framework-neutral Better Auth adapter composition for TypeORM
-- explicit Better Auth-oriented schema ownership
-- explicit model-map registration
-- PostgreSQL-backed v1 expectations
-- explicit validation of the v1 PostgreSQL claim through package test targets
+```ts
+createBetterAuthTypeormAdapter({
+  dataSource,
+  models: {
+    users: UsersEntity,
+    accounts: AccountsEntity,
+    sessions: SessionsEntity,
+    verifications: VerificationsEntity,
+    passkeys: PasskeysEntity,
+  },
+});
+```
 
-It does not document in this issue:
+This package does not decide which Better Auth plugins a host application uses, and it does not claim broad plugin-by-plugin certification in v1.
 
-- framework wrapper examples
-- illustrative entity class examples
-- migration code snippets
-- full setup walkthroughs
-- broad plugin-by-plugin compatibility claims
-- non-PostgreSQL database support claims
+## Wrapper Boundary
 
-Those broader usage and integration examples belong to the package documentation work in `#12`.
+This package is the Better Auth adapter. Host repos still own:
+
+- framework-specific wrappers
+- dependency injection and module wiring
+- application-specific auth services and routes
+- entity registration choices
+- plugin enablement choices
+- migration workflows
+
+Short wrapper/composition examples for Nest-style and DDD-style host repos live in [`docs/examples/better-auth-typeorm-adapter-composition.md`](../../../docs/examples/better-auth-typeorm-adapter-composition.md).
+
+## Limitations
+
+The current v1 boundary is intentionally narrow:
+
+- PostgreSQL is the only required supported database target
+- Better Auth-facing IDs stay string-shaped at the API boundary
+- PostgreSQL UUID columns are valid and recommended
+- numeric IDs are outside the required v1 support claim
+- arrays are outside the required v1 support claim
+- framework wrappers remain host-repo concerns
+
+The package is intended to be externally usable without private repo knowledge, but it is still intentionally strict about ownership boundaries.
