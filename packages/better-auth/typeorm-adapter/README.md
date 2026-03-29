@@ -16,6 +16,23 @@ The public package boundary stays intentionally small:
 
 This package is framework-neutral. It does not own Nest wrappers, app composition layers, or host-repo migrations.
 
+## Validated v1 Support
+
+The current validation story for this package covers:
+
+- PostgreSQL-backed adapter validation
+- string and UUID-style identifier support
+- JSON support on the supported PostgreSQL scope
+- boolean support on the supported PostgreSQL scope
+- date support on the supported PostgreSQL scope
+- core Better Auth model support through the caller-provided `models` map
+
+The package validation flow includes:
+
+- unit, lint, build, and typecheck
+- a low-level PostgreSQL persistence harness
+- a Better Auth utility suite using `better-auth/test`
+
 ## Ownership Model
 
 The adapter is model-map driven, not schema-magic driven.
@@ -128,6 +145,7 @@ Within that scope:
 - Better Auth-facing IDs remain string-shaped at the API boundary.
 - PostgreSQL `uuid` columns are a valid and recommended persistence choice.
 - Numeric IDs are not part of the required v1 support claim.
+- Arrays are not part of the required v1 support claim.
 
 Consumers may choose their own concrete PostgreSQL column definitions, but they remain responsible for keeping those choices compatible with Better Auth's string-oriented ID expectations.
 
@@ -155,6 +173,7 @@ It documents and targets:
 - explicit Better Auth-oriented schema ownership
 - explicit model-map registration
 - PostgreSQL-backed v1 expectations
+- explicit validation of the v1 PostgreSQL claim through package test targets
 
 It does not document in this issue:
 
@@ -162,5 +181,7 @@ It does not document in this issue:
 - illustrative entity class examples
 - migration code snippets
 - full setup walkthroughs
+- broad plugin-by-plugin compatibility claims
+- non-PostgreSQL database support claims
 
 Those broader usage and integration examples belong to the package documentation work in `#12`.

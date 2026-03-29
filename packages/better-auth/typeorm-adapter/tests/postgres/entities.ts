@@ -65,6 +65,23 @@ export interface TransformedAccountRow {
   updatedAt: Date;
 }
 
+export interface BetterAuthSuiteUserRow {
+  id: string;
+  email: string;
+  name: string;
+  emailVerified: boolean;
+  image: string | null;
+  profile: Record<string, unknown> | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type BetterAuthSuiteAccountRow = AccountRow;
+
+export type BetterAuthSuiteSessionRow = SessionRow;
+
+export type BetterAuthSuiteVerificationRow = VerificationRow;
+
 export const UsersEntity = new EntitySchema<UserRow>({
   name: 'UsersEntity',
   tableName: 'users',
@@ -189,6 +206,72 @@ export const AppAccountsEntity = new EntitySchema<TransformedAccountRow>({
   },
 });
 
+export const BetterAuthSuiteUsersEntity = new EntitySchema<BetterAuthSuiteUserRow>({
+  name: 'BetterAuthSuiteUsersEntity',
+  tableName: 'users',
+  columns: {
+    id: { type: 'uuid', primary: true, generated: 'uuid' },
+    email: { type: 'varchar', unique: true },
+    name: { type: 'varchar' },
+    emailVerified: { type: 'boolean' },
+    image: { type: 'varchar', nullable: true },
+    profile: { type: 'jsonb', nullable: true },
+    createdAt: { type: 'timestamptz' },
+    updatedAt: { type: 'timestamptz' },
+  },
+});
+
+export const BetterAuthSuiteAccountsEntity =
+  new EntitySchema<BetterAuthSuiteAccountRow>({
+    name: 'BetterAuthSuiteAccountsEntity',
+    tableName: 'accounts',
+    columns: {
+      id: { type: 'uuid', primary: true, generated: 'uuid' },
+      accountId: { type: 'varchar' },
+      providerId: { type: 'varchar' },
+      userId: { type: 'uuid' },
+      accessToken: { type: 'varchar', nullable: true },
+      refreshToken: { type: 'varchar', nullable: true },
+      idToken: { type: 'varchar', nullable: true },
+      accessTokenExpiresAt: { type: 'timestamptz', nullable: true },
+      refreshTokenExpiresAt: { type: 'timestamptz', nullable: true },
+      scope: { type: 'varchar', nullable: true },
+      password: { type: 'varchar', nullable: true },
+      createdAt: { type: 'timestamptz' },
+      updatedAt: { type: 'timestamptz' },
+    },
+  });
+
+export const BetterAuthSuiteSessionsEntity =
+  new EntitySchema<BetterAuthSuiteSessionRow>({
+    name: 'BetterAuthSuiteSessionsEntity',
+    tableName: 'sessions',
+    columns: {
+      id: { type: 'uuid', primary: true, generated: 'uuid' },
+      userId: { type: 'uuid' },
+      expiresAt: { type: 'timestamptz' },
+      token: { type: 'varchar', unique: true },
+      ipAddress: { type: 'varchar', nullable: true },
+      userAgent: { type: 'varchar', nullable: true },
+      createdAt: { type: 'timestamptz' },
+      updatedAt: { type: 'timestamptz' },
+    },
+  });
+
+export const BetterAuthSuiteVerificationsEntity =
+  new EntitySchema<BetterAuthSuiteVerificationRow>({
+    name: 'BetterAuthSuiteVerificationsEntity',
+    tableName: 'verifications',
+    columns: {
+      id: { type: 'uuid', primary: true, generated: 'uuid' },
+      identifier: { type: 'varchar' },
+      value: { type: 'varchar' },
+      expiresAt: { type: 'timestamptz' },
+      createdAt: { type: 'timestamptz' },
+      updatedAt: { type: 'timestamptz' },
+    },
+  });
+
 export const CORE_ENTITIES = [
   UsersEntity,
   AccountsEntity,
@@ -197,3 +280,10 @@ export const CORE_ENTITIES = [
 ] as const;
 
 export const TRANSFORMED_ENTITIES = [AppUsersEntity, AppAccountsEntity] as const;
+
+export const BETTER_AUTH_SUITE_ENTITIES = [
+  BetterAuthSuiteUsersEntity,
+  BetterAuthSuiteAccountsEntity,
+  BetterAuthSuiteSessionsEntity,
+  BetterAuthSuiteVerificationsEntity,
+] as const;
