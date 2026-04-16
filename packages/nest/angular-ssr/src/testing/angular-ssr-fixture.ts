@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import {
@@ -11,24 +11,18 @@ import {
   provideServerRendering,
   type ServerRoute,
   withRoutes,
-  ɵdestroyAngularServerApp,
-  ɵextractRoutesAndCreateRouteTree,
-  ɵgetOrCreateAngularServerApp,
-  ɵsetAngularAppEngineManifest,
-  ɵsetAngularAppManifest,
 } from '@angular/ssr';
 
+import type { AngularSsrRegistrationOptions } from '../lib/core/angular-ssr-registration.js';
+import {
+  registerAngularSsrApplication,
+  resetAngularSsrRegistration,
+} from '../lib/core/angular-ssr-registration-runtime.js';
+
 const FIXTURE_URL = 'http://localhost/';
-const INDEX_SERVER_HTML = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Angular SSR Fixture</title>
-  </head>
-  <body>
-    <app-root></app-root>
-  </body>
-</html>`;
+const FIXTURE_TEMPLATE_PATH = fileURLToPath(
+  new URL('./index.server.html', import.meta.url),
+);
 
 const FixtureAppComponent = Component({
   selector: 'app-root',
@@ -53,14 +47,6 @@ const serverRoutes: ServerRoute[] = [
   { path: '', renderMode: RenderMode.Server },
 ];
 
-function createServerAsset(text: string) {
-  return {
-    text: async () => text,
-    hash: createHash('sha256').update(text).digest('hex'),
-    size: Buffer.byteLength(text),
-  };
-}
-
 async function bootstrapFixtureApplication(context: BootstrapContext) {
   return bootstrapApplication(
     FixtureAppComponent,
@@ -74,48 +60,31 @@ async function bootstrapFixtureApplication(context: BootstrapContext) {
   );
 }
 
-export async function setupAngularSsrFixture(url = FIXTURE_URL) {
-  const manifest = {
-    baseHref: '/',
-    assets: {
-      'index.server.html': createServerAsset(INDEX_SERVER_HTML),
-    },
+export function createAngularSsrFixtureRegistration(
+  url = FIXTURE_URL,
+): AngularSsrRegistrationOptions {
+  return {
     bootstrap: async () => bootstrapFixtureApplication,
+    templatePath: FIXTURE_TEMPLATE_PATH,
     inlineCriticalCss: false,
-  } as const;
-
-  const { routeTree, errors } = await ɵextractRoutesAndCreateRouteTree({
-    url: new URL(url),
-    manifest,
-  });
-
-  if (errors.length > 0) {
-    throw new Error(
-      `Angular SSR fixture route extraction failed:\n${errors.join('\n')}`,
-    );
-  }
-
-  ɵdestroyAngularServerApp();
-  ɵsetAngularAppManifest({
-    ...manifest,
-    routes: routeTree.toObject(),
-  });
-  ɵsetAngularAppEngineManifest({
-    entryPoints: {
-      '': async () => ({
-        ɵgetOrCreateAngularServerApp,
-        ɵdestroyAngularServerApp,
-      }),
-    },
-    basePath: '/',
-    supportedLocales: {},
+    routeExtractionUrl: url,
     allowedHosts: ['localhost'],
-  });
+  };
+}
+
+export async function setupAngularSsrFixture(url = FIXTURE_URL) {
+  const registration = createAngularSsrFixtureRegistration(url);
+  const fixture = await registerAngularSsrApplication(registration);
 
   return {
-    requestUrl: url,
+    registration,
+    requestUrl: fixture.requestUrl,
     cleanup() {
-      ɵdestroyAngularServerApp();
+      fixture.cleanup();
     },
   };
+}
+
+export function cleanupAngularSsrFixture(): void {
+  resetAngularSsrRegistration();
 }
