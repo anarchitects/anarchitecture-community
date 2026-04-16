@@ -50,24 +50,21 @@ Peer dependencies:
 Use the module when you want a normal Nest `AppModule`-based setup.
 
 ```ts
-import type { BootstrapContext } from '@angular/platform-browser';
 import { Module } from '@nestjs/common';
+import { join } from 'node:path';
 import {
   type AngularSsrRegistrationOptions,
   NestAngularSsrModule,
 } from '@anarchitects/nest-angular-ssr';
+import { bootstrapServerApplication } from './main.server';
 
 const angular = {
   bootstrap: async () => bootstrapServerApplication,
-  document: `<!doctype html><html><body><app-root></app-root></body></html>`,
+  templatePath: join(process.cwd(), 'src/index.server.html'),
   routeExtractionUrl: 'http://127.0.0.1/',
   allowedHosts: ['127.0.0.1', 'localhost'],
   inlineCriticalCss: false,
 } satisfies AngularSsrRegistrationOptions;
-
-async function bootstrapServerApplication(context: BootstrapContext) {
-  return bootstrapApplication(AppComponent, appConfig, context);
-}
 
 @Module({
   imports: [
@@ -108,11 +105,12 @@ Notes:
 
 - `browserAssetsDir` is required.
 - `angular.bootstrap` is required and remains application-owned.
-- `angular.document` should contain the server HTML document, typically your `index.server.html` content.
+- `angular.templatePath` should point to your server HTML document, typically `src/index.server.html`.
 - `angular.baseHref` defaults to `'/'`.
 - `angular.inlineCriticalCss` defaults to `false`.
 - `angular.routeExtractionUrl` defaults to `http://localhost/`.
 - `angular.allowedHosts` is optional. Leave it unset unless you want explicit host restrictions for the Angular SSR engine.
+- Angular/Nx SSR generator output can usually be reused directly: keep your `main.server.ts` as the bootstrap entry and point `templatePath` at the generated `index.server.html`.
 - When your app uses `app.setGlobalPrefix(...)`, SSR routing follows that prefix automatically.
 - Set `routing.apiPrefix` only when you need to override the detected Nest global prefix.
 - `NestAngularSsrModule.forRootAsync(...)` is available when the same option shape needs to come from Nest DI or async config.
@@ -123,7 +121,7 @@ NestAngularSsrModule.forRootAsync({
   useFactory: (config: ConfigService) => ({
     angular: {
       bootstrap: async () => bootstrapServerApplication,
-      document: config.getOrThrow<string>('WEB_INDEX_SERVER_HTML'),
+      templatePath: config.getOrThrow<string>('WEB_INDEX_SERVER_TEMPLATE'),
     },
     routing: {
       browserAssetsDir: config.getOrThrow<string>('WEB_BROWSER_ASSETS_DIR'),
@@ -138,6 +136,7 @@ Use this when you want explicit bootstrap wiring in `main.ts`.
 
 ```ts
 import { NestFactory } from '@nestjs/core';
+import { join } from 'node:path';
 import {
   FastifyAdapter,
   type NestFastifyApplication,
@@ -145,6 +144,7 @@ import {
 import { bootstrapNestAngularSsr } from '@anarchitects/nest-angular-ssr';
 
 import { AppModule } from './app.module';
+import { bootstrapServerApplication } from './main.server';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -157,7 +157,7 @@ async function bootstrap() {
   await bootstrapNestAngularSsr(app, {
     angular: {
       bootstrap: async () => bootstrapServerApplication,
-      document: `<!doctype html><html><body><app-root></app-root></body></html>`,
+      templatePath: join(process.cwd(), 'src/index.server.html'),
     },
     routing: {
       browserAssetsDir: 'dist/apps/web/browser',
@@ -187,6 +187,18 @@ Use the lower-level APIs only if the module or bootstrap helper is too opinionat
 
 At the renderer layer, `createAngularSsrRenderer({ registration })` is the advanced entry point for package-owned Angular registration without the Nest module/bootstrap helpers.
 
+If you want to normalize a template file up front, use `createAngularSsrRegistration(...)`:
+
+```ts
+import { join } from 'node:path';
+import { createAngularSsrRegistration } from '@anarchitects/nest-angular-ssr';
+
+const registration = await createAngularSsrRegistration({
+  bootstrap: async () => bootstrapServerApplication,
+  templatePath: join(process.cwd(), 'src/index.server.html'),
+});
+```
+
 These APIs keep the public boundary small:
 
 - SSR core stays on Web `Request` / `Response`
@@ -197,13 +209,21 @@ These APIs keep the public boundary small:
 
 - `AngularSsrRegistrationOptions`
   - `bootstrap: AngularSsrServerBootstrapLoader`
+  - `templatePath: string`
+  - `baseHref?: string`
+  - `inlineCriticalCss?: boolean`
+  - `routeExtractionUrl?: string | URL`
+  - `allowedHosts?: readonly string[]`
+- `ResolvedAngularSsrRegistrationOptions`
+  - `bootstrap: AngularSsrServerBootstrapLoader`
+  - `templatePath: string`
   - `document: string`
   - `baseHref?: string`
   - `inlineCriticalCss?: boolean`
   - `routeExtractionUrl?: string | URL`
   - `allowedHosts?: readonly string[]`
 - `AngularNodeSsrRendererOptions`
-  - `registration?: AngularSsrRegistrationOptions`
+  - `registration?: AngularSsrRegistrationOptions | ResolvedAngularSsrRegistrationOptions`
   - `engine?: AngularNodeAppEngine`
   - `engineOptions?: AngularNodeAppEngineOptions`
 - `CreateNestAngularSsrIntegrationOptions<TContext>`

@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import {
   bootstrapApplication,
@@ -18,16 +20,9 @@ import {
 } from '../lib/core/angular-ssr-registration-runtime.js';
 
 const FIXTURE_URL = 'http://localhost/';
-const INDEX_SERVER_HTML = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Angular SSR Fixture</title>
-  </head>
-  <body>
-    <app-root></app-root>
-  </body>
-</html>`;
+const FIXTURE_TEMPLATE_PATH = fileURLToPath(
+  new URL('./index.server.html', import.meta.url),
+);
 
 const FixtureAppComponent = Component({
   selector: 'app-root',
@@ -70,7 +65,7 @@ export function createAngularSsrFixtureRegistration(
 ): AngularSsrRegistrationOptions {
   return {
     bootstrap: async () => bootstrapFixtureApplication,
-    document: INDEX_SERVER_HTML,
+    templatePath: FIXTURE_TEMPLATE_PATH,
     inlineCriticalCss: false,
     routeExtractionUrl: url,
     allowedHosts: ['localhost'],

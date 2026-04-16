@@ -4,11 +4,13 @@ import {
 } from '@angular/ssr/node';
 
 import type { AngularSsrRenderer } from './angular-ssr-contract.js';
-import type { AngularSsrRegistrationOptions } from './angular-ssr-registration.js';
-import { registerAngularSsrApplication } from './angular-ssr-registration-runtime.js';
+import {
+  type AngularSsrRegistrationInput,
+  registerAngularSsrApplication,
+} from './angular-ssr-registration-runtime.js';
 
 export interface AngularNodeSsrRendererOptions {
-  registration?: AngularSsrRegistrationOptions;
+  registration?: AngularSsrRegistrationInput;
   engine?: AngularNodeAppEngine;
   engineOptions?: AngularNodeAppEngineOptions;
 }
@@ -16,7 +18,7 @@ export interface AngularNodeSsrRendererOptions {
 export class AngularNodeSsrRenderer<TContext = unknown>
   implements AngularSsrRenderer<TContext>
 {
-  private readonly registration?: Readonly<AngularSsrRegistrationOptions>;
+  private readonly registration?: Readonly<AngularSsrRegistrationInput>;
   private readonly engineOptions?: AngularNodeAppEngineOptions;
   private engine?: Pick<AngularNodeAppEngine, 'handle'>;
   private registrationPromise?: Promise<void>;

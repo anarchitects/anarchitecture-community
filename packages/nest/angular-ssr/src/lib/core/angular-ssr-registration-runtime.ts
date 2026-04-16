@@ -8,7 +8,11 @@ import {
   ɵsetAngularAppManifest as setAngularAppManifest,
 } from '@angular/ssr';
 
-import type { AngularSsrRegistrationOptions } from './angular-ssr-registration.js';
+import {
+  createAngularSsrRegistration,
+  type AngularSsrRegistrationOptions,
+  type ResolvedAngularSsrRegistrationOptions,
+} from './angular-ssr-registration.js';
 
 const DEFAULT_BASE_HREF = '/';
 const DEFAULT_INLINE_CRITICAL_CSS = false;
@@ -20,19 +24,24 @@ export interface RegisteredAngularSsrApplication {
   cleanup(): void;
 }
 
+export type AngularSsrRegistrationInput =
+  | AngularSsrRegistrationOptions
+  | ResolvedAngularSsrRegistrationOptions;
+
 export async function registerAngularSsrApplication(
-  options: Readonly<AngularSsrRegistrationOptions>,
+  options: Readonly<AngularSsrRegistrationInput>,
 ): Promise<RegisteredAngularSsrApplication> {
-  const requestUrl = createRouteExtractionUrl(options.routeExtractionUrl);
-  const baseHref = normalizeBaseHref(options.baseHref);
+  const registration = await resolveAngularSsrRegistration(options);
+  const requestUrl = createRouteExtractionUrl(registration.routeExtractionUrl);
+  const baseHref = normalizeBaseHref(registration.baseHref);
   const manifest = {
     baseHref,
     assets: {
-      [INDEX_SERVER_DOCUMENT_PATH]: createServerAsset(options.document),
+      [INDEX_SERVER_DOCUMENT_PATH]: createServerAsset(registration.document),
     },
-    bootstrap: options.bootstrap,
+    bootstrap: registration.bootstrap,
     inlineCriticalCss:
-      options.inlineCriticalCss ?? DEFAULT_INLINE_CRITICAL_CSS,
+      registration.inlineCriticalCss ?? DEFAULT_INLINE_CRITICAL_CSS,
   } as const;
   const { routeTree, errors } = await extractRoutesAndCreateRouteTree({
     url: requestUrl,
@@ -59,7 +68,7 @@ export async function registerAngularSsrApplication(
     },
     basePath: baseHref,
     supportedLocales: {},
-    allowedHosts: [...(options.allowedHosts ?? [])],
+    allowedHosts: [...(registration.allowedHosts ?? [])],
   });
 
   return {
@@ -72,8 +81,18 @@ export function resetAngularSsrRegistration(): void {
   destroyAngularServerApp();
 }
 
+async function resolveAngularSsrRegistration(
+  options: Readonly<AngularSsrRegistrationInput>,
+): Promise<ResolvedAngularSsrRegistrationOptions> {
+  if ('document' in options) {
+    return options;
+  }
+
+  return createAngularSsrRegistration(options);
+}
+
 function createRouteExtractionUrl(
-  value: AngularSsrRegistrationOptions['routeExtractionUrl'],
+  value: AngularSsrRegistrationInput['routeExtractionUrl'],
 ): URL {
   if (value instanceof URL) {
     return new URL(value.toString());
