@@ -5,7 +5,10 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { createAngularSsrRenderer } from '../core/angular-node-ssr-renderer.js';
-import { setupAngularSsrFixture } from '../../testing/angular-ssr-fixture.js';
+import {
+  createAngularSsrFixtureRegistration,
+  setupAngularSsrFixture,
+} from '../../testing/angular-ssr-fixture.js';
 import { createNestFastifyFixture } from '../../testing/nest-fastify-fixture.js';
 import { bootstrapNestAngularSsr } from './nest-angular-ssr-bootstrap.js';
 import type { INestApplication } from '@nestjs/common';
@@ -122,6 +125,50 @@ describe('bootstrapNestAngularSsr', () => {
     expect(result.reply.callNotFound).toHaveBeenCalledTimes(1);
   });
 
+  it('creates the integration from angular registration options', async () => {
+    const browserAssetsDir = await createTempAssetsDir();
+    const app = createMockApp();
+
+    try {
+      const integration = await bootstrapNestAngularSsr(app, {
+        angular: createAngularSsrFixtureRegistration(),
+        routing: { browserAssetsDir },
+      });
+
+      const response = await integration.renderer.render(
+        new Request('http://localhost/'),
+      );
+
+      expect(response?.status).toBe(200);
+      expect(await response?.text()).toContain('SSR Fixture');
+    } finally {
+      await rm(browserAssetsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects ambiguous configuration when angular and integration renderer are both provided', async () => {
+    const browserAssetsDir = await createTempAssetsDir();
+    const app = createMockApp();
+
+    try {
+      await expect(
+        bootstrapNestAngularSsr(app, {
+          angular: createAngularSsrFixtureRegistration(),
+          integration: {
+            renderer: {
+              render: vi.fn().mockResolvedValue(null),
+            },
+          },
+          routing: { browserAssetsDir },
+        }),
+      ).rejects.toThrow(
+        'Cannot provide both "angular" and "integration.renderer"',
+      );
+    } finally {
+      await rm(browserAssetsDir, { recursive: true, force: true });
+    }
+  });
+
   it('composes the real integration and routing helpers in a real Nest Fastify app', async () => {
     const ssrFixture = await setupAngularSsrFixture();
     const browserAssetsDir = await createTempAssetsDir({
@@ -173,6 +220,53 @@ describe('bootstrapNestAngularSsr', () => {
     } finally {
       await nestFixture.close();
       ssrFixture.cleanup();
+      await rm(browserAssetsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('composes the real routing helpers from the angular registration path in a real Nest Fastify app', async () => {
+    const browserAssetsDir = await createTempAssetsDir({
+      'main.js': 'console.log("asset");',
+    });
+    const nestFixture = await createNestFastifyFixture(async (app, fastify) => {
+      fastify.get('/api/health', async (_request, reply) => {
+        await reply.send('ok');
+      });
+
+      await bootstrapNestAngularSsr(app, {
+        angular: createAngularSsrFixtureRegistration(),
+        routing: {
+          browserAssetsDir,
+          apiPrefix: '/api',
+        },
+      });
+    });
+
+    try {
+      const assetResponse = await nestFixture.inject({
+        method: 'GET',
+        url: '/main.js',
+      });
+      const ssrResponse = await nestFixture.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'localhost' },
+      });
+      const apiResponse = await nestFixture.inject({
+        method: 'GET',
+        url: '/api/health',
+      });
+
+      expect(assetResponse.statusCode).toBe(200);
+      expect(assetResponse.body).toBe('console.log("asset");');
+
+      expect(ssrResponse.statusCode).toBe(200);
+      expect(ssrResponse.body).toContain('SSR Fixture');
+
+      expect(apiResponse.statusCode).toBe(200);
+      expect(apiResponse.body).toBe('ok');
+    } finally {
+      await nestFixture.close();
       await rm(browserAssetsDir, { recursive: true, force: true });
     }
   });

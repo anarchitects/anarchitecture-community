@@ -5,11 +5,16 @@ import {
   AngularNodeSsrRenderer,
   createAngularSsrRenderer,
 } from './angular-node-ssr-renderer.js';
-import { setupAngularSsrFixture } from '../../testing/angular-ssr-fixture.js';
+import {
+  cleanupAngularSsrFixture,
+  createAngularSsrFixtureRegistration,
+  setupAngularSsrFixture,
+} from '../../testing/angular-ssr-fixture.js';
 
 describe('AngularNodeSsrRenderer', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    cleanupAngularSsrFixture();
   });
 
   it('returns a renderer instance from the factory', () => {
@@ -71,6 +76,44 @@ describe('AngularNodeSsrRenderer', () => {
           engineOptions: { allowedHosts: ['localhost'] },
         }),
     ).toThrow('Cannot provide both "engine" and "engineOptions"');
+  });
+
+  it('rejects ambiguous configuration when registration is provided with an engine', () => {
+    const engine = {
+      handle: vi.fn(),
+    } as unknown as AngularNodeAppEngine;
+
+    expect(
+      () =>
+        new AngularNodeSsrRenderer({
+          registration: createAngularSsrFixtureRegistration(),
+          engine,
+        }),
+    ).toThrow('Cannot provide "registration" together with "engine"');
+  });
+
+  it('rejects ambiguous configuration when registration is provided with engine options', () => {
+    expect(
+      () =>
+        new AngularNodeSsrRenderer({
+          registration: createAngularSsrFixtureRegistration(),
+          engineOptions: { allowedHosts: ['localhost'] },
+        }),
+    ).toThrow('Cannot provide "registration" together with "engine"');
+  });
+
+  it('renders a real response when configured with registration options only', async () => {
+    const registration = createAngularSsrFixtureRegistration();
+    const renderer = createAngularSsrRenderer({ registration });
+    const response = await renderer.render(new Request('http://localhost/'));
+
+    expect(response).toBeInstanceOf(Response);
+    expect(response?.status).toBe(200);
+
+    const html = await response?.text();
+
+    expect(html).toContain('SSR Fixture');
+    expect(html).toContain('Angular SSR core fixture');
   });
 
   it('renders a real response with AngularNodeAppEngine', async () => {

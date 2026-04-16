@@ -19,7 +19,10 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { createAngularSsrRenderer } from '../core/angular-node-ssr-renderer.js';
-import { setupAngularSsrFixture } from '../../testing/angular-ssr-fixture.js';
+import {
+  createAngularSsrFixtureRegistration,
+  setupAngularSsrFixture,
+} from '../../testing/angular-ssr-fixture.js';
 import type { BootstrapNestAngularSsrOptions } from './nest-angular-ssr-bootstrap.js';
 import {
   NEST_ANGULAR_SSR_MODULE_OPTIONS,
@@ -53,9 +56,12 @@ describe('NestAngularSsrModule', () => {
 
   it('forRootAsync wires useFactory and inject into the options provider', async () => {
     const dependencyToken = Symbol('dependency');
-    const options = createModuleOptions('/tmp/browser-assets', {
-      apiPrefix: '/api',
-    });
+    const options = {
+      ...createModuleOptions('/tmp/browser-assets', {
+        apiPrefix: '/api',
+      }),
+      angular: createAngularSsrFixtureRegistration(),
+    } satisfies NestAngularSsrModuleOptions;
     const useFactory = vi.fn((...args: unknown[]) => {
       expect(args).toEqual(['/api']);
       return options;
@@ -113,6 +119,27 @@ describe('NestAngularSsrModule', () => {
       expect(firstIntegration).toBe(secondIntegration);
       expect(context.fastify.register).toHaveBeenCalledTimes(1);
       expect(context.fastify.route).toHaveBeenCalledTimes(2);
+    } finally {
+      await rm(browserAssetsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('delegates angular registration through the bootstrap service', async () => {
+    const browserAssetsDir = await createTempAssetsDir();
+    const context = createBootstrapServiceContext({
+      angular: createAngularSsrFixtureRegistration(),
+      routing: { browserAssetsDir },
+    });
+
+    try {
+      const integration = await context.service.getIntegration();
+      const response = await integration.renderer.render(
+        new Request('http://localhost/'),
+      );
+
+      expect(response?.status).toBe(200);
+      expect(await response?.text()).toContain('SSR Fixture');
+      expect(context.fastify.register).toHaveBeenCalledTimes(1);
     } finally {
       await rm(browserAssetsDir, { recursive: true, force: true });
     }
@@ -192,6 +219,58 @@ describe('NestAngularSsrModule', () => {
     } finally {
       await app.close();
       ssrFixture.cleanup();
+      await rm(browserAssetsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('composes the angular registration path in a real Nest Fastify app', async () => {
+    const browserAssetsDir = await createTempAssetsDir({
+      'main.js': 'console.log("asset");',
+    });
+    const app = await createRealModuleFixture({
+      angular: createAngularSsrFixtureRegistration(),
+      routing: {
+        browserAssetsDir,
+        apiPrefix: '/api',
+      },
+    });
+
+    try {
+      const fastify = app.getHttpAdapter().getInstance() as unknown as {
+        inject(options: {
+          method: string;
+          url: string;
+          headers?: Record<string, string>;
+        }): Promise<{ statusCode: number; body: string }>;
+        ready(): Promise<void>;
+      };
+
+      await fastify.ready();
+
+      const assetResponse = await fastify.inject({
+        method: 'GET',
+        url: '/main.js',
+      });
+      const ssrResponse = await fastify.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'localhost' },
+      });
+      const apiResponse = await fastify.inject({
+        method: 'GET',
+        url: '/api/health',
+      });
+
+      expect(assetResponse.statusCode).toBe(200);
+      expect(assetResponse.body).toBe('console.log("asset");');
+
+      expect(ssrResponse.statusCode).toBe(200);
+      expect(ssrResponse.body).toContain('SSR Fixture');
+
+      expect(apiResponse.statusCode).toBe(200);
+      expect(apiResponse.body).toBe('ok');
+    } finally {
+      await app.close();
       await rm(browserAssetsDir, { recursive: true, force: true });
     }
   });

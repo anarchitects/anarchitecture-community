@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 import '@angular/compiler';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import {
@@ -12,12 +10,8 @@ import {
   provideServerRendering,
   type ServerRoute,
   withRoutes,
-  ɵdestroyAngularServerApp,
-  ɵextractRoutesAndCreateRouteTree,
-  ɵgetOrCreateAngularServerApp,
-  ɵsetAngularAppEngineManifest,
-  ɵsetAngularAppManifest,
 } from '@angular/ssr';
+import type { AngularSsrRegistrationOptions } from '@anarchitects/nest-angular-ssr';
 
 const INDEX_SERVER_HTML = `<!doctype html>
 <html lang="en">
@@ -53,14 +47,6 @@ const serverRoutes: ServerRoute[] = [
   { path: '', renderMode: RenderMode.Server },
 ];
 
-function createServerAsset(text: string) {
-  return {
-    text: async () => text,
-    hash: createHash('sha256').update(text).digest('hex'),
-    size: Buffer.byteLength(text),
-  };
-}
-
 async function bootstrapFixtureApplication(context: BootstrapContext) {
   return bootstrapApplication(
     FixtureAppComponent,
@@ -74,39 +60,10 @@ async function bootstrapFixtureApplication(context: BootstrapContext) {
   );
 }
 
-export async function setupAngularSsrFixture(url = 'http://127.0.0.1/') {
-  const manifest = {
-    baseHref: '/',
-    assets: {
-      'index.server.html': createServerAsset(INDEX_SERVER_HTML),
-    },
-    bootstrap: async () => bootstrapFixtureApplication,
-    inlineCriticalCss: false,
-  } as const;
-
-  const { routeTree, errors } = await ɵextractRoutesAndCreateRouteTree({
-    url: new URL(url),
-    manifest,
-  });
-
-  if (errors.length > 0) {
-    throw new Error(errors.join('\n'));
-  }
-
-  ɵdestroyAngularServerApp();
-  ɵsetAngularAppManifest({
-    ...manifest,
-    routes: routeTree.toObject(),
-  });
-  ɵsetAngularAppEngineManifest({
-    entryPoints: {
-      '': async () => ({
-        ɵgetOrCreateAngularServerApp,
-        ɵdestroyAngularServerApp,
-      }),
-    },
-    basePath: '/',
-    supportedLocales: {},
-    allowedHosts: ['127.0.0.1', 'localhost'],
-  });
-}
+export const fixtureAngularSsrRegistration = {
+  bootstrap: async () => bootstrapFixtureApplication,
+  document: INDEX_SERVER_HTML,
+  inlineCriticalCss: false,
+  routeExtractionUrl: 'http://127.0.0.1/',
+  allowedHosts: ['127.0.0.1', 'localhost'],
+} satisfies AngularSsrRegistrationOptions;

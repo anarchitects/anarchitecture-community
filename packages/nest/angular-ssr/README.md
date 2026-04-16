@@ -33,6 +33,7 @@ The compatibility result above is backed by the fixture validation note at [`doc
 - NestJS 11+ with the Fastify adapter
 - Angular SSR built on `@angular/ssr`
 - An explicit browser assets directory
+- An app-owned Angular server bootstrap entry or bootstrap function
 
 Peer dependencies:
 
@@ -49,12 +50,29 @@ Peer dependencies:
 Use the module when you want a normal Nest `AppModule`-based setup.
 
 ```ts
+import type { BootstrapContext } from '@angular/platform-browser';
 import { Module } from '@nestjs/common';
-import { NestAngularSsrModule } from '@anarchitects/nest-angular-ssr';
+import {
+  type AngularSsrRegistrationOptions,
+  NestAngularSsrModule,
+} from '@anarchitects/nest-angular-ssr';
+
+const angular = {
+  bootstrap: async () => bootstrapServerApplication,
+  document: `<!doctype html><html><body><app-root></app-root></body></html>`,
+  routeExtractionUrl: 'http://127.0.0.1/',
+  allowedHosts: ['127.0.0.1', 'localhost'],
+  inlineCriticalCss: false,
+} satisfies AngularSsrRegistrationOptions;
+
+async function bootstrapServerApplication(context: BootstrapContext) {
+  return bootstrapApplication(AppComponent, appConfig, context);
+}
 
 @Module({
   imports: [
     NestAngularSsrModule.forRoot({
+      angular,
       routing: {
         browserAssetsDir: 'dist/apps/web/browser',
       },
@@ -89,6 +107,12 @@ void bootstrap();
 Notes:
 
 - `browserAssetsDir` is required.
+- `angular.bootstrap` is required and remains application-owned.
+- `angular.document` should contain the server HTML document, typically your `index.server.html` content.
+- `angular.baseHref` defaults to `'/'`.
+- `angular.inlineCriticalCss` defaults to `false`.
+- `angular.routeExtractionUrl` defaults to `http://localhost/`.
+- `angular.allowedHosts` is optional. Leave it unset unless you want explicit host restrictions for the Angular SSR engine.
 - When your app uses `app.setGlobalPrefix(...)`, SSR routing follows that prefix automatically.
 - Set `routing.apiPrefix` only when you need to override the detected Nest global prefix.
 - `NestAngularSsrModule.forRootAsync(...)` is available when the same option shape needs to come from Nest DI or async config.
@@ -97,6 +121,10 @@ Notes:
 NestAngularSsrModule.forRootAsync({
   inject: [ConfigService],
   useFactory: (config: ConfigService) => ({
+    angular: {
+      bootstrap: async () => bootstrapServerApplication,
+      document: config.getOrThrow<string>('WEB_INDEX_SERVER_HTML'),
+    },
     routing: {
       browserAssetsDir: config.getOrThrow<string>('WEB_BROWSER_ASSETS_DIR'),
     },
@@ -127,6 +155,10 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   await bootstrapNestAngularSsr(app, {
+    angular: {
+      bootstrap: async () => bootstrapServerApplication,
+      document: `<!doctype html><html><body><app-root></app-root></body></html>`,
+    },
     routing: {
       browserAssetsDir: 'dist/apps/web/browser',
     },
@@ -138,8 +170,9 @@ async function bootstrap() {
 void bootstrap();
 ```
 
-`BootstrapNestAngularSsrOptions` keeps two explicit groups:
+`BootstrapNestAngularSsrOptions` keeps three explicit groups:
 
+- `angular`: public Angular SSR registration/bootstrap input
 - `integration`: renderer injection or request-context customization
 - `routing`: browser assets directory and optional API-prefix override
 
@@ -152,6 +185,8 @@ Use the lower-level APIs only if the module or bootstrap helper is too opinionat
 - `createNestAngularSsrIntegration(...)`
 - `registerNestAngularSsrRoutes(...)`
 
+At the renderer layer, `createAngularSsrRenderer({ registration })` is the advanced entry point for package-owned Angular registration without the Nest module/bootstrap helpers.
+
 These APIs keep the public boundary small:
 
 - SSR core stays on Web `Request` / `Response`
@@ -160,7 +195,15 @@ These APIs keep the public boundary small:
 
 ## Existing Option Shapes
 
+- `AngularSsrRegistrationOptions`
+  - `bootstrap: AngularSsrServerBootstrapLoader`
+  - `document: string`
+  - `baseHref?: string`
+  - `inlineCriticalCss?: boolean`
+  - `routeExtractionUrl?: string | URL`
+  - `allowedHosts?: readonly string[]`
 - `AngularNodeSsrRendererOptions`
+  - `registration?: AngularSsrRegistrationOptions`
   - `engine?: AngularNodeAppEngine`
   - `engineOptions?: AngularNodeAppEngineOptions`
 - `CreateNestAngularSsrIntegrationOptions<TContext>`
@@ -171,6 +214,7 @@ These APIs keep the public boundary small:
   - `browserAssetsDir: string`
   - `apiPrefix?: string`
 - `BootstrapNestAngularSsrOptions<TContext>`
+  - `angular?: AngularSsrRegistrationOptions`
   - `integration?: CreateNestAngularSsrIntegrationOptions<TContext>`
   - `routing: RegisterNestAngularSsrRoutesOptions`
 - `NestAngularSsrModuleOptions<TContext>`
@@ -178,8 +222,12 @@ These APIs keep the public boundary small:
 
 The mutually exclusive pairs are enforced in code:
 
+- renderer `registration` vs `engine`
+- renderer `registration` vs `engineOptions`
 - renderer `engine` vs `engineOptions`
 - integration `renderer` vs `rendererOptions`
+- bootstrap `angular` vs `integration.renderer`
+- bootstrap `angular` vs `integration.rendererOptions`
 
 ## Constraints and Non-Goals
 
@@ -188,6 +236,7 @@ v1 intentionally does not do the following:
 - support Express or non-Fastify Nest adapters
 - use `ServeStaticModule`
 - add hidden auto-bootstrap outside the Nest module lifecycle or explicit helper call
+- take ownership of your Angular server bootstrap implementation
 - claim support for every Nest/Angular deployment shape
 - recreate legacy Universal APIs exactly
 

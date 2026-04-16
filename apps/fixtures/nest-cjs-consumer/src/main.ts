@@ -7,12 +7,9 @@ import {
 } from '@nestjs/platform-fastify';
 
 import { AppModule } from './app/app.module';
-import { setupAngularSsrFixture } from './ssr/angular-ssr-fixture';
 
 async function bootstrap() {
   const port = Number(process.env.PORT ?? '3311');
-
-  await setupAngularSsrFixture();
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
