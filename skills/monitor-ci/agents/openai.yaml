@@ -1,0 +1,3 @@
+interface:
+  display_name: Community Monitor CI
+  short_description: Diagnose and fix CI, Nx, docs, example, and release failures in the community repo.
