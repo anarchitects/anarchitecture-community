@@ -21,6 +21,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@anarchitects/governance-adapter-typescript@workspace:packages/governance/adapter-typescript":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/governance-adapter-typescript@workspace:packages/governance/adapter-typescript"
+  languageName: unknown
+  linkType: soft
+
+"@anarchitects/governance-cli@workspace:packages/governance/cli":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/governance-cli@workspace:packages/governance/cli"
+  languageName: unknown
+  linkType: soft
+
+"@anarchitects/governance-core@workspace:packages/governance/core":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/governance-core@workspace:packages/governance/core"
+  languageName: unknown
+  linkType: soft
+
 "@anarchitects/nest-angular-ssr@workspace:packages/nest/angular-ssr":
   version: 0.0.0-use.local
   resolution: "@anarchitects/nest-angular-ssr@workspace:packages/nest/angular-ssr"
