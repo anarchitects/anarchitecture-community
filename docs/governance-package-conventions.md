@@ -53,6 +53,7 @@ Governance packages should be:
 - clean in published npm artifacts
 
 See `docs/governance-package-boundaries.md` for Governance-specific public API and dependency-boundary rules.
+See `docs/governance-release-conventions.md` for release sequencing and versioning expectations.
 
 ## Package.json Expectations
 
