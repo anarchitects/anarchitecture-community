@@ -52,6 +52,8 @@ Governance packages should be:
 - deterministic in build and test output
 - clean in published npm artifacts
 
+See `docs/governance-package-boundaries.md` for Governance-specific public API and dependency-boundary rules.
+
 ## Package.json Expectations
 
 Governance packages should follow the package-local manifest pattern already used in this repository.
