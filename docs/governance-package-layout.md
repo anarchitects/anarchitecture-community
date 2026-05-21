@@ -42,6 +42,8 @@ packages/
 
 This target layout only defines `core`, `cli`, the TypeScript adapter, and platform-independent extensions. It does not define additional adapter families yet.
 
+Within the current Nx and Yarn workspace, concrete package roots should still follow the repository's existing `packages/*/*` convention. See `docs/governance-package-conventions.md` for the workspace-specific packaging rules.
+
 ## Package Responsibilities
 
 ### `@anarchitects/governance-core`
