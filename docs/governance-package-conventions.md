@@ -54,6 +54,7 @@ Governance packages should be:
 
 See `docs/governance-package-boundaries.md` for Governance-specific public API and dependency-boundary rules.
 See `docs/governance-release-conventions.md` for release sequencing and versioning expectations.
+See `docs/governance-documentation-structure.md` for package README and documentation placement expectations.
 
 ## Package.json Expectations
 
