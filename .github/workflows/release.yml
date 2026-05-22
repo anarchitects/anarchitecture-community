@@ -72,7 +72,7 @@ jobs:
 
       - name: Run Nx release
         run: |
-          args=(--skip-publish --yes)
+          args=(--skip-publish)
 
           if [ -n "${{ inputs.projects }}" ]; then
             args+=("--projects=${{ inputs.projects }}")
