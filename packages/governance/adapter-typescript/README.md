@@ -9,6 +9,7 @@ Public APIs:
 ```ts
 import {
   buildTypeScriptImportGraph,
+  createTypeScriptWorkspaceAdapter,
   detectTypeScriptWorkspace,
   discoverTypeScriptProjects,
   deriveProjectTags,
@@ -24,6 +25,7 @@ Supported assumptions:
 - tsconfig parsing supports root `tsconfig.json`, `tsconfig.base.json`, and deterministic `extends` chains
 - static import analysis supports relative imports, package-name imports, `compilerOptions.paths`, `baseUrl`, re-exports, and string-literal dynamic imports
 - normalization flows into canonical `@anarchitects/governance-core` contracts such as `GovernanceProjectInput` and `GovernanceDependencyInput`
+- the package can expose a concrete `GovernanceWorkspaceAdapter` implementation for hosts that want to consume it through Core-owned adapter contracts
 
 This package must remain platform-independent:
 
