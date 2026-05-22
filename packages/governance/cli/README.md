@@ -29,6 +29,8 @@ This package is responsible for:
 - loading explicit manual Governance workspace documents
 - resolving CLI options from flags, config files, and conventions
 - loading compatible Governance adapters dynamically by package name
+- resolving CLI options from flags, config files, and conventions
+- loading compatible Governance adapters dynamically by package name
 - orchestrating Governance evaluation through `@anarchitects/governance-core`
 - returning a structured Governance check result from the public API
 - keeping argv parsing, exit handling, and report rendering as host concerns
@@ -121,6 +123,8 @@ The current standalone host flow supports:
 
 - manual workspace documents in `.json`, `.yaml`, or `.yml`
 - standalone profile documents in `.json`
+- report rendering formats `table`, `markdown`, and `json`
+- `text` as a compatibility alias for `table`
 - report rendering formats `table`, `markdown`, and `json`
 - `text` as a compatibility alias for `table`
 
