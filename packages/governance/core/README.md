@@ -40,6 +40,7 @@ The package has a single public entrypoint:
 ```ts
 import {
   buildGovernanceAssessment,
+  buildGovernanceWorkspace,
   buildMetricSnapshot,
   compareSnapshots,
   coreBuiltInRulePack,
@@ -47,6 +48,7 @@ import {
   normalizeGovernanceException,
   normalizeGovernanceProfile,
   registerLoadedGovernanceExtensions,
+  type GovernanceWorkspaceAdapter,
   type GovernanceWorkspace,
   type GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
@@ -80,6 +82,7 @@ Core contracts include:
 - signal contracts and signal breakdowns
 - snapshot and drift contracts
 - adapter input/result contracts for hosts and adapters
+- adapter contract and normalization helpers such as `GovernanceWorkspaceAdapter` and `buildGovernanceWorkspace(...)`
 - AI analysis and handoff payload contracts
 
 ### Deterministic logic

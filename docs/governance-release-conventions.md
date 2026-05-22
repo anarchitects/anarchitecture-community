@@ -92,6 +92,32 @@ Before release:
 
 Published artifact validation should happen before version publication, not after a release exposes a broken package boundary.
 
+## Community Governance Release Gate
+
+Community-owned Governance packages should pass an explicit pre-release validation gate before publication or before Plugins-side consumption work starts.
+
+Run:
+
+```bash
+yarn validate:governance-packages
+```
+
+The release gate is expected to cover:
+
+- build
+- typecheck
+- test
+- lint
+- package manifest dependency rules
+- README readiness checks
+- `npm pack --dry-run` validation of packed artifacts
+
+That gate should pass for:
+
+- `@anarchitects/governance-core`
+- `@anarchitects/governance-adapter-typescript`
+- `@anarchitects/governance-cli`
+
 ## Migration And Stabilization Guidance
 
 Existing `@anarchitects/nx-governance` users should have a stable migration path.

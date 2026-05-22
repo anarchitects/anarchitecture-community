@@ -8,7 +8,8 @@ describe('Core boundary guardrail', () => {
     const forbiddenPatterns = [
       /from ['"]nx['"]/,
       /from ['"]@nx\//,
-      /from ['"]@anarchitects\/governance-adapter-[^'"]+['"]/,
+      /from ['"]@anarchitects\/governance-adapter-[^'"]+(?:\/|['"])/,
+      /from ['"]@anarchitects\/governance-cli(?:\/|['"])/,
       /from ['"]@anarchitects\/nx-governance['"]/,
       /from ['"]\.\.\/plugin(?:\/|['"])/,
       /from ['"]\.\.\/executors(?:\/|['"])/,

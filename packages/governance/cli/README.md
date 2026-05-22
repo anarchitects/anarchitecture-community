@@ -36,6 +36,8 @@ import {
   runAgovCheck,
   type AgovCheckOptions,
   type AgovCheckResult,
+  type AgovCheckWithAdapterOptions,
+  type AgovCheckWithWorkspacePathOptions,
 } from '@anarchitects/governance-cli';
 ```
 
@@ -44,6 +46,8 @@ The root export currently includes:
 - `runAgovCheck(...)`
 - `AgovCheckOptions`
 - `AgovCheckResult`
+- `AgovCheckWithAdapterOptions`
+- `AgovCheckWithWorkspacePathOptions`
 
 The following APIs exist in source but are not part of the public barrel:
 
@@ -85,12 +89,6 @@ The intended consumer model for this package is adapter-agnostic:
 - adding a future adapter should not require changing this package’s public contract
 
 That is the model package consumers should follow.
-
-### Current implementation note
-
-The package documentation intentionally describes the adapter-agnostic target architecture. If the current implementation still contains a direct dependency or import path to a concrete adapter package, treat that as an implementation follow-up rather than as the desired public consumption model.
-
-In particular, consumers should not model `@anarchitects/governance-cli` as a package that is meant to own or hard-code `@anarchitects/governance-adapter-typescript`.
 
 ## Binary Packaging
 
