@@ -1,12 +1,10 @@
 # `@anarchitects/governance-cli`
 
-Standalone Governance host/runtime APIs for running Governance checks outside Nx.
+Standalone Governance CLI and host/runtime APIs for running Governance checks outside Nx.
 
 ## Overview
 
-`@anarchitects/governance-cli` provides the standalone host surface for Community-owned Governance packages. It turns explicit input documents into Governance assessments and renders the result through package-internal reporting helpers.
-
-The current public package surface is library-oriented. The package does not currently publish a `bin` entry, so the supported entrypoint is the exported runtime API rather than a packaged shell command.
+`@anarchitects/governance-cli` provides the standalone host surface for Community-owned Governance packages. It supports both the packaged `agov` executable and the exported runtime APIs for programmatic hosts.
 
 ## Responsibilities
 
@@ -14,6 +12,8 @@ This package is responsible for:
 
 - loading explicit standalone Governance profile documents
 - loading explicit manual Governance workspace documents
+- resolving CLI options from flags, config files, and conventions
+- loading compatible Governance adapters dynamically by package name
 - orchestrating Governance evaluation through `@anarchitects/governance-core`
 - returning a structured Governance check result from the public API
 - keeping argv parsing, exit handling, and report rendering as host concerns
@@ -59,7 +59,7 @@ The following APIs exist in source but are not part of the public barrel:
 
 ## Usage
 
-The current library-style entrypoint accepts explicit file paths for a standalone workspace document and a standalone Governance profile:
+The package exposes a small programmatic API:
 
 ```ts
 import { runAgovCheck } from '@anarchitects/governance-cli';
@@ -77,7 +77,8 @@ The current standalone host flow supports:
 
 - manual workspace documents in `.json`, `.yaml`, or `.yml`
 - standalone profile documents in `.json`
-- report rendering formats `json`, `markdown`, and `table` through internal host code
+- report rendering formats `table`, `markdown`, and `json`
+- `text` as a compatibility alias for `table`
 
 ## Adapter Model
 
@@ -92,13 +93,29 @@ That is the model package consumers should follow.
 
 ## Binary Packaging
 
-This package does not currently declare a `bin` entry in `package.json`.
+This package publishes an `agov` executable through `package.json#bin`.
 
-That means:
+Current command surface:
 
-- no packaged `agov` command is documented here yet
-- no shell command usage is part of the current public contract
-- hosts should use the exported runtime API directly
+- `agov --help`
+- `agov --version`
+- `agov check`
+- `agov check --workspace <path> --profile <path>`
+- `agov check --adapter <package> --root <path> --profile <path>`
+
+The CLI resolves options in this order:
+
+- explicit flags
+- config file
+- conventional file discovery or adapter inference
+- error with guidance
+
+Supported output formats:
+
+- `table`
+- `markdown`
+- `json`
+- `text` as a compatibility alias for `table`
 
 ## Package Boundaries
 

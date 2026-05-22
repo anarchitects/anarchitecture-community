@@ -29,6 +29,9 @@
       "default": "./dist/index.js"
     }
   },
+  "bin": {
+    "agov": "./dist/bin/agov.js"
+  },
   "files": [
     "dist",
     "!**/*.tsbuildinfo"

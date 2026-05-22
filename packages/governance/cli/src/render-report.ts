@@ -3,7 +3,7 @@ import { renderJsonReport } from './internal/reporting/render-json.js';
 
 import type { AgovCheckResult } from './check.js';
 
-export type AgovOutputFormat = 'json' | 'markdown' | 'table';
+export type AgovOutputFormat = 'json' | 'markdown' | 'table' | 'text';
 
 export function renderAgovCheckReport(
   result: AgovCheckResult,
@@ -15,6 +15,7 @@ export function renderAgovCheckReport(
     case 'markdown':
       return renderAgovCheckMarkdown(result);
     case 'table':
+    case 'text':
       return renderAgovCheckTable(result);
   }
 }
@@ -29,97 +30,6 @@ export function renderAgovCheckJson(result: AgovCheckResult): string {
     null,
     2,
   );
-}
-
-function renderAgovCheckMarkdown(result: AgovCheckResult): string {
-  const { assessment } = result;
-  const lines: string[] = [];
-
-  lines.push('# agov check');
-  lines.push('');
-  lines.push(`- Success: ${result.success}`);
-  lines.push(`- Workspace: ${assessment.workspace.name}`);
-  lines.push(`- Profile: ${assessment.profile}`);
-  lines.push(`- Projects: ${assessment.workspace.projects.length}`);
-  lines.push(`- Dependencies: ${assessment.workspace.dependencies.length}`);
-  lines.push(`- Violations: ${assessment.violations.length}`);
-  lines.push(`- Health Score: ${assessment.health.score}`);
-  lines.push(`- Health Status: ${assessment.health.status}`);
-  lines.push(`- Health Grade: ${assessment.health.grade}`);
-  lines.push('');
-
-  lines.push('## Signal Sources');
-  lines.push(
-    ...renderMarkdownTable(
-      ['Source', 'Count'],
-      assessment.signalBreakdown.bySource.map((entry) => [
-        entry.source,
-        `${entry.count}`,
-      ]),
-    ),
-  );
-  lines.push('');
-
-  lines.push('## Signal Severity');
-  lines.push(
-    ...renderMarkdownTable(
-      ['Severity', 'Count'],
-      assessment.signalBreakdown.bySeverity.map((entry) => [
-        entry.severity,
-        `${entry.count}`,
-      ]),
-    ),
-  );
-  lines.push('');
-
-  lines.push('## Metrics');
-  if (assessment.measurements.length === 0) {
-    lines.push('No metrics.');
-  } else {
-    lines.push(
-      ...renderMarkdownTable(
-        ['Metric', 'Family', 'Score'],
-        assessment.measurements.map((measurement) => [
-          measurement.name,
-          measurement.family,
-          `${measurement.score}`,
-        ]),
-      ),
-    );
-  }
-  lines.push('');
-
-  lines.push('## Top Issues');
-  if (assessment.topIssues.length === 0) {
-    lines.push('No top issues.');
-  } else {
-    lines.push(
-      ...renderMarkdownTable(
-        ['Severity', 'Type', 'Source', 'Count', 'Message'],
-        assessment.topIssues.map((issue) => [
-          issue.severity,
-          issue.type,
-          issue.source,
-          `${issue.count}`,
-          issue.message,
-        ]),
-      ),
-    );
-  }
-  lines.push('');
-
-  lines.push('## Recommendations');
-  if (assessment.recommendations.length === 0) {
-    lines.push('No recommendations.');
-  } else {
-    for (const recommendation of assessment.recommendations) {
-      lines.push(
-        `- ${recommendation.priority}: ${recommendation.title} - ${recommendation.reason}`,
-      );
-    }
-  }
-
-  return lines.join('\n');
 }
 
 function renderAgovCheckTable(result: AgovCheckResult): string {
@@ -149,15 +59,41 @@ function renderAgovCheckTable(result: AgovCheckResult): string {
   return lines.join('\n');
 }
 
-function renderMarkdownTable(
-  headers: readonly string[],
-  rows: string[][],
-): string[] {
-  return [
-    `| ${headers.join(' | ')} |`,
-    `| ${headers.map(() => '---').join(' | ')} |`,
-    ...rows.map((row) => `| ${row.join(' | ')} |`),
-  ];
+function renderAgovCheckMarkdown(result: AgovCheckResult): string {
+  const { assessment } = result;
+  const lines: string[] = [];
+  const assessmentLines = renderCliReport(assessment).split('\n');
+
+  if (assessmentLines[0]?.startsWith('Nx Governance - ')) {
+    assessmentLines[0] = `Governance Check - ${assessment.profile}`;
+  }
+
+  lines.push('# agov check');
+  lines.push('');
+  lines.push('| Field | Value |');
+  lines.push('| --- | --- |');
+  lines.push(`| success | ${result.success ? 'true' : 'false'} |`);
+  lines.push(
+    `| workspace | ${escapeMarkdownCell(assessment.workspace.name)} |`,
+  );
+  lines.push(`| profile | ${escapeMarkdownCell(assessment.profile)} |`);
+  lines.push('');
+
+  for (const line of assessmentLines) {
+    if (line.length === 0) {
+      lines.push('');
+      continue;
+    }
+
+    if (!line.startsWith('- ')) {
+      lines.push(`## ${line}`);
+      continue;
+    }
+
+    lines.push(line);
+  }
+
+  return lines.join('\n');
 }
 
 function renderTextTable(
@@ -188,4 +124,8 @@ function renderTextTable(
 
 function padCell(value: string, width: number): string {
   return value.padEnd(width, ' ');
+}
+
+function escapeMarkdownCell(value: string): string {
+  return value.replaceAll('|', '\\|');
 }
