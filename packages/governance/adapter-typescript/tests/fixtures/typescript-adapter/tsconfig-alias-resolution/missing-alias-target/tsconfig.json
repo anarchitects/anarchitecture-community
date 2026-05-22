@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@app/missing": ["packages/missing/src/index.ts"]
+    }
+  }
+}

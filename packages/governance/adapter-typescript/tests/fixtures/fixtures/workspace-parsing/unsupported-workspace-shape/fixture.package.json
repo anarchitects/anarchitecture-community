@@ -1,0 +1,6 @@
+{
+  "name": "unsupported-workspaces-demo",
+  "workspaces": {
+    "nohoist": ["**"]
+  }
+}

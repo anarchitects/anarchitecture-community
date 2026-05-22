@@ -1,0 +1,5 @@
+{
+  "name": "npm-workspaces-demo",
+  "packageManager": "npm@10.0.0",
+  "workspaces": ["packages/*", "apps/*"]
+}

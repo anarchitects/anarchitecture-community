@@ -1,0 +1,1 @@
+export const sharedBase = true;

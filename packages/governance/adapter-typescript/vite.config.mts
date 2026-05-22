@@ -26,7 +26,26 @@ export default defineConfig(() => ({
       formats: ['es' as const],
     },
     rollupOptions: {
-      external: [/^node:.+$/, 'tslib'],
+      external: [
+        /^node:.+$/,
+        'tslib',
+        '@anarchitects/governance-core',
+        'minimatch',
+        'typescript',
+        'yaml',
+      ],
+    },
+  },
+  test: {
+    name: '@anarchitects/governance-adapter-typescript',
+    watch: false,
+    globals: true,
+    environment: 'node',
+    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    reporters: ['default'],
+    coverage: {
+      reportsDirectory: './test-output/vitest/coverage',
+      provider: 'v8' as const,
     },
   },
 }));

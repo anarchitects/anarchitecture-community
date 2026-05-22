@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": "packages",
+    "paths": {
+      "@shared/*": ["shared/src/*"],
+      "@app/order/*": ["order/src/*"],
+      "@app/customer": ["customer/src/index.ts"]
+    }
+  }
+}

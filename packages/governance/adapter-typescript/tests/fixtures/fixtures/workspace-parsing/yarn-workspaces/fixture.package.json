@@ -1,0 +1,5 @@
+{
+  "name": "yarn-workspaces-demo",
+  "packageManager": "yarn@4.0.0",
+  "workspaces": ["packages/*"]
+}
