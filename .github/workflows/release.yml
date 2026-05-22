@@ -10,18 +10,10 @@ on:
         description: Optional Nx projects argument, for example nest-angular-ssr or better-auth-typeorm-adapter
         required: false
         type: string
-      bump:
-        description: Optional semver override
+      specifier:
+        description: Optional Nx release specifier, for example patch, minor, prerelease, or an exact version like 0.0.1
         required: false
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
-          - prepatch
-          - preminor
-          - premajor
-          - prerelease
+        type: string
       first_release:
         description: Treat the selected release as a first release
         required: false
@@ -80,20 +72,20 @@ jobs:
 
       - name: Run Nx release
         run: |
-          args="--skip-publish --yes"
+          args=(--skip-publish --yes)
 
           if [ -n "${{ inputs.projects }}" ]; then
-            args="$args --projects=${{ inputs.projects }}"
+            args+=("--projects=${{ inputs.projects }}")
           fi
 
-          if [ -n "${{ inputs.bump }}" ]; then
-            args="$args --bump=${{ inputs.bump }}"
+          if [ -n "${{ inputs.specifier }}" ]; then
+            args+=("${{ inputs.specifier }}")
           fi
 
           if [ "${{ inputs.first_release }}" = "true" ]; then
-            args="$args --first-release"
+            args+=(--first-release)
           fi
 
-          yarn nx release $args
+          yarn nx release "${args[@]}"
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

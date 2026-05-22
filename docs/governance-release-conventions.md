@@ -13,6 +13,17 @@ Move stable seams into stable packages. Do not redesign architecture during pack
 
 This repository already uses independent Nx releases. Future Governance packages should follow that existing release model rather than introducing a parallel release system.
 
+## Manual Release Workflow
+
+The manual GitHub release workflow accepts an optional Nx release specifier.
+
+Use the `specifier` input for either:
+
+- a semver bump keyword such as `patch`, `minor`, `major`, `prepatch`, `preminor`, `premajor`, or `prerelease`
+- an exact version such as `0.0.1`
+
+For first releases of the Governance packages, prefer an explicit version so the workflow does not derive a bump from repository-wide commit history.
+
 ## Cross-Repository Release Sequencing
 
 Release direction is Community-first:
