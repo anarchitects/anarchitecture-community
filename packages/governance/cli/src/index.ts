@@ -1,2 +1,7 @@
-export type { AgovCheckOptions, AgovCheckResult } from './check.js';
+export type {
+  AgovCheckOptions,
+  AgovCheckResult,
+  AgovCheckWithAdapterOptions,
+  AgovCheckWithWorkspacePathOptions,
+} from './check.js';
 export { runAgovCheck } from './check.js';

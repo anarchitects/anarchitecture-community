@@ -38,7 +38,9 @@ Package responsibilities:
 Dependencies and boundaries:
 
 - depends on `@anarchitects/governance-core` for canonical contracts and deterministic Core logic
-- depends on `@anarchitects/governance-adapter-typescript` as the Community-owned non-Nx adapter seam for follow-up host wiring
+- is adapter-agnostic at the package boundary
+- receives concrete adapters through Core-owned contracts when a host chooses to inject one
+- does not depend on `@anarchitects/governance-adapter-typescript`
 - does not expose or depend on Nx runtime behavior
 - does not import from `anarchitects/anarchitecture-plugins`
 - Nx-specific Governance execution remains in `anarchitects/anarchitecture-plugins`
@@ -47,6 +49,7 @@ Standalone execution assumptions:
 
 - the current extracted CLI preserves the existing manual `--workspace <governance.workspace.json|yaml>` host flow
 - there is still no implemented `--adapter typescript` CLI mode in this package
+- a future convenience wrapper or published binary may choose to install and inject a concrete adapter package without changing this package
 - standalone profiles are explicit JSON documents with a `name`
 - Nx runtime profile override documents are rejected intentionally
 - output formats remain `json`, `markdown`, and `table`

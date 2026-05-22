@@ -51,7 +51,6 @@
     }
   },
   "dependencies": {
-    "@anarchitects/governance-adapter-typescript": "^0.0.1",
     "@anarchitects/governance-core": "^0.0.1",
     "yaml": "^2.8.1"
   }
