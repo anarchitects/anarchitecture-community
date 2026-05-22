@@ -21,7 +21,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@anarchitects/governance-adapter-typescript@workspace:packages/governance/adapter-typescript":
+"@anarchitects/governance-adapter-typescript@npm:^0.0.1, @anarchitects/governance-adapter-typescript@workspace:packages/governance/adapter-typescript":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-adapter-typescript@workspace:packages/governance/adapter-typescript"
   dependencies:
@@ -35,6 +35,10 @@ __metadata:
 "@anarchitects/governance-cli@workspace:packages/governance/cli":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-cli@workspace:packages/governance/cli"
+  dependencies:
+    "@anarchitects/governance-adapter-typescript": "npm:^0.0.1"
+    "@anarchitects/governance-core": "npm:^0.0.1"
+    yaml: "npm:^2.8.1"
   languageName: unknown
   linkType: soft
 
