@@ -96,6 +96,9 @@ Published artifact validation should happen before version publication, not afte
 
 Community-owned Governance packages should pass an explicit pre-release validation gate before publication or before Plugins-side consumption work starts.
 
+That validation should enforce the accepted package-boundary rules from
+[ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](./adr/0001-governance-package-boundaries.md).
+
 Run:
 
 ```bash
