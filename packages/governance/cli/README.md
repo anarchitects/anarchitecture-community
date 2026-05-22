@@ -1,12 +1,14 @@
 # `@anarchitects/governance-cli`
 
 Standalone Governance CLI and runtime host for running Governance checks outside Nx.
+Standalone Governance CLI and host/runtime APIs for running Governance checks outside Nx.
 
 ## Overview
 
 `@anarchitects/governance-cli` provides the executable `agov` command and the programmatic host/runtime APIs for Community-owned Governance packages.
 
 It orchestrates Governance checks through `@anarchitects/governance-core`, supports canonical workspace input documents, and can load compatible adapters dynamically without taking a static dependency on concrete adapter packages.
+`@anarchitects/governance-cli` provides the standalone host surface for Community-owned Governance packages. It supports both the packaged `agov` executable and the exported runtime APIs for programmatic hosts.
 
 ## Responsibilities
 
@@ -19,6 +21,13 @@ This package is responsible for:
 - dynamically loading compatible Governance adapters by package name
 - mapping runtime outcomes to stable exit codes
 - rendering table, markdown, text, and JSON output
+- loading explicit standalone Governance profile documents
+- loading explicit manual Governance workspace documents
+- resolving CLI options from flags, config files, and conventions
+- loading compatible Governance adapters dynamically by package name
+- orchestrating Governance evaluation through `@anarchitects/governance-core`
+- returning a structured Governance check result from the public API
+- keeping argv parsing, exit handling, and report rendering as host concerns
 
 This package is not responsible for:
 
@@ -84,6 +93,15 @@ The standalone host currently supports:
 - `text` as a compatibility alias for `table`
 
 Example programmatic usage:
+- `runAgovCli(...)`
+- argv parsing helpers
+- exit-code helpers
+- rendering helpers
+- manual-workspace loader internals
+
+## Usage
+
+The package exposes a small programmatic API:
 
 ```ts
 import { runAgovCheck } from '@anarchitects/governance-cli';
@@ -97,21 +115,49 @@ console.log(result.success);
 console.log(result.assessment.health.status);
 ```
 
+The current standalone host flow supports:
+
+- manual workspace documents in `.json`, `.yaml`, or `.yml`
+- standalone profile documents in `.json`
+- report rendering formats `table`, `markdown`, and `json`
+- `text` as a compatibility alias for `table`
+
 ## Adapter Model
 
-`@anarchitects/governance-cli` is adapter-agnostic.
+The intended consumer model for this package is adapter-agnostic:
 
-That means:
+- the CLI/runtime host should depend on `@anarchitects/governance-core`
+- concrete adapters should implement Core-owned contracts
+- concrete adapters should be supplied, registered, injected, or resolved through Core-owned abstractions
+- adding a future adapter should not require changing this package’s public contract
 
-- the package depends on `@anarchitects/governance-core`, not on concrete adapter packages
-- concrete adapters implement Core-owned contracts
-- adapters may be injected, discovered, or dynamically loaded by package name
-- adding a future adapter must not require changing the CLI package dependency graph
+That is the model package consumers should follow.
 
-If you want to use a concrete adapter such as `@anarchitects/governance-adapter-typescript`, that adapter must be installed separately in the consuming workspace.
+## Binary Packaging
 
-For detailed package-boundary rules and adapter-loading expectations, see
-[ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](../../../docs/adr/0001-governance-package-boundaries.md).
+This package publishes an `agov` executable through `package.json#bin`.
+
+Current command surface:
+
+- `agov --help`
+- `agov --version`
+- `agov check`
+- `agov check --workspace <path> --profile <path>`
+- `agov check --adapter <package> --root <path> --profile <path>`
+
+The CLI resolves options in this order:
+
+- explicit flags
+- config file
+- conventional file discovery or adapter inference
+- error with guidance
+
+Supported output formats:
+
+- `table`
+- `markdown`
+- `json`
+- `text` as a compatibility alias for `table`
 
 ## Package Boundaries
 

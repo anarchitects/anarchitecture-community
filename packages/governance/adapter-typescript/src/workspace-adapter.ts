@@ -19,6 +19,27 @@ export interface CreateTypeScriptWorkspaceAdapterOptions {
   adapterId?: string;
 }
 
+export interface CreateGovernanceWorkspaceAdapterOptions {
+  discoveryConfig?: TypeScriptProjectDiscoveryConfig;
+  tsconfigPath?: string;
+  adapterId?: string;
+}
+
+export const DEFAULT_TYPESCRIPT_PROJECT_DISCOVERY_CONFIG = {
+  projects: [
+    { pattern: 'packages/*' },
+    { pattern: 'packages/*/*' },
+    { pattern: 'apps/*' },
+    { pattern: 'apps/*/*' },
+    { pattern: 'libs/*' },
+    { pattern: 'libs/*/*' },
+    { pattern: 'services/*' },
+    { pattern: 'services/*/*' },
+    { pattern: 'tools/*' },
+    { pattern: 'tools/*/*' },
+  ],
+} satisfies TypeScriptProjectDiscoveryConfig;
+
 export function createTypeScriptWorkspaceAdapter(
   options: CreateTypeScriptWorkspaceAdapterOptions,
 ): GovernanceWorkspaceAdapter<string> {
@@ -63,6 +84,21 @@ export function createTypeScriptWorkspaceAdapter(
     },
   };
 }
+
+export function createGovernanceWorkspaceAdapter(
+  options: CreateGovernanceWorkspaceAdapterOptions = {},
+): GovernanceWorkspaceAdapter<string> {
+  return createTypeScriptWorkspaceAdapter({
+    discoveryConfig:
+      options.discoveryConfig ?? DEFAULT_TYPESCRIPT_PROJECT_DISCOVERY_CONFIG,
+    ...(options.tsconfigPath ? { tsconfigPath: options.tsconfigPath } : {}),
+    ...(options.adapterId ? { adapterId: options.adapterId } : {}),
+  });
+}
+
+export const governanceWorkspaceAdapter = createGovernanceWorkspaceAdapter();
+
+export default governanceWorkspaceAdapter;
 
 function inferWorkspaceId(workspaceRoot: string): string {
   return inferWorkspaceName(workspaceRoot);
