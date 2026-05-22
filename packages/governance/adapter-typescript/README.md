@@ -45,6 +45,7 @@ The public package surface is intentionally adapter-oriented:
 ```ts
 import {
   buildTypeScriptImportGraph,
+  createGovernanceWorkspaceAdapter,
   createTypeScriptWorkspaceAdapter,
   detectTypeScriptWorkspace,
   discoverTypeScriptProjects,
@@ -63,6 +64,7 @@ import {
 The root export currently includes:
 
 - `createTypeScriptWorkspaceAdapter(...)`
+- `createGovernanceWorkspaceAdapter(...)`
 - `detectTypeScriptWorkspace(...)`
 - `parsePackageManagerWorkspace(...)`
 - `parseTsConfigResolution(...)`

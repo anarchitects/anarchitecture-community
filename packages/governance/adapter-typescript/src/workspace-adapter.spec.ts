@@ -92,6 +92,18 @@ describe('generic Governance adapter exports', () => {
     );
     expect(typedDefault.id).toBe('governance-adapter:typescript');
   });
+
+  it('implements the optional Core-owned probe contract', () => {
+    const adapter = createGovernanceWorkspaceAdapter();
+
+    expect(adapter.probe).toBeTypeOf('function');
+
+    const result = adapter.probe?.(materializeFixture('pnpm'));
+    expect(result).toMatchObject({
+      supported: true,
+      confidence: 'high',
+    });
+  });
 });
 
 const specDir = fileURLToPath(new URL('.', import.meta.url));

@@ -13,8 +13,24 @@ export interface GovernanceWorkspaceAdapterResult {
   metadata?: Record<string, unknown>;
 }
 
+export type GovernanceWorkspaceAdapterProbeConfidence =
+  | 'none'
+  | 'low'
+  | 'medium'
+  | 'high';
+
+export interface GovernanceWorkspaceAdapterProbeResult {
+  supported: boolean;
+  confidence?: GovernanceWorkspaceAdapterProbeConfidence;
+  reasons?: string[];
+  diagnostics?: GovernanceDiagnostic[];
+  capabilities?: GovernanceCapability[];
+  metadata?: Record<string, unknown>;
+}
+
 export interface GovernanceWorkspaceAdapter<TInput = unknown> {
   id: string;
+  probe?(input: TInput): GovernanceWorkspaceAdapterProbeResult;
   loadWorkspace(input: TInput): GovernanceWorkspaceAdapterResult;
 }
 

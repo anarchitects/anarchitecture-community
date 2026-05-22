@@ -1,6 +1,11 @@
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { mkdtempSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +14,10 @@ const workspaceRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
   '..',
   '..',
+);
+const adrPath = join(
+  workspaceRoot,
+  'docs/adr/0001-governance-package-boundaries.md',
 );
 const tempRoot = mkdtempSync(join(tmpdir(), 'governance-release-gate-'));
 const npmCacheDir = join(tempRoot, 'npm-cache');
@@ -31,6 +40,7 @@ const packages = [
     requiredReadmeTerms: [
       '@anarchitects/governance-core',
       'GovernanceWorkspaceAdapter',
+      'GovernanceWorkspaceAdapterProbeResult',
       'GovernanceWorkspaceAdapterResult',
       'buildGovernanceAssessment',
       'registerLoadedGovernanceExtensions',
@@ -51,6 +61,7 @@ const packages = [
     allowedGovernanceDeps: ['@anarchitects/governance-core'],
     requiredReadmeTerms: [
       '@anarchitects/governance-adapter-typescript',
+      'createGovernanceWorkspaceAdapter',
       'createTypeScriptWorkspaceAdapter',
       'detectTypeScriptWorkspace',
       'parsePackageManagerWorkspace',
@@ -72,8 +83,8 @@ const packages = [
       'runAgovCheck',
       'AgovCheckOptions',
       'AgovCheckResult',
-      'AgovCheckWithAdapterOptions',
-      'AgovCheckWithWorkspacePathOptions',
+      'agov',
+      '@anarchitects/governance-core',
     ],
   },
 ];
@@ -83,7 +94,9 @@ const commands = {
     validatePrerequisites();
     validateManifests();
     validateReadmes();
+    validateAdrLinks();
     validateExportMetadata();
+    validateSourceBoundaries();
     return validatePackedArtifacts();
   },
   prerequisites() {
@@ -97,6 +110,9 @@ const commands = {
   },
   exports() {
     validateExportMetadata();
+  },
+  boundaries() {
+    validateSourceBoundaries();
   },
   pack() {
     return validatePackedArtifacts();
@@ -122,6 +138,8 @@ console.log(
 );
 
 function validatePrerequisites() {
+  assertExists(adrPath);
+
   for (const pkg of packages) {
     assertExists(join(pkg.root, 'package.json'));
     assertExists(pkg.sourceIndexPath);
@@ -143,7 +161,7 @@ function validatePrerequisites() {
     join(workspaceRoot, 'packages/governance/cli/package.json'),
   );
   const cliSource = readFileSync(
-    join(workspaceRoot, 'packages/governance/cli/src/check.ts'),
+    join(workspaceRoot, 'packages/governance/cli/src/agov.ts'),
     'utf8',
   );
 
@@ -252,6 +270,31 @@ function validateReadmes() {
   );
 }
 
+function validateAdrLinks() {
+  const supportingDocs = [
+    join(workspaceRoot, 'docs/governance-package-boundaries.md'),
+    join(workspaceRoot, 'docs/governance-release-conventions.md'),
+  ];
+
+  for (const filePath of supportingDocs) {
+    const source = readFileSync(filePath, 'utf8');
+    assert(
+      source.includes('./adr/0001-governance-package-boundaries.md'),
+      `${relativePath(filePath)} must link to ADR 0001.`,
+    );
+  }
+
+  for (const pkg of packages) {
+    const readme = readFileSync(pkg.readmePath, 'utf8');
+    assert(
+      readme.includes(
+        '../../../docs/adr/0001-governance-package-boundaries.md',
+      ),
+      `${pkg.packageName} README must link to ADR 0001.`,
+    );
+  }
+}
+
 function validateExportMetadata() {
   for (const pkg of packages) {
     const manifest = readJson(join(pkg.root, 'package.json'));
@@ -266,6 +309,77 @@ function validateExportMetadata() {
       rootExport?.['@anarchitecture-community/source'] === './src/index.ts',
       `${pkg.packageName} must point source export at src/index.ts.`,
     );
+  }
+}
+
+function validateSourceBoundaries() {
+  validateCoreSourceBoundaries();
+  validateAdapterSourceBoundaries();
+  validateCliSourceBoundaries();
+}
+
+function validateCoreSourceBoundaries() {
+  const sourceRoot = join(workspaceRoot, 'packages/governance/core/src');
+  const forbiddenPatterns = [
+    /from ['"]@anarchitects\/governance-cli(?:\/|['"])/,
+    /from ['"]@anarchitects\/governance-adapter-[^'"]+(?:\/|['"])/,
+    /from ['"]@nx\//,
+    /from ['"]nx['"]/,
+    /anarchitecture-plugins/,
+    /tsconfig\.json/,
+    /tsconfig\.base\.json/,
+  ];
+
+  validateSourceFiles(sourceRoot, forbiddenPatterns, 'Governance Core');
+}
+
+function validateAdapterSourceBoundaries() {
+  const sourceRoot = join(
+    workspaceRoot,
+    'packages/governance/adapter-typescript/src',
+  );
+  const forbiddenPatterns = [
+    /from ['"]@anarchitects\/governance-cli(?:\/|['"])/,
+    /from ['"]@nx\//,
+    /from ['"]nx['"]/,
+    /anarchitecture-plugins/,
+    /@anarchitects\/governance-core\//,
+  ];
+
+  validateSourceFiles(
+    sourceRoot,
+    forbiddenPatterns,
+    'Governance TypeScript adapter',
+  );
+}
+
+function validateCliSourceBoundaries() {
+  const sourceRoot = join(workspaceRoot, 'packages/governance/cli/src');
+  const forbiddenPatterns = [
+    /from ['"]@anarchitects\/governance-adapter-[^'"]+(?:\/|['"])/,
+    /from ['"]@nx\//,
+    /from ['"]nx['"]/,
+    /anarchitecture-plugins/,
+    /@anarchitects\/governance-core\//,
+    /tsconfig\.json/,
+    /tsconfig\.base\.json/,
+    /conventional source folders/,
+    /package\.json declares a TypeScript dependency/,
+  ];
+
+  validateSourceFiles(sourceRoot, forbiddenPatterns, 'Governance CLI');
+}
+
+function validateSourceFiles(sourceRoot, forbiddenPatterns, label) {
+  for (const filePath of collectImplementationFiles(sourceRoot)) {
+    const source = readFileSync(filePath, 'utf8');
+
+    for (const pattern of forbiddenPatterns) {
+      assert(
+        !pattern.test(source),
+        `${label} contains a forbidden boundary pattern in ${relativePath(filePath)}: ${pattern}`,
+      );
+    }
   }
 }
 
@@ -308,6 +422,29 @@ async function validatePackedArtifacts() {
       packedFiles.includes('dist/index.d.ts'),
       `${pkg.packageName} tarball must include dist/index.d.ts.`,
     );
+
+    if (pkg.packageName === '@anarchitects/governance-cli') {
+      const manifest = readJson(join(pkg.root, 'package.json'));
+      const binPath = manifest.bin?.agov;
+
+      assert(
+        binPath === './dist/bin/agov.js',
+        'Governance CLI must expose agov at ./dist/bin/agov.js.',
+      );
+      assert(
+        packedFiles.includes('dist/bin/agov.js'),
+        'Governance CLI tarball must include dist/bin/agov.js.',
+      );
+
+      const builtBinPath = join(pkg.root, 'dist/bin/agov.js');
+      assertExists(builtBinPath);
+
+      const builtBin = readFileSync(builtBinPath, 'utf8');
+      assert(
+        builtBin.startsWith('#!/usr/bin/env node'),
+        'Governance CLI built agov executable must preserve the node shebang.',
+      );
+    }
 
     for (const packedFile of packedFiles) {
       assert(
@@ -395,6 +532,33 @@ function assertExists(filePath) {
     existsSync(filePath),
     `Expected file to exist: ${filePath.replace(`${workspaceRoot}/`, '')}`,
   );
+}
+
+function collectImplementationFiles(directory) {
+  return readDirectoryRecursively(directory)
+    .filter(
+      (filePath) =>
+        filePath.endsWith('.ts') &&
+        !filePath.endsWith('.spec.ts') &&
+        !filePath.endsWith('.test.ts') &&
+        !filePath.endsWith('.fixtures.ts'),
+    )
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function readDirectoryRecursively(directory) {
+  return readFileTree(directory);
+}
+
+function readFileTree(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const resolved = join(directory, entry.name);
+    return entry.isDirectory() ? readFileTree(resolved) : [resolved];
+  });
+}
+
+function relativePath(filePath) {
+  return filePath.replace(`${workspaceRoot}/`, '');
 }
 
 function assert(condition, message) {

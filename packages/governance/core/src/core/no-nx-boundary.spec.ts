@@ -20,6 +20,8 @@ describe('Core boundary guardrail', () => {
       /from ['"]\.\.\/nx-adapter(?:\/|['"])/,
       /from ['"]\.\.\/conformance-adapter(?:\/|['"])/,
       /anarchitecture-plugins/,
+      /tsconfig\.json/,
+      /tsconfig\.base\.json/,
     ];
 
     for (const filePath of collectImplementationFiles(coreRoot)) {

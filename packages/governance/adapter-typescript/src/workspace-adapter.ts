@@ -3,9 +3,11 @@ import path from 'node:path';
 
 import type {
   GovernanceWorkspaceAdapter,
+  GovernanceWorkspaceAdapterProbeResult,
   GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
 
+import { detectTypeScriptWorkspace } from './detect-typescript-workspace.js';
 import { buildTypeScriptImportGraph } from './import-graph.js';
 import { mapTypeScriptImportsToGovernanceDependencies } from './map-imports-to-projects.js';
 import { parsePackageManagerWorkspace } from './parse-package-manager-workspace.js';
@@ -45,6 +47,24 @@ export function createTypeScriptWorkspaceAdapter(
 ): GovernanceWorkspaceAdapter<string> {
   return {
     id: options.adapterId ?? 'governance-adapter:typescript',
+    probe(workspacePath: string): GovernanceWorkspaceAdapterProbeResult {
+      const detection = detectTypeScriptWorkspace(workspacePath);
+
+      return {
+        supported: detection.supported,
+        confidence: detection.supported
+          ? detection.status === 'supported'
+            ? 'high'
+            : 'low'
+          : 'none',
+        reasons: buildProbeReasons(detection),
+        diagnostics: detection.diagnostics,
+        metadata: {
+          status: detection.status,
+          indicators: detection.indicators,
+        },
+      };
+    },
     loadWorkspace(workspacePath: string): GovernanceWorkspaceAdapterResult {
       const workspaceRoot = path.resolve(workspacePath);
       const workspace = parsePackageManagerWorkspace(workspaceRoot);
@@ -99,6 +119,34 @@ export function createGovernanceWorkspaceAdapter(
 export const governanceWorkspaceAdapter = createGovernanceWorkspaceAdapter();
 
 export default governanceWorkspaceAdapter;
+
+function buildProbeReasons(
+  detection: ReturnType<typeof detectTypeScriptWorkspace>,
+): string[] {
+  const reasons: string[] = [];
+
+  if (detection.indicators.pnpmWorkspace) {
+    reasons.push('pnpm-workspace.yaml is present');
+  }
+
+  if (detection.indicators.packageManagerWorkspaces) {
+    reasons.push('package.json declares package-manager workspaces');
+  }
+
+  if (detection.indicators.tsconfig) {
+    reasons.push('tsconfig.json is present');
+  }
+
+  if (detection.indicators.tsconfigBase) {
+    reasons.push('tsconfig.base.json is present');
+  }
+
+  if (reasons.length === 0) {
+    reasons.push('no TypeScript workspace indicators were found');
+  }
+
+  return reasons;
+}
 
 function inferWorkspaceId(workspaceRoot: string): string {
   return inferWorkspaceName(workspaceRoot);

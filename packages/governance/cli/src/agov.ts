@@ -1,15 +1,11 @@
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type {
   GovernanceWorkspaceAdapter,
+  GovernanceWorkspaceAdapterProbeConfidence,
+  GovernanceWorkspaceAdapterProbeResult,
   Violation,
 } from '@anarchitects/governance-core';
 
@@ -63,6 +59,7 @@ export interface AgovCliRuntime {
 export interface AgovCliConfig {
   profile?: string;
   adapter?: string;
+  adapters?: string[];
   root?: string;
   workspace?: string;
   format?: string;
@@ -88,13 +85,10 @@ export interface AgovResolvedCheckCommand {
   format: AgovOutputFormat;
   outputPath?: string;
   configPath?: string;
-  mode: 'workspace' | 'adapter';
+  mode: 'workspace' | 'adapter' | 'adapter-discovery';
   workspacePath?: string;
   adapterPackage?: string;
-  adapterInference?: {
-    packageName: string;
-    reasons: string[];
-  };
+  adapterCandidates?: string[];
 }
 
 export const AGOV_EXIT_SUCCESS = 0;
@@ -142,6 +136,7 @@ export class AgovCliRuntimeError extends Error {
     public readonly code:
       | 'agov.cli.adapter_not_found'
       | 'agov.cli.adapter_contract_mismatch'
+      | 'agov.cli.no_supported_adapter'
       | 'agov.cli.unhandled_error',
     public readonly details?: Record<string, unknown>,
   ) {
@@ -410,13 +405,13 @@ export function resolveAgovCheckCommand(
   const configBasePath = configPath ? path.dirname(configPath) : cwd;
 
   if (
-    config.adapter &&
+    (config.adapter || readNonEmptyStringArray(config.adapters).length > 0) &&
     config.workspace &&
     !options.adapterPackage &&
     !options.workspacePath
   ) {
     throw new AgovCliUsageError(
-      'Config file cannot define both "adapter" and "workspace" for agov check. Pass one mode only, or override explicitly with CLI flags.',
+      'Config file cannot define both adapter-mode and workspace-mode inputs for agov check. Pass one mode only, or override explicitly with CLI flags.',
       'agov.cli.invalid_config',
     );
   }
@@ -432,16 +427,26 @@ export function resolveAgovCheckCommand(
     explicitRootPath ??
     resolveConfigRelativePath(config.root, configBasePath) ??
     cwd;
+  const explicitWorkspacePath = resolveExplicitPath(options.workspacePath, cwd);
+  const configuredWorkspacePath = resolveConfigRelativePath(
+    config.workspace,
+    configBasePath,
+  );
+  const conventionalWorkspacePath = resolveConventionalFile(
+    rootPath,
+    AGOV_WORKSPACE_FILE_NAMES,
+  );
   const workspacePath =
-    resolveExplicitPath(options.workspacePath, cwd) ??
-    resolveConfigRelativePath(config.workspace, configBasePath) ??
-    resolveConventionalFile(rootPath, AGOV_WORKSPACE_FILE_NAMES);
+    explicitWorkspacePath ??
+    configuredWorkspacePath ??
+    conventionalWorkspacePath;
   const profilePath =
     resolveExplicitPath(options.profilePath, cwd) ??
     resolveConfigRelativePath(config.profile, configBasePath) ??
     resolveConventionalFile(rootPath, AGOV_PROFILE_FILE_NAMES);
   const adapterPackage =
     options.adapterPackage ?? readNonEmptyString(config.adapter);
+  const adapterCandidates = resolveAdapterCandidatePackages(rootPath, config);
   const format = resolveOutputFormat(options.format, config.format);
   const outputPath = resolveExplicitPath(options.outputPath, cwd);
 
@@ -452,7 +457,7 @@ export function resolveAgovCheckCommand(
     );
   }
 
-  if (workspacePath && !options.adapterPackage && !config.adapter) {
+  if (explicitWorkspacePath || configuredWorkspacePath) {
     return {
       command: 'check',
       rootPath,
@@ -478,19 +483,16 @@ export function resolveAgovCheckCommand(
     };
   }
 
-  const adapterInference = inferAdapterPackage(rootPath);
-
-  if (adapterInference) {
+  if (adapterCandidates.length > 0) {
     return {
       command: 'check',
       rootPath,
       profilePath,
-      adapterPackage: adapterInference.packageName,
-      adapterInference,
+      adapterCandidates,
       format,
       ...(outputPath ? { outputPath } : {}),
       ...(configPath ? { configPath } : {}),
-      mode: 'adapter',
+      mode: 'adapter-discovery',
     };
   }
 
@@ -508,7 +510,7 @@ export function resolveAgovCheckCommand(
   }
 
   throw new AgovCliUsageError(
-    'Could not resolve Governance workspace input. Pass "--workspace <path>" for canonical workspace mode, or "--adapter <package> --root <path>" for adapter mode.',
+    'Could not resolve Governance workspace input. Pass "--workspace <path>" for canonical workspace mode, pass "--adapter <package> --root <path>" for explicit adapter mode, or configure generic adapter candidates.',
     'agov.cli.missing_workspace_or_adapter',
   );
 }
@@ -532,17 +534,30 @@ async function resolveAgovCheckRuntimeOptions(
   }
 
   if (!command.adapterPackage) {
-    throw new AgovCliRuntimeError(
-      'Resolved adapter mode without an adapter package.',
-      'agov.cli.unhandled_error',
+    if (command.mode !== 'adapter-discovery' || !command.adapterCandidates) {
+      throw new AgovCliRuntimeError(
+        'Resolved adapter mode without an adapter package.',
+        'agov.cli.unhandled_error',
+      );
+    }
+
+    const resolvedAdapter = await discoverGovernanceWorkspaceAdapter(
+      command.adapterCandidates,
+      command.rootPath,
+      environment,
     );
+
+    return {
+      profilePath: command.profilePath,
+      workspaceAdapter: resolvedAdapter.adapter,
+      workspaceAdapterInput: command.rootPath,
+    };
   }
 
   const workspaceAdapter = await loadGovernanceWorkspaceAdapter(
     command.adapterPackage,
     command.rootPath,
     environment,
-    command.adapterInference,
   );
 
   return {
@@ -556,10 +571,6 @@ async function loadGovernanceWorkspaceAdapter(
   packageName: string,
   rootPath: string,
   environment: Pick<AgovCliEnvironment, 'moduleLoader'>,
-  inference?: {
-    packageName: string;
-    reasons: string[];
-  },
 ): Promise<GovernanceWorkspaceAdapter<string>> {
   let loadedModule: unknown;
 
@@ -567,12 +578,11 @@ async function loadGovernanceWorkspaceAdapter(
     loadedModule = await environment.moduleLoader(packageName);
   } catch {
     throw new AgovCliRuntimeError(
-      renderMissingAdapterMessage(packageName, rootPath, inference),
+      renderMissingAdapterMessage(packageName),
       'agov.cli.adapter_not_found',
       {
         adapter: packageName,
         rootPath,
-        ...(inference ? { inferredBecause: inference.reasons } : {}),
       },
     );
   }
@@ -591,6 +601,85 @@ async function loadGovernanceWorkspaceAdapter(
   }
 
   return resolvedAdapter;
+}
+
+async function discoverGovernanceWorkspaceAdapter(
+  packageNames: string[],
+  rootPath: string,
+  environment: Pick<AgovCliEnvironment, 'moduleLoader'>,
+): Promise<{
+  adapter: GovernanceWorkspaceAdapter<string>;
+  packageName: string;
+  probe: GovernanceWorkspaceAdapterProbeResult;
+}> {
+  const attempts: Array<Record<string, unknown>> = [];
+  let bestMatch:
+    | {
+        adapter: GovernanceWorkspaceAdapter<string>;
+        packageName: string;
+        probe: GovernanceWorkspaceAdapterProbeResult;
+        rank: number;
+      }
+    | undefined;
+
+  for (const packageName of packageNames) {
+    let loadedModule: unknown;
+
+    try {
+      loadedModule = await environment.moduleLoader(packageName);
+    } catch {
+      attempts.push({ packageName, status: 'load-failed' });
+      continue;
+    }
+
+    const adapter = resolveAdapterExport(loadedModule);
+
+    if (!adapter) {
+      attempts.push({ packageName, status: 'contract-mismatch' });
+      continue;
+    }
+
+    if (typeof adapter.probe !== 'function') {
+      attempts.push({ packageName, status: 'missing-probe' });
+      continue;
+    }
+
+    const probe = adapter.probe(rootPath);
+    attempts.push({
+      packageName,
+      status: probe.supported ? 'supported' : 'unsupported',
+      confidence: probe.confidence ?? 'none',
+      reasons: probe.reasons ?? [],
+    });
+
+    if (!probe.supported) {
+      continue;
+    }
+
+    const rank = rankProbeConfidence(probe.confidence);
+    if (!bestMatch || rank > bestMatch.rank) {
+      bestMatch = {
+        adapter,
+        packageName,
+        probe,
+        rank,
+      };
+    }
+  }
+
+  if (!bestMatch) {
+    throw new AgovCliRuntimeError(
+      'Could not find a supported Governance adapter from the discovered candidate packages.',
+      'agov.cli.no_supported_adapter',
+      {
+        rootPath,
+        attemptedPackages: packageNames,
+        attempts,
+      },
+    );
+  }
+
+  return bestMatch;
 }
 
 function resolveAdapterExport(
@@ -635,25 +724,8 @@ function isGovernanceWorkspaceAdapter(
   );
 }
 
-function renderMissingAdapterMessage(
-  packageName: string,
-  rootPath: string,
-  inference:
-    | {
-        packageName: string;
-        reasons: string[];
-      }
-    | undefined,
-): string {
+function renderMissingAdapterMessage(packageName: string): string {
   const lines = [`Could not load Governance adapter package "${packageName}".`];
-
-  if (inference) {
-    lines.push(
-      `The adapter was inferred for "${rootPath}" because ${inference.reasons.join(
-        ', ',
-      )}.`,
-    );
-  }
 
   lines.push(
     `Install "${packageName}" in the consuming workspace to use adapter mode.`,
@@ -663,6 +735,21 @@ function renderMissingAdapterMessage(
   );
 
   return lines.join(' ');
+}
+
+function rankProbeConfidence(
+  confidence: GovernanceWorkspaceAdapterProbeConfidence | undefined,
+): number {
+  switch (confidence) {
+    case 'high':
+      return 3;
+    case 'medium':
+      return 2;
+    case 'low':
+      return 1;
+    default:
+      return 0;
+  }
 }
 
 function resolveConfigPath(
@@ -771,6 +858,15 @@ function readNonEmptyString(value: unknown): string | undefined {
     : undefined;
 }
 
+function readNonEmptyStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value
+        .filter((entry): entry is string => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0)
+    : [];
+}
+
 function resolveConventionalFile(
   rootPath: string,
   fileNames: readonly string[],
@@ -786,101 +882,56 @@ function resolveConventionalFile(
   return undefined;
 }
 
-function inferAdapterPackage(rootPath: string):
-  | {
-      packageName: string;
-      reasons: string[];
-    }
-  | undefined {
-  const reasons: string[] = [];
+function resolveAdapterCandidatePackages(
+  rootPath: string,
+  config: AgovCliConfig,
+): string[] {
+  return [
+    ...new Set([
+      ...readNonEmptyStringArray(config.adapters),
+      ...resolvePackageJsonAdapterCandidates(rootPath),
+    ]),
+  ];
+}
 
-  if (existsSync(path.join(rootPath, 'tsconfig.json'))) {
-    reasons.push('tsconfig.json is present');
-  }
-
-  if (existsSync(path.join(rootPath, 'tsconfig.base.json'))) {
-    reasons.push('tsconfig.base.json is present');
-  }
-
+function resolvePackageJsonAdapterCandidates(rootPath: string): string[] {
   const packageJsonPath = path.join(rootPath, 'package.json');
-  if (existsSync(packageJsonPath)) {
-    try {
-      const parsed = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
-        dependencies?: Record<string, string>;
-        devDependencies?: Record<string, string>;
-        peerDependencies?: Record<string, string>;
-        workspaces?: unknown;
-      };
 
-      const dependencyNames = [
-        ...Object.keys(parsed.dependencies ?? {}),
-        ...Object.keys(parsed.devDependencies ?? {}),
-        ...Object.keys(parsed.peerDependencies ?? {}),
-      ];
-
-      if (dependencyNames.includes('typescript')) {
-        reasons.push('package.json declares a TypeScript dependency');
-      }
-
-      if (
-        Array.isArray(parsed.workspaces) ||
-        (parsed.workspaces &&
-          typeof parsed.workspaces === 'object' &&
-          !Array.isArray(parsed.workspaces))
-      ) {
-        reasons.push('package.json declares package-manager workspaces');
-      }
-    } catch {
-      // Ignore invalid package.json here. The adapter load path will surface real errors later.
-    }
+  if (!existsSync(packageJsonPath) || !statSync(packageJsonPath).isFile()) {
+    return [];
   }
 
-  if (containsConventionalTypeScriptSources(rootPath)) {
-    reasons.push('conventional source folders contain .ts files');
-  }
-
-  if (reasons.length === 0) {
-    return undefined;
-  }
-
-  return {
-    packageName: '@anarchitects/governance-adapter-typescript',
-    reasons,
-  };
-}
-
-function containsConventionalTypeScriptSources(rootPath: string): boolean {
-  for (const directoryName of ['src', 'apps', 'packages', 'libs', 'services']) {
-    const directoryPath = path.join(rootPath, directoryName);
-
-    if (containsTypeScriptFile(directoryPath, 2)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function containsTypeScriptFile(directoryPath: string, depth: number): boolean {
-  if (!existsSync(directoryPath) || !statSync(directoryPath).isDirectory()) {
-    return false;
-  }
-
-  for (const entry of readdirSync(directoryPath, { withFileTypes: true })) {
-    if (entry.isFile() && /\.(ts|tsx|mts|cts)$/.test(entry.name)) {
-      return true;
+  try {
+    const parsed = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as unknown;
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return [];
     }
 
-    if (entry.isDirectory() && depth > 0) {
-      if (
-        containsTypeScriptFile(path.join(directoryPath, entry.name), depth - 1)
-      ) {
-        return true;
-      }
-    }
-  }
+    const record = parsed as Record<string, unknown>;
+    const agovConfig =
+      typeof record.agov === 'object' &&
+      record.agov !== null &&
+      !Array.isArray(record.agov)
+        ? (record.agov as Record<string, unknown>)
+        : undefined;
+    const governanceConfig =
+      typeof record.governance === 'object' &&
+      record.governance !== null &&
+      !Array.isArray(record.governance)
+        ? (record.governance as Record<string, unknown>)
+        : undefined;
 
-  return false;
+    return [
+      ...readNonEmptyStringArray(agovConfig?.adapters),
+      ...readNonEmptyStringArray(governanceConfig?.adapters),
+    ];
+  } catch {
+    return [];
+  }
 }
 
 function renderStructuredError(
@@ -964,7 +1015,7 @@ function renderAgovCheckHelp(): string {
     '  agov check [--config <path>]',
     '',
     'Resolution order:',
-    '  explicit CLI flag -> config file -> conventions/inference -> error',
+    '  explicit CLI flag -> config file -> conventional files -> generic adapter discovery and probe -> error',
     '',
     'Options:',
     '  --help              Show check command help.',
