@@ -102,6 +102,54 @@ describe('agov executable command surface', () => {
     expect(io.err).toBe('');
   });
 
+  it('discovers adapter candidates from config.adapters and selects a supported adapter by probe', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-config-adapters-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+    writeJson(path.join(cwd, 'agov.config.json'), {
+      profile: './profile.json',
+      adapters: ['adapter-one', 'adapter-two'],
+      format: 'json',
+    });
+
+    expect(
+      await runAgovCli(
+        ['check'],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              return createProbeableAdapterModule({
+                workspaceName: 'unsupported-workspace',
+                supported: false,
+                confidence: 'low',
+              });
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'config-selected-workspace',
+              supported: true,
+              confidence: 'high',
+            });
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'check',
+      success: true,
+      assessment: {
+        workspace: {
+          name: 'config-selected-workspace',
+        },
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
   it('uses an explicit config file path and resolves relative config values from the config directory', async () => {
     const io = createMemoryIo();
     const cwd = createTempWorkspaceRoot('agov-explicit-config-');
@@ -286,9 +334,12 @@ describe('agov executable command surface', () => {
     expect(io.err).toBe('');
   });
 
-  it('infers the TypeScript adapter from workspace indicators when no workspace file is present', async () => {
+  it('discovers a compatible adapter from generic package metadata and probe results', async () => {
     const io = createMemoryIo();
-    const cwd = createTypeScriptWorkspaceFixture('agov-ts-inference-');
+    const cwd = createAdapterDiscoveryFixture('agov-adapter-discovery-', [
+      'adapter-one',
+      'adapter-two',
+    ]);
 
     writeFixtureProfile(path.join(cwd, 'governance.profile.json'));
 
@@ -299,10 +350,21 @@ describe('agov executable command surface', () => {
         undefined,
         createEnvironment({
           cwd,
-          moduleLoader: async () =>
-            createAdapterModule({
-              workspaceName: '@fixture/root',
-            }),
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              return createProbeableAdapterModule({
+                workspaceName: 'unsupported-workspace',
+                supported: false,
+                confidence: 'low',
+              });
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'supported-workspace',
+              supported: true,
+              confidence: 'high',
+            });
+          },
         }),
       ),
     ).toBe(AGOV_EXIT_SUCCESS);
@@ -311,17 +373,18 @@ describe('agov executable command surface', () => {
       success: true,
       assessment: {
         workspace: {
-          name: '@fixture/root',
+          name: 'supported-workspace',
         },
       },
     });
     expect(io.err).toBe('');
   });
 
-  it('fails clearly when an inferred adapter package cannot be resolved', async () => {
+  it('fails clearly when discovered adapter candidates cannot be loaded or do not support the workspace', async () => {
     const io = createMemoryIo();
-    const cwd = createTypeScriptWorkspaceFixture(
-      'agov-missing-inferred-adapter-',
+    const cwd = createAdapterDiscoveryFixture(
+      'agov-missing-discovered-adapter-',
+      ['adapter-one', 'adapter-two'],
     );
 
     writeFixtureProfile(path.join(cwd, 'governance.profile.json'));
@@ -333,8 +396,16 @@ describe('agov executable command surface', () => {
         undefined,
         createEnvironment({
           cwd,
-          moduleLoader: async () => {
-            throw new Error('not found');
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              throw new Error('not found');
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'unsupported-workspace',
+              supported: false,
+              confidence: 'low',
+            });
           },
         }),
       ),
@@ -343,19 +414,25 @@ describe('agov executable command surface', () => {
 
     expect(parsedError).toMatchObject({
       error: {
-        code: 'agov.cli.adapter_not_found',
+        code: 'agov.cli.no_supported_adapter',
         details: {
-          adapter: '@anarchitects/governance-adapter-typescript',
-          inferredBecause: expect.arrayContaining([
-            expect.stringContaining('tsconfig'),
+          attemptedPackages: ['adapter-one', 'adapter-two'],
+          attempts: expect.arrayContaining([
+            expect.objectContaining({
+              packageName: 'adapter-one',
+              status: 'load-failed',
+            }),
+            expect.objectContaining({
+              packageName: 'adapter-two',
+              status: 'unsupported',
+            }),
           ]),
         },
       },
     });
     expect(parsedError.error.message).toContain(
-      'Install "@anarchitects/governance-adapter-typescript"',
+      'Could not find a supported Governance adapter',
     );
-    expect(parsedError.error.message).toContain('--workspace <path>');
   });
 
   it('fails clearly when an explicit adapter package cannot be resolved', async () => {
@@ -594,39 +671,52 @@ function createAdapterModule(input: { workspaceName: string }): unknown {
   };
 }
 
-function createTypeScriptWorkspaceFixture(prefix: string): string {
+function createProbeableAdapterModule(input: {
+  workspaceName: string;
+  supported: boolean;
+  confidence?: 'none' | 'low' | 'medium' | 'high';
+}): unknown {
+  return {
+    createGovernanceWorkspaceAdapter() {
+      return {
+        id: `adapter:${input.workspaceName}`,
+        probe() {
+          return {
+            supported: input.supported,
+            confidence: input.confidence ?? 'none',
+            reasons: input.supported
+              ? ['supported by probe']
+              : ['unsupported by probe'],
+          };
+        },
+        loadWorkspace() {
+          return {
+            workspaceId: input.workspaceName,
+            workspaceName: input.workspaceName,
+            workspaceRoot: '.',
+            projects: [],
+            dependencies: [],
+            diagnostics: [],
+          };
+        },
+      };
+    },
+  };
+}
+
+function createAdapterDiscoveryFixture(
+  prefix: string,
+  adapters: string[],
+): string {
   const root = createTempWorkspaceRoot(prefix);
 
   writeJson(path.join(root, 'package.json'), {
     name: '@fixture/root',
     private: true,
-    workspaces: ['packages/*'],
-    devDependencies: {
-      typescript: '^5.0.0',
+    agov: {
+      adapters,
     },
   });
-  writeJson(path.join(root, 'tsconfig.json'), {
-    compilerOptions: {
-      baseUrl: '.',
-    },
-  });
-
-  writeJson(path.join(root, 'packages/customer/package.json'), {
-    name: '@fixture/customer',
-    version: '0.0.0',
-  });
-  writeJson(path.join(root, 'packages/order/package.json'), {
-    name: '@fixture/order',
-    version: '0.0.0',
-  });
-  writeText(
-    path.join(root, 'packages/customer/src/index.ts'),
-    'export const customer = "customer";\n',
-  );
-  writeText(
-    path.join(root, 'packages/order/src/index.ts'),
-    'export const order = "order";\n',
-  );
 
   return root;
 }

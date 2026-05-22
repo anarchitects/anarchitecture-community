@@ -82,7 +82,7 @@ Core contracts include:
 - signal contracts and signal breakdowns
 - snapshot and drift contracts
 - adapter input/result contracts for hosts and adapters
-- adapter contract and normalization helpers such as `GovernanceWorkspaceAdapter` and `buildGovernanceWorkspace(...)`
+- adapter contract, probe, and normalization helpers such as `GovernanceWorkspaceAdapter`, `GovernanceWorkspaceAdapterProbeResult`, and `buildGovernanceWorkspace(...)`
 - AI analysis and handoff payload contracts
 
 ### Deterministic logic

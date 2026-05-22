@@ -18,6 +18,10 @@ describe('Governance CLI boundary guardrail', () => {
       /from ['"]@anarchitects\/nx-governance['"]/,
       /anarchitecture-plugins/,
       /@anarchitects\/governance-core\//,
+      /tsconfig\.json/,
+      /tsconfig\.base\.json/,
+      /conventional source folders/,
+      /package\.json declares a TypeScript dependency/,
     ];
 
     for (const filePath of collectImplementationFiles(sourceRoot)) {
