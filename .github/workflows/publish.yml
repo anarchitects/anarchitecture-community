@@ -3,64 +3,85 @@ name: Publish
 on:
   push:
     tags:
-      - 'nest-angular-ssr@*'
-      - 'better-auth-typeorm-adapter@*'
+      - '*@*'
+
+env:
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
 
 permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  publish-nest-angular-ssr:
-    if: startsWith(github.ref_name, 'nest-angular-ssr@')
+  publish:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v6
+      - name: Derive project from tag
+        id: tag
+        shell: bash
+        run: |
+          project="${GITHUB_REF_NAME%@*}"
+          version="${GITHUB_REF_NAME##*@}"
+
+          if [ -z "$project" ] || [ -z "$version" ] || [ "$project" = "$GITHUB_REF_NAME" ]; then
+            echo "Invalid release tag: $GITHUB_REF_NAME"
+            echo "Expected format: <nx-project-name>@<version>"
+            exit 1
+          fi
+
+          echo "project=$project" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          echo "Publishing project: $project"
+          echo "Version: $version"
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
-          filter: tree:0
           fetch-depth: 0
+          filter: tree:0
 
-      - run: corepack enable
+      - name: Enable Corepack
+        run: corepack enable
 
-      - uses: actions/setup-node@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'yarn'
           registry-url: 'https://registry.npmjs.org/'
 
-      - run: yarn install --immutable
+      - name: Install dependencies
+        run: yarn install --immutable
 
-      - run: yarn nx build nest-angular-ssr
+      - name: Validate Nx project exists
+        shell: bash
+        run: |
+          yarn nx show project "${{ steps.tag.outputs.project }}" > /dev/null
 
-      - run: yarn nx release publish --projects nest-angular-ssr
-        env:
-          NPM_CONFIG_PROVENANCE: true
+      - name: Build project
+        run: yarn nx build "${{ steps.tag.outputs.project }}"
 
-  publish-better-auth-typeorm-adapter:
-    if: startsWith(github.ref_name, 'better-auth-typeorm-adapter@')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          filter: tree:0
-          fetch-depth: 0
+      - name: Typecheck project
+        run: yarn nx typecheck "${{ steps.tag.outputs.project }}"
 
-      - run: corepack enable
+      - name: Test project
+        run: yarn nx test "${{ steps.tag.outputs.project }}"
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: 'yarn'
-          registry-url: 'https://registry.npmjs.org/'
+      - name: Run Better Auth TypeORM Adapter Postgres tests
+        if: steps.tag.outputs.project == 'better-auth-typeorm-adapter'
+        run: yarn nx run better-auth-typeorm-adapter:test-postgres
 
-      - run: yarn install --immutable
+      - name: Run Better Auth TypeORM Adapter Better Auth tests
+        if: steps.tag.outputs.project == 'better-auth-typeorm-adapter'
+        run: yarn nx run better-auth-typeorm-adapter:test-better-auth
 
-      - run: yarn nx build better-auth-typeorm-adapter
-      - run: yarn nx typecheck better-auth-typeorm-adapter
-      - run: yarn nx test better-auth-typeorm-adapter
-      - run: yarn nx run better-auth-typeorm-adapter:test-postgres
-      - run: yarn nx run better-auth-typeorm-adapter:test-better-auth
-
-      - run: yarn nx release publish --projects better-auth-typeorm-adapter
+      - name: Publish project
+        run: yarn nx release publish --projects "${{ steps.tag.outputs.project }}" --yes
         env:
           NPM_CONFIG_PROVENANCE: true
