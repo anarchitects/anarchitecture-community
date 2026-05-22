@@ -1,61 +1,125 @@
 # `@anarchitects/governance-cli`
 
-Platform-independent standalone Governance CLI owned by `anarchitects/anarchitecture-community`.
+Standalone Governance host/runtime APIs for running Governance checks outside Nx.
 
-This package is part of the Governance split and now owns the extracted standalone CLI host from `anarchitects/anarchitecture-plugins/packages/governance/src/standalone-cli`.
+## Overview
 
-Public API:
+`@anarchitects/governance-cli` provides the standalone host surface for Community-owned Governance packages. It turns explicit input documents into Governance assessments and renders the result through package-internal reporting helpers.
+
+The current public package surface is library-oriented. The package does not currently publish a `bin` entry, so the supported entrypoint is the exported runtime API rather than a packaged shell command.
+
+## Responsibilities
+
+This package is responsible for:
+
+- loading explicit standalone Governance profile documents
+- loading explicit manual Governance workspace documents
+- orchestrating Governance evaluation through `@anarchitects/governance-core`
+- returning a structured Governance check result from the public API
+- keeping argv parsing, exit handling, and report rendering as host concerns
+
+This package is not responsible for:
+
+- canonical Governance contracts
+- concrete adapter implementations
+- TypeScript adapter implementation details
+- Nx graph loading
+- Nx plugin runtime behavior
+- Nx executors or generators
+
+## Public API
+
+The public package surface is intentionally small:
+
+```ts
+import {
+  runAgovCheck,
+  type AgovCheckOptions,
+  type AgovCheckResult,
+} from '@anarchitects/governance-cli';
+```
+
+The root export currently includes:
+
+- `runAgovCheck(...)`
+- `AgovCheckOptions`
+- `AgovCheckResult`
+
+The following APIs exist in source but are not part of the public barrel:
+
+- `runAgovCli(...)`
+- argv parsing helpers
+- exit-code helpers
+- rendering helpers
+- manual-workspace loader internals
+
+## Usage
+
+The current library-style entrypoint accepts explicit file paths for a standalone workspace document and a standalone Governance profile:
 
 ```ts
 import { runAgovCheck } from '@anarchitects/governance-cli';
+
+const result = runAgovCheck({
+  workspacePath: './governance.workspace.json',
+  profilePath: './governance.profile.json',
+});
+
+console.log(result.success);
+console.log(result.assessment.health.status);
 ```
 
-Current command surface:
+The current standalone host flow supports:
 
-- The stable public library-style seam is `runAgovCheck`.
-- `runAgovCli`, argv parsing, exit-code handling, and report rendering remain internal CLI host code.
-- No package `bin` field is exposed yet in this repository.
+- manual workspace documents in `.json`, `.yaml`, or `.yml`
+- standalone profile documents in `.json`
+- report rendering formats `json`, `markdown`, and `table` through internal host code
 
-Binary entrypoint decision:
+## Adapter Model
 
-- The plugin-side `bin/agov.ts` source was not promoted into a published `bin` entry in this issue.
-- Rationale: `anarchitecture-community` does not currently have an established package `bin` build convention, and the existing Nx/Vite library pattern builds a single root entrypoint consistently.
+The intended consumer model for this package is adapter-agnostic:
 
-Manual workspace ownership decision:
+- the CLI/runtime host should depend on `@anarchitects/governance-core`
+- concrete adapters should implement Core-owned contracts
+- concrete adapters should be supplied, registered, injected, or resolved through Core-owned abstractions
+- adding a future adapter should not require changing this package’s public contract
 
-- `manual-workspace` remains CLI-internal for now.
-- Rationale: the readiness docs classify it as transitional and useful to the standalone CLI, but not yet a stable standalone adapter package contract.
-- The CLI currently preserves the existing manual YAML/JSON workspace host flow instead of inventing a new adapter mode during extraction.
+That is the model package consumers should follow.
 
-Package responsibilities:
+### Current implementation note
 
-- load explicit standalone governance profile JSON input
-- load and validate explicit manual YAML/JSON workspace input
-- normalize those inputs into canonical `@anarchitects/governance-core` contracts
-- run deterministic Governance evaluation
-- render deterministic JSON, Markdown, and table output internally
+The package documentation intentionally describes the adapter-agnostic target architecture. If the current implementation still contains a direct dependency or import path to a concrete adapter package, treat that as an implementation follow-up rather than as the desired public consumption model.
 
-Dependencies and boundaries:
+In particular, consumers should not model `@anarchitects/governance-cli` as a package that is meant to own or hard-code `@anarchitects/governance-adapter-typescript`.
 
-- depends on `@anarchitects/governance-core` for canonical contracts and deterministic Core logic
-- depends on `@anarchitects/governance-adapter-typescript` as the Community-owned non-Nx adapter seam for follow-up host wiring
-- does not expose or depend on Nx runtime behavior
-- does not import from `anarchitects/anarchitecture-plugins`
-- Nx-specific Governance execution remains in `anarchitects/anarchitecture-plugins`
+## Binary Packaging
 
-Standalone execution assumptions:
+This package does not currently declare a `bin` entry in `package.json`.
 
-- the current extracted CLI preserves the existing manual `--workspace <governance.workspace.json|yaml>` host flow
-- there is still no implemented `--adapter typescript` CLI mode in this package
-- standalone profiles are explicit JSON documents with a `name`
-- Nx runtime profile override documents are rejected intentionally
-- output formats remain `json`, `markdown`, and `table`
+That means:
 
-`anarchitects/anarchitecture-community` must not depend on `anarchitects/anarchitecture-plugins`.
+- no packaged `agov` command is documented here yet
+- no shell command usage is part of the current public contract
+- hosts should use the exported runtime API directly
 
-Shared Governance guidance lives in:
+## Package Boundaries
 
-- [`docs/governance-package-conventions.md`](../../../docs/governance-package-conventions.md)
-- [`docs/governance-package-boundaries.md`](../../../docs/governance-package-boundaries.md)
-- [`docs/governance-release-conventions.md`](../../../docs/governance-release-conventions.md)
-- [`docs/governance-documentation-structure.md`](../../../docs/governance-documentation-structure.md)
+`@anarchitects/governance-cli` is a standalone host/runtime package.
+
+It should:
+
+- orchestrate Core APIs
+- accept explicit inputs from a caller or wrapper
+- stay separate from canonical model ownership
+
+It should not:
+
+- become the home of canonical Governance contracts
+- own concrete adapter implementations
+- require CLI package changes every time a new adapter is introduced
+- take on Nx-only responsibilities
+
+## Related Packages
+
+- `@anarchitects/governance-core` owns canonical contracts and deterministic Governance logic
+- `@anarchitects/governance-adapter-typescript` is a sibling concrete adapter package for TypeScript workspace discovery, but it should not be treated as part of the CLI package’s desired dependency model
