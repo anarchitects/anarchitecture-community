@@ -1,7 +1,7 @@
 {
   "name": "@anarchitects/governance-adapter-typescript",
   "version": "0.0.1",
-  "description": "Platform-independent Governance TypeScript adapter package foundation for the Community repository.",
+  "description": "Platform-independent Governance TypeScript workspace adapter that normalizes discovery into Governance Core contracts.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -38,6 +38,23 @@
     "access": "public"
   },
   "nx": {
-    "name": "governance-adapter-typescript"
+    "name": "governance-adapter-typescript",
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/governance/adapter-typescript"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@anarchitects/governance-core": "^0.0.1",
+    "minimatch": "^10.1.1",
+    "typescript": "~5.9.2",
+    "yaml": "^2.8.1"
   }
 }

@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@valid/partial": ["packages/valid-core/src/partial.ts", "   "],
+      "@valid/core": ["packages/valid-core/src/index.ts"],
+      "@invalid/array": "packages/valid-core/src/index.ts"
+    }
+  }
+}
