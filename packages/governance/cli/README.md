@@ -2,6 +2,7 @@
 
 Standalone Governance CLI and runtime host for running Governance checks outside Nx.
 Standalone Governance CLI and host/runtime APIs for running Governance checks outside Nx.
+Standalone Governance CLI and runtime host for running Governance checks outside Nx.
 
 ## Overview
 
@@ -9,6 +10,9 @@ Standalone Governance CLI and host/runtime APIs for running Governance checks ou
 
 It orchestrates Governance checks through `@anarchitects/governance-core`, supports canonical workspace input documents, and can load compatible adapters dynamically without taking a static dependency on concrete adapter packages.
 `@anarchitects/governance-cli` provides the standalone host surface for Community-owned Governance packages. It supports both the packaged `agov` executable and the exported runtime APIs for programmatic hosts.
+`@anarchitects/governance-cli` provides the executable `agov` command and the programmatic host/runtime APIs for Community-owned Governance packages.
+
+It orchestrates Governance checks through `@anarchitects/governance-core`, supports canonical workspace input documents, and can load compatible adapters dynamically without taking a static dependency on concrete adapter packages.
 
 ## Responsibilities
 
@@ -28,6 +32,13 @@ This package is responsible for:
 - orchestrating Governance evaluation through `@anarchitects/governance-core`
 - returning a structured Governance check result from the public API
 - keeping argv parsing, exit handling, and report rendering as host concerns
+- exposing the `agov` executable command surface
+- parsing CLI arguments
+- resolving config, profile, workspace, adapter, root, and format options
+- loading standalone profile and canonical workspace documents
+- dynamically loading compatible Governance adapters by package name
+- mapping runtime outcomes to stable exit codes
+- rendering table, markdown, text, and JSON output
 
 This package is not responsible for:
 
@@ -93,15 +104,6 @@ The standalone host currently supports:
 - `text` as a compatibility alias for `table`
 
 Example programmatic usage:
-- `runAgovCli(...)`
-- argv parsing helpers
-- exit-code helpers
-- rendering helpers
-- manual-workspace loader internals
-
-## Usage
-
-The package exposes a small programmatic API:
 
 ```ts
 import { runAgovCheck } from '@anarchitects/governance-cli';
@@ -136,6 +138,7 @@ That is the model package consumers should follow.
 ## Binary Packaging
 
 This package publishes an `agov` executable through `package.json#bin`.
+`@anarchitects/governance-cli` is adapter-agnostic.
 
 Current command surface:
 
@@ -158,13 +161,26 @@ Supported output formats:
 - `markdown`
 - `json`
 - `text` as a compatibility alias for `table`
+- the package depends on `@anarchitects/governance-core`, not on concrete adapter packages
+- concrete adapters implement Core-owned contracts
+- adapters may be injected, discovered, or dynamically loaded by package name
+- adding a future adapter must not require changing the CLI package dependency graph
+
+If you want to use a concrete adapter such as `@anarchitects/governance-adapter-typescript`, that adapter must be installed separately in the consuming workspace.
+
+For detailed package-boundary rules and adapter-loading expectations, see
+[ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](../../../docs/adr/0001-governance-package-boundaries.md).
 
 ## Package Boundaries
 
 `@anarchitects/governance-cli` is a standalone runtime host.
+`@anarchitects/governance-cli` is a standalone runtime host.
 
 It should:
 
+- orchestrate Core-owned contracts
+- own command behavior, configuration, and output
+- remain reusable outside Nx
 - orchestrate Core-owned contracts
 - own command behavior, configuration, and output
 - remain reusable outside Nx
@@ -174,9 +190,13 @@ It should not:
 - become the home of canonical Governance contracts
 - statically import concrete adapter packages
 - own adapter-specific detection heuristics
+- statically import concrete adapter packages
+- own adapter-specific detection heuristics
 - take on Nx-only responsibilities
 
 ## Related Packages
 
+- `@anarchitects/governance-core` owns canonical Governance contracts and deterministic evaluation logic
+- `@anarchitects/governance-adapter-typescript` is a sibling concrete adapter package for TypeScript workspace discovery
 - `@anarchitects/governance-core` owns canonical Governance contracts and deterministic evaluation logic
 - `@anarchitects/governance-adapter-typescript` is a sibling concrete adapter package for TypeScript workspace discovery
