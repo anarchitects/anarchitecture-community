@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "workspace": {
+    "name": "fixture-valid-json"
+  },
+  "projects": [
+    {
+      "name": "billing-domain",
+      "root": "src/billing/domain",
+      "tags": ["scope:billing", "layer:domain"]
+    },
+    {
+      "name": "shared-domain",
+      "root": "src/shared/domain",
+      "tags": ["scope:shared", "layer:domain"]
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "billing-domain",
+      "target": "shared-domain",
+      "type": "static"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "workspace": {
+    "name": "demo",
+    "root": "."
+  },
+  "projects": [
+    {
+      "name": "order-domain",
+      "root": "src/order/domain",
+      "tags": ["scope:order", "layer:domain", "type:domain"],
+      "type": "library"
+    },
+    {
+      "name": "customer-domain",
+      "root": "src/customer/domain",
+      "tags": ["scope:customer", "layer:domain", "type:domain"]
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "customer-domain",
+      "target": "order-domain",
+      "type": "static"
+    }
+  ]
+}

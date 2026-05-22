@@ -1,0 +1,29 @@
+{
+  "name": "check-pass",
+  "description": "Passing standalone agov check profile fixture",
+  "boundaryPolicySource": "profile",
+  "layers": ["domain"],
+  "allowedDomainDependencies": {
+    "customer": ["order"],
+    "order": [],
+    "*": []
+  },
+  "ownership": {
+    "required": false,
+    "metadataField": "ownership"
+  },
+  "health": {
+    "statusThresholds": {
+      "goodMinScore": 85,
+      "warningMinScore": 70
+    }
+  },
+  "metrics": {
+    "architectural-entropy": 1,
+    "dependency-complexity": 1,
+    "domain-integrity": 1,
+    "ownership-coverage": 1,
+    "documentation-completeness": 1,
+    "layer-integrity": 1
+  }
+}

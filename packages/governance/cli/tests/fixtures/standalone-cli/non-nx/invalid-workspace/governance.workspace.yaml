@@ -1,0 +1,13 @@
+schemaVersion: 1
+workspace:
+  name: fixture-invalid-workspace
+projects:
+  - name: customer-domain
+    root: /src/customer/domain
+    tags:
+      - scope:customer
+      - layer:domain
+dependencies:
+  - source: customer-domain
+    target: missing-domain
+    type: static

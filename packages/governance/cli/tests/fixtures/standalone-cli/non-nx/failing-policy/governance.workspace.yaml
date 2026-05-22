@@ -1,0 +1,18 @@
+schemaVersion: 1
+workspace:
+  name: fixture-failing-policy
+projects:
+  - name: customer-domain
+    root: src/customer/domain
+    tags:
+      - scope:customer
+      - layer:domain
+  - name: order-domain
+    root: src/order/domain
+    tags:
+      - scope:order
+      - layer:domain
+dependencies:
+  - source: customer-domain
+    target: order-domain
+    type: static
