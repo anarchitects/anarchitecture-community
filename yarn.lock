@@ -38,6 +38,8 @@ __metadata:
   dependencies:
     "@anarchitects/governance-core": "npm:^0.0.1"
     yaml: "npm:^2.8.1"
+  bin:
+    agov: ./dist/bin/agov.js
   languageName: unknown
   linkType: soft
 
