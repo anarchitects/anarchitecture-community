@@ -45,6 +45,7 @@ The public package surface is intentionally adapter-oriented:
 ```ts
 import {
   buildTypeScriptImportGraph,
+  createTypeScriptWorkspaceAdapter,
   detectTypeScriptWorkspace,
   discoverTypeScriptProjects,
   deriveProjectTags,

@@ -1,5 +1,9 @@
 export { detectTypeScriptWorkspace } from './detect-typescript-workspace.js';
 export { buildTypeScriptImportGraph } from './import-graph.js';
+export {
+  createTypeScriptWorkspaceAdapter,
+  type CreateTypeScriptWorkspaceAdapterOptions,
+} from './workspace-adapter.js';
 export { mapTypeScriptImportsToGovernanceDependencies } from './map-imports-to-projects.js';
 export { parsePackageManagerWorkspace } from './parse-package-manager-workspace.js';
 export { parseTsConfigResolution } from './parse-tsconfig.js';

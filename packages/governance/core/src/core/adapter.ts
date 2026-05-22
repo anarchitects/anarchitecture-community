@@ -1,4 +1,5 @@
-import type { GovernanceWorkspace } from './models.js';
+import type { Ownership, GovernanceWorkspace } from './models.js';
+import type { ProfileOverrides } from './profile.js';
 
 export interface GovernanceWorkspaceAdapterResult {
   workspace?: GovernanceWorkspace;
@@ -10,6 +11,11 @@ export interface GovernanceWorkspaceAdapterResult {
   capabilities?: GovernanceCapability[];
   diagnostics?: GovernanceDiagnostic[];
   metadata?: Record<string, unknown>;
+}
+
+export interface GovernanceWorkspaceAdapter<TInput = unknown> {
+  id: string;
+  loadWorkspace(input: TInput): GovernanceWorkspaceAdapterResult;
 }
 
 export interface GovernanceProjectInput {
@@ -51,4 +57,208 @@ export interface GovernanceDiagnostic {
   message: string;
   source?: string;
   details?: Record<string, unknown>;
+}
+
+export function buildGovernanceWorkspace(
+  adapterResult: GovernanceWorkspaceAdapterResult,
+  overrides: ProfileOverrides = { projectOverrides: {} },
+): GovernanceWorkspace {
+  const projectsInput = resolveProjects(adapterResult);
+  const dependenciesInput = resolveDependencies(adapterResult);
+
+  return {
+    id: adapterResult.workspaceId ?? adapterResult.workspace?.id ?? 'workspace',
+    name:
+      adapterResult.workspaceName ??
+      adapterResult.workspace?.name ??
+      'workspace',
+    root: adapterResult.workspaceRoot ?? adapterResult.workspace?.root ?? '',
+    projects: projectsInput.map((project) => {
+      const projectName = normalizeProjectName(project);
+      const projectTags = project.tags ?? [];
+      const projectMetadata = project.metadata ?? {};
+      const override = overrides.projectOverrides[projectName] ?? {};
+      const domain =
+        override.domain ??
+        project.domain ??
+        tagValue(projectTags, 'domain') ??
+        tagValue(projectTags, 'scope');
+      const layer =
+        override.layer ?? project.layer ?? tagValue(projectTags, 'layer');
+
+      const ownershipFromMeta = readOwnershipFromMetadata(projectMetadata);
+
+      return {
+        id: project.id,
+        name: projectName,
+        root: project.root ?? '',
+        type: normalizeProjectType(project.type),
+        tags: projectTags,
+        domain,
+        layer,
+        ownership: resolveOwnership(
+          ownershipFromMeta,
+          override.ownershipTeam,
+          project.ownership,
+        ),
+        metadata: {
+          ...projectMetadata,
+          ...(override.documentation !== undefined
+            ? { documentation: override.documentation }
+            : {}),
+        },
+      };
+    }),
+    dependencies: dependenciesInput.map((dependency) => ({
+      source: dependency.sourceProjectId,
+      target: dependency.targetProjectId,
+      type: normalizeDependencyType(dependency.type),
+      sourceFile: dependency.sourceFile,
+    })),
+  };
+}
+
+function resolveProjects(
+  adapterResult: GovernanceWorkspaceAdapterResult,
+): GovernanceProjectInput[] {
+  if (adapterResult.projects) {
+    return adapterResult.projects;
+  }
+
+  if (adapterResult.workspace) {
+    return adapterResult.workspace.projects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      root: project.root,
+      type: project.type,
+      domain: project.domain,
+      layer: project.layer,
+      tags: project.tags,
+      ownership: project.ownership,
+      metadata: project.metadata,
+    }));
+  }
+
+  return [];
+}
+
+function resolveDependencies(
+  adapterResult: GovernanceWorkspaceAdapterResult,
+): GovernanceDependencyInput[] {
+  if (adapterResult.dependencies) {
+    return adapterResult.dependencies;
+  }
+
+  if (adapterResult.workspace) {
+    return adapterResult.workspace.dependencies.map((dependency) => ({
+      sourceProjectId: dependency.source,
+      targetProjectId: dependency.target,
+      type: dependency.type,
+      sourceFile: dependency.sourceFile,
+    }));
+  }
+
+  return [];
+}
+
+function normalizeProjectName(project: GovernanceProjectInput): string {
+  return project.name ?? project.id;
+}
+
+function tagValue(tags: string[], prefix: string): string | undefined {
+  const found = tags.find((tag) => tag.startsWith(`${prefix}:`));
+  return found?.split(':').slice(1).join(':');
+}
+
+function normalizeProjectType(
+  type: string | undefined,
+): 'application' | 'library' | 'tool' | 'unknown' {
+  if (type === 'application' || type === 'app') return 'application';
+  if (type === 'library' || type === 'lib') return 'library';
+  if (type === 'tool') return 'tool';
+  return 'unknown';
+}
+
+function normalizeDependencyType(
+  type: string | undefined,
+): 'static' | 'dynamic' | 'implicit' | 'unknown' {
+  if (type === 'static' || type === 'dynamic' || type === 'implicit') {
+    return type;
+  }
+
+  return 'unknown';
+}
+
+function readOwnershipFromMetadata(
+  metadata: Record<string, unknown>,
+): string | undefined {
+  const direct = metadata.ownership;
+  if (typeof direct === 'string' && direct) {
+    return direct;
+  }
+
+  if (direct && typeof direct === 'object') {
+    const team = (direct as Record<string, unknown>).team;
+    if (typeof team === 'string' && team) {
+      return team;
+    }
+  }
+
+  return undefined;
+}
+
+function resolveOwnership(
+  metadataTeam: string | undefined,
+  overrideTeam: string | undefined,
+  adapterOwnership:
+    | {
+        team?: string;
+        contacts?: string[];
+        source?: string;
+      }
+    | undefined,
+): Ownership {
+  const contacts = adapterOwnership?.contacts ?? [];
+  const team = overrideTeam ?? metadataTeam ?? adapterOwnership?.team;
+
+  if (team && contacts.length) {
+    return {
+      team,
+      contacts,
+      source: 'merged',
+    };
+  }
+
+  if (team) {
+    return {
+      team,
+      contacts: [],
+      source: normalizeOwnershipSource(adapterOwnership?.source),
+    };
+  }
+
+  if (contacts.length) {
+    return {
+      contacts,
+      source: 'codeowners',
+    };
+  }
+
+  return {
+    source: 'none',
+  };
+}
+
+function normalizeOwnershipSource(
+  source: string | undefined,
+): Ownership['source'] {
+  if (source === 'merged' || source === 'project-metadata') {
+    return source;
+  }
+
+  if (source === 'codeowners') {
+    return 'codeowners';
+  }
+
+  return 'project-metadata';
 }

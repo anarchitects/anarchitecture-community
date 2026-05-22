@@ -38,7 +38,6 @@ Allowed:
 - `@anarchitects/governance-cli` -> `@anarchitects/governance-core`
 - `@anarchitects/governance-adapter-typescript` -> `@anarchitects/governance-core`
 - `@anarchitects/governance-extension-*` -> `@anarchitects/governance-core`
-- `@anarchitects/governance-cli` -> `@anarchitects/governance-adapter-typescript`
 - published packages in `anarchitecture-plugins` -> published Governance packages from `anarchitecture-community`
 
 Forbidden:
@@ -68,9 +67,11 @@ Core is the canonical model layer. It should define the shapes that adapters and
 `@anarchitects/governance-cli`:
 
 - owns standalone runtime orchestration
-- may depend on Core and adapters
+- may depend on Core
+- may accept concrete adapters only through Core-owned contracts
 - may format output and handle process exit behavior
 - must not become a source of canonical Governance contracts
+- must not depend directly on concrete adapter packages
 
 If the CLI needs a reusable contract, that contract belongs in Core rather than in CLI-specific modules.
 
@@ -128,7 +129,7 @@ If a feature requires Nx runtime knowledge to function, it belongs in `anarchite
 
 Preferred:
 
-- a CLI command reads a workspace through `@anarchitects/governance-adapter-typescript` and evaluates rules through `@anarchitects/governance-core`
+- a CLI command accepts or is given an adapter implementation through Core-owned contracts and evaluates rules through `@anarchitects/governance-core`
 - an extension contributes rule definitions or diagnostics through Core extension points
 - an Nx-specific package consumes published Core contracts and normalizes Nx data into those contracts outside this repository
 

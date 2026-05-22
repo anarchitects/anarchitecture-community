@@ -10,7 +10,7 @@ import type {
   GovernanceWorkspace,
   GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
-import { buildInventory } from '../inventory/build-inventory.js';
+import { buildGovernanceWorkspace } from '@anarchitects/governance-core';
 
 import { createManualWorkspaceCapability } from './capability.js';
 
@@ -130,7 +130,7 @@ export function loadGenericWorkspace(
     filePath,
     format,
     adapterResult,
-    workspace: buildInventory(adapterResult),
+    workspace: buildGovernanceWorkspace(adapterResult),
   };
 }
 
