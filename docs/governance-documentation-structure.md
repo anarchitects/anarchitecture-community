@@ -36,6 +36,8 @@ packages/governance/*/README.md
 
 Repository-level Governance docs should own shared concepts, ownership boundaries, dependency direction, release sequencing, and documentation structure guidance.
 
+Accepted package-boundary decisions should live under `docs/adr/` and be linked from the supporting Governance docs.
+
 Package-level READMEs should own package-specific purpose, usage, configuration, compatibility notes, and links back to the shared Governance docs where needed.
 
 ## Package README Expectations

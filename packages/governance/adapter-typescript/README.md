@@ -144,6 +144,9 @@ That means:
 
 The package reads repository files directly and stays usable in plain TypeScript or mixed monorepo environments without requiring Nx.
 
+For detailed package-boundary rules and the adapter ownership model, see
+[ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](../../../docs/adr/0001-governance-package-boundaries.md).
+
 ## Related Packages
 
 - `@anarchitects/governance-core` owns the canonical Governance contracts and deterministic evaluation logic

@@ -229,6 +229,9 @@ That means:
 
 Concrete adapters should emit canonical Core-owned contracts. Hosts and CLIs should orchestrate Core APIs without moving canonical model ownership out of this package.
 
+For detailed package-boundary rules and allowed dependency direction, see
+[ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](../../../docs/adr/0001-governance-package-boundaries.md).
+
 ## Related Packages
 
 - `@anarchitects/governance-adapter-typescript` discovers TypeScript workspaces and maps them into Core-owned contracts
