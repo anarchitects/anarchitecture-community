@@ -1,0 +1,99 @@
+name: Release (Manual)
+
+env:
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      projects:
+        description: Optional Nx projects argument, for example nest-angular-ssr or better-auth-typeorm-adapter
+        required: false
+        type: string
+      bump:
+        description: Optional semver override
+        required: false
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prepatch
+          - preminor
+          - premajor
+          - prerelease
+      first_release:
+        description: Treat the selected release as a first release
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: release-manual
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ensure workflow runs from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "This workflow must run from main. Current ref: ${{ github.ref }}"
+          exit 1
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.ANARCHITECTS_BOT_APP_ID }}
+          private-key: ${{ secrets.ANARCHITECTS_BOT_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+          filter: tree:0
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Configure git author for release commits
+        run: |
+          git config user.name "anarchitects-bot[bot]"
+          git config user.email "anarchitects-bot[bot]@users.noreply.github.com"
+
+      - name: Run Nx release
+        run: |
+          args="--skip-publish --yes"
+
+          if [ -n "${{ inputs.projects }}" ]; then
+            args="$args --projects=${{ inputs.projects }}"
+          fi
+
+          if [ -n "${{ inputs.bump }}" ]; then
+            args="$args --bump=${{ inputs.bump }}"
+          fi
+
+          if [ "${{ inputs.first_release }}" = "true" ]; then
+            args="$args --first-release"
+          fi
+
+          yarn nx release $args
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
