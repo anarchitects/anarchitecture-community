@@ -62,6 +62,7 @@ import {
 
 The root export currently includes:
 
+- `createTypeScriptWorkspaceAdapter(...)`
 - `detectTypeScriptWorkspace(...)`
 - `parsePackageManagerWorkspace(...)`
 - `parseTsConfigResolution(...)`

@@ -13,7 +13,7 @@ describe('Governance CLI boundary guardrail', () => {
       /from ['"]\.\.\/plugin(?:\/|['"])/,
       /from ['"]\.\.\/executors(?:\/|['"])/,
       /from ['"]\.\.\/generators(?:\/|['"])/,
-      /from ['"]@anarchitects\/governance-adapter-[^'"]+['"]/,
+      /from ['"]@anarchitects\/governance-adapter-[^'"]+(?:\/|['"])/,
       /from ['"]@anarchitects\/governance-adapter-nx['"]/,
       /from ['"]@anarchitects\/nx-governance['"]/,
       /anarchitecture-plugins/,

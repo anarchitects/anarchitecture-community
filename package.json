@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "private": true,
+  "scripts": {
+    "validate:governance-packages": "yarn nx run @anarchitecture-community/source:validate-governance-release-gate"
+  },
   "devDependencies": {
     "@angular/common": "^21.2.5",
     "@angular/compiler": "^21.2.5",
@@ -65,6 +68,16 @@
         "executor": "nx:run-commands",
         "options": {
           "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
+        }
+      },
+      "validate-governance-release-gate": {
+        "executor": "nx:run-commands",
+        "options": {
+          "commands": [
+            "yarn nx run-many -t build,typecheck,test,lint -p governance-core governance-adapter-typescript governance-cli",
+            "node tools/governance/validate-community-governance.mjs all"
+          ],
+          "parallel": false
         }
       },
       "local-registry": {

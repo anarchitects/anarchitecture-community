@@ -15,6 +15,7 @@ describe('TypeScript adapter boundary guardrail', () => {
       /from ['"]\.\.\/generators(?:\/|['"])/,
       /from ['"]\.\.\/standalone-cli(?:\/|['"])/,
       /from ['"]\.\.\/manual-workspace(?:\/|['"])/,
+      /from ['"]@anarchitects\/governance-cli(?:\/|['"])/,
       /from ['"]@anarchitects\/governance-adapter-nx['"]/,
       /from ['"]@anarchitects\/nx-governance['"]/,
       /anarchitecture-plugins/,
