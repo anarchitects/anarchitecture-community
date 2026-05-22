@@ -1,0 +1,22 @@
+{
+  "name": " ",
+  "boundaryPolicySource": "profile",
+  "layers": ["domain", "domain"],
+  "rules": {
+    "project-name-convention": {
+      "severity": "fatal"
+    }
+  },
+  "ownership": {
+    "required": "yes"
+  },
+  "health": {
+    "statusThresholds": {
+      "goodMinScore": 70,
+      "warningMinScore": 80
+    }
+  },
+  "metrics": {
+    "architectural-entropy": "high"
+  }
+}

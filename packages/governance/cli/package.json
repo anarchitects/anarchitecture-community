@@ -1,7 +1,7 @@
 {
   "name": "@anarchitects/governance-cli",
   "version": "0.0.1",
-  "description": "Platform-independent Governance CLI package foundation for the Community repository.",
+  "description": "Platform-independent standalone Governance CLI that orchestrates Community-owned Governance Core contracts outside Nx.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -37,6 +37,22 @@
     "access": "public"
   },
   "nx": {
-    "name": "governance-cli"
+    "name": "governance-cli",
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/governance/cli"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@anarchitects/governance-adapter-typescript": "^0.0.1",
+    "@anarchitects/governance-core": "^0.0.1",
+    "yaml": "^2.8.1"
   }
 }

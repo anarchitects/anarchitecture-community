@@ -1,0 +1,47 @@
+{
+  "name": "standalone-demo",
+  "description": "Standalone Governance CLI profile fixture",
+  "boundaryPolicySource": "profile",
+  "layers": ["app", "domain", "infra"],
+  "rules": {
+    "project-name-convention": {
+      "enabled": true,
+      "severity": "info",
+      "options": {
+        "pattern": "^[a-z-]+$"
+      }
+    },
+    "missing-domain": {
+      "enabled": true,
+      "options": {
+        "required": true
+      }
+    }
+  },
+  "allowedLayerDependencies": {
+    "app": ["infra", "domain", "infra"],
+    "domain": ["infra"]
+  },
+  "allowedDomainDependencies": {
+    "billing": ["shared", "billing", "shared"],
+    "*": ["shared"]
+  },
+  "ownership": {
+    "required": true,
+    "metadataField": "ownership"
+  },
+  "health": {
+    "statusThresholds": {
+      "goodMinScore": 90,
+      "warningMinScore": 75
+    }
+  },
+  "metrics": {
+    "ownership-coverage": 0.3,
+    "layer-integrity": 0.8,
+    "domain-integrity": 0.6,
+    "documentation-completeness": 0.1,
+    "dependency-complexity": 0.4,
+    "architectural-entropy": 0.5
+  }
+}

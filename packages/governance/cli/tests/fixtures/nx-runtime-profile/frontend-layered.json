@@ -1,0 +1,50 @@
+{
+  "boundaryPolicySource": "eslint",
+  "layers": ["app", "feature", "ui", "data-access", "util"],
+  "allowedDomainDependencies": {
+    "js": [],
+    "typeorm": [],
+    "governance": []
+  },
+  "ownership": {
+    "required": true,
+    "metadataField": "ownership"
+  },
+  "health": {
+    "statusThresholds": {
+      "goodMinScore": 85,
+      "warningMinScore": 70
+    }
+  },
+  "metrics": {
+    "architecturalEntropyWeight": 0.2,
+    "dependencyComplexityWeight": 0.2,
+    "domainIntegrityWeight": 0.2,
+    "ownershipCoverageWeight": 0.2,
+    "documentationCompletenessWeight": 0.2,
+    "layerIntegrityWeight": 0.2
+  },
+  "projectOverrides": {
+    "@anarchitecture-plugins/source": {
+      "documentation": true
+    },
+    "nx-js": {
+      "documentation": true
+    },
+    "nx-js-e2e": {
+      "documentation": true
+    },
+    "nx-typeorm": {
+      "documentation": true
+    },
+    "nx-typeorm-e2e": {
+      "documentation": true
+    },
+    "nx-governance": {
+      "documentation": true
+    },
+    "nx-governance-e2e": {
+      "documentation": true
+    }
+  }
+}
