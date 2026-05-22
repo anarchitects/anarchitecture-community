@@ -11,7 +11,11 @@ import { fileURLToPath } from 'node:url';
 
 import type { GovernanceWorkspaceAdapter } from '@anarchitects/governance-core';
 
-import { createTypeScriptWorkspaceAdapter } from './workspace-adapter.js';
+import {
+  createGovernanceWorkspaceAdapter,
+  createTypeScriptWorkspaceAdapter,
+  governanceWorkspaceAdapter,
+} from './workspace-adapter.js';
 
 describe('createTypeScriptWorkspaceAdapter', () => {
   it('implements the Core-owned adapter contract and emits canonical adapter results', () => {
@@ -67,6 +71,26 @@ describe('createTypeScriptWorkspaceAdapter', () => {
       },
     ]);
     expect(result.diagnostics).toEqual([]);
+  });
+});
+
+describe('generic Governance adapter exports', () => {
+  it('creates a compatible adapter without host-owned discovery defaults in the CLI', () => {
+    const workspaceRoot = materializeFixture('pnpm');
+
+    const created = createGovernanceWorkspaceAdapter();
+    const typedCreated: GovernanceWorkspaceAdapter<string> = created;
+    const typedDefault: GovernanceWorkspaceAdapter<string> =
+      governanceWorkspaceAdapter;
+
+    expect(typedCreated.loadWorkspace(workspaceRoot).projects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'web' }),
+        expect.objectContaining({ id: 'customer' }),
+        expect.objectContaining({ id: 'order' }),
+      ]),
+    );
+    expect(typedDefault.id).toBe('governance-adapter:typescript');
   });
 });
 
