@@ -1,7 +1,7 @@
 {
   "name": "@anarchitects/governance-core",
   "version": "0.0.1",
-  "description": "Platform-independent Governance core package foundation for the Community repository.",
+  "description": "Platform-independent Governance Core contracts and deterministic logic for the Community repository.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -36,6 +36,17 @@
     "access": "public"
   },
   "nx": {
-    "name": "governance-core"
+    "name": "governance-core",
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/governance/core"
+        }
+      }
+    }
   }
 }

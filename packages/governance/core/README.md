@@ -1,14 +1,36 @@
 # `@anarchitects/governance-core`
 
-This package is prepared as part of the Governance split in `anarchitects/anarchitecture-community`.
+Platform-independent Governance Core contracts and deterministic logic owned by `anarchitects/anarchitecture-community`.
 
-The current state is package foundation only. Governance Core implementation will be migrated later as follow-up extraction work.
+This package is part of the Governance split and now owns the extracted Core public API from `anarchitects/anarchitecture-plugins/packages/governance/src/core`.
+
+Public entrypoint:
+
+```ts
+import {
+  buildGovernanceAssessment,
+  buildMetricSnapshot,
+  compareSnapshots,
+  coreBuiltInRulePack,
+  evaluateRulePack,
+  normalizeGovernanceException,
+  normalizeGovernanceProfile,
+} from '@anarchitects/governance-core';
+```
+
+Current migration status:
+
+- Core contracts and deterministic logic are extracted here.
+- Nx-specific Governance integration remains in `anarchitects/anarchitecture-plugins`.
+- Portable extension contracts are deferred to the dedicated follow-up slice.
 
 This package must remain platform-independent:
 
 - no Nx runtime dependencies
 - no imports from `anarchitects/anarchitecture-plugins`
 - no reverse dependency on Nx-specific Governance packages
+
+`anarchitects/anarchitecture-community` must not depend on `anarchitects/anarchitecture-plugins`.
 
 Nx-specific Governance integration remains in `anarchitects/anarchitecture-plugins`.
 
