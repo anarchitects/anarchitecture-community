@@ -1,61 +1,233 @@
 # `@anarchitects/governance-core`
 
-Platform-independent Governance Core contracts, deterministic logic, and portable extension APIs owned by `anarchitects/anarchitecture-community`.
+Canonical Governance contracts, deterministic evaluation logic, and portable extension APIs.
 
-This package is part of the Governance split and now owns the extracted Core public API from `anarchitects/anarchitecture-plugins/packages/governance/src/core`.
-It also owns the portable Governance extension contracts and runtime registry from `anarchitects/anarchitecture-plugins/packages/governance/src/extensions`.
+## Overview
 
-Public entrypoint:
+`@anarchitects/governance-core` is the package that defines the Governance model layer for the Community-owned Governance package family. It owns the public contracts that adapters, hosts, and extensions normalize into, plus the deterministic logic that evaluates those contracts.
+
+Use this package when you need:
+
+- canonical workspace, project, dependency, ownership, violation, measurement, health, assessment, snapshot, drift, signal, and AI-analysis contracts
+- deterministic rule evaluation and assessment assembly
+- built-in Governance rule packs
+- portable adapter input contracts
+- portable extension contracts, capability contracts, diagnostics, and runtime registration helpers
+
+## Responsibilities
+
+This package is responsible for:
+
+- defining the canonical `GovernanceWorkspace` model and related result shapes
+- defining adapter-facing input contracts such as `GovernanceProjectInput`, `GovernanceDependencyInput`, and `GovernanceWorkspaceAdapterResult`
+- defining profile, rule, signal, exception, measurement, health, assessment, snapshot, and drift contracts
+- providing deterministic helpers such as profile normalization, rule evaluation, assessment assembly, snapshot comparison, and AI handoff payload builders
+- providing portable extension contracts and runtime helpers that stay independent from Nx
+
+This package is not responsible for:
+
+- concrete adapter implementations
+- CLI command behavior or argument parsing
+- Nx runtime behavior
+- Nx graph loading or metadata extraction
+- Nx executors or generators
+- plugin runtime behavior
+
+## Public API
+
+The package has a single public entrypoint:
 
 ```ts
 import {
-  DefaultGovernanceCapabilityRegistry,
   buildGovernanceAssessment,
-  collectGovernanceSignals,
   buildMetricSnapshot,
   compareSnapshots,
   coreBuiltInRulePack,
   evaluateRulePack,
-  registerLoadedGovernanceExtensions,
   normalizeGovernanceException,
   normalizeGovernanceProfile,
+  registerLoadedGovernanceExtensions,
+  type GovernanceWorkspace,
+  type GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
 ```
 
-Current migration status:
+The root export currently re-exports these API groups:
 
-- Core contracts and deterministic logic are extracted here.
-- Portable extension contracts, capability contracts, diagnostics, and runtime registration are extracted here.
-- Nx-specific Governance integration remains in `anarchitects/anarchitecture-plugins`.
-- Nx-specific extension discovery, config loading, module loading, and plugin probing remain in `anarchitects/anarchitecture-plugins`.
+- `adapter`
+- `assessment`
+- `ai`
+- `built-in-rule-pack`
+- `built-in-rules`
+- `drift`
+- `models`
+- `exceptions`
+- `profile`
+- `rule-engine`
+- `rules`
+- `signals`
+- `snapshots`
+- `extensions`
 
-Portable extension API ownership:
+### Core contracts
 
-- `src/extensions/contracts.ts` owns extension registration and execution contracts.
-- `src/extensions/capabilities.ts` owns the generic capability registry.
-- `src/extensions/diagnostics.ts` owns extension diagnostic contracts.
-- `src/extensions/runtime.ts` owns deterministic runtime registration and execution helpers.
-- host-owned discovery, config loading, filesystem traversal, and module resolution stay out of this package.
+Core contracts include:
 
-`workspaceRoot` decision:
+- workspace, project, dependency, and ownership models
+- violations, measurements, recommendations, health scores, and top issues
+- Governance profiles and rule configuration
+- Governance exceptions and exception reports
+- signal contracts and signal breakdowns
+- snapshot and drift contracts
+- adapter input/result contracts for hosts and adapters
+- AI analysis and handoff payload contracts
 
-- `GovernanceExtensionHostContext.workspaceRoot` remains `string`.
-- Rationale: it is a generic workspace concept, not an Nx runtime API.
-- Core only carries that value in the portable host context; it does not read files, inspect `nx.json`, or perform module loading from it.
+### Deterministic logic
 
-This package must remain platform-independent:
+Deterministic helpers include:
 
-- no Nx runtime dependencies
-- no imports from `anarchitects/anarchitecture-plugins`
-- no reverse dependency on Nx-specific Governance packages
+- `buildGovernanceAssessment(...)`
+- `evaluateRules(...)` and `evaluateRulePack(...)`
+- `normalizeGovernanceProfile(...)`
+- `normalizeGovernanceException(...)`
+- `buildMetricSnapshot(...)`
+- `compareSnapshots(...)`, `summarizeDrift(...)`, and `buildDriftSummary(...)`
+- `buildAiHandoffPayload(...)` and the specialized AI handoff helpers
 
-`anarchitects/anarchitecture-community` must not depend on `anarchitects/anarchitecture-plugins`.
+### Built-in rule content
 
-Nx-specific Governance integration remains in `anarchitects/anarchitecture-plugins`.
+Built-in Governance rule content includes:
 
-Shared package guidance lives in:
+- `coreBuiltInRulePack`
+- `coreBuiltInRulePacks`
+- `coreBuiltInPolicyRules`
+- `evaluateCoreBuiltInPolicyViolations(...)`
 
-- [`docs/governance-package-conventions.md`](../../../docs/governance-package-conventions.md)
-- [`docs/governance-package-boundaries.md`](../../../docs/governance-package-boundaries.md)
-- [`docs/governance-release-conventions.md`](../../../docs/governance-release-conventions.md)
-- [`docs/governance-documentation-structure.md`](../../../docs/governance-documentation-structure.md)
+### Extension APIs
+
+Portable extension APIs include:
+
+- extension contracts in `contracts`
+- capability registry contracts in `capabilities`
+- extension diagnostics in `diagnostics`
+- runtime registration and execution helpers in `runtime`
+
+Notable extension exports include:
+
+- `DefaultGovernanceCapabilityRegistry`
+- `GovernanceExtensionHostContext`
+- `GovernanceExtensionDefinition`
+- `GovernanceWorkspaceEnricher`
+- `GovernanceExtensionRulePack`
+- `GovernanceSignalProvider`
+- `GovernanceMetricProvider`
+- `GovernanceExtensionDiagnostic`
+- `registerLoadedGovernanceExtensions(...)`
+- `applyGovernanceEnrichers(...)`
+- `evaluateGovernanceRulePacks(...)`
+- `collectGovernanceSignals(...)`
+- `collectGovernanceMeasurements(...)`
+
+## Usage
+
+The package is designed to sit between concrete adapters and higher-level hosts:
+
+```ts
+import {
+  buildGovernanceAssessment,
+  coreBuiltInRulePack,
+  evaluateRulePack,
+  normalizeGovernanceProfile,
+  type GovernanceWorkspace,
+} from '@anarchitects/governance-core';
+
+const workspace: GovernanceWorkspace = {
+  id: 'demo',
+  name: 'demo',
+  root: '.',
+  projects: [],
+  dependencies: [],
+};
+
+const profile = normalizeGovernanceProfile({
+  name: 'default',
+  boundaryPolicySource: 'governance',
+  layers: ['app', 'domain', 'data'],
+  allowedDomainDependencies: {},
+  ownership: { required: false, metadataField: 'team' },
+  health: {
+    statusThresholds: {
+      goodMinScore: 80,
+      warningMinScore: 60,
+    },
+  },
+  metrics: {},
+});
+
+const ruleResult = await evaluateRulePack(coreBuiltInRulePack, {
+  workspace,
+  profile,
+});
+
+const assessment = buildGovernanceAssessment({
+  workspace,
+  profile: profile.name,
+  violations: ruleResult.violations,
+  measurements: [],
+  signals: [],
+  warnings: [],
+  exceptions: {
+    summary: {
+      declaredCount: 0,
+      matchedCount: 0,
+      suppressedPolicyViolationCount: 0,
+      suppressedConformanceFindingCount: 0,
+      unusedExceptionCount: 0,
+      activeExceptionCount: 0,
+      staleExceptionCount: 0,
+      expiredExceptionCount: 0,
+      reactivatedPolicyViolationCount: 0,
+      reactivatedConformanceFindingCount: 0,
+    },
+    used: [],
+    unused: [],
+    suppressedFindings: [],
+    reactivatedFindings: [],
+  },
+  health: {
+    score: 100,
+    status: 'good',
+    grade: 'A',
+    reasons: [],
+    hotspots: {
+      metrics: [],
+      projects: [],
+    },
+    explainability: {
+      topIssues: [],
+      metrics: [],
+      projects: [],
+    },
+  },
+  recommendations: [],
+});
+```
+
+## Package Boundaries
+
+`@anarchitects/governance-core` is platform-independent.
+
+That means:
+
+- no Nx runtime assumptions
+- no dependency on concrete adapters
+- no dependency on CLI runtime concerns
+- no dependency on executor, generator, or plugin infrastructure
+
+Concrete adapters should emit canonical Core-owned contracts. Hosts and CLIs should orchestrate Core APIs without moving canonical model ownership out of this package.
+
+## Related Packages
+
+- `@anarchitects/governance-adapter-typescript` discovers TypeScript workspaces and maps them into Core-owned contracts
+- `@anarchitects/governance-cli` provides a standalone host/runtime surface over Core APIs
+- `@anarchitects/governance-extension-*` packages should plug into Core-owned extension contracts
