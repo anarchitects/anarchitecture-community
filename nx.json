@@ -69,7 +69,8 @@
     "version": {
       "preVersionCommand": "yarn dlx nx run-many -t build",
       "conventionalCommits": true,
-      "updateDependents": "never"
+      "updateDependents": "auto",
+      "preserveMatchingDependencyRanges": false
     },
     "projectsRelationship": "independent",
     "releaseTag": {
