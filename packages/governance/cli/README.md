@@ -53,6 +53,13 @@ The root export currently includes:
 
 The executable command parser and runtime host internals remain internal modules.
 
+Parity already covered inside this package includes:
+
+- standalone `agov` command orchestration
+- manual YAML/JSON workspace loading and validation
+- standalone profile loading and validation
+- adapter-agnostic runtime selection and exit-code behavior
+
 ## Executable Usage
 
 This package publishes an `agov` executable through `package.json#bin`.

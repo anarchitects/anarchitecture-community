@@ -39,12 +39,22 @@ The package has a single public entrypoint:
 
 ```ts
 import {
+  buildDeliveryImpactAssessment,
   buildGovernanceAssessment,
+  buildGovernanceAssessmentArtifacts,
+  buildGovernanceConformanceSignals,
+  buildGovernanceGraphSignals,
+  buildGovernancePolicySignals,
+  buildGovernanceRecommendations,
   buildGovernanceWorkspace,
   buildMetricSnapshot,
+  calculateGovernanceHealth,
+  calculateGovernanceMetrics,
   compareSnapshots,
   coreBuiltInRulePack,
+  evaluateGovernancePolicies,
   evaluateRulePack,
+  buildManagementInsightsAiRequest,
   normalizeGovernanceException,
   normalizeGovernanceProfile,
   registerLoadedGovernanceExtensions,
@@ -90,6 +100,15 @@ Core contracts include:
 Deterministic helpers include:
 
 - `buildGovernanceAssessment(...)`
+- `buildGovernanceAssessmentArtifacts(...)`
+- `buildGovernanceWorkspace(...)`, `buildGovernanceInventory(...)`, and `buildGovernanceWorkspaceFromAdapterResult(...)`
+- `buildGovernanceGraphSignals(...)`, `buildGovernanceConformanceSignals(...)`, `buildGovernancePolicySignals(...)`, and `mergeGovernanceSignals(...)`
+- `calculateGovernanceMetrics(...)`
+- `calculateGovernanceHealth(...)`
+- `buildGovernanceRecommendations(...)`
+- `applyGovernanceExceptions(...)`, `evaluateGovernanceExceptionLifecycle(...)`, and `buildGovernanceExceptionReport(...)`
+- `buildDeliveryImpactAssessment(...)` and `summarizeDeliveryImpact(...)`
+- deterministic AI request builders and summarizers such as `buildRootCauseRequest(...)`, `buildPrImpactRequest(...)`, `buildScorecardRequest(...)`, `buildOnboardingRequest(...)`, `buildManagementInsightsAiRequest(...)`, `summarizeRootCause(...)`, `summarizePrImpact(...)`, `summarizeScorecard(...)`, `summarizeOnboarding(...)`, and `summarizeManagementInsights(...)`
 - `evaluateRules(...)` and `evaluateRulePack(...)`
 - `normalizeGovernanceProfile(...)`
 - `normalizeGovernanceException(...)`
@@ -105,6 +124,7 @@ Built-in Governance rule content includes:
 - `coreBuiltInRulePacks`
 - `coreBuiltInPolicyRules`
 - `evaluateCoreBuiltInPolicyViolations(...)`
+- `evaluateGovernancePolicies(...)`
 
 ### Extension APIs
 
@@ -137,24 +157,22 @@ The package is designed to sit between concrete adapters and higher-level hosts:
 
 ```ts
 import {
-  buildGovernanceAssessment,
-  coreBuiltInRulePack,
-  evaluateRulePack,
+  buildGovernanceAssessmentArtifacts,
   normalizeGovernanceProfile,
-  type GovernanceWorkspace,
+  type GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
 
-const workspace: GovernanceWorkspace = {
-  id: 'demo',
-  name: 'demo',
-  root: '.',
+const adapterResult: GovernanceWorkspaceAdapterResult = {
+  workspaceId: 'demo',
+  workspaceName: 'demo',
+  workspaceRoot: '.',
   projects: [],
   dependencies: [],
 };
 
 const profile = normalizeGovernanceProfile({
   name: 'default',
-  boundaryPolicySource: 'governance',
+  boundaryPolicySource: 'profile',
   layers: ['app', 'domain', 'data'],
   allowedDomainDependencies: {},
   ownership: { required: false, metadataField: 'team' },
@@ -167,54 +185,26 @@ const profile = normalizeGovernanceProfile({
   metrics: {},
 });
 
-const ruleResult = await evaluateRulePack(coreBuiltInRulePack, {
-  workspace,
+const artifacts = await buildGovernanceAssessmentArtifacts({
+  workspaceAdapterResult: adapterResult,
   profile,
+  exceptions: [],
 });
 
-const assessment = buildGovernanceAssessment({
-  workspace,
-  profile: profile.name,
-  violations: ruleResult.violations,
-  measurements: [],
-  signals: [],
-  warnings: [],
-  exceptions: {
-    summary: {
-      declaredCount: 0,
-      matchedCount: 0,
-      suppressedPolicyViolationCount: 0,
-      suppressedConformanceFindingCount: 0,
-      unusedExceptionCount: 0,
-      activeExceptionCount: 0,
-      staleExceptionCount: 0,
-      expiredExceptionCount: 0,
-      reactivatedPolicyViolationCount: 0,
-      reactivatedConformanceFindingCount: 0,
-    },
-    used: [],
-    unused: [],
-    suppressedFindings: [],
-    reactivatedFindings: [],
-  },
-  health: {
-    score: 100,
-    status: 'good',
-    grade: 'A',
-    reasons: [],
-    hotspots: {
-      metrics: [],
-      projects: [],
-    },
-    explainability: {
-      topIssues: [],
-      metrics: [],
-      projects: [],
-    },
-  },
-  recommendations: [],
-});
+console.log(artifacts.assessment.health.status);
 ```
+
+## Host Consumption Surface
+
+Thin runtime hosts can consume the package in this order:
+
+- normalize adapter output with `buildGovernanceWorkspace(...)` or `buildGovernanceAssessmentArtifacts(...)`
+- evaluate built-in policies with `evaluateGovernancePolicies(...)`
+- build canonical signals with `buildGovernanceGraphSignals(...)`, `buildGovernanceConformanceSignals(...)`, `buildGovernancePolicySignals(...)`, and `mergeGovernanceSignals(...)`
+- calculate metrics and health with `calculateGovernanceMetrics(...)` and `calculateGovernanceHealth(...)`
+- build recommendations with `buildGovernanceRecommendations(...)`
+- apply exception lifecycle and suppression with `evaluateGovernanceExceptionLifecycle(...)`, `applyGovernanceExceptions(...)`, and `buildGovernanceExceptionReport(...)`
+- build higher-level delivery and AI artifacts with `buildDeliveryImpactAssessment(...)`, `buildManagementInsightsAiRequest(...)`, `summarizeManagementInsights(...)`, and the other deterministic AI request/summarizer helpers
 
 ## Package Boundaries
 

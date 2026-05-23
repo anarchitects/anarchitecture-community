@@ -76,6 +76,15 @@ The root export currently includes:
 
 The current API is a set of composable adapter primitives. It does not expose a single all-in-one host runner.
 
+Parity already covered inside this package includes:
+
+- workspace detection and probe-style support heuristics
+- package-manager workspace parsing
+- TypeScript project discovery and tag derivation
+- `tsconfig` / path-alias resolution
+- static import graph extraction
+- normalization into Governance Core adapter result inputs
+
 ## Usage
 
 The typical workflow is:
