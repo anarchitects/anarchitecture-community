@@ -134,6 +134,13 @@ export function buildGovernanceWorkspace(
   };
 }
 
+export const buildGovernanceInventory = buildGovernanceWorkspace;
+
+export const normalizeGovernanceWorkspace = buildGovernanceWorkspace;
+
+export const buildGovernanceWorkspaceFromAdapterResult =
+  buildGovernanceWorkspace;
+
 function resolveProjects(
   adapterResult: GovernanceWorkspaceAdapterResult,
 ): GovernanceProjectInput[] {

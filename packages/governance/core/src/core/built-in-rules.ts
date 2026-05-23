@@ -381,6 +381,37 @@ export function evaluateCoreBuiltInPolicyViolations(
   return violations;
 }
 
+export function evaluateGovernancePolicies(
+  workspace: GovernanceRuleContext['workspace'],
+  profile: GovernanceRuleContext['profile'],
+): Violation[];
+export function evaluateGovernancePolicies(
+  context: GovernanceRuleContext,
+): Violation[];
+export function evaluateGovernancePolicies(
+  workspaceOrContext:
+    | GovernanceRuleContext['workspace']
+    | GovernanceRuleContext,
+  profile?: GovernanceRuleContext['profile'],
+): Violation[] {
+  if (isGovernanceRuleContext(workspaceOrContext)) {
+    return evaluateCoreBuiltInPolicyViolations(workspaceOrContext);
+  }
+
+  return evaluateCoreBuiltInPolicyViolations({
+    workspace: workspaceOrContext,
+    profile,
+  });
+}
+
+export const evaluateBuiltInGovernancePolicies = evaluateGovernancePolicies;
+
+function isGovernanceRuleContext(
+  value: GovernanceRuleContext['workspace'] | GovernanceRuleContext,
+): value is GovernanceRuleContext {
+  return 'workspace' in value;
+}
+
 function evaluateDomainBoundaryDependency(
   source: GovernanceProject | undefined,
   target: GovernanceProject | undefined,

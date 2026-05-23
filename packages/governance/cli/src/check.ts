@@ -7,18 +7,17 @@ import type {
   GovernanceWorkspace,
 } from '@anarchitects/governance-core';
 import {
+  buildGovernancePolicySignals,
+  buildGovernanceRecommendations,
   buildGovernanceAssessment,
   buildGovernanceWorkspace,
+  buildTopIssues,
+  calculateGovernanceHealth,
+  calculateGovernanceMetrics,
+  evaluateGovernancePolicies,
 } from '@anarchitects/governance-core';
-import {
-  calculateHealthScore,
-  buildRecommendations,
-} from './internal/health-engine/calculate-health.js';
 import { loadGenericWorkspaceAdapterResult } from './internal/manual-workspace/load-workspace.js';
-import { calculateMetrics } from './internal/metric-engine/calculate-metrics.js';
-import { evaluatePolicies } from './internal/policy-engine/evaluate-policies.js';
 import { loadStandaloneGovernanceProfile } from './internal/profile/load-standalone-profile.js';
-import { buildPolicySignals } from './internal/signal-engine/index.js';
 
 export interface AgovCheckWithWorkspacePathOptions {
   profilePath: string;
@@ -93,30 +92,20 @@ function buildStandaloneGovernanceAssessment(input: {
   workspace: GovernanceWorkspace;
   profile: GovernanceProfile;
 }): GovernanceAssessment {
-  const violations = evaluatePolicies(input.workspace, input.profile);
-  const signals = buildPolicySignals(violations, {
+  const violations = evaluateGovernancePolicies(input.workspace, input.profile);
+  const signals = buildGovernancePolicySignals(violations, {
     createdAt: '1970-01-01T00:00:00.000Z',
   });
-  const measurements = calculateMetrics({
+  const measurements = calculateGovernanceMetrics({
     workspace: input.workspace,
     signals,
   });
-  const assessmentPreview = buildGovernanceAssessment({
-    workspace: input.workspace,
-    profile: input.profile.name,
-    exceptions: EMPTY_EXCEPTION_REPORT,
-    violations,
-    signals,
-    measurements,
-    health: calculateHealthScore(measurements, input.profile.metrics),
-    recommendations: buildRecommendations(violations, measurements),
-  });
-  const health = calculateHealthScore(
+  const health = calculateGovernanceHealth(
     measurements,
     input.profile.metrics,
     input.profile.health.statusThresholds,
     {
-      topIssues: assessmentPreview.topIssues,
+      topIssues: buildTopIssues(signals),
     },
   );
 
@@ -129,7 +118,7 @@ function buildStandaloneGovernanceAssessment(input: {
     signals,
     measurements,
     health,
-    recommendations: buildRecommendations(violations, measurements),
+    recommendations: buildGovernanceRecommendations(violations, measurements),
   });
 }
 
