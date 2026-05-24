@@ -187,4 +187,4 @@ Practical implications:
 - Nx-specific migration steps belong in `anarchitecture-plugins`
 - Community Governance documentation should remain reusable outside Nx
 
-If a documentation topic only makes sense in terms of Nx runtime behavior, it should not be treated as Community-owned Governance documentation.
+If a documentation topic only makes sense in terms of Nx runtime behavior, it should not be treated as Anarchitects Governance documentation.

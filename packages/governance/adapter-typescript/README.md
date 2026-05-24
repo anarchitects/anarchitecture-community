@@ -51,8 +51,12 @@ import {
   discoverTypeScriptProjects,
   deriveProjectTags,
   mapTypeScriptImportsToGovernanceDependencies,
+  normalizeTypeScriptPathAliases,
   parsePackageManagerWorkspace,
+  parseTsconfig,
   parseTsConfigResolution,
+  resolveTsconfigExtends,
+  resolveWorkspacePackages,
   type TsConfigResolutionModel,
   type TypeScriptImportGraph,
   type TypeScriptProjectDiscoveryResult,
@@ -67,7 +71,13 @@ The root export currently includes:
 - `createGovernanceWorkspaceAdapter(...)`
 - `detectTypeScriptWorkspace(...)`
 - `parsePackageManagerWorkspace(...)`
+- `resolveWorkspacePackages(...)`
 - `parseTsConfigResolution(...)`
+- `parseTsconfig(...)`
+- `resolveTsConfigExtendsChain(...)`
+- `resolveTsconfigExtends(...)`
+- `normalizePathAliasesFromConfigs(...)`
+- `normalizeTypeScriptPathAliases(...)`
 - `discoverTypeScriptProjects(...)`
 - `buildTypeScriptImportGraph(...)`
 - `mapTypeScriptImportsToGovernanceDependencies(...)`
@@ -84,6 +94,19 @@ Parity already covered inside this package includes:
 - `tsconfig` / path-alias resolution
 - static import graph extraction
 - normalization into Governance Core adapter result inputs
+
+The package-root API now exposes the exact reusable parity helpers that host
+packages can consume directly:
+
+- `detectTypeScriptWorkspace(...)`
+- `parseTsconfig(...)`
+- `resolveTsconfigExtends(...)`
+- `normalizeTypeScriptPathAliases(...)`
+- `parsePackageManagerWorkspace(...)`
+- `resolveWorkspacePackages(...)`
+- `discoverTypeScriptProjects(...)`
+- `buildTypeScriptImportGraph(...)`
+- `mapTypeScriptImportsToGovernanceDependencies(...)`
 
 ## Usage
 
@@ -103,7 +126,7 @@ import {
   discoverTypeScriptProjects,
   mapTypeScriptImportsToGovernanceDependencies,
   parsePackageManagerWorkspace,
-  parseTsConfigResolution,
+  parseTsconfig,
 } from '@anarchitects/governance-adapter-typescript';
 
 const detection = detectTypeScriptWorkspace(process.cwd());
@@ -117,7 +140,7 @@ const projectDiscovery = discoverTypeScriptProjects({
   workspaceRoot: workspacePackages.workspaceRoot,
   packageRoots: workspacePackages.packageRoots,
 });
-const tsconfig = parseTsConfigResolution(detection.workspaceRoot);
+const tsconfig = parseTsconfig(detection.workspaceRoot);
 const importGraph = buildTypeScriptImportGraph({
   workspaceRoot: detection.workspaceRoot,
   projects: projectDiscovery.projects,

@@ -1,6 +1,6 @@
 # Governance Package Layout
 
-This document defines the target package layout for Community-owned Governance packages in `anarchitects/anarchitecture-community`.
+This document defines the target package layout for Anarchitects Governance packages in `anarchitects/anarchitecture-community`.
 
 Status:
 Target state only. The physical package split described here may not exist yet. This document is intended to guide later extraction and package creation work.
@@ -23,7 +23,7 @@ Community packages must remain platform-independent. Nx-specific behavior stays 
 
 ## Target Layout
 
-This repository currently organizes packages under `packages/<domain>/<package>`. Future Community-owned Governance packages should follow that convention:
+This repository currently organizes packages under `packages/<domain>/<package>`. Future Anarchitects Governance packages should follow that convention:
 
 ```text
 packages/
@@ -129,4 +129,4 @@ Forbidden:
 
 ## Practical Rule
 
-If a Governance capability requires Nx runtime knowledge, Nx configuration semantics, or Nx project graph behavior, it does not belong in a Community-owned Governance package.
+If a Governance capability requires Nx runtime knowledge, Nx configuration semantics, or Nx project graph behavior, it does not belong in a Anarchitects Governance package.
