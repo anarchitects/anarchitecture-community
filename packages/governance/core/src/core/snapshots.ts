@@ -4,6 +4,9 @@ import type {
   SnapshotDeliveryImpactSummary,
   SnapshotViolation,
 } from './models.js';
+import type { DeliveryImpactAssessment } from './delivery-impact.js';
+
+const SNAPSHOT_DELIVERY_IMPACT_TOP_DRIVERS_LIMIT = 5;
 
 export interface GovernanceSnapshotMetadata {
   timestamp: string;
@@ -60,6 +63,30 @@ export function buildMetricSnapshot(
     metricBreakdown: assessment.metricBreakdown,
     topIssues: assessment.topIssues,
     deliveryImpact: metadata.deliveryImpact,
+  };
+}
+
+export function buildSnapshotDeliveryImpactSummary(
+  deliveryImpact: DeliveryImpactAssessment,
+): SnapshotDeliveryImpactSummary {
+  return {
+    indices: [...deliveryImpact.indices]
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((index) => ({
+        id: index.id,
+        score: index.score,
+        risk: index.risk,
+      })),
+    topDrivers: deliveryImpact.drivers
+      .slice(0, SNAPSHOT_DELIVERY_IMPACT_TOP_DRIVERS_LIMIT)
+      .map((driver) => ({
+        id: driver.id,
+        label: driver.label,
+        value: driver.value,
+        score: driver.score,
+        unit: driver.unit,
+        trend: driver.trend,
+      })),
   };
 }
 
