@@ -22,6 +22,7 @@ This package is responsible for:
 - defining adapter-facing input contracts such as `GovernanceProjectInput`, `GovernanceDependencyInput`, and `GovernanceWorkspaceAdapterResult`
 - defining profile, rule, signal, exception, measurement, health, assessment, snapshot, and drift contracts
 - providing deterministic helpers such as profile normalization, rule evaluation, assessment assembly, snapshot comparison, and AI handoff payload builders
+- providing host-independent helpers that map changed files onto canonical `GovernanceProject` models and shape snapshot delivery-impact summaries
 - providing portable extension contracts and runtime helpers that stay independent from Nx
 
 This package is not responsible for:
@@ -40,6 +41,7 @@ The package has a single public entrypoint:
 ```ts
 import {
   buildDeliveryImpactAssessment,
+  buildSnapshotDeliveryImpactSummary,
   buildCognitiveLoadContext,
   buildDriftInterpretationAnalysis,
   buildGovernanceAssessment,
@@ -53,6 +55,7 @@ import {
   buildPersistentSmellSignals,
   buildPrImpactContext,
   buildRecommendationsTrendContext,
+  resolveAffectedGovernanceProjects,
   buildRefactoringSuggestionsContext,
   buildGovernanceWorkspace,
   buildMetricSnapshot,
@@ -91,6 +94,7 @@ The root export currently re-exports these API groups:
 - `models`
 - `exceptions`
 - `profile`
+- `project-matching`
 - `rule-engine`
 - `rules`
 - `signals`
@@ -124,10 +128,12 @@ Deterministic helpers include:
 - `buildGovernanceRecommendations(...)`
 - `applyGovernanceExceptions(...)`, `evaluateGovernanceExceptionLifecycle(...)`, and `buildGovernanceExceptionReport(...)`
 - `buildDeliveryImpactAssessment(...)` and `summarizeDeliveryImpact(...)`
+- `buildSnapshotDeliveryImpactSummary(...)`
 - deterministic AI request builders and summarizers such as `buildRootCauseRequest(...)`, `buildPrImpactRequest(...)`, `buildScorecardRequest(...)`, `buildOnboardingRequest(...)`, `buildManagementInsightsAiRequest(...)`, `summarizeRootCause(...)`, `summarizePrImpact(...)`, `summarizeScorecard(...)`, `summarizeOnboarding(...)`, and `summarizeManagementInsights(...)`
 - deterministic payload-scope helpers such as `buildGovernancePayloadTruncationMetadata(...)`, `sliceGovernancePayloadItems(...)`, `scopeGovernanceDependencies(...)`, and `compareGovernanceViolationsForPriority(...)`
 - scoped AI handoff request helpers such as `buildScopedRootCauseRequest(...)`, `buildScopedDriftRequest(...)`, and `buildScopedScorecardRequest(...)`
 - deterministic AI context builders such as `buildPrImpactContext(...)`, `buildCognitiveLoadContext(...)`, `buildRecommendationsTrendContext(...)`, `buildPersistentSmellSignals(...)`, `buildRefactoringSuggestionsContext(...)`, `buildOnboardingContext(...)`, and `buildDriftInterpretationAnalysis(...)`
+- `resolveAffectedGovernanceProjects(...)`
 - `evaluateRules(...)` and `evaluateRulePack(...)`
 - `normalizeGovernanceProfile(...)`
 - `normalizeGovernanceException(...)`
@@ -224,6 +230,18 @@ Thin runtime hosts can consume the package in this order:
 - build recommendations with `buildGovernanceRecommendations(...)`
 - apply exception lifecycle and suppression with `evaluateGovernanceExceptionLifecycle(...)`, `applyGovernanceExceptions(...)`, and `buildGovernanceExceptionReport(...)`
 - build higher-level delivery and AI artifacts with `buildDeliveryImpactAssessment(...)`, `buildManagementInsightsAiRequest(...)`, `summarizeManagementInsights(...)`, and the other deterministic AI request/summarizer helpers
+
+Hosts remain responsible for:
+
+- collecting changed files from git or another host runtime
+- resolving refs, workspace roots, and process execution
+- discovering snapshot files and choosing baseline/current snapshot inputs
+- persisting snapshots and other host-owned artifacts
+
+Core also provides two small host-independent handoff helpers:
+
+- `resolveAffectedGovernanceProjects(...)` maps host-supplied repo-relative changed file paths onto canonical `GovernanceProject` records. It normalizes Windows separators, trims trailing slashes from project roots, ignores empty changed-file entries, and treats `'.'` or `''` project roots as root-level projects that match any non-empty changed file.
+- `buildSnapshotDeliveryImpactSummary(...)` shapes a `DeliveryImpactAssessment` into a `SnapshotDeliveryImpactSummary` by sorting indices by `id` and copying the first five delivery-impact drivers into the snapshot-safe summary contract.
 
 ## AI Host Helpers
 
