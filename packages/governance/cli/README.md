@@ -35,6 +35,14 @@ The public package surface is intentionally small:
 
 ```ts
 import {
+  AGOV_EXIT_CONFIGURATION_FAILURE,
+  AGOV_EXIT_GOVERNANCE_FAILURE,
+  AGOV_EXIT_RUNTIME_FAILURE,
+  AGOV_EXIT_SUCCESS,
+  loadGenericWorkspace,
+  loadStandaloneGovernanceProfile,
+  parseAgovCliArgs,
+  runAgovCli,
   runAgovCheck,
   type AgovCheckOptions,
   type AgovCheckResult,
@@ -46,12 +54,15 @@ import {
 The root export currently includes:
 
 - `runAgovCheck(...)`
+- `runAgovCli(...)`
+- `parseAgovCliArgs(...)`
+- `loadGenericWorkspace(...)`
+- `loadStandaloneGovernanceProfile(...)`
+- stable CLI exit-code constants
 - `AgovCheckOptions`
 - `AgovCheckResult`
 - `AgovCheckWithAdapterOptions`
 - `AgovCheckWithWorkspacePathOptions`
-
-The executable command parser and runtime host internals remain internal modules.
 
 Parity already covered inside this package includes:
 
@@ -59,6 +70,9 @@ Parity already covered inside this package includes:
 - manual YAML/JSON workspace loading and validation
 - standalone profile loading and validation
 - adapter-agnostic runtime selection and exit-code behavior
+
+That parity is now available as package-root APIs for host tooling and tests
+without introducing any Nx dependency.
 
 ## Executable Usage
 
@@ -103,6 +117,22 @@ const result = runAgovCheck({
 
 console.log(result.success);
 console.log(result.assessment.health.status);
+```
+
+Programmatic CLI parsing and exit-code execution are also available:
+
+```ts
+import {
+  AGOV_EXIT_SUCCESS,
+  parseAgovCliArgs,
+  runAgovCli,
+} from '@anarchitects/governance-cli';
+
+const parsed = parseAgovCliArgs(['check', '--help']);
+const exitCode = await runAgovCli(['check', '--help']);
+
+console.log(parsed.kind);
+console.log(exitCode === AGOV_EXIT_SUCCESS);
 ```
 
 ## Adapter Model

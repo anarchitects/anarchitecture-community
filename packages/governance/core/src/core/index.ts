@@ -1,5 +1,7 @@
 export * from './adapter.js';
 export * from './ai-analysis.js';
+export * from './ai-context.js';
+export * from './ai-payload.js';
 export * from './assessment.js';
 export * from './assessment-artifacts.js';
 export * from './ai.js';

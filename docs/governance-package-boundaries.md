@@ -126,7 +126,7 @@ Practical implications:
 - Nx executors and generators belong outside Community packages
 - any Nx compatibility layer belongs outside Community packages
 
-If a feature requires Nx runtime knowledge to function, it belongs in `anarchitecture-plugins`, not in a Community-owned Governance package.
+If a feature requires Nx runtime knowledge to function, it belongs in `anarchitecture-plugins`, not in a Anarchitects Governance package.
 
 ## Dependency Direction Examples
 

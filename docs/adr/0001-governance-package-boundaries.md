@@ -62,7 +62,7 @@ Forbidden:
 - `@anarchitects/governance-adapter-*` -> `@anarchitects/governance-cli`
 - `@anarchitects/governance-extension-*` -> `@anarchitects/governance-cli`
 
-All Community-owned Governance packages must not depend on:
+All Anarchitects Governance packages must not depend on:
 
 - `@nx/devkit`
 - `nx`

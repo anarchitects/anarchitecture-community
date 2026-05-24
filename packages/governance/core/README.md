@@ -4,7 +4,7 @@ Canonical Governance contracts, deterministic evaluation logic, and portable ext
 
 ## Overview
 
-`@anarchitects/governance-core` is the package that defines the Governance model layer for the Community-owned Governance package family. It owns the public contracts that adapters, hosts, and extensions normalize into, plus the deterministic logic that evaluates those contracts.
+`@anarchitects/governance-core` is the package that defines the Governance model layer for the Anarchitects Governance package family. It owns the public contracts that adapters, hosts, and extensions normalize into, plus the deterministic logic that evaluates those contracts.
 
 Use this package when you need:
 
@@ -40,16 +40,28 @@ The package has a single public entrypoint:
 ```ts
 import {
   buildDeliveryImpactAssessment,
+  buildCognitiveLoadContext,
+  buildDriftInterpretationAnalysis,
   buildGovernanceAssessment,
   buildGovernanceAssessmentArtifacts,
+  buildGovernancePayloadTruncationMetadata,
   buildGovernanceConformanceSignals,
   buildGovernanceGraphSignals,
   buildGovernancePolicySignals,
   buildGovernanceRecommendations,
+  buildOnboardingContext,
+  buildPersistentSmellSignals,
+  buildPrImpactContext,
+  buildRecommendationsTrendContext,
+  buildRefactoringSuggestionsContext,
   buildGovernanceWorkspace,
   buildMetricSnapshot,
+  buildScopedDriftRequest,
+  buildScopedRootCauseRequest,
+  buildScopedScorecardRequest,
   calculateGovernanceHealth,
   calculateGovernanceMetrics,
+  compareGovernanceViolationsForPriority,
   compareSnapshots,
   coreBuiltInRulePack,
   evaluateGovernancePolicies,
@@ -58,6 +70,8 @@ import {
   normalizeGovernanceException,
   normalizeGovernanceProfile,
   registerLoadedGovernanceExtensions,
+  scopeGovernanceDependencies,
+  sliceGovernancePayloadItems,
   type GovernanceWorkspaceAdapter,
   type GovernanceWorkspace,
   type GovernanceWorkspaceAdapterResult,
@@ -72,6 +86,8 @@ The root export currently re-exports these API groups:
 - `built-in-rule-pack`
 - `built-in-rules`
 - `drift`
+- `ai-context`
+- `ai-payload`
 - `models`
 - `exceptions`
 - `profile`
@@ -109,6 +125,9 @@ Deterministic helpers include:
 - `applyGovernanceExceptions(...)`, `evaluateGovernanceExceptionLifecycle(...)`, and `buildGovernanceExceptionReport(...)`
 - `buildDeliveryImpactAssessment(...)` and `summarizeDeliveryImpact(...)`
 - deterministic AI request builders and summarizers such as `buildRootCauseRequest(...)`, `buildPrImpactRequest(...)`, `buildScorecardRequest(...)`, `buildOnboardingRequest(...)`, `buildManagementInsightsAiRequest(...)`, `summarizeRootCause(...)`, `summarizePrImpact(...)`, `summarizeScorecard(...)`, `summarizeOnboarding(...)`, and `summarizeManagementInsights(...)`
+- deterministic payload-scope helpers such as `buildGovernancePayloadTruncationMetadata(...)`, `sliceGovernancePayloadItems(...)`, `scopeGovernanceDependencies(...)`, and `compareGovernanceViolationsForPriority(...)`
+- scoped AI handoff request helpers such as `buildScopedRootCauseRequest(...)`, `buildScopedDriftRequest(...)`, and `buildScopedScorecardRequest(...)`
+- deterministic AI context builders such as `buildPrImpactContext(...)`, `buildCognitiveLoadContext(...)`, `buildRecommendationsTrendContext(...)`, `buildPersistentSmellSignals(...)`, `buildRefactoringSuggestionsContext(...)`, `buildOnboardingContext(...)`, and `buildDriftInterpretationAnalysis(...)`
 - `evaluateRules(...)` and `evaluateRulePack(...)`
 - `normalizeGovernanceProfile(...)`
 - `normalizeGovernanceException(...)`
@@ -205,6 +224,27 @@ Thin runtime hosts can consume the package in this order:
 - build recommendations with `buildGovernanceRecommendations(...)`
 - apply exception lifecycle and suppression with `evaluateGovernanceExceptionLifecycle(...)`, `applyGovernanceExceptions(...)`, and `buildGovernanceExceptionReport(...)`
 - build higher-level delivery and AI artifacts with `buildDeliveryImpactAssessment(...)`, `buildManagementInsightsAiRequest(...)`, `summarizeManagementInsights(...)`, and the other deterministic AI request/summarizer helpers
+
+## AI Host Helpers
+
+Thin host packages can now keep AI handoff shaping in Core by composing:
+
+- `scopeGovernanceDependencies(...)`
+- `sliceGovernancePayloadItems(...)`
+- `compareGovernanceViolationsForPriority(...)`
+- `buildScopedRootCauseRequest(...)`
+- `buildScopedDriftRequest(...)`
+- `buildScopedScorecardRequest(...)`
+- `buildDriftInterpretationAnalysis(...)`
+- `buildPrImpactContext(...)`
+- `buildCognitiveLoadContext(...)`
+- `buildRecommendationsTrendContext(...)`
+- `buildPersistentSmellSignals(...)`
+- `buildRefactoringSuggestionsContext(...)`
+- `buildOnboardingContext(...)`
+
+These helpers are deterministic and host-independent. Hosts still own file IO,
+git diffing, workspace-root path resolution, output rendering, and persistence.
 
 ## Package Boundaries
 

@@ -1,6 +1,6 @@
 # Governance Release Conventions
 
-This document defines release sequencing and versioning expectations for future Community-owned Governance packages in `anarchitects/anarchitecture-community`.
+This document defines release sequencing and versioning expectations for future Anarchitects Governance packages in `anarchitects/anarchitecture-community`.
 
 Status:
 Target-state guidance for future extraction and release coordination work. It does not mean the physical package split has already happened.
@@ -105,7 +105,7 @@ Published artifact validation should happen before version publication, not afte
 
 ## Community Governance Release Gate
 
-Community-owned Governance packages should pass an explicit pre-release validation gate before publication or before Plugins-side consumption work starts.
+Anarchitects Governance packages should pass an explicit pre-release validation gate before publication or before Plugins-side consumption work starts.
 
 That validation should enforce the accepted package-boundary rules from
 [ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](./adr/0001-governance-package-boundaries.md).

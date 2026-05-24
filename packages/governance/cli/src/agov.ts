@@ -78,6 +78,18 @@ export interface ParsedAgovCheckOptions {
   showHelp: boolean;
 }
 
+export type ParsedAgovCliArgs =
+  | {
+      kind: 'help';
+    }
+  | {
+      kind: 'version';
+    }
+  | {
+      kind: 'check';
+      options: ParsedAgovCheckOptions;
+    };
+
 export interface AgovResolvedCheckCommand {
   command: 'check';
   rootPath: string;
@@ -152,7 +164,7 @@ export async function runAgovCli(
   environment: AgovCliEnvironment = defaultEnvironment(),
 ): Promise<number> {
   try {
-    const parsed = parseAgovCliInvocation(argv);
+    const parsed = parseAgovCliArgs(argv);
 
     if (parsed.kind === 'help') {
       io.stdout(renderAgovHelp());
@@ -240,17 +252,7 @@ export async function runAgovCli(
   }
 }
 
-function parseAgovCliInvocation(argv: string[]):
-  | {
-      kind: 'help';
-    }
-  | {
-      kind: 'version';
-    }
-  | {
-      kind: 'check';
-      options: ParsedAgovCheckOptions;
-    } {
+export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
   if (argv.length === 0) {
     return { kind: 'help' };
   }
