@@ -1,5 +1,6 @@
 import { renderCliReport } from './internal/reporting/render-cli.js';
 import { renderJsonReport } from './internal/reporting/render-json.js';
+import * as reportingPrimitives from './internal/reporting/render-primitives.js';
 
 import type { AgovAssessResult, AgovCheckResult } from './check.js';
 
@@ -23,15 +24,11 @@ export function renderAgovCheckReport(
 }
 
 export function renderAgovCheckJson(result: AgovCommandResult): string {
-  return JSON.stringify(
-    {
-      command: result.command,
-      success: result.success,
-      assessment: JSON.parse(renderJsonReport(result.assessment)) as object,
-    },
-    null,
-    2,
-  );
+  return reportingPrimitives.renderJsonValue({
+    command: result.command,
+    success: result.success,
+    assessment: JSON.parse(renderJsonReport(result.assessment)) as object,
+  });
 }
 
 function renderAgovCheckTable(result: AgovCommandResult): string {
@@ -47,14 +44,14 @@ function renderAgovCheckTable(result: AgovCommandResult): string {
   lines.push(`agov ${result.command}`);
   lines.push('');
   lines.push(
-    ...renderTextTable(
-      ['Field', 'Value'],
-      [
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
         ['success', result.success ? 'true' : 'false'],
         ['workspace', assessment.workspace.name],
         ['profile', assessment.profile],
       ],
-    ),
+    }),
   );
   lines.push('');
   lines.push(...assessmentLines);
@@ -74,13 +71,16 @@ function renderAgovCheckMarkdown(result: AgovCommandResult): string {
 
   lines.push(`# agov ${result.command}`);
   lines.push('');
-  lines.push('| Field | Value |');
-  lines.push('| --- | --- |');
-  lines.push(`| success | ${result.success ? 'true' : 'false'} |`);
   lines.push(
-    `| workspace | ${escapeMarkdownCell(assessment.workspace.name)} |`,
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['success', result.success ? 'true' : 'false'],
+        ['workspace', assessment.workspace.name],
+        ['profile', assessment.profile],
+      ],
+    }),
   );
-  lines.push(`| profile | ${escapeMarkdownCell(assessment.profile)} |`);
   lines.push('');
 
   for (const line of assessmentLines) {
@@ -98,38 +98,4 @@ function renderAgovCheckMarkdown(result: AgovCommandResult): string {
   }
 
   return lines.join('\n');
-}
-
-function renderTextTable(
-  headers: [string, string],
-  rows: string[][],
-): string[] {
-  const leftWidth = Math.max(
-    headers[0].length,
-    ...rows.map((row) => row[0]?.length ?? 0),
-  );
-  const rightWidth = Math.max(
-    headers[1].length,
-    ...rows.map((row) => row[1]?.length ?? 0),
-  );
-
-  return [
-    `${padCell(headers[0], leftWidth)}  ${padCell(headers[1], rightWidth)}`,
-    `${'-'.repeat(leftWidth)}  ${'-'.repeat(rightWidth)}`,
-    ...rows.map(
-      (row) =>
-        `${padCell(row[0] ?? '', leftWidth)}  ${padCell(
-          row[1] ?? '',
-          rightWidth,
-        )}`,
-    ),
-  ];
-}
-
-function padCell(value: string, width: number): string {
-  return value.padEnd(width, ' ');
-}
-
-function escapeMarkdownCell(value: string): string {
-  return value.replaceAll('|', '\\|');
 }
