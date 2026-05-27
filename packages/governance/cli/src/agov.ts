@@ -74,8 +74,10 @@ export interface AgovCliConfig {
   output?: string;
 }
 
-export interface ParsedAgovCheckOptions {
-  command: 'check';
+export type AgovAssessmentCommandName = 'check' | 'assess';
+
+export interface ParsedAgovAssessmentOptions {
+  command: AgovAssessmentCommandName;
   configPath?: string;
   profilePath?: string;
   workspacePath?: string;
@@ -86,17 +88,13 @@ export interface ParsedAgovCheckOptions {
   showHelp: boolean;
 }
 
-export interface ParsedAgovAssessOptions {
+export type ParsedAgovCheckOptions = ParsedAgovAssessmentOptions & {
+  command: 'check';
+};
+
+export type ParsedAgovAssessOptions = ParsedAgovAssessmentOptions & {
   command: 'assess';
-  configPath?: string;
-  profilePath?: string;
-  workspacePath?: string;
-  adapterPackage?: string;
-  rootPath?: string;
-  format?: AgovOutputFormat;
-  outputPath?: string;
-  showHelp: boolean;
-}
+};
 
 export type ParsedAgovCliArgs =
   | {
@@ -114,8 +112,8 @@ export type ParsedAgovCliArgs =
       options: ParsedAgovAssessOptions;
     };
 
-interface AgovResolvedCommandBase {
-  command: 'check' | 'assess';
+export interface AgovResolvedAssessmentCommand {
+  command: AgovAssessmentCommandName;
   rootPath: string;
   profilePath: string;
   format: AgovOutputFormat;
@@ -127,33 +125,16 @@ interface AgovResolvedCommandBase {
   adapterCandidates?: string[];
 }
 
-export interface AgovResolvedCheckCommand {
+export type AgovResolvedCheckCommand = AgovResolvedAssessmentCommand & {
   command: 'check';
-  rootPath: AgovResolvedCommandBase['rootPath'];
-  profilePath: AgovResolvedCommandBase['profilePath'];
-  format: AgovResolvedCommandBase['format'];
-  outputPath?: AgovResolvedCommandBase['outputPath'];
-  configPath?: AgovResolvedCommandBase['configPath'];
-  mode: AgovResolvedCommandBase['mode'];
-  workspacePath?: AgovResolvedCommandBase['workspacePath'];
-  adapterPackage?: AgovResolvedCommandBase['adapterPackage'];
-  adapterCandidates?: AgovResolvedCommandBase['adapterCandidates'];
-}
+};
 
-export interface AgovResolvedAssessCommand {
+export type AgovResolvedAssessCommand = AgovResolvedAssessmentCommand & {
   command: 'assess';
-  rootPath: AgovResolvedCommandBase['rootPath'];
-  profilePath: AgovResolvedCommandBase['profilePath'];
-  format: AgovResolvedCommandBase['format'];
-  outputPath?: AgovResolvedCommandBase['outputPath'];
-  configPath?: AgovResolvedCommandBase['configPath'];
-  mode: AgovResolvedCommandBase['mode'];
-  workspacePath?: AgovResolvedCommandBase['workspacePath'];
-  adapterPackage?: AgovResolvedCommandBase['adapterPackage'];
-  adapterCandidates?: AgovResolvedCommandBase['adapterCandidates'];
-}
+};
 
-type AgovResolvedCommand = AgovResolvedCheckCommand | AgovResolvedAssessCommand;
+export type AgovAssessmentRuntimeOptions<TInput = unknown> =
+  AgovCheckOptions<TInput>;
 
 export const AGOV_EXIT_SUCCESS = 0;
 export const AGOV_EXIT_GOVERNANCE_FAILURE = 1;
@@ -242,14 +223,14 @@ export async function runAgovCli(
       parsed.kind === 'check'
         ? resolveAgovCheckCommand(parsed.options, environment)
         : resolveAgovAssessCommand(parsed.options, environment);
-    const checkOptions = await resolveAgovCheckRuntimeOptions(
+    const runtimeOptions = await resolveAgovRuntimeOptions(
       resolved,
       environment,
     );
     const result =
       parsed.kind === 'check'
-        ? await Promise.resolve(runtime.runAgovCheck(checkOptions))
-        : await Promise.resolve(runtime.runAgovAssess(checkOptions));
+        ? await Promise.resolve(runtime.runAgovCheck(runtimeOptions))
+        : await Promise.resolve(runtime.runAgovAssess(runtimeOptions));
     const rendered = renderAgovCheckReport(result, resolved.format);
 
     if (resolved.outputPath) {
@@ -351,24 +332,24 @@ export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
 }
 
 function parseAgovCheckArgs(args: string[]): ParsedAgovCheckOptions {
-  return parseAgovCommandArgs('check', args);
+  return parseAgovAssessmentArgs('check', args);
 }
 
 function parseAgovAssessArgs(args: string[]): ParsedAgovAssessOptions {
-  return parseAgovCommandArgs('assess', args);
+  return parseAgovAssessmentArgs('assess', args);
 }
 
-function parseAgovCommandArgs(
+function parseAgovAssessmentArgs(
   command: 'check',
   args: string[],
 ): ParsedAgovCheckOptions;
-function parseAgovCommandArgs(
+function parseAgovAssessmentArgs(
   command: 'assess',
   args: string[],
 ): ParsedAgovAssessOptions;
 
-function parseAgovCommandArgs(
-  command: 'check' | 'assess',
+function parseAgovAssessmentArgs(
+  command: AgovAssessmentCommandName,
   args: string[],
 ): ParsedAgovCheckOptions | ParsedAgovAssessOptions {
   let configPath: string | undefined;
@@ -484,29 +465,29 @@ export function resolveAgovCheckCommand(
   options: ParsedAgovCheckOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
 ): AgovResolvedCheckCommand {
-  return resolveAgovCommand(options, environment);
+  return resolveAgovAssessmentCommand(options, environment);
 }
 
 export function resolveAgovAssessCommand(
   options: ParsedAgovAssessOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
 ): AgovResolvedAssessCommand {
-  return resolveAgovCommand(options, environment);
+  return resolveAgovAssessmentCommand(options, environment);
 }
 
-function resolveAgovCommand(
+export function resolveAgovAssessmentCommand(
   options: ParsedAgovCheckOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
 ): AgovResolvedCheckCommand;
-function resolveAgovCommand(
+export function resolveAgovAssessmentCommand(
   options: ParsedAgovAssessOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
 ): AgovResolvedAssessCommand;
 
-function resolveAgovCommand(
-  options: ParsedAgovCheckOptions | ParsedAgovAssessOptions,
+export function resolveAgovAssessmentCommand(
+  options: ParsedAgovAssessmentOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
-): AgovResolvedCommand {
+): AgovResolvedAssessmentCommand {
   const cwd = path.resolve(environment.cwd());
   const explicitRootPath = options.rootPath
     ? path.resolve(cwd, options.rootPath)
@@ -634,10 +615,10 @@ function resolveAgovCommand(
   );
 }
 
-async function resolveAgovCheckRuntimeOptions(
-  command: AgovResolvedCommand,
+export async function resolveAgovRuntimeOptions(
+  command: AgovResolvedAssessmentCommand,
   environment: AgovCliEnvironment,
-): Promise<AgovCheckOptions<unknown>> {
+): Promise<AgovAssessmentRuntimeOptions<unknown>> {
   if (command.mode === 'workspace') {
     if (!command.workspacePath) {
       throw new AgovCliRuntimeError(
