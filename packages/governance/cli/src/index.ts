@@ -1,10 +1,12 @@
 export type {
+  AgovAssessOptions,
+  AgovAssessResult,
   AgovCheckOptions,
   AgovCheckResult,
   AgovCheckWithAdapterOptions,
   AgovCheckWithWorkspacePathOptions,
 } from './check.js';
-export { runAgovCheck } from './check.js';
+export { runAgovAssess, runAgovCheck } from './check.js';
 export {
   AGOV_EXIT_CONFIGURATION_FAILURE,
   AGOV_EXIT_GOVERNANCE_FAILURE,

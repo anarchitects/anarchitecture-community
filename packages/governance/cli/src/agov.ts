@@ -9,7 +9,12 @@ import type {
   Violation,
 } from '@anarchitects/governance-core';
 
-import type { AgovCheckOptions, AgovCheckResult } from './check.js';
+import type {
+  AgovAssessOptions,
+  AgovAssessResult,
+  AgovCheckOptions,
+  AgovCheckResult,
+} from './check.js';
 import * as checkModule from './check.js';
 import {
   type AgovOutputFormat,
@@ -54,6 +59,9 @@ export interface AgovCliRuntime {
   runAgovCheck<TInput = unknown>(
     options: AgovCheckOptions<TInput>,
   ): MaybePromise<AgovCheckResult>;
+  runAgovAssess<TInput = unknown>(
+    options: AgovAssessOptions<TInput>,
+  ): MaybePromise<AgovAssessResult>;
 }
 
 export interface AgovCliConfig {
@@ -78,6 +86,18 @@ export interface ParsedAgovCheckOptions {
   showHelp: boolean;
 }
 
+export interface ParsedAgovAssessOptions {
+  command: 'assess';
+  configPath?: string;
+  profilePath?: string;
+  workspacePath?: string;
+  adapterPackage?: string;
+  rootPath?: string;
+  format?: AgovOutputFormat;
+  outputPath?: string;
+  showHelp: boolean;
+}
+
 export type ParsedAgovCliArgs =
   | {
       kind: 'help';
@@ -88,10 +108,14 @@ export type ParsedAgovCliArgs =
   | {
       kind: 'check';
       options: ParsedAgovCheckOptions;
+    }
+  | {
+      kind: 'assess';
+      options: ParsedAgovAssessOptions;
     };
 
-export interface AgovResolvedCheckCommand {
-  command: 'check';
+interface AgovResolvedCommandBase {
+  command: 'check' | 'assess';
   rootPath: string;
   profilePath: string;
   format: AgovOutputFormat;
@@ -103,6 +127,34 @@ export interface AgovResolvedCheckCommand {
   adapterCandidates?: string[];
 }
 
+export interface AgovResolvedCheckCommand {
+  command: 'check';
+  rootPath: AgovResolvedCommandBase['rootPath'];
+  profilePath: AgovResolvedCommandBase['profilePath'];
+  format: AgovResolvedCommandBase['format'];
+  outputPath?: AgovResolvedCommandBase['outputPath'];
+  configPath?: AgovResolvedCommandBase['configPath'];
+  mode: AgovResolvedCommandBase['mode'];
+  workspacePath?: AgovResolvedCommandBase['workspacePath'];
+  adapterPackage?: AgovResolvedCommandBase['adapterPackage'];
+  adapterCandidates?: AgovResolvedCommandBase['adapterCandidates'];
+}
+
+export interface AgovResolvedAssessCommand {
+  command: 'assess';
+  rootPath: AgovResolvedCommandBase['rootPath'];
+  profilePath: AgovResolvedCommandBase['profilePath'];
+  format: AgovResolvedCommandBase['format'];
+  outputPath?: AgovResolvedCommandBase['outputPath'];
+  configPath?: AgovResolvedCommandBase['configPath'];
+  mode: AgovResolvedCommandBase['mode'];
+  workspacePath?: AgovResolvedCommandBase['workspacePath'];
+  adapterPackage?: AgovResolvedCommandBase['adapterPackage'];
+  adapterCandidates?: AgovResolvedCommandBase['adapterCandidates'];
+}
+
+type AgovResolvedCommand = AgovResolvedCheckCommand | AgovResolvedAssessCommand;
+
 export const AGOV_EXIT_SUCCESS = 0;
 export const AGOV_EXIT_GOVERNANCE_FAILURE = 1;
 export const AGOV_EXIT_CONFIGURATION_FAILURE = 2;
@@ -110,6 +162,7 @@ export const AGOV_EXIT_RUNTIME_FAILURE = 3;
 
 const DEFAULT_AGOV_CLI_RUNTIME: AgovCliRuntime = {
   runAgovCheck: checkModule.runAgovCheck,
+  runAgovAssess: checkModule.runAgovAssess,
 };
 
 export class AgovCliUsageError extends Error {
@@ -177,16 +230,26 @@ export async function runAgovCli(
     }
 
     if (parsed.options.showHelp) {
-      io.stdout(renderAgovCheckHelp());
+      io.stdout(
+        parsed.kind === 'check'
+          ? renderAgovCheckHelp()
+          : renderAgovAssessHelp(),
+      );
       return AGOV_EXIT_SUCCESS;
     }
 
-    const resolved = resolveAgovCheckCommand(parsed.options, environment);
+    const resolved =
+      parsed.kind === 'check'
+        ? resolveAgovCheckCommand(parsed.options, environment)
+        : resolveAgovAssessCommand(parsed.options, environment);
     const checkOptions = await resolveAgovCheckRuntimeOptions(
       resolved,
       environment,
     );
-    const result = await Promise.resolve(runtime.runAgovCheck(checkOptions));
+    const result =
+      parsed.kind === 'check'
+        ? await Promise.resolve(runtime.runAgovCheck(checkOptions))
+        : await Promise.resolve(runtime.runAgovAssess(checkOptions));
     const rendered = renderAgovCheckReport(result, resolved.format);
 
     if (resolved.outputPath) {
@@ -267,20 +330,47 @@ export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
     return { kind: 'version' };
   }
 
-  if (command !== 'check') {
+  if (command !== 'check' && command !== 'assess') {
     throw new AgovCliUsageError(
-      `Unsupported agov command "${command}". Supported commands are "check", "--help", and "--version".`,
+      `Unsupported agov command "${command}". Supported commands are "check", "assess", "--help", and "--version".`,
       'agov.cli.unknown_command',
     );
   }
 
+  if (command === 'check') {
+    return {
+      kind: 'check',
+      options: parseAgovCheckArgs(rest),
+    };
+  }
+
   return {
-    kind: 'check',
-    options: parseAgovCheckArgs(rest),
+    kind: 'assess',
+    options: parseAgovAssessArgs(rest),
   };
 }
 
 function parseAgovCheckArgs(args: string[]): ParsedAgovCheckOptions {
+  return parseAgovCommandArgs('check', args);
+}
+
+function parseAgovAssessArgs(args: string[]): ParsedAgovAssessOptions {
+  return parseAgovCommandArgs('assess', args);
+}
+
+function parseAgovCommandArgs(
+  command: 'check',
+  args: string[],
+): ParsedAgovCheckOptions;
+function parseAgovCommandArgs(
+  command: 'assess',
+  args: string[],
+): ParsedAgovAssessOptions;
+
+function parseAgovCommandArgs(
+  command: 'check' | 'assess',
+  args: string[],
+): ParsedAgovCheckOptions | ParsedAgovAssessOptions {
   let configPath: string | undefined;
   let profilePath: string | undefined;
   let workspacePath: string | undefined;
@@ -339,7 +429,7 @@ function parseAgovCheckArgs(args: string[]): ParsedAgovCheckOptions {
         value !== 'table'
       ) {
         throw new AgovCliUsageError(
-          'Unsupported agov check format. Supported formats are "table", "markdown", "text", and "json".',
+          `Unsupported agov ${command} format. Supported formats are "table", "markdown", "text", and "json".`,
           'agov.cli.unsupported_format',
         );
       }
@@ -361,7 +451,7 @@ function parseAgovCheckArgs(args: string[]): ParsedAgovCheckOptions {
   }
 
   return {
-    command: 'check',
+    command,
     configPath,
     profilePath,
     workspacePath,
@@ -394,6 +484,29 @@ export function resolveAgovCheckCommand(
   options: ParsedAgovCheckOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
 ): AgovResolvedCheckCommand {
+  return resolveAgovCommand(options, environment);
+}
+
+export function resolveAgovAssessCommand(
+  options: ParsedAgovAssessOptions,
+  environment: Pick<AgovCliEnvironment, 'cwd'>,
+): AgovResolvedAssessCommand {
+  return resolveAgovCommand(options, environment);
+}
+
+function resolveAgovCommand(
+  options: ParsedAgovCheckOptions,
+  environment: Pick<AgovCliEnvironment, 'cwd'>,
+): AgovResolvedCheckCommand;
+function resolveAgovCommand(
+  options: ParsedAgovAssessOptions,
+  environment: Pick<AgovCliEnvironment, 'cwd'>,
+): AgovResolvedAssessCommand;
+
+function resolveAgovCommand(
+  options: ParsedAgovCheckOptions | ParsedAgovAssessOptions,
+  environment: Pick<AgovCliEnvironment, 'cwd'>,
+): AgovResolvedCommand {
   const cwd = path.resolve(environment.cwd());
   const explicitRootPath = options.rootPath
     ? path.resolve(cwd, options.rootPath)
@@ -413,14 +526,14 @@ export function resolveAgovCheckCommand(
     !options.workspacePath
   ) {
     throw new AgovCliUsageError(
-      'Config file cannot define both adapter-mode and workspace-mode inputs for agov check. Pass one mode only, or override explicitly with CLI flags.',
+      `Config file cannot define both adapter-mode and workspace-mode inputs for agov ${options.command}. Pass one mode only, or override explicitly with CLI flags.`,
       'agov.cli.invalid_config',
     );
   }
 
   if (options.workspacePath && options.adapterPackage) {
     throw new AgovCliUsageError(
-      'agov check does not allow explicit "--workspace" and "--adapter" together. Use canonical workspace mode or adapter mode, not both.',
+      `agov ${options.command} does not allow explicit "--workspace" and "--adapter" together. Use canonical workspace mode or adapter mode, not both.`,
       'agov.cli.ambiguous_workspace_and_adapter',
     );
   }
@@ -449,7 +562,11 @@ export function resolveAgovCheckCommand(
   const adapterPackage =
     options.adapterPackage ?? readNonEmptyString(config.adapter);
   const adapterCandidates = resolveAdapterCandidatePackages(rootPath, config);
-  const format = resolveOutputFormat(options.format, config.format);
+  const format = resolveOutputFormat(
+    options.command,
+    options.format,
+    config.format,
+  );
   const outputPath = resolveExplicitPath(options.outputPath, cwd);
 
   if (!profilePath) {
@@ -461,7 +578,7 @@ export function resolveAgovCheckCommand(
 
   if (explicitWorkspacePath || configuredWorkspacePath) {
     return {
-      command: 'check',
+      command: options.command,
       rootPath,
       profilePath,
       workspacePath,
@@ -474,7 +591,7 @@ export function resolveAgovCheckCommand(
 
   if (adapterPackage) {
     return {
-      command: 'check',
+      command: options.command,
       rootPath,
       profilePath,
       adapterPackage,
@@ -487,7 +604,7 @@ export function resolveAgovCheckCommand(
 
   if (adapterCandidates.length > 0) {
     return {
-      command: 'check',
+      command: options.command,
       rootPath,
       profilePath,
       adapterCandidates,
@@ -500,7 +617,7 @@ export function resolveAgovCheckCommand(
 
   if (workspacePath) {
     return {
-      command: 'check',
+      command: options.command,
       rootPath,
       profilePath,
       workspacePath,
@@ -518,7 +635,7 @@ export function resolveAgovCheckCommand(
 }
 
 async function resolveAgovCheckRuntimeOptions(
-  command: AgovResolvedCheckCommand,
+  command: AgovResolvedCommand,
   environment: AgovCliEnvironment,
 ): Promise<AgovCheckOptions<unknown>> {
   if (command.mode === 'workspace') {
@@ -812,6 +929,7 @@ function loadAgovConfig(filePath: string): AgovCliConfig {
 }
 
 function resolveOutputFormat(
+  commandName: 'check' | 'assess',
   explicitFormat: AgovOutputFormat | undefined,
   configFormat: string | undefined,
 ): AgovOutputFormat {
@@ -824,7 +942,7 @@ function resolveOutputFormat(
     resolved !== 'table'
   ) {
     throw new AgovCliUsageError(
-      'Unsupported agov check format. Supported formats are "table", "markdown", "text", and "json".',
+      `Unsupported agov ${commandName} format. Supported formats are "table", "markdown", "text", and "json".`,
       'agov.cli.unsupported_format',
     );
   }
@@ -999,11 +1117,13 @@ function renderAgovHelp(): string {
     '  agov --help',
     '  agov --version',
     '  agov check [options]',
+    '  agov assess [options]',
     '',
     'Commands:',
     '  check   Run a Governance check using canonical workspace mode or adapter mode.',
+    '  assess  Run a Governance assessment using canonical workspace mode or adapter mode.',
     '',
-    'Run "agov check --help" for command-specific options.',
+    'Run "agov check --help" or "agov assess --help" for command-specific options.',
   ].join('\n');
 }
 
@@ -1021,6 +1141,35 @@ function renderAgovCheckHelp(): string {
     '',
     'Options:',
     '  --help              Show check command help.',
+    '  --config <path>     Load agov.config.json or governance.config.json explicitly.',
+    '  --profile <path>    Governance profile document.',
+    '  --workspace <path>  Canonical Governance workspace document.',
+    '  --adapter <package> Dynamically load a concrete adapter package.',
+    '  --root <path>       Adapter input root. Defaults to the current working directory.',
+    '  --format <value>    Output format: table, markdown, text, or json. Defaults to text.',
+    '  --output <path>     Write command output to a file instead of stdout.',
+    '',
+    'Conventions:',
+    '  Config:   agov.config.json, governance.config.json',
+    '  Profile:  tools/governance/profiles/default.json, tools/governance/profile.json, governance.profile.json, agov.profile.json',
+    '  Workspace: governance.workspace.json, agov.workspace.json, tools/governance/workspace.json',
+  ].join('\n');
+}
+
+function renderAgovAssessHelp(): string {
+  return [
+    'agov assess',
+    '',
+    'Usage:',
+    '  agov assess --profile <path> --workspace <path> [--format table|markdown|text|json]',
+    '  agov assess --profile <path> --adapter <package> --root <path> [--format table|markdown|text|json]',
+    '  agov assess [--config <path>]',
+    '',
+    'Resolution order:',
+    '  explicit CLI flag -> config file -> conventional files -> generic adapter discovery and probe -> error',
+    '',
+    'Options:',
+    '  --help              Show assess command help.',
     '  --config <path>     Load agov.config.json or governance.config.json explicitly.',
     '  --profile <path>    Governance profile document.',
     '  --workspace <path>  Canonical Governance workspace document.',

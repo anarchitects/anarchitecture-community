@@ -18,6 +18,7 @@ describe('agov executable command surface', () => {
     expect(await runAgovCli(['--help'], io)).toBe(AGOV_EXIT_SUCCESS);
     expect(io.out).toContain('agov');
     expect(io.out).toContain('agov check [options]');
+    expect(io.out).toContain('agov assess [options]');
     expect(io.err).toBe('');
   });
 
@@ -26,6 +27,16 @@ describe('agov executable command surface', () => {
 
     expect(await runAgovCli(['check', '--help'], io)).toBe(AGOV_EXIT_SUCCESS);
     expect(io.out).toContain('agov check');
+    expect(io.out).toContain('--config <path>');
+    expect(io.out).toContain('--adapter <package>');
+    expect(io.err).toBe('');
+  });
+
+  it('renders assess help', async () => {
+    const io = createMemoryIo();
+
+    expect(await runAgovCli(['assess', '--help'], io)).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.out).toContain('agov assess');
     expect(io.out).toContain('--config <path>');
     expect(io.out).toContain('--adapter <package>');
     expect(io.err).toBe('');
@@ -71,6 +82,21 @@ describe('agov executable command surface', () => {
       await runAgovCli(['check'], io, undefined, createEnvironment({ cwd })),
     ).toBe(AGOV_EXIT_SUCCESS);
     expect(io.out).toContain('agov check');
+    expect(io.out).toContain('workspace  demo');
+    expect(io.err).toBe('');
+  });
+
+  it('supports assess in conventional discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-assess-conventions-');
+
+    writeFixtureWorkspace(path.join(cwd, 'governance.workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'governance.profile.json'));
+
+    expect(
+      await runAgovCli(['assess'], io, undefined, createEnvironment({ cwd })),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.out).toContain('agov assess');
     expect(io.out).toContain('workspace  demo');
     expect(io.err).toBe('');
   });
@@ -334,6 +360,48 @@ describe('agov executable command surface', () => {
     expect(io.err).toBe('');
   });
 
+  it('supports assess in explicit adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-assess-adapter-mode-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'assess',
+          '--profile',
+          './profile.json',
+          '--adapter',
+          '@anarchitects/governance-adapter-typescript',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async () =>
+            createAdapterModule({
+              workspaceName: path.basename(cwd),
+            }),
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'assess',
+      success: true,
+      assessment: {
+        workspace: {
+          name: path.basename(cwd),
+        },
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
   it('discovers a compatible adapter from generic package metadata and probe results', async () => {
     const io = createMemoryIo();
     const cwd = createAdapterDiscoveryFixture('agov-adapter-discovery-', [
@@ -370,6 +438,58 @@ describe('agov executable command surface', () => {
     ).toBe(AGOV_EXIT_SUCCESS);
     expect(JSON.parse(io.out)).toMatchObject({
       command: 'check',
+      success: true,
+      assessment: {
+        workspace: {
+          name: 'supported-workspace',
+        },
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports assess in adapter discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createAdapterDiscoveryFixture(
+      'agov-assess-adapter-discovery-',
+      ['adapter-one', 'adapter-two'],
+    );
+
+    writeFixtureProfile(path.join(cwd, 'governance.profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'assess',
+          '--profile',
+          './governance.profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              return createProbeableAdapterModule({
+                workspaceName: 'unsupported-workspace',
+                supported: false,
+                confidence: 'low',
+              });
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'supported-workspace',
+              supported: true,
+              confidence: 'high',
+            });
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'assess',
       success: true,
       assessment: {
         workspace: {
@@ -548,6 +668,35 @@ describe('agov executable command surface', () => {
     ).toBe(AGOV_EXIT_SUCCESS);
     expect(JSON.parse(io.out)).toMatchObject({
       command: 'check',
+      success: true,
+    });
+  });
+
+  it('supports assess with json output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-assess-json-format-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'assess',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'assess',
       success: true,
     });
   });

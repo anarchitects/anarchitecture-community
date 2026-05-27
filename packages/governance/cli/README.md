@@ -43,7 +43,10 @@ import {
   loadStandaloneGovernanceProfile,
   parseAgovCliArgs,
   runAgovCli,
+  runAgovAssess,
   runAgovCheck,
+  type AgovAssessOptions,
+  type AgovAssessResult,
   type AgovCheckOptions,
   type AgovCheckResult,
   type AgovCheckWithAdapterOptions,
@@ -54,6 +57,7 @@ import {
 The root export currently includes:
 
 - `runAgovCheck(...)`
+- `runAgovAssess(...)`
 - `runAgovCli(...)`
 - `parseAgovCliArgs(...)`
 - `loadGenericWorkspace(...)`
@@ -61,6 +65,8 @@ The root export currently includes:
 - stable CLI exit-code constants
 - `AgovCheckOptions`
 - `AgovCheckResult`
+- `AgovAssessOptions`
+- `AgovAssessResult`
 - `AgovCheckWithAdapterOptions`
 - `AgovCheckWithWorkspacePathOptions`
 
@@ -83,8 +89,11 @@ Current command surface:
 - `agov --help`
 - `agov --version`
 - `agov check`
+- `agov assess`
 - `agov check --workspace <path> --profile <path>`
+- `agov assess --workspace <path> --profile <path>`
 - `agov check --adapter <package> --root <path> --profile <path>`
+- `agov assess --adapter <package> --root <path> --profile <path>`
 
 The CLI resolves values in this order:
 

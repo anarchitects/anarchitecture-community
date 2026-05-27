@@ -37,8 +37,16 @@ export type AgovCheckOptions<TInput = unknown> =
   | AgovCheckWithWorkspacePathOptions
   | AgovCheckWithAdapterOptions<TInput>;
 
+export type AgovAssessOptions<TInput = unknown> = AgovCheckOptions<TInput>;
+
 export interface AgovCheckResult {
   command: 'check';
+  success: boolean;
+  assessment: GovernanceAssessment;
+}
+
+export interface AgovAssessResult {
+  command: 'assess';
   success: boolean;
   assessment: GovernanceAssessment;
 }
@@ -85,6 +93,18 @@ export function runAgovCheck<TInput = unknown>(
       (violation) => violation.severity === 'error',
     ),
     assessment,
+  };
+}
+
+export function runAgovAssess<TInput = unknown>(
+  options: AgovAssessOptions<TInput>,
+): AgovAssessResult {
+  const result = runAgovCheck(options);
+
+  return {
+    command: 'assess',
+    success: result.success,
+    assessment: result.assessment,
   };
 }
 

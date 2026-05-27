@@ -1,12 +1,14 @@
 import { renderCliReport } from './internal/reporting/render-cli.js';
 import { renderJsonReport } from './internal/reporting/render-json.js';
 
-import type { AgovCheckResult } from './check.js';
+import type { AgovAssessResult, AgovCheckResult } from './check.js';
+
+type AgovCommandResult = AgovCheckResult | AgovAssessResult;
 
 export type AgovOutputFormat = 'json' | 'markdown' | 'table' | 'text';
 
 export function renderAgovCheckReport(
-  result: AgovCheckResult,
+  result: AgovCommandResult,
   format: AgovOutputFormat,
 ): string {
   switch (format) {
@@ -20,7 +22,7 @@ export function renderAgovCheckReport(
   }
 }
 
-export function renderAgovCheckJson(result: AgovCheckResult): string {
+export function renderAgovCheckJson(result: AgovCommandResult): string {
   return JSON.stringify(
     {
       command: result.command,
@@ -32,16 +34,17 @@ export function renderAgovCheckJson(result: AgovCheckResult): string {
   );
 }
 
-function renderAgovCheckTable(result: AgovCheckResult): string {
+function renderAgovCheckTable(result: AgovCommandResult): string {
   const lines: string[] = [];
   const { assessment } = result;
   const assessmentLines = renderCliReport(assessment).split('\n');
 
   if (assessmentLines[0]?.startsWith('Nx Governance - ')) {
-    assessmentLines[0] = `Governance Check - ${assessment.profile}`;
+    const headingVerb = result.command === 'assess' ? 'Assess' : 'Check';
+    assessmentLines[0] = `Governance ${headingVerb} - ${assessment.profile}`;
   }
 
-  lines.push('agov check');
+  lines.push(`agov ${result.command}`);
   lines.push('');
   lines.push(
     ...renderTextTable(
@@ -59,16 +62,17 @@ function renderAgovCheckTable(result: AgovCheckResult): string {
   return lines.join('\n');
 }
 
-function renderAgovCheckMarkdown(result: AgovCheckResult): string {
+function renderAgovCheckMarkdown(result: AgovCommandResult): string {
   const { assessment } = result;
   const lines: string[] = [];
   const assessmentLines = renderCliReport(assessment).split('\n');
 
   if (assessmentLines[0]?.startsWith('Nx Governance - ')) {
-    assessmentLines[0] = `Governance Check - ${assessment.profile}`;
+    const headingVerb = result.command === 'assess' ? 'Assess' : 'Check';
+    assessmentLines[0] = `Governance ${headingVerb} - ${assessment.profile}`;
   }
 
-  lines.push('# agov check');
+  lines.push(`# agov ${result.command}`);
   lines.push('');
   lines.push('| Field | Value |');
   lines.push('| --- | --- |');
