@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import {
-  AgovCliUsageError,
   resolveAgovAssessCommand,
   resolveAgovAssessmentCommand,
   resolveAgovCheckCommand,
