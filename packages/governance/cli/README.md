@@ -119,7 +119,7 @@ Example programmatic usage:
 ```ts
 import { runAgovCheck } from '@anarchitects/governance-cli';
 
-const result = runAgovCheck({
+const result = await runAgovCheck({
   workspacePath: './governance.workspace.json',
   profilePath: './governance.profile.json',
 });

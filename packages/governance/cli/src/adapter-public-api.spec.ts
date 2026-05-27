@@ -5,7 +5,7 @@ import type { GovernanceWorkspaceAdapter } from '@anarchitects/governance-core';
 import { runAgovCheck } from './check.js';
 
 describe('Governance CLI adapter dependency boundary', () => {
-  it('runs with an injected in-memory adapter implementing Core-owned contracts', () => {
+  it('runs with an injected in-memory adapter implementing Core-owned contracts', async () => {
     const workspaceAdapter: GovernanceWorkspaceAdapter<{
       workspaceName: string;
     }> = {
@@ -32,7 +32,7 @@ describe('Governance CLI adapter dependency boundary', () => {
       },
     };
 
-    const result = runAgovCheck({
+    const result = await runAgovCheck({
       profilePath: fileURLToPath(
         new URL(
           '../tests/fixtures/standalone-cli/passing-profile.json',
