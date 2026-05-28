@@ -6,6 +6,7 @@ import type { AgovAssessResult, AgovCheckResult } from './check.js';
 import type { AgovDependenciesResult } from './dependencies.js';
 import type { AgovInspectResult } from './inspect.js';
 import type { AgovMetricsResult } from './metrics.js';
+import type { AgovProfileValidateResult } from './profile-validate.js';
 import type { AgovRecommendationsResult } from './recommendations.js';
 import type { AgovSignalsResult } from './signals.js';
 import type { AgovViolationsResult } from './violations.js';
@@ -26,6 +27,21 @@ export function renderAgovCheckReport(
     case 'table':
     case 'text':
       return renderAgovCheckTable(result);
+  }
+}
+
+export function renderAgovProfileValidateReport(
+  result: AgovProfileValidateResult,
+  format: AgovOutputFormat,
+): string {
+  switch (format) {
+    case 'json':
+      return renderAgovProfileValidateJson(result);
+    case 'markdown':
+      return renderAgovProfileValidateMarkdown(result);
+    case 'table':
+    case 'text':
+      return renderAgovProfileValidateTable(result);
   }
 }
 
@@ -127,6 +143,12 @@ export function renderAgovCheckJson(result: AgovCommandResult): string {
   });
 }
 
+export function renderAgovProfileValidateJson(
+  result: AgovProfileValidateResult,
+): string {
+  return reportingPrimitives.renderJsonValue(result, { stable: true });
+}
+
 export function renderAgovDependenciesJson(
   result: AgovDependenciesResult,
 ): string {
@@ -219,6 +241,46 @@ function renderAgovCheckMarkdown(result: AgovCommandResult): string {
     }
 
     lines.push(line);
+  }
+
+  return lines.join('\n');
+}
+
+function renderAgovProfileValidateTable(
+  result: AgovProfileValidateResult,
+): string {
+  const lines: string[] = [];
+
+  lines.push('agov profile validate');
+  lines.push('');
+  lines.push('Summary');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['status', result.success ? 'valid' : 'invalid'],
+        ['profile path', result.profilePath],
+        ['profile name', result.summary.profileName ?? 'none'],
+        ['error count', String(result.summary.errorCount)],
+        ['warning count', String(result.summary.warningCount)],
+      ],
+    }),
+  );
+
+  if ((result.errors?.length ?? 0) > 0) {
+    lines.push('');
+    lines.push('Errors');
+    lines.push(
+      ...reportingPrimitives.renderTwoColumnTextTable({
+        headers: ['Issue', 'Details'],
+        rows: (result.errors ?? []).map((issue) => [
+          issue.code,
+          [`message=${issue.message}`, `path=${issue.path}`]
+            .filter((part): part is string => Boolean(part))
+            .join(' :: '),
+        ]),
+      }),
+    );
   }
 
   return lines.join('\n');
@@ -497,6 +559,45 @@ function renderAgovDependenciesMarkdown(
       ]),
     }),
   );
+
+  return lines.join('\n');
+}
+
+function renderAgovProfileValidateMarkdown(
+  result: AgovProfileValidateResult,
+): string {
+  const lines: string[] = [];
+
+  lines.push('# agov profile validate');
+  lines.push('');
+  lines.push('## Summary');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['status', result.success ? 'valid' : 'invalid'],
+        ['profile path', result.profilePath],
+        ['profile name', result.summary.profileName ?? 'none'],
+        ['error count', String(result.summary.errorCount)],
+        ['warning count', String(result.summary.warningCount)],
+      ],
+    }),
+  );
+
+  if ((result.errors?.length ?? 0) > 0) {
+    lines.push('');
+    lines.push('## Errors');
+    lines.push(
+      ...reportingPrimitives.renderMarkdownTable({
+        headers: ['code', 'message', 'path'],
+        rows: (result.errors ?? []).map((issue) => [
+          issue.code,
+          issue.message,
+          issue.path,
+        ]),
+      }),
+    );
+  }
 
   return lines.join('\n');
 }

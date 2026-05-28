@@ -17,6 +17,7 @@ describe('agov executable command surface', () => {
 
     expect(await runAgovCli(['--help'], io)).toBe(AGOV_EXIT_SUCCESS);
     expect(io.out).toContain('agov');
+    expect(io.out).toContain('agov profile validate [options]');
     expect(io.out).toContain('agov check [options]');
     expect(io.out).toContain('agov assess [options]');
     expect(io.out).toContain('agov dependencies [options]');
@@ -35,6 +36,18 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov check');
     expect(io.out).toContain('--config <path>');
     expect(io.out).toContain('--adapter <package>');
+    expect(io.err).toBe('');
+  });
+
+  it('renders profile validate help', async () => {
+    const io = createMemoryIo();
+
+    expect(await runAgovCli(['profile', 'validate', '--help'], io)).toBe(
+      AGOV_EXIT_SUCCESS,
+    );
+    expect(io.out).toContain('agov profile validate');
+    expect(io.out).toContain('--profile <path>');
+    expect(io.out).toContain('--config <path>');
     expect(io.err).toBe('');
   });
 
@@ -181,6 +194,32 @@ describe('agov executable command surface', () => {
     expect(io.err).toBe('');
   });
 
+  it('validates profile in conventional discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-profile-validate-conventions-');
+
+    writeFixtureProfile(path.join(cwd, 'governance.profile.json'));
+
+    expect(
+      await runAgovCli(
+        ['profile', 'validate', '--format', 'json'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'profile validate',
+      success: true,
+      profilePath: expect.stringContaining('governance.profile.json'),
+      summary: {
+        status: 'valid',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
   it('supports dependencies in conventional workspace discovery mode', async () => {
     const io = createMemoryIo();
     const cwd = createTempWorkspaceRoot('agov-dependencies-conventions-');
@@ -231,6 +270,230 @@ describe('agov executable command surface', () => {
         },
       },
     });
+    expect(io.err).toBe('');
+  });
+
+  it('validates profile using config-based profile resolution', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-profile-validate-config-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+    writeJson(path.join(cwd, 'agov.config.json'), {
+      profile: './profile.json',
+      format: 'json',
+    });
+
+    expect(
+      await runAgovCli(
+        ['profile', 'validate'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'profile validate',
+      success: true,
+      profilePath: path.join(cwd, 'profile.json'),
+      summary: {
+        status: 'valid',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports profile validate with explicit --profile and --format json', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-profile-validate-explicit-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'profile',
+          'validate',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'profile validate',
+      success: true,
+      profilePath: path.join(cwd, 'profile.json'),
+      summary: {
+        status: 'valid',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('returns success exit code for valid profile validation', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-profile-validate-valid-exit-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        ['profile', 'validate', '--profile', './profile.json'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.err).toBe('');
+  });
+
+  it('includes command and success=true in valid profile validation json output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-profile-validate-valid-json-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'profile',
+          'validate',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      command: string;
+      success: boolean;
+    };
+
+    expect(parsed.command).toBe('profile validate');
+    expect(parsed.success).toBe(true);
+    expect(io.err).toBe('');
+  });
+
+  it('returns configuration failure and structured json for invalid profile', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-profile-validate-invalid-json-');
+
+    writeInvalidFixtureProfile(path.join(cwd, 'invalid-profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'profile',
+          'validate',
+          '--profile',
+          './invalid-profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+    const parsed = JSON.parse(io.out) as {
+      command: string;
+      success: boolean;
+      errors: Array<unknown>;
+      summary: { status: string };
+    };
+
+    expect(parsed.command).toBe('profile validate');
+    expect(parsed.success).toBe(false);
+    expect(parsed.summary.status).toBe('invalid');
+    expect(parsed.errors.length).toBeGreaterThan(0);
+    expect(io.err).toBe('');
+  });
+
+  it('returns configuration failure for missing profile path', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-profile-validate-missing-');
+
+    expect(
+      await runAgovCli(
+        ['profile', 'validate', '--profile', './missing-profile.json'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+    expect(io.out).toBe('');
+    expect(JSON.parse(io.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.invalid_config',
+      },
+    });
+  });
+
+  it('renders profile validate status in table output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-profile-validate-table-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'profile',
+          'validate',
+          '--profile',
+          './profile.json',
+          '--format',
+          'table',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(io.out).toContain('agov profile validate');
+    expect(io.out).toContain('status');
+    expect(io.out).toContain('valid');
+    expect(io.err).toBe('');
+  });
+
+  it('renders profile validate markdown without raw object dumps', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-profile-validate-markdown-');
+
+    writeInvalidFixtureProfile(path.join(cwd, 'invalid-profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'profile',
+          'validate',
+          '--profile',
+          './invalid-profile.json',
+          '--format',
+          'markdown',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+    expect(io.out).toContain('# agov profile validate');
+    expect(io.out).toContain('## Summary');
+    expect(io.out).not.toContain('[object Object]');
     expect(io.err).toBe('');
   });
 
@@ -2729,6 +2992,13 @@ function writeFixtureProfile(filePath: string): void {
 
 function writeFailingFixtureProfile(filePath: string): void {
   copyFixture(filePath, '../tests/fixtures/standalone-cli/error-profile.json');
+}
+
+function writeInvalidFixtureProfile(filePath: string): void {
+  writeJson(filePath, {
+    boundaryPolicySource: 'profile',
+    layers: [],
+  });
 }
 
 function copyFixture(targetPath: string, relativeFixturePath: string): void {
