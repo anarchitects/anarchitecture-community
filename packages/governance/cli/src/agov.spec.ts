@@ -20,6 +20,7 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov check [options]');
     expect(io.out).toContain('agov assess [options]');
     expect(io.out).toContain('agov metrics [options]');
+    expect(io.out).toContain('agov violations [options]');
     expect(io.out).toContain('agov inspect [options]');
     expect(io.err).toBe('');
   });
@@ -64,6 +65,21 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('--family <value>');
     expect(io.out).toContain('--metric <value>');
     expect(io.out).toContain('--weakest <value>');
+    expect(io.err).toBe('');
+  });
+
+  it('renders violations help', async () => {
+    const io = createMemoryIo();
+
+    expect(await runAgovCli(['violations', '--help'], io)).toBe(
+      AGOV_EXIT_SUCCESS,
+    );
+    expect(io.out).toContain('agov violations');
+    expect(io.out).toContain('--severity <value>');
+    expect(io.out).toContain('--rule <value>');
+    expect(io.out).toContain('--category <value>');
+    expect(io.out).toContain('--project <value>');
+    expect(io.out).toContain('--source-plugin <value>');
     expect(io.err).toBe('');
   });
 
@@ -1252,6 +1268,285 @@ describe('agov executable command surface', () => {
     expect(parsed.summary.weakestMetrics).toHaveLength(1);
     expect(io.err).toBe('');
   });
+
+  it('supports violations with explicit workspace/profile mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-violations-workspace-mode-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'violations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'violations',
+      summary: {
+        total: expect.any(Number),
+        bySeverity: expect.any(Array),
+      },
+      violations: expect.any(Array),
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports violations with explicit adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-violations-adapter-mode-');
+
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'violations',
+          '--profile',
+          './profile.json',
+          '--adapter',
+          'test-adapter-package',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async () =>
+            createAdapterModule({ workspaceName: path.basename(cwd) }),
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'violations',
+      workspace: {
+        name: path.basename(cwd),
+      },
+      violations: expect.any(Array),
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports violations in adapter discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createAdapterDiscoveryFixture(
+      'agov-violations-adapter-discovery-',
+      ['adapter-one', 'adapter-two'],
+    );
+
+    writeFailingFixtureProfile(path.join(cwd, 'governance.profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'violations',
+          '--profile',
+          './governance.profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              return createProbeableAdapterModule({
+                workspaceName: 'unsupported-workspace',
+                supported: false,
+                confidence: 'low',
+              });
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'supported-workspace',
+              supported: true,
+              confidence: 'high',
+            });
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'violations',
+      workspace: {
+        name: 'supported-workspace',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('filters violations output by severity', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-violations-severity-filter-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'violations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--severity',
+          'error',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      summary: { total: number };
+      violations: Array<{ severity: string }>;
+    };
+
+    expect(
+      parsed.violations.every((violation) => violation.severity === 'error'),
+    ).toBe(true);
+    expect(parsed.summary.total).toBe(parsed.violations.length);
+    expect(io.err).toBe('');
+  });
+
+  it('combines violations filters with AND semantics', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-violations-and-filter-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'violations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const baseline = JSON.parse(io.out) as {
+      violations: Array<{
+        severity: string;
+        ruleId: string;
+        category: string;
+        project: string;
+      }>;
+    };
+
+    const selected = baseline.violations[0];
+    expect(selected).toBeDefined();
+
+    io.out = '';
+    io.err = '';
+
+    expect(
+      await runAgovCli(
+        [
+          'violations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--severity',
+          selected.severity,
+          '--rule',
+          selected.ruleId,
+          '--category',
+          selected.category,
+          '--project',
+          selected.project,
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const filtered = JSON.parse(io.out) as {
+      violations: Array<{
+        severity: string;
+        ruleId: string;
+        category: string;
+        project: string;
+      }>;
+    };
+
+    expect(filtered.violations.length).toBeGreaterThan(0);
+    expect(
+      filtered.violations.every(
+        (violation) =>
+          violation.severity === selected.severity &&
+          violation.ruleId === selected.ruleId &&
+          violation.category === selected.category &&
+          violation.project === selected.project,
+      ),
+    ).toBe(true);
+    expect(io.err).toBe('');
+  });
+
+  it('rejects unsupported violations severity values', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-violations-invalid-severity-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'violations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--severity',
+          'fatal',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+    expect(JSON.parse(io.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.invalid_config',
+      },
+    });
+  });
 });
 
 function createMemoryIo(): {
@@ -1378,6 +1673,10 @@ function writeFixtureProfile(filePath: string): void {
     filePath,
     '../tests/fixtures/standalone-cli/passing-profile.json',
   );
+}
+
+function writeFailingFixtureProfile(filePath: string): void {
+  copyFixture(filePath, '../tests/fixtures/standalone-cli/error-profile.json');
 }
 
 function copyFixture(targetPath: string, relativeFixturePath: string): void {

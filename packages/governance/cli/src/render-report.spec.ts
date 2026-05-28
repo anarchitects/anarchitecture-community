@@ -4,6 +4,7 @@ import * as reportingPrimitives from './internal/reporting/render-primitives.js'
 import { runAgovAssess, runAgovCheck } from './check.js';
 import { runAgovInspect } from './inspect.js';
 import { runAgovMetrics } from './metrics.js';
+import { runAgovViolations } from './violations.js';
 import {
   renderAgovCheckJson,
   renderAgovCheckReport,
@@ -11,6 +12,8 @@ import {
   renderAgovInspectReport,
   renderAgovMetricsJson,
   renderAgovMetricsReport,
+  renderAgovViolationsJson,
+  renderAgovViolationsReport,
 } from './render-report.js';
 
 describe('agov command report rendering', () => {
@@ -214,6 +217,62 @@ describe('agov command report rendering', () => {
 
     renderAgovMetricsReport(metricsResult, 'text');
     renderAgovMetricsReport(metricsResult, 'markdown');
+
+    expect(textTableSpy).toHaveBeenCalled();
+    expect(markdownTableSpy).toHaveBeenCalled();
+  });
+
+  it('keeps violations JSON output shape stable', async () => {
+    const violationsResult = await runAgovViolations({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+    });
+
+    const rendered = renderAgovViolationsJson(violationsResult);
+    const parsed = JSON.parse(rendered) as Record<string, unknown>;
+
+    expect(Object.keys(parsed)).toEqual([
+      'command',
+      'profile',
+      'summary',
+      'violations',
+      'workspace',
+    ]);
+    expect(parsed).toMatchObject({
+      command: 'violations',
+      summary: {
+        total: expect.any(Number),
+        bySeverity: expect.any(Array),
+      },
+      violations: expect.any(Array),
+    });
+  });
+
+  it('delegates violations rendering to shared primitives', async () => {
+    const violationsResult = await runAgovViolations({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+    });
+
+    const textTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderTwoColumnTextTable',
+    );
+    const markdownTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderMarkdownTable',
+    );
+
+    renderAgovViolationsReport(violationsResult, 'text');
+    renderAgovViolationsReport(violationsResult, 'markdown');
 
     expect(textTableSpy).toHaveBeenCalled();
     expect(markdownTableSpy).toHaveBeenCalled();
