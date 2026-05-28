@@ -5,6 +5,7 @@ import * as reportingPrimitives from './internal/reporting/render-primitives.js'
 import type { AgovAssessResult, AgovCheckResult } from './check.js';
 import type { AgovInspectResult } from './inspect.js';
 import type { AgovMetricsResult } from './metrics.js';
+import type { AgovRecommendationsResult } from './recommendations.js';
 import type { AgovViolationsResult } from './violations.js';
 
 type AgovCommandResult = AgovCheckResult | AgovAssessResult;
@@ -71,6 +72,21 @@ export function renderAgovViolationsReport(
   }
 }
 
+export function renderAgovRecommendationsReport(
+  result: AgovRecommendationsResult,
+  format: AgovOutputFormat,
+): string {
+  switch (format) {
+    case 'json':
+      return renderAgovRecommendationsJson(result);
+    case 'markdown':
+      return renderAgovRecommendationsMarkdown(result);
+    case 'table':
+    case 'text':
+      return renderAgovRecommendationsTable(result);
+  }
+}
+
 export function renderAgovCheckJson(result: AgovCommandResult): string {
   return reportingPrimitives.renderJsonValue({
     command: result.command,
@@ -88,6 +104,12 @@ export function renderAgovMetricsJson(result: AgovMetricsResult): string {
 }
 
 export function renderAgovViolationsJson(result: AgovViolationsResult): string {
+  return reportingPrimitives.renderJsonValue(result, { stable: true });
+}
+
+export function renderAgovRecommendationsJson(
+  result: AgovRecommendationsResult,
+): string {
   return reportingPrimitives.renderJsonValue(result, { stable: true });
 }
 
@@ -549,6 +571,53 @@ function renderAgovViolationsTable(result: AgovViolationsResult): string {
   return lines.join('\n');
 }
 
+function renderAgovRecommendationsTable(
+  result: AgovRecommendationsResult,
+): string {
+  const lines: string[] = [];
+
+  lines.push('agov recommendations');
+  lines.push('');
+  lines.push('Summary');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['profile', result.profile],
+        ['total', String(result.summary.total)],
+        [
+          'by priority',
+          formatCountSummary(result.summary.byPriority, 'priority'),
+        ],
+        ['highest priority', result.summary.highestPriority],
+      ],
+    }),
+  );
+
+  const groupedRecommendations = groupRecommendationsByPriority(result);
+
+  for (const group of groupedRecommendations) {
+    lines.push('');
+    lines.push(`Recommendations (${group.priority})`);
+    lines.push(
+      ...reportingPrimitives.renderTwoColumnTextTable({
+        headers: ['Recommendation', 'Details'],
+        rows: group.recommendations.map((recommendation) => [
+          recommendation.id,
+          [
+            `priority=${recommendation.priority}`,
+            `title=${recommendation.title}`,
+            `reason=${recommendation.reason}`,
+          ].join(' :: '),
+        ]),
+      }),
+    );
+  }
+
+  return lines.join('\n');
+}
+
 function renderAgovViolationsMarkdown(result: AgovViolationsResult): string {
   const lines: string[] = [];
 
@@ -604,6 +673,63 @@ function renderAgovViolationsMarkdown(result: AgovViolationsResult): string {
   );
 
   return lines.join('\n');
+}
+
+function renderAgovRecommendationsMarkdown(
+  result: AgovRecommendationsResult,
+): string {
+  const lines: string[] = [];
+
+  lines.push('# agov recommendations');
+  lines.push('');
+  lines.push('## Summary');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['profile', result.profile],
+        ['total', String(result.summary.total)],
+        [
+          'by priority',
+          formatCountSummary(result.summary.byPriority, 'priority'),
+        ],
+        ['highest priority', result.summary.highestPriority],
+      ],
+    }),
+  );
+
+  const groupedRecommendations = groupRecommendationsByPriority(result);
+
+  for (const group of groupedRecommendations) {
+    lines.push('');
+    lines.push(`## Recommendations (${group.priority})`);
+    lines.push(
+      ...reportingPrimitives.renderMarkdownTable({
+        headers: ['priority', 'id', 'title', 'reason'],
+        rows: group.recommendations.map((recommendation) => [
+          recommendation.priority,
+          recommendation.id,
+          recommendation.title,
+          recommendation.reason,
+        ]),
+      }),
+    );
+  }
+
+  return lines.join('\n');
+}
+
+function groupRecommendationsByPriority(result: AgovRecommendationsResult): {
+  priority: string;
+  recommendations: AgovRecommendationsResult['recommendations'];
+}[] {
+  return result.summary.groupedByPriority.map((group) => ({
+    priority: group.priority,
+    recommendations: result.recommendations.filter(
+      (recommendation) => recommendation.priority === group.priority,
+    ),
+  }));
 }
 
 function formatCountSummary<

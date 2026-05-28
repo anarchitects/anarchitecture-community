@@ -20,6 +20,7 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov check [options]');
     expect(io.out).toContain('agov assess [options]');
     expect(io.out).toContain('agov metrics [options]');
+    expect(io.out).toContain('agov recommendations [options]');
     expect(io.out).toContain('agov violations [options]');
     expect(io.out).toContain('agov inspect [options]');
     expect(io.err).toBe('');
@@ -80,6 +81,17 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('--category <value>');
     expect(io.out).toContain('--project <value>');
     expect(io.out).toContain('--source-plugin <value>');
+    expect(io.err).toBe('');
+  });
+
+  it('renders recommendations help', async () => {
+    const io = createMemoryIo();
+
+    expect(await runAgovCli(['recommendations', '--help'], io)).toBe(
+      AGOV_EXIT_SUCCESS,
+    );
+    expect(io.out).toContain('agov recommendations');
+    expect(io.out).toContain('--priority <value>');
     expect(io.err).toBe('');
   });
 
@@ -1267,6 +1279,374 @@ describe('agov executable command surface', () => {
     ).toBe(true);
     expect(parsed.summary.weakestMetrics).toHaveLength(1);
     expect(io.err).toBe('');
+  });
+
+  it('supports recommendations in conventional discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-recommendations-conventions-');
+
+    writeFixtureWorkspace(path.join(cwd, 'governance.workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'governance.profile.json'));
+
+    expect(
+      await runAgovCli(
+        ['recommendations'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.out).toContain('agov recommendations');
+    expect(io.out).toContain('Summary');
+    expect(io.err).toBe('');
+  });
+
+  it('supports recommendations with explicit workspace/profile mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-recommendations-workspace-mode-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'recommendations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'recommendations',
+      recommendations: expect.any(Array),
+      summary: {
+        total: expect.any(Number),
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports recommendations with explicit adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-recommendations-adapter-mode-');
+
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'recommendations',
+          '--profile',
+          './profile.json',
+          '--adapter',
+          'test-adapter-package',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async () =>
+            createAdapterModule({ workspaceName: path.basename(cwd) }),
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'recommendations',
+      workspace: {
+        name: path.basename(cwd),
+      },
+      recommendations: expect.any(Array),
+      summary: expect.any(Object),
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports recommendations in adapter discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createAdapterDiscoveryFixture(
+      'agov-recommendations-adapter-discovery-',
+      ['adapter-one', 'adapter-two'],
+    );
+
+    writeFailingFixtureProfile(path.join(cwd, 'governance.profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'recommendations',
+          '--profile',
+          './governance.profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              return createProbeableAdapterModule({
+                workspaceName: 'unsupported-workspace',
+                supported: false,
+                confidence: 'low',
+              });
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'supported-workspace',
+              supported: true,
+              confidence: 'high',
+            });
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'recommendations',
+      workspace: {
+        name: 'supported-workspace',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports recommendations json output with stable command fields', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-recommendations-json-format-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'recommendations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'recommendations',
+      workspace: {
+        name: 'demo',
+      },
+      profile: expect.any(String),
+      recommendations: expect.any(Array),
+      summary: {
+        total: expect.any(Number),
+        byPriority: expect.any(Array),
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('renders recommendations summary in text and table output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-recommendations-text-table-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'recommendations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'table',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(io.out).toContain('agov recommendations');
+    expect(io.out).toContain('Summary');
+    expect(io.out).toContain('highest priority');
+    expect(io.err).toBe('');
+  });
+
+  it('filters recommendations by high priority', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-recommendations-high-filter-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'recommendations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--priority',
+          'high',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      summary: { total: number };
+      recommendations: Array<{ priority: string }>;
+    };
+
+    expect(
+      parsed.recommendations.every(
+        (recommendation) => recommendation.priority === 'high',
+      ),
+    ).toBe(true);
+    expect(parsed.summary.total).toBe(parsed.recommendations.length);
+    expect(io.err).toBe('');
+  });
+
+  it('filters recommendations by medium priority', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-recommendations-medium-filter-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'recommendations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--priority',
+          'medium',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      summary: { total: number };
+      recommendations: Array<{ priority: string }>;
+    };
+
+    expect(
+      parsed.recommendations.every(
+        (recommendation) => recommendation.priority === 'medium',
+      ),
+    ).toBe(true);
+    expect(parsed.summary.total).toBe(parsed.recommendations.length);
+    expect(io.err).toBe('');
+  });
+
+  it('filters recommendations by low priority and returns empty summary when unmatched', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-recommendations-low-filter-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'recommendations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--priority',
+          'low',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      summary: { total: number };
+      recommendations: Array<{ priority: string }>;
+    };
+
+    expect(
+      parsed.recommendations.every(
+        (recommendation) => recommendation.priority === 'low',
+      ),
+    ).toBe(true);
+    expect(parsed.summary.total).toBe(parsed.recommendations.length);
+    expect(parsed.summary.total).toBe(0);
+    expect(parsed.recommendations).toHaveLength(0);
+    expect(io.err).toBe('');
+  });
+
+  it('rejects unsupported recommendations priority values', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot(
+      'agov-recommendations-invalid-priority-',
+    );
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'recommendations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--priority',
+          'urgent',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+    expect(JSON.parse(io.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.invalid_config',
+      },
+    });
   });
 
   it('supports violations with explicit workspace/profile mode', async () => {
