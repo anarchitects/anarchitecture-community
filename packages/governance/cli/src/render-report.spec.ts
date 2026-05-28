@@ -2,7 +2,13 @@ import { fileURLToPath } from 'node:url';
 
 import * as reportingPrimitives from './internal/reporting/render-primitives.js';
 import { runAgovAssess, runAgovCheck } from './check.js';
-import { renderAgovCheckJson, renderAgovCheckReport } from './render-report.js';
+import { runAgovInspect } from './inspect.js';
+import {
+  renderAgovCheckJson,
+  renderAgovCheckReport,
+  renderAgovInspectJson,
+  renderAgovInspectReport,
+} from './render-report.js';
 
 describe('agov command report rendering', () => {
   it('keeps check JSON output shape stable', async () => {
@@ -98,6 +104,55 @@ describe('agov command report rendering', () => {
     const tableRendered = renderAgovCheckReport(assessResult, 'table');
 
     expect(textRendered).toBe(tableRendered);
+  });
+
+  it('keeps inspect JSON output shape stable', async () => {
+    const inspectResult = await runAgovInspect({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+    });
+
+    const rendered = renderAgovInspectJson(inspectResult);
+    const parsed = JSON.parse(rendered) as Record<string, unknown>;
+
+    expect(Object.keys(parsed)).toEqual([
+      'adapter',
+      'command',
+      'dependencies',
+      'projects',
+      'summary',
+      'workspace',
+    ]);
+    expect(parsed).toMatchObject({
+      command: 'inspect',
+      workspace: {
+        name: 'demo',
+      },
+    });
+  });
+
+  it('delegates inspect rendering to shared primitives', async () => {
+    const inspectResult = await runAgovInspect({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+    });
+
+    const textTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderTwoColumnTextTable',
+    );
+    const markdownTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderMarkdownTable',
+    );
+
+    renderAgovInspectReport(inspectResult, 'text');
+    renderAgovInspectReport(inspectResult, 'markdown');
+
+    expect(textTableSpy).toHaveBeenCalled();
+    expect(markdownTableSpy).toHaveBeenCalled();
   });
 });
 

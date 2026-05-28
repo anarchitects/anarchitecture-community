@@ -19,6 +19,7 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov');
     expect(io.out).toContain('agov check [options]');
     expect(io.out).toContain('agov assess [options]');
+    expect(io.out).toContain('agov inspect [options]');
     expect(io.err).toBe('');
   });
 
@@ -39,6 +40,18 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov assess');
     expect(io.out).toContain('--config <path>');
     expect(io.out).toContain('--adapter <package>');
+    expect(io.err).toBe('');
+  });
+
+  it('renders inspect help', async () => {
+    const io = createMemoryIo();
+
+    expect(await runAgovCli(['inspect', '--help'], io)).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.out).toContain('agov inspect');
+    expect(io.out).toContain('--project <value>');
+    expect(io.out).toContain('--domain <value>');
+    expect(io.out).toContain('--layer <value>');
+    expect(io.out).toContain('--type <value>');
     expect(io.err).toBe('');
   });
 
@@ -817,6 +830,193 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('# agov check');
     expect(io.out).toContain('| Field | Value |');
     expect(() => JSON.parse(io.out)).toThrow();
+  });
+
+  it('supports inspect in conventional discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-inspect-conventions-');
+
+    writeFixtureWorkspace(path.join(cwd, 'governance.workspace.json'));
+
+    expect(
+      await runAgovCli(['inspect'], io, undefined, createEnvironment({ cwd })),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.out).toContain('agov inspect');
+    expect(io.out).toContain('workspace');
+    expect(io.out).toContain('demo');
+    expect(io.err).toBe('');
+  });
+
+  it('supports inspect with explicit workspace input and table output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-inspect-workspace-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+
+    expect(
+      await runAgovCli(
+        ['inspect', '--workspace', './workspace.json', '--format', 'table'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.out).toContain('Workspace');
+    expect(io.out).toContain('Summary');
+    expect(io.out).toContain('Projects');
+    expect(io.out).toContain('Dependencies');
+    expect(io.out).toContain('projects');
+    expect(io.out).toContain('dependencies');
+    expect(() => JSON.parse(io.out)).toThrow();
+    expect(io.err).toBe('');
+  });
+
+  it('supports inspect with explicit adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-inspect-adapter-mode-');
+
+    expect(
+      await runAgovCli(
+        [
+          'inspect',
+          '--adapter',
+          'test-adapter-package',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async () =>
+            createAdapterModule({ workspaceName: path.basename(cwd) }),
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'inspect',
+      workspace: {
+        name: path.basename(cwd),
+      },
+      adapter: {
+        id: 'governance-adapter:typescript',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports inspect in adapter discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createAdapterDiscoveryFixture(
+      'agov-inspect-adapter-discovery-',
+      ['adapter-one', 'adapter-two'],
+    );
+
+    expect(
+      await runAgovCli(
+        ['inspect', '--format', 'json'],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              return createProbeableAdapterModule({
+                workspaceName: 'unsupported-workspace',
+                supported: false,
+                confidence: 'low',
+              });
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'supported-workspace',
+              supported: true,
+              confidence: 'high',
+            });
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'inspect',
+      workspace: {
+        name: 'supported-workspace',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('filters inspect output by project scope', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-inspect-filters-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'inspect',
+          '--workspace',
+          './workspace.json',
+          '--project',
+          'customer-domain',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      projects: Array<{ id: string }>;
+      dependencies: Array<Record<string, unknown>>;
+    };
+
+    expect(parsed.projects).toHaveLength(1);
+    expect(parsed.projects[0]?.id).toBe('customer-domain');
+    expect(parsed.dependencies).toHaveLength(1);
+    expect(io.err).toBe('');
+  });
+
+  it('renders inspect json deterministically', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-inspect-json-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+
+    expect(
+      await runAgovCli(
+        ['inspect', '--workspace', './workspace.json', '--format', 'json'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'inspect',
+      workspace: {
+        name: 'demo',
+      },
+      projects: [
+        {
+          id: 'customer-domain',
+        },
+        {
+          id: 'order-domain',
+        },
+      ],
+      dependencies: [
+        {
+          source: 'customer-domain',
+          target: 'order-domain',
+        },
+      ],
+    });
+    expect(io.err).toBe('');
   });
 });
 
