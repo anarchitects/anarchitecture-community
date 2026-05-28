@@ -5,6 +5,7 @@ import * as reportingPrimitives from './internal/reporting/render-primitives.js'
 import type { AgovAssessResult, AgovCheckResult } from './check.js';
 import type { AgovInspectResult } from './inspect.js';
 import type { AgovMetricsResult } from './metrics.js';
+import type { AgovViolationsResult } from './violations.js';
 
 type AgovCommandResult = AgovCheckResult | AgovAssessResult;
 
@@ -55,6 +56,21 @@ export function renderAgovMetricsReport(
   }
 }
 
+export function renderAgovViolationsReport(
+  result: AgovViolationsResult,
+  format: AgovOutputFormat,
+): string {
+  switch (format) {
+    case 'json':
+      return renderAgovViolationsJson(result);
+    case 'markdown':
+      return renderAgovViolationsMarkdown(result);
+    case 'table':
+    case 'text':
+      return renderAgovViolationsTable(result);
+  }
+}
+
 export function renderAgovCheckJson(result: AgovCommandResult): string {
   return reportingPrimitives.renderJsonValue({
     command: result.command,
@@ -68,6 +84,10 @@ export function renderAgovInspectJson(result: AgovInspectResult): string {
 }
 
 export function renderAgovMetricsJson(result: AgovMetricsResult): string {
+  return reportingPrimitives.renderJsonValue(result, { stable: true });
+}
+
+export function renderAgovViolationsJson(result: AgovViolationsResult): string {
   return reportingPrimitives.renderJsonValue(result, { stable: true });
 }
 
@@ -476,6 +496,126 @@ function renderAgovMetricsMarkdown(result: AgovMetricsResult): string {
   );
 
   return lines.join('\n');
+}
+
+function renderAgovViolationsTable(result: AgovViolationsResult): string {
+  const lines: string[] = [];
+
+  lines.push('agov violations');
+  lines.push('');
+  lines.push('Summary');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['profile', result.profile],
+        ['total', String(result.summary.total)],
+        [
+          'by severity',
+          formatCountSummary(result.summary.bySeverity, 'severity'),
+        ],
+        [
+          'by category',
+          formatCountSummary(result.summary.byCategory, 'category'),
+        ],
+        ['by rule', formatCountSummary(result.summary.byRule, 'rule')],
+        ['by project', formatCountSummary(result.summary.byProject, 'project')],
+        [
+          'by source plugin',
+          formatCountSummary(result.summary.bySourcePlugin, 'sourcePlugin'),
+        ],
+      ],
+    }),
+  );
+
+  lines.push('');
+  lines.push('Violations');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Violation', 'Details'],
+      rows: result.violations.map((violation) => [
+        `${violation.ruleId} @ ${violation.project}`,
+        [
+          `severity=${violation.severity}`,
+          `category=${violation.category}`,
+          `message=${violation.message}`,
+          `sourcePlugin=${violation.sourcePluginId ?? 'none'}`,
+        ].join(' :: '),
+      ]),
+    }),
+  );
+
+  return lines.join('\n');
+}
+
+function renderAgovViolationsMarkdown(result: AgovViolationsResult): string {
+  const lines: string[] = [];
+
+  lines.push('# agov violations');
+  lines.push('');
+  lines.push('## Summary');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['profile', result.profile],
+        ['total', String(result.summary.total)],
+        [
+          'by severity',
+          formatCountSummary(result.summary.bySeverity, 'severity'),
+        ],
+        [
+          'by category',
+          formatCountSummary(result.summary.byCategory, 'category'),
+        ],
+        ['by rule', formatCountSummary(result.summary.byRule, 'rule')],
+        ['by project', formatCountSummary(result.summary.byProject, 'project')],
+        [
+          'by source plugin',
+          formatCountSummary(result.summary.bySourcePlugin, 'sourcePlugin'),
+        ],
+      ],
+    }),
+  );
+
+  lines.push('');
+  lines.push('## Violations');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: [
+        'severity',
+        'rule',
+        'category',
+        'project',
+        'message',
+        'source plugin',
+      ],
+      rows: result.violations.map((violation) => [
+        violation.severity,
+        violation.ruleId,
+        violation.category,
+        violation.project,
+        violation.message,
+        violation.sourcePluginId ?? 'none',
+      ]),
+    }),
+  );
+
+  return lines.join('\n');
+}
+
+function formatCountSummary<
+  T extends { count: number } & Record<string, string | number>,
+>(entries: T[], key: Exclude<keyof T, 'count'>): string {
+  if (entries.length === 0) {
+    return 'none';
+  }
+
+  return entries
+    .map((entry) => `${String(entry[key])}:${entry.count}`)
+    .join(', ');
 }
 
 function formatProjectDetails(
