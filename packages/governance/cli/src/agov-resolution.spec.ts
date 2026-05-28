@@ -7,14 +7,16 @@ import {
   resolveAgovAssessmentCommand,
   resolveAgovCheckCommand,
   resolveAgovMetricsCommand,
+  resolveAgovRecommendationsCommand,
   type AgovCliEnvironment,
   type ParsedAgovAssessOptions,
   type ParsedAgovCheckOptions,
   type ParsedAgovMetricsOptions,
+  type ParsedAgovRecommendationsOptions,
 } from './agov.js';
 
 describe('agov shared command resolution', () => {
-  it('resolves check, assess, and metrics with identical option behavior', () => {
+  it('resolves check, assess, metrics, and recommendations with identical option behavior', () => {
     const cwd = createTempWorkspaceRoot('agov-shared-resolution-');
 
     writeJson(path.join(cwd, 'workspace.json'), {
@@ -67,11 +69,23 @@ describe('agov shared command resolution', () => {
       },
       createEnvironment({ cwd }),
     );
+    const recommendationsResolved = resolveAgovAssessmentCommand(
+      {
+        command: 'recommendations',
+        profilePath: './profile.json',
+        workspacePath: './workspace.json',
+        showHelp: false,
+      },
+      createEnvironment({ cwd }),
+    );
 
     expect(withoutCommand(assessResolved)).toEqual(
       withoutCommand(checkResolved),
     );
     expect(withoutCommand(metricsResolved)).toEqual(
+      withoutCommand(checkResolved),
+    );
+    expect(withoutCommand(recommendationsResolved)).toEqual(
       withoutCommand(checkResolved),
     );
   });
@@ -394,6 +408,12 @@ describe('agov shared command resolution', () => {
       profilePath: './profile.json',
       showHelp: false,
     };
+    const recommendationsOptions: ParsedAgovRecommendationsOptions = {
+      command: 'recommendations',
+      workspacePath: './workspace.json',
+      profilePath: './profile.json',
+      showHelp: false,
+    };
 
     const generalizedCheck = resolveAgovAssessmentCommand(
       checkOptions,
@@ -419,10 +439,19 @@ describe('agov shared command resolution', () => {
       metricsOptions,
       createEnvironment({ cwd }),
     );
+    const generalizedRecommendations = resolveAgovAssessmentCommand(
+      recommendationsOptions,
+      createEnvironment({ cwd }),
+    );
+    const aliasRecommendations = resolveAgovRecommendationsCommand(
+      recommendationsOptions,
+      createEnvironment({ cwd }),
+    );
 
     expect(aliasCheck).toEqual(generalizedCheck);
     expect(aliasAssess).toEqual(generalizedAssess);
     expect(aliasMetrics).toEqual(generalizedMetrics);
+    expect(aliasRecommendations).toEqual(generalizedRecommendations);
   });
 });
 

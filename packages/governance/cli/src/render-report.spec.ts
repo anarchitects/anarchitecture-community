@@ -4,6 +4,7 @@ import * as reportingPrimitives from './internal/reporting/render-primitives.js'
 import { runAgovAssess, runAgovCheck } from './check.js';
 import { runAgovInspect } from './inspect.js';
 import { runAgovMetrics } from './metrics.js';
+import { runAgovRecommendations } from './recommendations.js';
 import { runAgovViolations } from './violations.js';
 import {
   renderAgovCheckJson,
@@ -12,6 +13,8 @@ import {
   renderAgovInspectReport,
   renderAgovMetricsJson,
   renderAgovMetricsReport,
+  renderAgovRecommendationsJson,
+  renderAgovRecommendationsReport,
   renderAgovViolationsJson,
   renderAgovViolationsReport,
 } from './render-report.js';
@@ -217,6 +220,62 @@ describe('agov command report rendering', () => {
 
     renderAgovMetricsReport(metricsResult, 'text');
     renderAgovMetricsReport(metricsResult, 'markdown');
+
+    expect(textTableSpy).toHaveBeenCalled();
+    expect(markdownTableSpy).toHaveBeenCalled();
+  });
+
+  it('keeps recommendations JSON output shape stable', async () => {
+    const recommendationsResult = await runAgovRecommendations({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+    });
+
+    const rendered = renderAgovRecommendationsJson(recommendationsResult);
+    const parsed = JSON.parse(rendered) as Record<string, unknown>;
+
+    expect(Object.keys(parsed)).toEqual([
+      'command',
+      'profile',
+      'recommendations',
+      'summary',
+      'workspace',
+    ]);
+    expect(parsed).toMatchObject({
+      command: 'recommendations',
+      recommendations: expect.any(Array),
+      summary: {
+        total: expect.any(Number),
+        byPriority: expect.any(Array),
+      },
+    });
+  });
+
+  it('delegates recommendations rendering to shared primitives', async () => {
+    const recommendationsResult = await runAgovRecommendations({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+    });
+
+    const textTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderTwoColumnTextTable',
+    );
+    const markdownTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderMarkdownTable',
+    );
+
+    renderAgovRecommendationsReport(recommendationsResult, 'text');
+    renderAgovRecommendationsReport(recommendationsResult, 'markdown');
 
     expect(textTableSpy).toHaveBeenCalled();
     expect(markdownTableSpy).toHaveBeenCalled();

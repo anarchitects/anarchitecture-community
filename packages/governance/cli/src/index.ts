@@ -27,6 +27,14 @@ export type {
 } from './metrics.js';
 export { runAgovMetrics } from './metrics.js';
 export type {
+  AgovRecommendationPriority,
+  AgovRecommendationsFilters,
+  AgovRecommendationsOptions,
+  AgovRecommendationsResult,
+  AgovRecommendationsSummary,
+} from './recommendations.js';
+export { runAgovRecommendations } from './recommendations.js';
+export type {
   AgovViolationSeverity,
   AgovViolationsFilters,
   AgovViolationsOptions,
@@ -48,6 +56,7 @@ export {
   resolveAgovCheckCommand,
   resolveAgovInspectCommand,
   resolveAgovMetricsCommand,
+  resolveAgovRecommendationsCommand,
   resolveAgovViolationsCommand,
   resolveAgovRuntimeOptions,
   runAgovCli,
@@ -62,6 +71,7 @@ export {
   type AgovResolvedCheckCommand,
   type AgovResolvedInspectCommand,
   type AgovResolvedMetricsCommand,
+  type AgovResolvedRecommendationsCommand,
   type AgovResolvedViolationsCommand,
   type AgovResolvedWorkspaceCommand,
   type ParsedAgovAssessOptions,
@@ -70,6 +80,7 @@ export {
   type ParsedAgovCliArgs,
   type ParsedAgovInspectOptions,
   type ParsedAgovMetricsOptions,
+  type ParsedAgovRecommendationsOptions,
   type ParsedAgovViolationsOptions,
 } from './agov.js';
 export {
