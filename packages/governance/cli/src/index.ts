@@ -7,6 +7,19 @@ export type {
   AgovCheckWithWorkspacePathOptions,
 } from './check.js';
 export { runAgovAssess, runAgovCheck } from './check.js';
+export type {
+  AgovInspectAdapterMetadata,
+  AgovInspectDependency,
+  AgovInspectFilters,
+  AgovInspectOptions,
+  AgovInspectProject,
+  AgovInspectResult,
+  AgovInspectSummary,
+  AgovInspectWorkspace,
+  AgovInspectWithAdapterOptions,
+  AgovInspectWithWorkspacePathOptions,
+} from './inspect.js';
+export { runAgovInspect } from './inspect.js';
 export {
   AGOV_EXIT_CONFIGURATION_FAILURE,
   AGOV_EXIT_GOVERNANCE_FAILURE,
@@ -19,6 +32,7 @@ export {
   resolveAgovAssessCommand,
   resolveAgovAssessmentCommand,
   resolveAgovCheckCommand,
+  resolveAgovInspectCommand,
   resolveAgovRuntimeOptions,
   runAgovCli,
   type AgovAssessmentCommandName,
@@ -30,10 +44,13 @@ export {
   type AgovResolvedAssessCommand,
   type AgovResolvedAssessmentCommand,
   type AgovResolvedCheckCommand,
+  type AgovResolvedInspectCommand,
+  type AgovResolvedWorkspaceCommand,
   type ParsedAgovAssessOptions,
   type ParsedAgovAssessmentOptions,
   type ParsedAgovCheckOptions,
   type ParsedAgovCliArgs,
+  type ParsedAgovInspectOptions,
 } from './agov.js';
 export {
   GenericWorkspaceLoadError,
