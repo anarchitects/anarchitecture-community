@@ -38,6 +38,12 @@ export type {
 } from './metrics.js';
 export { runAgovMetrics } from './metrics.js';
 export type {
+  AgovProfileValidateOptions,
+  AgovProfileValidateResult,
+  AgovProfileValidateSummary,
+} from './profile-validate.js';
+export { runAgovProfileValidate } from './profile-validate.js';
+export type {
   AgovRecommendationPriority,
   AgovRecommendationsFilters,
   AgovRecommendationsOptions,
@@ -78,6 +84,7 @@ export {
   resolveAgovDependenciesCommand,
   resolveAgovInspectCommand,
   resolveAgovMetricsCommand,
+  resolveAgovProfileValidateCommand,
   resolveAgovRecommendationsCommand,
   resolveAgovSignalsCommand,
   resolveAgovViolationsCommand,
@@ -95,6 +102,7 @@ export {
   type AgovResolvedDependenciesCommand,
   type AgovResolvedInspectCommand,
   type AgovResolvedMetricsCommand,
+  type AgovResolvedProfileValidateCommand,
   type AgovResolvedRecommendationsCommand,
   type AgovResolvedSignalsCommand,
   type AgovResolvedViolationsCommand,
@@ -106,6 +114,7 @@ export {
   type ParsedAgovDependenciesOptions,
   type ParsedAgovInspectOptions,
   type ParsedAgovMetricsOptions,
+  type ParsedAgovProfileValidateOptions,
   type ParsedAgovRecommendationsOptions,
   type ParsedAgovSignalsOptions,
   type ParsedAgovViolationsOptions,

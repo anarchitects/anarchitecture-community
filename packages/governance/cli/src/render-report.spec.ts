@@ -5,6 +5,7 @@ import { runAgovAssess, runAgovCheck } from './check.js';
 import { runAgovDependencies } from './dependencies.js';
 import { runAgovInspect } from './inspect.js';
 import { runAgovMetrics } from './metrics.js';
+import { runAgovProfileValidate } from './profile-validate.js';
 import { runAgovRecommendations } from './recommendations.js';
 import { runAgovSignals } from './signals.js';
 import { runAgovViolations } from './violations.js';
@@ -17,6 +18,8 @@ import {
   renderAgovInspectReport,
   renderAgovMetricsJson,
   renderAgovMetricsReport,
+  renderAgovProfileValidateJson,
+  renderAgovProfileValidateReport,
   renderAgovRecommendationsJson,
   renderAgovRecommendationsReport,
   renderAgovSignalsJson,
@@ -119,6 +122,60 @@ describe('agov command report rendering', () => {
     const tableRendered = renderAgovCheckReport(assessResult, 'table');
 
     expect(textRendered).toBe(tableRendered);
+  });
+
+  it('keeps profile validate JSON output shape stable', async () => {
+    const profileValidateResult = await runAgovProfileValidate({
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/passing-profile.json',
+      ),
+    });
+
+    const rendered = renderAgovProfileValidateJson(profileValidateResult);
+    const parsed = JSON.parse(rendered) as Record<string, unknown>;
+
+    expect(Object.keys(parsed)).toEqual([
+      'command',
+      'profile',
+      'profilePath',
+      'success',
+      'summary',
+    ]);
+    expect(parsed).toMatchObject({
+      command: 'profile validate',
+      success: true,
+      profilePath: expect.any(String),
+      profile: {
+        name: expect.any(String),
+      },
+      summary: {
+        status: 'valid',
+        errorCount: 0,
+      },
+    });
+  });
+
+  it('delegates profile validate rendering to shared primitives', async () => {
+    const profileValidateResult = await runAgovProfileValidate({
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/passing-profile.json',
+      ),
+    });
+
+    const textTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderTwoColumnTextTable',
+    );
+    const markdownTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderMarkdownTable',
+    );
+
+    renderAgovProfileValidateReport(profileValidateResult, 'text');
+    renderAgovProfileValidateReport(profileValidateResult, 'markdown');
+
+    expect(textTableSpy).toHaveBeenCalled();
+    expect(markdownTableSpy).toHaveBeenCalled();
   });
 
   it('keeps dependencies JSON output shape stable', async () => {
