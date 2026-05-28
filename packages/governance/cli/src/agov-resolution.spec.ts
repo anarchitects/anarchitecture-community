@@ -8,15 +8,17 @@ import {
   resolveAgovCheckCommand,
   resolveAgovMetricsCommand,
   resolveAgovRecommendationsCommand,
+  resolveAgovSignalsCommand,
   type AgovCliEnvironment,
   type ParsedAgovAssessOptions,
   type ParsedAgovCheckOptions,
   type ParsedAgovMetricsOptions,
   type ParsedAgovRecommendationsOptions,
+  type ParsedAgovSignalsOptions,
 } from './agov.js';
 
 describe('agov shared command resolution', () => {
-  it('resolves check, assess, metrics, and recommendations with identical option behavior', () => {
+  it('resolves check, assess, metrics, recommendations, and signals with identical option behavior', () => {
     const cwd = createTempWorkspaceRoot('agov-shared-resolution-');
 
     writeJson(path.join(cwd, 'workspace.json'), {
@@ -78,6 +80,15 @@ describe('agov shared command resolution', () => {
       },
       createEnvironment({ cwd }),
     );
+    const signalsResolved = resolveAgovAssessmentCommand(
+      {
+        command: 'signals',
+        profilePath: './profile.json',
+        workspacePath: './workspace.json',
+        showHelp: false,
+      },
+      createEnvironment({ cwd }),
+    );
 
     expect(withoutCommand(assessResolved)).toEqual(
       withoutCommand(checkResolved),
@@ -88,6 +99,7 @@ describe('agov shared command resolution', () => {
     expect(withoutCommand(recommendationsResolved)).toEqual(
       withoutCommand(checkResolved),
     );
+    expect(withoutCommand(signalsResolved)).toEqual(withoutCommand(checkResolved));
   });
 
   it('keeps config discovery behavior for both commands', () => {
@@ -414,6 +426,12 @@ describe('agov shared command resolution', () => {
       profilePath: './profile.json',
       showHelp: false,
     };
+    const signalsOptions: ParsedAgovSignalsOptions = {
+      command: 'signals',
+      workspacePath: './workspace.json',
+      profilePath: './profile.json',
+      showHelp: false,
+    };
 
     const generalizedCheck = resolveAgovAssessmentCommand(
       checkOptions,
@@ -447,11 +465,20 @@ describe('agov shared command resolution', () => {
       recommendationsOptions,
       createEnvironment({ cwd }),
     );
+    const generalizedSignals = resolveAgovAssessmentCommand(
+      signalsOptions,
+      createEnvironment({ cwd }),
+    );
+    const aliasSignals = resolveAgovSignalsCommand(
+      signalsOptions,
+      createEnvironment({ cwd }),
+    );
 
     expect(aliasCheck).toEqual(generalizedCheck);
     expect(aliasAssess).toEqual(generalizedAssess);
     expect(aliasMetrics).toEqual(generalizedMetrics);
     expect(aliasRecommendations).toEqual(generalizedRecommendations);
+    expect(aliasSignals).toEqual(generalizedSignals);
   });
 });
 

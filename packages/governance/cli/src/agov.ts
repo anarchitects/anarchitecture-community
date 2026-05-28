@@ -23,6 +23,12 @@ import type {
   AgovRecommendationsResult,
 } from './recommendations.js';
 import type {
+  AgovSignalSeverity,
+  AgovSignalsFilters,
+  AgovSignalsOptions,
+  AgovSignalsResult,
+} from './signals.js';
+import type {
   AgovViolationSeverity,
   AgovViolationsFilters,
   AgovViolationsOptions,
@@ -38,6 +44,7 @@ import * as checkModule from './check.js';
 import * as inspectModule from './inspect.js';
 import * as metricsModule from './metrics.js';
 import * as recommendationsModule from './recommendations.js';
+import * as signalsModule from './signals.js';
 import * as violationsModule from './violations.js';
 import {
   type AgovOutputFormat,
@@ -45,6 +52,7 @@ import {
   renderAgovInspectReport,
   renderAgovMetricsReport,
   renderAgovRecommendationsReport,
+  renderAgovSignalsReport,
   renderAgovViolationsReport,
 } from './render-report.js';
 import {
@@ -98,6 +106,9 @@ export interface AgovCliRuntime {
   runAgovRecommendations<TInput = unknown>(
     options: AgovRecommendationsOptions<TInput>,
   ): MaybePromise<AgovRecommendationsResult>;
+  runAgovSignals<TInput = unknown>(
+    options: AgovSignalsOptions<TInput>,
+  ): MaybePromise<AgovSignalsResult>;
   runAgovViolations<TInput = unknown>(
     options: AgovViolationsOptions<TInput>,
   ): MaybePromise<AgovViolationsResult>;
@@ -118,6 +129,7 @@ export type AgovProfiledCommandName =
   | AgovAssessmentCommandName
   | 'metrics'
   | 'recommendations'
+  | 'signals'
   | 'violations';
 export type AgovWorkspaceCommandName = AgovProfiledCommandName | 'inspect';
 
@@ -163,6 +175,11 @@ export type ParsedAgovRecommendationsOptions = ParsedAgovAssessmentOptions & {
   filters?: AgovRecommendationsFilters;
 };
 
+export type ParsedAgovSignalsOptions = ParsedAgovAssessmentOptions & {
+  command: 'signals';
+  filters?: AgovSignalsFilters;
+};
+
 export type ParsedAgovViolationsOptions = ParsedAgovAssessmentOptions & {
   command: 'violations';
   filters?: AgovViolationsFilters;
@@ -190,6 +207,10 @@ export type ParsedAgovCliArgs =
   | {
       kind: 'recommendations';
       options: ParsedAgovRecommendationsOptions;
+    }
+  | {
+      kind: 'signals';
+      options: ParsedAgovSignalsOptions;
     }
   | {
       kind: 'violations';
@@ -244,6 +265,11 @@ export type AgovResolvedRecommendationsCommand =
     filters?: AgovRecommendationsFilters;
   };
 
+export type AgovResolvedSignalsCommand = AgovResolvedAssessmentCommand & {
+  command: 'signals';
+  filters?: AgovSignalsFilters;
+};
+
 export type AgovResolvedViolationsCommand = AgovResolvedAssessmentCommand & {
   command: 'violations';
   filters?: AgovViolationsFilters;
@@ -276,6 +302,7 @@ const DEFAULT_AGOV_CLI_RUNTIME: AgovCliRuntime = {
   runAgovInspect: inspectModule.runAgovInspect,
   runAgovMetrics: metricsModule.runAgovMetrics,
   runAgovRecommendations: recommendationsModule.runAgovRecommendations,
+  runAgovSignals: signalsModule.runAgovSignals,
   runAgovViolations: violationsModule.runAgovViolations,
 };
 
@@ -353,6 +380,8 @@ export async function runAgovCli(
               ? renderAgovMetricsHelp()
               : parsed.kind === 'recommendations'
                 ? renderAgovRecommendationsHelp()
+                : parsed.kind === 'signals'
+                  ? renderAgovSignalsHelp()
                 : parsed.kind === 'violations'
                   ? renderAgovViolationsHelp()
                   : renderAgovInspectHelp(),
@@ -413,6 +442,26 @@ export async function runAgovCli(
         runtime.runAgovRecommendations(runtimeOptions),
       );
       const rendered = renderAgovRecommendationsReport(result, resolved.format);
+
+      if (resolved.outputPath) {
+        writeAgovOutput(resolved.outputPath, rendered);
+      } else {
+        io.stdout(rendered);
+      }
+
+      return AGOV_EXIT_SUCCESS;
+    }
+
+    if (parsed.kind === 'signals') {
+      const resolved = resolveAgovSignalsCommand(parsed.options, environment);
+      const runtimeOptions = await resolveAgovRuntimeOptions(
+        resolved,
+        environment,
+      );
+      const result = await Promise.resolve(
+        runtime.runAgovSignals(runtimeOptions),
+      );
+      const rendered = renderAgovSignalsReport(result, resolved.format);
 
       if (resolved.outputPath) {
         writeAgovOutput(resolved.outputPath, rendered);
@@ -544,10 +593,11 @@ export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
     command !== 'inspect' &&
     command !== 'metrics' &&
     command !== 'recommendations' &&
+    command !== 'signals' &&
     command !== 'violations'
   ) {
     throw new AgovCliUsageError(
-      `Unsupported agov command "${command}". Supported commands are "check", "assess", "inspect", "metrics", "recommendations", "violations", "--help", and "--version".`,
+      `Unsupported agov command "${command}". Supported commands are "check", "assess", "inspect", "metrics", "recommendations", "signals", "violations", "--help", and "--version".`,
       'agov.cli.unknown_command',
     );
   }
@@ -577,6 +627,13 @@ export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
     return {
       kind: 'recommendations',
       options: parseAgovRecommendationsArgs(rest),
+    };
+  }
+
+  if (command === 'signals') {
+    return {
+      kind: 'signals',
+      options: parseAgovSignalsArgs(rest),
     };
   }
 
@@ -671,6 +728,47 @@ function parseAgovRecommendationsArgs(
   return {
     ...parsed,
     command: 'recommendations',
+    filters: Object.keys(filters).length > 0 ? filters : undefined,
+  };
+}
+
+function parseAgovSignalsArgs(args: string[]): ParsedAgovSignalsOptions {
+  const parsed = parseAgovAssessmentArgs('signals', args);
+  const filters: AgovSignalsFilters = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '--source') {
+      filters.source = readRequiredOptionValue(args, index, '--source');
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--type') {
+      filters.type = readRequiredOptionValue(args, index, '--type');
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--severity') {
+      const value = readRequiredOptionValue(args, index, '--severity');
+      if (!isAgovSignalSeverity(value)) {
+        throw new AgovCliUsageError(
+          `Invalid value for "--severity": "${value}". Supported values are "error", "warning", and "info".`,
+          'agov.cli.invalid_config',
+        );
+      }
+
+      filters.severity = value;
+      index += 1;
+      continue;
+    }
+  }
+
+  return {
+    ...parsed,
+    command: 'signals',
     filters: Object.keys(filters).length > 0 ? filters : undefined,
   };
 }
@@ -860,6 +958,10 @@ function parseAgovAssessmentArgs(
   args: string[],
 ): ParsedAgovRecommendationsOptions;
 function parseAgovAssessmentArgs(
+  command: 'signals',
+  args: string[],
+): ParsedAgovSignalsOptions;
+function parseAgovAssessmentArgs(
   command: 'violations',
   args: string[],
 ): ParsedAgovViolationsOptions;
@@ -872,6 +974,7 @@ function parseAgovAssessmentArgs(
   | ParsedAgovAssessOptions
   | ParsedAgovMetricsOptions
   | ParsedAgovRecommendationsOptions
+  | ParsedAgovSignalsOptions
   | ParsedAgovViolationsOptions {
   let configPath: string | undefined;
   let profilePath: string | undefined;
@@ -955,6 +1058,14 @@ function parseAgovAssessmentArgs(
     }
 
     if (command === 'recommendations' && arg === '--priority') {
+      index += 1;
+      continue;
+    }
+
+    if (
+      command === 'signals' &&
+      (arg === '--source' || arg === '--type' || arg === '--severity')
+    ) {
       index += 1;
       continue;
     }
@@ -1047,6 +1158,19 @@ export function resolveAgovRecommendationsCommand(
   };
 }
 
+export function resolveAgovSignalsCommand(
+  options: ParsedAgovSignalsOptions,
+  environment: Pick<AgovCliEnvironment, 'cwd'>,
+): AgovResolvedSignalsCommand {
+  const resolved = resolveAgovAssessmentCommand(options, environment);
+
+  return {
+    ...resolved,
+    command: 'signals',
+    filters: options.filters,
+  };
+}
+
 export function resolveAgovViolationsCommand(
   options: ParsedAgovViolationsOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
@@ -1087,6 +1211,10 @@ export function resolveAgovAssessmentCommand(
 ): AgovResolvedAssessmentCommand;
 export function resolveAgovAssessmentCommand(
   options: ParsedAgovRecommendationsOptions,
+  environment: Pick<AgovCliEnvironment, 'cwd'>,
+): AgovResolvedAssessmentCommand;
+export function resolveAgovAssessmentCommand(
+  options: ParsedAgovSignalsOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
 ): AgovResolvedAssessmentCommand;
 export function resolveAgovAssessmentCommand(
@@ -1263,6 +1391,10 @@ export async function resolveAgovRuntimeOptions(
   environment: AgovCliEnvironment,
 ): Promise<AgovRecommendationsOptions<unknown>>;
 export async function resolveAgovRuntimeOptions(
+  command: AgovResolvedSignalsCommand,
+  environment: AgovCliEnvironment,
+): Promise<AgovSignalsOptions<unknown>>;
+export async function resolveAgovRuntimeOptions(
   command: AgovResolvedViolationsCommand,
   environment: AgovCliEnvironment,
 ): Promise<AgovViolationsOptions<unknown>>;
@@ -1277,6 +1409,7 @@ export async function resolveAgovRuntimeOptions(
     | AgovResolvedInspectCommand
     | AgovResolvedMetricsCommand
     | AgovResolvedRecommendationsCommand
+    | AgovResolvedSignalsCommand
     | AgovResolvedViolationsCommand,
   environment: AgovCliEnvironment,
 ): Promise<
@@ -1284,6 +1417,7 @@ export async function resolveAgovRuntimeOptions(
   | AgovInspectOptions<unknown>
   | AgovMetricsOptions<unknown>
   | AgovRecommendationsOptions<unknown>
+  | AgovSignalsOptions<unknown>
   | AgovViolationsOptions<unknown>
 > {
   if ('profilePath' in command) {
@@ -1696,6 +1830,10 @@ function isAgovRecommendationPriority(
   return value === 'high' || value === 'medium' || value === 'low';
 }
 
+function isAgovSignalSeverity(value: string): value is AgovSignalSeverity {
+  return value === 'error' || value === 'warning' || value === 'info';
+}
+
 function readNonEmptyStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value
@@ -1838,6 +1976,7 @@ function renderAgovHelp(): string {
     '  agov assess [options]',
     '  agov metrics [options]',
     '  agov recommendations [options]',
+    '  agov signals [options]',
     '  agov violations [options]',
     '  agov inspect [options]',
     '',
@@ -1846,10 +1985,11 @@ function renderAgovHelp(): string {
     '  assess  Run a Governance assessment using canonical workspace mode or adapter mode.',
     '  metrics Inspect Governance measurements and health-oriented metrics.',
     '  recommendations Inspect Governance recommendations from assessment artifacts.',
+    '  signals Inspect Governance signals from assessment artifacts.',
     '  violations Inspect Governance policy and extension violations.',
     '  inspect Inspect normalized Governance workspace inventory.',
     '',
-    'Run "agov check --help", "agov assess --help", "agov metrics --help", "agov recommendations --help", "agov violations --help", or "agov inspect --help" for command-specific options.',
+    'Run "agov check --help", "agov assess --help", "agov metrics --help", "agov recommendations --help", "agov signals --help", "agov violations --help", or "agov inspect --help" for command-specific options.',
   ].join('\n');
 }
 
@@ -1965,6 +2105,38 @@ function renderAgovRecommendationsHelp(): string {
     '  --format <value>      Output format: table, markdown, text, or json. Defaults to text.',
     '  --output <path>       Write command output to a file instead of stdout.',
     '  --priority <value>    Filter recommendations by priority: high, medium, low.',
+    '',
+    'Conventions:',
+    '  Config:   agov.config.json, governance.config.json',
+    '  Profile:  tools/governance/profiles/default.json, tools/governance/profile.json, governance.profile.json, agov.profile.json',
+    '  Workspace: governance.workspace.json, agov.workspace.json, tools/governance/workspace.json',
+  ].join('\n');
+}
+
+function renderAgovSignalsHelp(): string {
+  return [
+    'agov signals',
+    '',
+    'Usage:',
+    '  agov signals --profile <path> --workspace <path> [--format table|markdown|text|json] [filters]',
+    '  agov signals --profile <path> --adapter <package> --root <path> [--format table|markdown|text|json] [filters]',
+    '  agov signals [--config <path>]',
+    '',
+    'Resolution order:',
+    '  explicit CLI flag -> config file -> conventional files -> generic adapter discovery and probe -> error',
+    '',
+    'Options:',
+    '  --help              Show signals command help.',
+    '  --config <path>     Load agov.config.json or governance.config.json explicitly.',
+    '  --profile <path>    Governance profile document.',
+    '  --workspace <path>  Canonical Governance workspace document.',
+    '  --adapter <package> Dynamically load a concrete adapter package.',
+    '  --root <path>       Adapter input root. Defaults to the current working directory.',
+    '  --format <value>    Output format: table, markdown, text, or json. Defaults to text.',
+    '  --output <path>     Write command output to a file instead of stdout.',
+    '  --source <value>    Filter signals by source.',
+    '  --type <value>      Filter signals by type.',
+    '  --severity <value>  Filter signals by severity: error, warning, info.',
     '',
     'Conventions:',
     '  Config:   agov.config.json, governance.config.json',

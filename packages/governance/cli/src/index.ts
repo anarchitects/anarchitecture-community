@@ -35,6 +35,16 @@ export type {
 } from './recommendations.js';
 export { runAgovRecommendations } from './recommendations.js';
 export type {
+  AgovSignalSeverity,
+  AgovSignalSource,
+  AgovSignalsFilters,
+  AgovSignalsOptions,
+  AgovSignalsResult,
+  AgovSignalsSummary,
+  AgovSignalType,
+} from './signals.js';
+export { runAgovSignals } from './signals.js';
+export type {
   AgovViolationSeverity,
   AgovViolationsFilters,
   AgovViolationsOptions,
@@ -57,6 +67,7 @@ export {
   resolveAgovInspectCommand,
   resolveAgovMetricsCommand,
   resolveAgovRecommendationsCommand,
+  resolveAgovSignalsCommand,
   resolveAgovViolationsCommand,
   resolveAgovRuntimeOptions,
   runAgovCli,
@@ -72,6 +83,7 @@ export {
   type AgovResolvedInspectCommand,
   type AgovResolvedMetricsCommand,
   type AgovResolvedRecommendationsCommand,
+  type AgovResolvedSignalsCommand,
   type AgovResolvedViolationsCommand,
   type AgovResolvedWorkspaceCommand,
   type ParsedAgovAssessOptions,
@@ -81,6 +93,7 @@ export {
   type ParsedAgovInspectOptions,
   type ParsedAgovMetricsOptions,
   type ParsedAgovRecommendationsOptions,
+  type ParsedAgovSignalsOptions,
   type ParsedAgovViolationsOptions,
 } from './agov.js';
 export {

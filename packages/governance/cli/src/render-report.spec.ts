@@ -5,6 +5,7 @@ import { runAgovAssess, runAgovCheck } from './check.js';
 import { runAgovInspect } from './inspect.js';
 import { runAgovMetrics } from './metrics.js';
 import { runAgovRecommendations } from './recommendations.js';
+import { runAgovSignals } from './signals.js';
 import { runAgovViolations } from './violations.js';
 import {
   renderAgovCheckJson,
@@ -15,6 +16,8 @@ import {
   renderAgovMetricsReport,
   renderAgovRecommendationsJson,
   renderAgovRecommendationsReport,
+  renderAgovSignalsJson,
+  renderAgovSignalsReport,
   renderAgovViolationsJson,
   renderAgovViolationsReport,
 } from './render-report.js';
@@ -276,6 +279,71 @@ describe('agov command report rendering', () => {
 
     renderAgovRecommendationsReport(recommendationsResult, 'text');
     renderAgovRecommendationsReport(recommendationsResult, 'markdown');
+
+    expect(textTableSpy).toHaveBeenCalled();
+    expect(markdownTableSpy).toHaveBeenCalled();
+  });
+
+  it('keeps signals JSON output shape stable', async () => {
+    const signalsResult = await runAgovSignals({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+    });
+
+    const rendered = renderAgovSignalsJson(signalsResult);
+    const parsed = JSON.parse(rendered) as Record<string, unknown>;
+
+    expect(Object.keys(parsed)).toEqual([
+      'command',
+      'profile',
+      'signalBreakdown',
+      'signals',
+      'summary',
+      'workspace',
+    ]);
+    expect(parsed).toMatchObject({
+      command: 'signals',
+      signalBreakdown: {
+        total: expect.any(Number),
+        bySource: expect.any(Array),
+        byType: expect.any(Array),
+        bySeverity: expect.any(Array),
+      },
+      summary: {
+        total: expect.any(Number),
+        bySource: expect.any(Array),
+        byType: expect.any(Array),
+        bySeverity: expect.any(Array),
+      },
+      signals: expect.any(Array),
+    });
+  });
+
+  it('delegates signals rendering to shared primitives', async () => {
+    const signalsResult = await runAgovSignals({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+    });
+
+    const textTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderTwoColumnTextTable',
+    );
+    const markdownTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderMarkdownTable',
+    );
+
+    renderAgovSignalsReport(signalsResult, 'text');
+    renderAgovSignalsReport(signalsResult, 'markdown');
 
     expect(textTableSpy).toHaveBeenCalled();
     expect(markdownTableSpy).toHaveBeenCalled();

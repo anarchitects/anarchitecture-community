@@ -21,6 +21,7 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov assess [options]');
     expect(io.out).toContain('agov metrics [options]');
     expect(io.out).toContain('agov recommendations [options]');
+    expect(io.out).toContain('agov signals [options]');
     expect(io.out).toContain('agov violations [options]');
     expect(io.out).toContain('agov inspect [options]');
     expect(io.err).toBe('');
@@ -92,6 +93,17 @@ describe('agov executable command surface', () => {
     );
     expect(io.out).toContain('agov recommendations');
     expect(io.out).toContain('--priority <value>');
+    expect(io.err).toBe('');
+  });
+
+  it('renders signals help', async () => {
+    const io = createMemoryIo();
+
+    expect(await runAgovCli(['signals', '--help'], io)).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.out).toContain('agov signals');
+    expect(io.out).toContain('--source <value>');
+    expect(io.out).toContain('--type <value>');
+    expect(io.out).toContain('--severity <value>');
     expect(io.err).toBe('');
   });
 
@@ -1635,6 +1647,171 @@ describe('agov executable command surface', () => {
           './profile.json',
           '--priority',
           'urgent',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+    expect(JSON.parse(io.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.invalid_config',
+      },
+    });
+  });
+
+  it('supports signals with explicit workspace/profile mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-signals-workspace-mode-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'signals',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'signals',
+      summary: {
+        total: expect.any(Number),
+        bySource: expect.any(Array),
+        byType: expect.any(Array),
+        bySeverity: expect.any(Array),
+      },
+      signals: expect.any(Array),
+      signalBreakdown: {
+        total: expect.any(Number),
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports signals with explicit adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-signals-adapter-mode-');
+
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'signals',
+          '--profile',
+          './profile.json',
+          '--adapter',
+          'test-adapter-package',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async () =>
+            createAdapterModule({ workspaceName: path.basename(cwd) }),
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'signals',
+      workspace: {
+        name: path.basename(cwd),
+      },
+      summary: {
+        total: expect.any(Number),
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('filters signals output by source, type, and severity', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-signals-filters-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'signals',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--source',
+          'policy',
+          '--type',
+          'policy_violation',
+          '--severity',
+          'error',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      summary: { total: number };
+      signals: Array<{
+        source: string;
+        type: string;
+        severity: string;
+      }>;
+      signalBreakdown: { total: number };
+    };
+
+    expect(
+      parsed.signals.every(
+        (signal) =>
+          signal.source === 'policy' &&
+          signal.type === 'policy_violation' &&
+          signal.severity === 'error',
+      ),
+    ).toBe(true);
+    expect(parsed.summary.total).toBe(parsed.signals.length);
+    expect(parsed.signalBreakdown.total).toBe(parsed.signals.length);
+    expect(io.err).toBe('');
+  });
+
+  it('rejects unsupported signals severity values', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-signals-invalid-severity-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'signals',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--severity',
+          'critical',
         ],
         io,
         undefined,
