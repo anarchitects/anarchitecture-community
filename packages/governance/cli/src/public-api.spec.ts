@@ -5,12 +5,14 @@ describe('Governance CLI public API', () => {
     expect(typeof governanceCli.runAgovAssess).toBe('function');
     expect(typeof governanceCli.runAgovCheck).toBe('function');
     expect(typeof governanceCli.runAgovInspect).toBe('function');
+    expect(typeof governanceCli.runAgovMetrics).toBe('function');
     expect(typeof governanceCli.runAgovCli).toBe('function');
     expect(typeof governanceCli.parseAgovCliArgs).toBe('function');
     expect(typeof governanceCli.resolveAgovAssessmentCommand).toBe('function');
     expect(typeof governanceCli.resolveAgovCheckCommand).toBe('function');
     expect(typeof governanceCli.resolveAgovAssessCommand).toBe('function');
     expect(typeof governanceCli.resolveAgovInspectCommand).toBe('function');
+    expect(typeof governanceCli.resolveAgovMetricsCommand).toBe('function');
     expect(typeof governanceCli.loadGenericWorkspace).toBe('function');
     expect(typeof governanceCli.loadStandaloneGovernanceProfile).toBe(
       'function',

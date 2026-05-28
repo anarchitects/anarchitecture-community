@@ -12,6 +12,11 @@ import type {
 import type { AgovInspectFilters } from './inspect.js';
 import type { AgovInspectOptions, AgovInspectResult } from './inspect.js';
 import type {
+  AgovMetricsFilters,
+  AgovMetricsOptions,
+  AgovMetricsResult,
+} from './metrics.js';
+import type {
   AgovAssessOptions,
   AgovAssessResult,
   AgovCheckOptions,
@@ -19,10 +24,12 @@ import type {
 } from './check.js';
 import * as checkModule from './check.js';
 import * as inspectModule from './inspect.js';
+import * as metricsModule from './metrics.js';
 import {
   type AgovOutputFormat,
   renderAgovCheckReport,
   renderAgovInspectReport,
+  renderAgovMetricsReport,
 } from './render-report.js';
 import {
   GenericWorkspaceLoadError,
@@ -69,6 +76,9 @@ export interface AgovCliRuntime {
   runAgovInspect<TInput = unknown>(
     options: AgovInspectOptions<TInput>,
   ): MaybePromise<AgovInspectResult>;
+  runAgovMetrics<TInput = unknown>(
+    options: AgovMetricsOptions<TInput>,
+  ): MaybePromise<AgovMetricsResult>;
 }
 
 export interface AgovCliConfig {
@@ -82,10 +92,11 @@ export interface AgovCliConfig {
 }
 
 export type AgovAssessmentCommandName = 'check' | 'assess';
-export type AgovWorkspaceCommandName = AgovAssessmentCommandName | 'inspect';
+export type AgovProfiledCommandName = AgovAssessmentCommandName | 'metrics';
+export type AgovWorkspaceCommandName = AgovProfiledCommandName | 'inspect';
 
 export interface ParsedAgovAssessmentOptions {
-  command: AgovAssessmentCommandName;
+  command: AgovProfiledCommandName;
   configPath?: string;
   profilePath?: string;
   workspacePath?: string;
@@ -116,6 +127,11 @@ export type ParsedAgovAssessOptions = ParsedAgovAssessmentOptions & {
   command: 'assess';
 };
 
+export type ParsedAgovMetricsOptions = ParsedAgovAssessmentOptions & {
+  command: 'metrics';
+  filters?: AgovMetricsFilters;
+};
+
 export type ParsedAgovCliArgs =
   | {
       kind: 'help';
@@ -132,12 +148,16 @@ export type ParsedAgovCliArgs =
       options: ParsedAgovAssessOptions;
     }
   | {
+      kind: 'metrics';
+      options: ParsedAgovMetricsOptions;
+    }
+  | {
       kind: 'inspect';
       options: ParsedAgovInspectOptions;
     };
 
 export interface AgovResolvedAssessmentCommand {
-  command: AgovAssessmentCommandName;
+  command: AgovProfiledCommandName;
   rootPath: string;
   profilePath: string;
   format: AgovOutputFormat;
@@ -169,6 +189,11 @@ export type AgovResolvedAssessCommand = AgovResolvedAssessmentCommand & {
   command: 'assess';
 };
 
+export type AgovResolvedMetricsCommand = AgovResolvedAssessmentCommand & {
+  command: 'metrics';
+  filters?: AgovMetricsFilters;
+};
+
 export interface AgovResolvedInspectCommand {
   command: 'inspect';
   rootPath: string;
@@ -194,6 +219,7 @@ const DEFAULT_AGOV_CLI_RUNTIME: AgovCliRuntime = {
   runAgovCheck: checkModule.runAgovCheck,
   runAgovAssess: checkModule.runAgovAssess,
   runAgovInspect: inspectModule.runAgovInspect,
+  runAgovMetrics: metricsModule.runAgovMetrics,
 };
 
 export class AgovCliUsageError extends Error {
@@ -266,7 +292,9 @@ export async function runAgovCli(
           ? renderAgovCheckHelp()
           : parsed.kind === 'assess'
             ? renderAgovAssessHelp()
-            : renderAgovInspectHelp(),
+            : parsed.kind === 'metrics'
+              ? renderAgovMetricsHelp()
+              : renderAgovInspectHelp(),
       );
       return AGOV_EXIT_SUCCESS;
     }
@@ -281,6 +309,26 @@ export async function runAgovCli(
         runtime.runAgovInspect(runtimeOptions),
       );
       const rendered = renderAgovInspectReport(result, resolved.format);
+
+      if (resolved.outputPath) {
+        writeAgovOutput(resolved.outputPath, rendered);
+      } else {
+        io.stdout(rendered);
+      }
+
+      return AGOV_EXIT_SUCCESS;
+    }
+
+    if (parsed.kind === 'metrics') {
+      const resolved = resolveAgovMetricsCommand(parsed.options, environment);
+      const runtimeOptions = await resolveAgovRuntimeOptions(
+        resolved,
+        environment,
+      );
+      const result = await Promise.resolve(
+        runtime.runAgovMetrics(runtimeOptions),
+      );
+      const rendered = renderAgovMetricsReport(result, resolved.format);
 
       if (resolved.outputPath) {
         writeAgovOutput(resolved.outputPath, rendered);
@@ -383,9 +431,14 @@ export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
     return { kind: 'version' };
   }
 
-  if (command !== 'check' && command !== 'assess' && command !== 'inspect') {
+  if (
+    command !== 'check' &&
+    command !== 'assess' &&
+    command !== 'inspect' &&
+    command !== 'metrics'
+  ) {
     throw new AgovCliUsageError(
-      `Unsupported agov command "${command}". Supported commands are "check", "assess", "inspect", "--help", and "--version".`,
+      `Unsupported agov command "${command}". Supported commands are "check", "assess", "inspect", "metrics", "--help", and "--version".`,
       'agov.cli.unknown_command',
     );
   }
@@ -404,6 +457,13 @@ export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
     };
   }
 
+  if (command === 'metrics') {
+    return {
+      kind: 'metrics',
+      options: parseAgovMetricsArgs(rest),
+    };
+  }
+
   return {
     kind: 'assess',
     options: parseAgovAssessArgs(rest),
@@ -416,6 +476,49 @@ function parseAgovCheckArgs(args: string[]): ParsedAgovCheckOptions {
 
 function parseAgovAssessArgs(args: string[]): ParsedAgovAssessOptions {
   return parseAgovAssessmentArgs('assess', args);
+}
+
+function parseAgovMetricsArgs(args: string[]): ParsedAgovMetricsOptions {
+  const parsed = parseAgovAssessmentArgs('metrics', args);
+  const filters: AgovMetricsFilters = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '--family') {
+      filters.family = readRequiredOptionValue(args, index, '--family');
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--metric') {
+      filters.metric = readRequiredOptionValue(args, index, '--metric');
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--weakest') {
+      const value = readRequiredOptionValue(args, index, '--weakest');
+      const parsedValue = Number.parseInt(value, 10);
+
+      if (!Number.isInteger(parsedValue) || parsedValue < 0) {
+        throw new AgovCliUsageError(
+          'Invalid value for "--weakest". Expected a non-negative integer.',
+          'agov.cli.missing_option_value',
+        );
+      }
+
+      filters.weakest = parsedValue;
+      index += 1;
+      continue;
+    }
+  }
+
+  return {
+    ...parsed,
+    command: 'metrics',
+    filters: Object.keys(filters).length > 0 ? filters : undefined,
+  };
 }
 
 function parseAgovInspectArgs(args: string[]): ParsedAgovInspectOptions {
@@ -537,11 +640,15 @@ function parseAgovAssessmentArgs(
   command: 'assess',
   args: string[],
 ): ParsedAgovAssessOptions;
+function parseAgovAssessmentArgs(
+  command: 'metrics',
+  args: string[],
+): ParsedAgovMetricsOptions;
 
 function parseAgovAssessmentArgs(
-  command: AgovAssessmentCommandName,
+  command: AgovProfiledCommandName,
   args: string[],
-): ParsedAgovCheckOptions | ParsedAgovAssessOptions {
+): ParsedAgovCheckOptions | ParsedAgovAssessOptions | ParsedAgovMetricsOptions {
   let configPath: string | undefined;
   let profilePath: string | undefined;
   let workspacePath: string | undefined;
@@ -615,6 +722,14 @@ function parseAgovAssessmentArgs(
       continue;
     }
 
+    if (
+      command === 'metrics' &&
+      (arg === '--family' || arg === '--metric' || arg === '--weakest')
+    ) {
+      index += 1;
+      continue;
+    }
+
     throw new AgovCliUsageError(
       `Unknown agov option "${arg}".`,
       'agov.cli.unknown_option',
@@ -665,6 +780,19 @@ export function resolveAgovAssessCommand(
   return resolveAgovAssessmentCommand(options, environment);
 }
 
+export function resolveAgovMetricsCommand(
+  options: ParsedAgovMetricsOptions,
+  environment: Pick<AgovCliEnvironment, 'cwd'>,
+): AgovResolvedMetricsCommand {
+  const resolved = resolveAgovAssessmentCommand(options, environment);
+
+  return {
+    ...resolved,
+    command: 'metrics',
+    filters: options.filters,
+  };
+}
+
 export function resolveAgovInspectCommand(
   options: ParsedAgovInspectOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
@@ -686,6 +814,10 @@ export function resolveAgovAssessmentCommand(
   options: ParsedAgovAssessOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
 ): AgovResolvedAssessCommand;
+export function resolveAgovAssessmentCommand(
+  options: ParsedAgovMetricsOptions,
+  environment: Pick<AgovCliEnvironment, 'cwd'>,
+): AgovResolvedAssessmentCommand;
 
 export function resolveAgovAssessmentCommand(
   options: ParsedAgovAssessmentOptions,
@@ -844,18 +976,28 @@ function resolveAgovWorkspaceCommand(
 }
 
 export async function resolveAgovRuntimeOptions(
-  command: AgovResolvedAssessmentCommand,
+  command: AgovResolvedCheckCommand | AgovResolvedAssessCommand,
   environment: AgovCliEnvironment,
 ): Promise<AgovAssessmentRuntimeOptions<unknown>>;
+export async function resolveAgovRuntimeOptions(
+  command: AgovResolvedMetricsCommand,
+  environment: AgovCliEnvironment,
+): Promise<AgovMetricsOptions<unknown>>;
 export async function resolveAgovRuntimeOptions(
   command: AgovResolvedInspectCommand,
   environment: AgovCliEnvironment,
 ): Promise<AgovInspectOptions<unknown>>;
 export async function resolveAgovRuntimeOptions(
-  command: AgovResolvedAssessmentCommand | AgovResolvedInspectCommand,
+  command:
+    | AgovResolvedCheckCommand
+    | AgovResolvedAssessCommand
+    | AgovResolvedInspectCommand
+    | AgovResolvedMetricsCommand,
   environment: AgovCliEnvironment,
 ): Promise<
-  AgovAssessmentRuntimeOptions<unknown> | AgovInspectOptions<unknown>
+  | AgovAssessmentRuntimeOptions<unknown>
+  | AgovInspectOptions<unknown>
+  | AgovMetricsOptions<unknown>
 > {
   if ('profilePath' in command) {
     if (command.mode === 'workspace') {
@@ -869,6 +1011,9 @@ export async function resolveAgovRuntimeOptions(
       return {
         profilePath: command.profilePath,
         workspacePath: command.workspacePath,
+        ...('filters' in command && command.filters
+          ? { filters: command.filters }
+          : {}),
       };
     }
 
@@ -890,6 +1035,9 @@ export async function resolveAgovRuntimeOptions(
         profilePath: command.profilePath,
         workspaceAdapter: resolvedAdapter.adapter,
         workspaceAdapterInput: command.rootPath,
+        ...('filters' in command && command.filters
+          ? { filters: command.filters }
+          : {}),
       };
     }
 
@@ -903,6 +1051,9 @@ export async function resolveAgovRuntimeOptions(
       profilePath: command.profilePath,
       workspaceAdapter,
       workspaceAdapterInput: command.rootPath,
+      ...('filters' in command && command.filters
+        ? { filters: command.filters }
+        : {}),
     };
   }
 
@@ -1386,14 +1537,16 @@ function renderAgovHelp(): string {
     '  agov --version',
     '  agov check [options]',
     '  agov assess [options]',
+    '  agov metrics [options]',
     '  agov inspect [options]',
     '',
     'Commands:',
     '  check   Run a Governance check using canonical workspace mode or adapter mode.',
     '  assess  Run a Governance assessment using canonical workspace mode or adapter mode.',
+    '  metrics Inspect Governance measurements and health-oriented metrics.',
     '  inspect Inspect normalized Governance workspace inventory.',
     '',
-    'Run "agov check --help", "agov assess --help", or "agov inspect --help" for command-specific options.',
+    'Run "agov check --help", "agov assess --help", "agov metrics --help", or "agov inspect --help" for command-specific options.',
   ].join('\n');
 }
 
@@ -1447,6 +1600,38 @@ function renderAgovAssessHelp(): string {
     '  --root <path>       Adapter input root. Defaults to the current working directory.',
     '  --format <value>    Output format: table, markdown, text, or json. Defaults to text.',
     '  --output <path>     Write command output to a file instead of stdout.',
+    '',
+    'Conventions:',
+    '  Config:   agov.config.json, governance.config.json',
+    '  Profile:  tools/governance/profiles/default.json, tools/governance/profile.json, governance.profile.json, agov.profile.json',
+    '  Workspace: governance.workspace.json, agov.workspace.json, tools/governance/workspace.json',
+  ].join('\n');
+}
+
+function renderAgovMetricsHelp(): string {
+  return [
+    'agov metrics',
+    '',
+    'Usage:',
+    '  agov metrics --profile <path> --workspace <path> [--format table|markdown|text|json] [filters]',
+    '  agov metrics --profile <path> --adapter <package> --root <path> [--format table|markdown|text|json] [filters]',
+    '  agov metrics [--config <path>]',
+    '',
+    'Resolution order:',
+    '  explicit CLI flag -> config file -> conventional files -> generic adapter discovery and probe -> error',
+    '',
+    'Options:',
+    '  --help              Show metrics command help.',
+    '  --config <path>     Load agov.config.json or governance.config.json explicitly.',
+    '  --profile <path>    Governance profile document.',
+    '  --workspace <path>  Canonical Governance workspace document.',
+    '  --adapter <package> Dynamically load a concrete adapter package.',
+    '  --root <path>       Adapter input root. Defaults to the current working directory.',
+    '  --format <value>    Output format: table, markdown, text, or json. Defaults to text.',
+    '  --output <path>     Write command output to a file instead of stdout.',
+    '  --family <value>    Filter rendered measurements by metric family.',
+    '  --metric <value>    Filter rendered measurements by metric id or name.',
+    '  --weakest <value>   Limit weakest-metrics summary to a non-negative count.',
     '',
     'Conventions:',
     '  Config:   agov.config.json, governance.config.json',

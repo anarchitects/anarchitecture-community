@@ -19,6 +19,7 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov');
     expect(io.out).toContain('agov check [options]');
     expect(io.out).toContain('agov assess [options]');
+    expect(io.out).toContain('agov metrics [options]');
     expect(io.out).toContain('agov inspect [options]');
     expect(io.err).toBe('');
   });
@@ -52,6 +53,17 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('--domain <value>');
     expect(io.out).toContain('--layer <value>');
     expect(io.out).toContain('--type <value>');
+    expect(io.err).toBe('');
+  });
+
+  it('renders metrics help', async () => {
+    const io = createMemoryIo();
+
+    expect(await runAgovCli(['metrics', '--help'], io)).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.out).toContain('agov metrics');
+    expect(io.out).toContain('--family <value>');
+    expect(io.out).toContain('--metric <value>');
+    expect(io.out).toContain('--weakest <value>');
     expect(io.err).toBe('');
   });
 
@@ -1016,6 +1028,228 @@ describe('agov executable command surface', () => {
         },
       ],
     });
+    expect(io.err).toBe('');
+  });
+
+  it('supports metrics in conventional discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-metrics-conventions-');
+
+    writeFixtureWorkspace(path.join(cwd, 'governance.workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'governance.profile.json'));
+
+    expect(
+      await runAgovCli(['metrics'], io, undefined, createEnvironment({ cwd })),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(io.out).toContain('agov metrics');
+    expect(io.out).toContain('health score');
+    expect(io.out).toContain('health grade');
+    expect(io.out).toContain('health status');
+    expect(io.err).toBe('');
+  });
+
+  it('supports metrics with explicit workspace/profile mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-metrics-workspace-mode-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'metrics',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'metrics',
+      health: {
+        score: expect.any(Number),
+        grade: expect.any(String),
+        status: expect.any(String),
+      },
+      measurements: expect.any(Array),
+      metricBreakdown: {
+        families: expect.any(Array),
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports metrics with explicit adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-metrics-adapter-mode-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'metrics',
+          '--profile',
+          './profile.json',
+          '--adapter',
+          'test-adapter-package',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async () =>
+            createAdapterModule({ workspaceName: path.basename(cwd) }),
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'metrics',
+      workspace: {
+        name: path.basename(cwd),
+      },
+      health: {
+        score: expect.any(Number),
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports metrics in adapter discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createAdapterDiscoveryFixture(
+      'agov-metrics-adapter-discovery-',
+      ['adapter-one', 'adapter-two'],
+    );
+
+    writeFixtureProfile(path.join(cwd, 'governance.profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'metrics',
+          '--profile',
+          './governance.profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              return createProbeableAdapterModule({
+                workspaceName: 'unsupported-workspace',
+                supported: false,
+                confidence: 'low',
+              });
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'supported-workspace',
+              supported: true,
+              confidence: 'high',
+            });
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'metrics',
+      workspace: {
+        name: 'supported-workspace',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports metrics json output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-metrics-json-format-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'metrics',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'metrics',
+      health: {
+        status: expect.any(String),
+      },
+      measurements: expect.any(Array),
+      metricBreakdown: {
+        families: expect.any(Array),
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('filters metrics output by family and weakest count', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-metrics-filters-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'metrics',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--family',
+          'architecture',
+          '--weakest',
+          '1',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      measurements: Array<{ family: string }>;
+      summary: { weakestMetrics: Array<unknown> };
+    };
+
+    expect(
+      parsed.measurements.every(
+        (measurement) => measurement.family === 'architecture',
+      ),
+    ).toBe(true);
+    expect(parsed.summary.weakestMetrics).toHaveLength(1);
     expect(io.err).toBe('');
   });
 });

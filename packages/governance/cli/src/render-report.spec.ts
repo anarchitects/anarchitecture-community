@@ -3,11 +3,14 @@ import { fileURLToPath } from 'node:url';
 import * as reportingPrimitives from './internal/reporting/render-primitives.js';
 import { runAgovAssess, runAgovCheck } from './check.js';
 import { runAgovInspect } from './inspect.js';
+import { runAgovMetrics } from './metrics.js';
 import {
   renderAgovCheckJson,
   renderAgovCheckReport,
   renderAgovInspectJson,
   renderAgovInspectReport,
+  renderAgovMetricsJson,
+  renderAgovMetricsReport,
 } from './render-report.js';
 
 describe('agov command report rendering', () => {
@@ -150,6 +153,67 @@ describe('agov command report rendering', () => {
 
     renderAgovInspectReport(inspectResult, 'text');
     renderAgovInspectReport(inspectResult, 'markdown');
+
+    expect(textTableSpy).toHaveBeenCalled();
+    expect(markdownTableSpy).toHaveBeenCalled();
+  });
+
+  it('keeps metrics JSON output shape stable', async () => {
+    const metricsResult = await runAgovMetrics({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/passing-profile.json',
+      ),
+    });
+
+    const rendered = renderAgovMetricsJson(metricsResult);
+    const parsed = JSON.parse(rendered) as Record<string, unknown>;
+
+    expect(Object.keys(parsed)).toEqual([
+      'command',
+      'health',
+      'measurements',
+      'metricBreakdown',
+      'profile',
+      'summary',
+      'workspace',
+    ]);
+    expect(parsed).toMatchObject({
+      command: 'metrics',
+      health: {
+        status: expect.any(String),
+        grade: expect.any(String),
+      },
+      measurements: expect.any(Array),
+      metricBreakdown: {
+        families: expect.any(Array),
+      },
+    });
+  });
+
+  it('delegates metrics rendering to shared primitives', async () => {
+    const metricsResult = await runAgovMetrics({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/passing-profile.json',
+      ),
+    });
+
+    const textTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderTwoColumnTextTable',
+    );
+    const markdownTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderMarkdownTable',
+    );
+
+    renderAgovMetricsReport(metricsResult, 'text');
+    renderAgovMetricsReport(metricsResult, 'markdown');
 
     expect(textTableSpy).toHaveBeenCalled();
     expect(markdownTableSpy).toHaveBeenCalled();
