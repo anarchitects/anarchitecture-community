@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   type AgovCliEnvironment,
   AGOV_EXIT_CONFIGURATION_FAILURE,
+  AGOV_EXIT_GOVERNANCE_FAILURE,
   AGOV_EXIT_RUNTIME_FAILURE,
   AGOV_EXIT_SUCCESS,
   runAgovCli,
@@ -159,6 +160,163 @@ describe('agov executable command surface', () => {
     );
     expect(io.out).toBe('9.9.9-test');
     expect(io.err).toBe('');
+  });
+
+  it('fails on incomplete nested commands with a stable unknown-command usage error', async () => {
+    const profileIo = createMemoryIo();
+    const workspaceIo = createMemoryIo();
+
+    expect(await runAgovCli(['profile'], profileIo)).toBe(
+      AGOV_EXIT_CONFIGURATION_FAILURE,
+    );
+    expect(await runAgovCli(['workspace'], workspaceIo)).toBe(
+      AGOV_EXIT_CONFIGURATION_FAILURE,
+    );
+
+    expect(JSON.parse(profileIo.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.unknown_command',
+        message: expect.stringContaining('Supported profile command is'),
+      },
+    });
+    expect(JSON.parse(workspaceIo.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.unknown_command',
+        message: expect.stringContaining('Supported workspace command is'),
+      },
+    });
+  });
+
+  it('fails on unknown nested subcommands with a stable unknown-command usage error', async () => {
+    const profileIo = createMemoryIo();
+    const workspaceIo = createMemoryIo();
+
+    expect(await runAgovCli(['profile', 'inspect'], profileIo)).toBe(
+      AGOV_EXIT_CONFIGURATION_FAILURE,
+    );
+    expect(await runAgovCli(['workspace', 'inspect'], workspaceIo)).toBe(
+      AGOV_EXIT_CONFIGURATION_FAILURE,
+    );
+
+    expect(JSON.parse(profileIo.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.unknown_command',
+        message: expect.stringContaining('Supported profile command is'),
+      },
+    });
+    expect(JSON.parse(workspaceIo.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.unknown_command',
+        message: expect.stringContaining('Supported workspace command is'),
+      },
+    });
+  });
+
+  it('rejects unknown options consistently across implemented commands', async () => {
+    const cwd = createTempWorkspaceRoot('agov-unknown-options-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    const cases: Array<{ args: string[]; label: string }> = [
+      {
+        label: 'check',
+        args: [
+          'check',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+        ],
+      },
+      {
+        label: 'assess',
+        args: [
+          'assess',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+        ],
+      },
+      {
+        label: 'inspect',
+        args: ['inspect', '--workspace', './workspace.json'],
+      },
+      {
+        label: 'metrics',
+        args: [
+          'metrics',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+        ],
+      },
+      {
+        label: 'violations',
+        args: [
+          'violations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+        ],
+      },
+      {
+        label: 'recommendations',
+        args: [
+          'recommendations',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+        ],
+      },
+      {
+        label: 'signals',
+        args: [
+          'signals',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+        ],
+      },
+      {
+        label: 'dependencies',
+        args: ['dependencies', '--workspace', './workspace.json'],
+      },
+      {
+        label: 'profile validate',
+        args: ['profile', 'validate', '--profile', './profile.json'],
+      },
+      {
+        label: 'workspace validate',
+        args: ['workspace', 'validate', '--workspace', './workspace.json'],
+      },
+    ];
+
+    for (const testCase of cases) {
+      const io = createMemoryIo();
+
+      expect(
+        await runAgovCli(
+          [...testCase.args, '--unknown-option'],
+          io,
+          undefined,
+          createEnvironment({ cwd }),
+        ),
+      ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+      expect(JSON.parse(io.err)).toMatchObject({
+        error: {
+          code: 'agov.cli.unknown_option',
+          message: expect.stringContaining('Unknown agov option'),
+        },
+      });
+      expect(io.out).toBe('');
+    }
   });
 
   it('returns a usage error when nothing can be resolved', async () => {
@@ -1397,6 +1555,62 @@ describe('agov executable command surface', () => {
     expect(JSON.parse(io.out)).toMatchObject({
       command: 'check',
       success: true,
+    });
+  });
+
+  it('keeps check and assess governance failure semantics stable for failing profiles', async () => {
+    const cwd = createTempWorkspaceRoot('agov-check-vs-assess-gating-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'failing-profile.json'));
+
+    const checkIo = createMemoryIo();
+    const assessIo = createMemoryIo();
+
+    expect(
+      await runAgovCli(
+        [
+          'check',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './failing-profile.json',
+          '--format',
+          'json',
+        ],
+        checkIo,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_GOVERNANCE_FAILURE);
+
+    expect(
+      await runAgovCli(
+        [
+          'assess',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './failing-profile.json',
+          '--format',
+          'json',
+        ],
+        assessIo,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_GOVERNANCE_FAILURE);
+
+    expect(JSON.parse(checkIo.out)).toMatchObject({
+      command: 'check',
+      success: false,
+    });
+    expect(JSON.parse(assessIo.out)).toMatchObject({
+      command: 'assess',
+      success: false,
+      assessment: {
+        violations: expect.any(Array),
+      },
     });
   });
 
