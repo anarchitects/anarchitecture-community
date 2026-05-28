@@ -701,6 +701,68 @@ describe('agov executable command surface', () => {
     });
   });
 
+  it('rejects unsupported format in check mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-check-unsupported-format-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'check',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'csv',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+    expect(JSON.parse(io.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.unsupported_format',
+      },
+    });
+    expect(io.out).toBe('');
+  });
+
+  it('rejects unsupported format in assess mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-assess-unsupported-format-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'assess',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--format',
+          'csv',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+    expect(JSON.parse(io.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.unsupported_format',
+      },
+    });
+    expect(io.out).toBe('');
+  });
+
   it('supports table output explicitly', async () => {
     const io = createMemoryIo();
     const cwd = createTempWorkspaceRoot('agov-table-format-');
