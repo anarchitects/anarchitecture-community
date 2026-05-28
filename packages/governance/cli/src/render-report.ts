@@ -3,6 +3,7 @@ import { renderJsonReport } from './internal/reporting/render-json.js';
 import * as reportingPrimitives from './internal/reporting/render-primitives.js';
 
 import type { AgovAssessResult, AgovCheckResult } from './check.js';
+import type { AgovDependenciesResult } from './dependencies.js';
 import type { AgovInspectResult } from './inspect.js';
 import type { AgovMetricsResult } from './metrics.js';
 import type { AgovRecommendationsResult } from './recommendations.js';
@@ -25,6 +26,21 @@ export function renderAgovCheckReport(
     case 'table':
     case 'text':
       return renderAgovCheckTable(result);
+  }
+}
+
+export function renderAgovDependenciesReport(
+  result: AgovDependenciesResult,
+  format: AgovOutputFormat,
+): string {
+  switch (format) {
+    case 'json':
+      return renderAgovDependenciesJson(result);
+    case 'markdown':
+      return renderAgovDependenciesMarkdown(result);
+    case 'table':
+    case 'text':
+      return renderAgovDependenciesTable(result);
   }
 }
 
@@ -109,6 +125,12 @@ export function renderAgovCheckJson(result: AgovCommandResult): string {
     success: result.success,
     assessment: JSON.parse(renderJsonReport(result.assessment)) as object,
   });
+}
+
+export function renderAgovDependenciesJson(
+  result: AgovDependenciesResult,
+): string {
+  return reportingPrimitives.renderJsonValue(result, { stable: true });
 }
 
 export function renderAgovInspectJson(result: AgovInspectResult): string {
@@ -198,6 +220,50 @@ function renderAgovCheckMarkdown(result: AgovCommandResult): string {
 
     lines.push(line);
   }
+
+  return lines.join('\n');
+}
+
+function renderAgovDependenciesTable(result: AgovDependenciesResult): string {
+  const lines: string[] = [];
+
+  lines.push('agov dependencies');
+  lines.push('');
+  lines.push('Summary');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['total dependencies', String(result.summary.totalDependencies)],
+        ['by type', formatCountSummary(result.summary.byType, 'type')],
+        ['project count', String(result.summary.projectCount)],
+        ['source project count', String(result.summary.sourceProjectCount)],
+        ['target project count', String(result.summary.targetProjectCount)],
+        ['top outgoing', formatProjectCountSummary(result.summary.topOutgoing)],
+        ['top incoming', formatProjectCountSummary(result.summary.topIncoming)],
+      ],
+    }),
+  );
+
+  lines.push('');
+  lines.push('Dependencies');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Dependency', 'Details'],
+      rows: result.dependencies.map((dependency) => [
+        `${dependency.source} -> ${dependency.target}`,
+        [
+          `type=${dependency.type}`,
+          dependency.sourceFile
+            ? `sourceFile=${dependency.sourceFile}`
+            : undefined,
+        ]
+          .filter((part): part is string => Boolean(part))
+          .join(' :: '),
+      ]),
+    }),
+  );
 
   return lines.join('\n');
 }
@@ -390,6 +456,47 @@ function renderAgovInspectMarkdown(result: AgovInspectResult): string {
       }),
     );
   }
+
+  return lines.join('\n');
+}
+
+function renderAgovDependenciesMarkdown(
+  result: AgovDependenciesResult,
+): string {
+  const lines: string[] = [];
+
+  lines.push('# agov dependencies');
+  lines.push('');
+  lines.push('## Summary');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['total dependencies', String(result.summary.totalDependencies)],
+        ['by type', formatCountSummary(result.summary.byType, 'type')],
+        ['project count', String(result.summary.projectCount)],
+        ['source project count', String(result.summary.sourceProjectCount)],
+        ['target project count', String(result.summary.targetProjectCount)],
+        ['top outgoing', formatProjectCountSummary(result.summary.topOutgoing)],
+        ['top incoming', formatProjectCountSummary(result.summary.topIncoming)],
+      ],
+    }),
+  );
+
+  lines.push('');
+  lines.push('## Dependencies');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['source', 'target', 'type', 'source file'],
+      rows: result.dependencies.map((dependency) => [
+        dependency.source,
+        dependency.target,
+        dependency.type,
+        dependency.sourceFile ?? 'none',
+      ]),
+    }),
+  );
 
   return lines.join('\n');
 }
@@ -657,10 +764,7 @@ function renderAgovSignalsTable(result: AgovSignalsResult): string {
           'by severity',
           formatCountSummary(result.summary.bySeverity, 'severity'),
         ],
-        [
-          'extension signal count',
-          String(result.summary.extensionSignalCount),
-        ],
+        ['extension signal count', String(result.summary.extensionSignalCount)],
       ],
     }),
   );
@@ -837,10 +941,7 @@ function renderAgovSignalsMarkdown(result: AgovSignalsResult): string {
           'by severity',
           formatCountSummary(result.summary.bySeverity, 'severity'),
         ],
-        [
-          'extension signal count',
-          String(result.summary.extensionSignalCount),
-        ],
+        ['extension signal count', String(result.summary.extensionSignalCount)],
       ],
     }),
   );
@@ -964,6 +1065,18 @@ function formatCoverage(
   }
 
   return `${coverage.covered}/${coverage.total} (${Math.round(coverage.ratio * 100)}%)`;
+}
+
+function formatProjectCountSummary(
+  entries: Array<{ projectId: string; projectName: string; count: number }>,
+): string {
+  if (entries.length === 0) {
+    return 'none';
+  }
+
+  return entries
+    .map((entry) => `${entry.projectName}(${entry.projectId}):${entry.count}`)
+    .join(', ');
 }
 
 function compactJson(value: unknown): string {

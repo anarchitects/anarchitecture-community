@@ -19,6 +19,7 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov');
     expect(io.out).toContain('agov check [options]');
     expect(io.out).toContain('agov assess [options]');
+    expect(io.out).toContain('agov dependencies [options]');
     expect(io.out).toContain('agov metrics [options]');
     expect(io.out).toContain('agov recommendations [options]');
     expect(io.out).toContain('agov signals [options]');
@@ -55,6 +56,20 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('--project <value>');
     expect(io.out).toContain('--domain <value>');
     expect(io.out).toContain('--layer <value>');
+    expect(io.out).toContain('--type <value>');
+    expect(io.err).toBe('');
+  });
+
+  it('renders dependencies help', async () => {
+    const io = createMemoryIo();
+
+    expect(await runAgovCli(['dependencies', '--help'], io)).toBe(
+      AGOV_EXIT_SUCCESS,
+    );
+    expect(io.out).toContain('agov dependencies');
+    expect(io.out).toContain('--source <value>');
+    expect(io.out).toContain('--target <value>');
+    expect(io.out).toContain('--project <value>');
     expect(io.out).toContain('--type <value>');
     expect(io.err).toBe('');
   });
@@ -163,6 +178,32 @@ describe('agov executable command surface', () => {
     ).toBe(AGOV_EXIT_SUCCESS);
     expect(io.out).toContain('agov assess');
     expect(io.out).toContain('workspace  demo');
+    expect(io.err).toBe('');
+  });
+
+  it('supports dependencies in conventional workspace discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-dependencies-conventions-');
+
+    writeFixtureWorkspace(path.join(cwd, 'governance.workspace.json'));
+
+    expect(
+      await runAgovCli(
+        ['dependencies', '--format', 'json'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'dependencies',
+      dependencies: expect.any(Array),
+      projects: expect.any(Array),
+      summary: {
+        totalDependencies: expect.any(Number),
+      },
+    });
     expect(io.err).toBe('');
   });
 
@@ -1824,6 +1865,460 @@ describe('agov executable command surface', () => {
         code: 'agov.cli.invalid_config',
       },
     });
+  });
+
+  it('supports dependencies with explicit workspace mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-dependencies-workspace-mode-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+
+    expect(
+      await runAgovCli(
+        ['dependencies', '--workspace', './workspace.json', '--format', 'json'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'dependencies',
+      workspace: {
+        name: 'demo',
+      },
+      dependencies: expect.any(Array),
+      projects: expect.any(Array),
+      summary: {
+        totalDependencies: expect.any(Number),
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports dependencies with explicit adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-dependencies-adapter-mode-');
+
+    expect(
+      await runAgovCli(
+        [
+          'dependencies',
+          '--adapter',
+          'test-adapter-package',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async () =>
+            createAdapterModule({ workspaceName: path.basename(cwd) }),
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'dependencies',
+      workspace: {
+        name: path.basename(cwd),
+      },
+      dependencies: [],
+      projects: [],
+      summary: {
+        totalDependencies: 0,
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports dependencies in adapter discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createAdapterDiscoveryFixture(
+      'agov-dependencies-adapter-discovery-',
+      ['adapter-one', 'adapter-two'],
+    );
+
+    expect(
+      await runAgovCli(
+        ['dependencies', '--format', 'json'],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              return createProbeableAdapterModule({
+                workspaceName: 'unsupported-workspace',
+                supported: false,
+                confidence: 'low',
+              });
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'supported-workspace',
+              supported: true,
+              confidence: 'high',
+            });
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'dependencies',
+      workspace: {
+        name: 'supported-workspace',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('renders dependencies summary in text and table output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-dependencies-text-table-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'dependencies',
+          '--workspace',
+          './workspace.json',
+          '--format',
+          'table',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(io.out).toContain('agov dependencies');
+    expect(io.out).toContain('Summary');
+    expect(io.out).toContain('total dependencies');
+    expect(io.err).toBe('');
+  });
+
+  it('includes only projects referenced by filtered dependencies in JSON output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-dependencies-project-scope-');
+
+    writeJson(path.join(cwd, 'workspace.json'), {
+      schemaVersion: 1,
+      workspace: {
+        name: 'demo',
+        root: '.',
+      },
+      projects: [
+        {
+          name: 'customer-domain',
+          root: 'src/customer/domain',
+          tags: [],
+          type: 'library',
+        },
+        {
+          name: 'order-domain',
+          root: 'src/order/domain',
+          tags: [],
+          type: 'library',
+        },
+        {
+          name: 'billing-domain',
+          root: 'src/billing/domain',
+          tags: [],
+          type: 'library',
+        },
+      ],
+      dependencies: [
+        {
+          source: 'customer-domain',
+          target: 'order-domain',
+          type: 'static',
+        },
+        {
+          source: 'order-domain',
+          target: 'billing-domain',
+          type: 'dynamic',
+        },
+      ],
+    });
+
+    expect(
+      await runAgovCli(
+        [
+          'dependencies',
+          '--workspace',
+          './workspace.json',
+          '--target',
+          'order-domain',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      projects: Array<{ id: string }>;
+      dependencies: Array<{ source: string; target: string; type: string }>;
+    };
+
+    expect(parsed.dependencies).toEqual([
+      {
+        source: 'customer-domain',
+        target: 'order-domain',
+        type: 'static',
+      },
+    ]);
+    expect(parsed.projects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'customer-domain' }),
+        expect.objectContaining({ id: 'order-domain' }),
+      ]),
+    );
+    expect(io.err).toBe('');
+  });
+
+  it('filters dependencies by source, target, project, and type', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-dependencies-filters-');
+
+    writeJson(path.join(cwd, 'workspace.json'), {
+      schemaVersion: 1,
+      workspace: {
+        name: 'demo',
+        root: '.',
+      },
+      projects: [
+        {
+          name: 'customer-domain',
+          root: 'src/customer/domain',
+          tags: [],
+          type: 'library',
+        },
+        {
+          name: 'order-domain',
+          root: 'src/order/domain',
+          tags: [],
+          type: 'library',
+        },
+        {
+          name: 'billing-domain',
+          root: 'src/billing/domain',
+          tags: [],
+          type: 'library',
+        },
+      ],
+      dependencies: [
+        {
+          source: 'customer-domain',
+          target: 'order-domain',
+          type: 'static',
+        },
+        {
+          source: 'order-domain',
+          target: 'billing-domain',
+          type: 'dynamic',
+        },
+        {
+          source: 'billing-domain',
+          target: 'customer-domain',
+          type: 'implicit',
+        },
+        {
+          source: 'order-domain',
+          target: 'customer-domain',
+          type: 'unknown',
+        },
+      ],
+    });
+
+    expect(
+      await runAgovCli(
+        [
+          'dependencies',
+          '--workspace',
+          './workspace.json',
+          '--source',
+          'customer-domain',
+          '--target',
+          'order-domain',
+          '--project',
+          'customer-domain',
+          '--type',
+          'static',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      summary: { totalDependencies: number };
+      dependencies: Array<{ source: string; target: string; type: string }>;
+    };
+
+    expect(parsed.dependencies).toEqual([
+      {
+        source: 'customer-domain',
+        target: 'order-domain',
+        type: 'static',
+      },
+    ]);
+    expect(parsed.summary.totalDependencies).toBe(1);
+    expect(io.err).toBe('');
+  });
+
+  it('filters dependencies by each supported type', async () => {
+    const cwd = createTempWorkspaceRoot('agov-dependencies-type-filters-');
+
+    for (const dependencyType of ['static', 'dynamic', 'implicit', 'unknown']) {
+      const scopedIo = createMemoryIo();
+
+      expect(
+        await runAgovCli(
+          [
+            'dependencies',
+            '--adapter',
+            'test-adapter-package',
+            '--root',
+            '.',
+            '--type',
+            dependencyType,
+            '--format',
+            'json',
+          ],
+          scopedIo,
+          undefined,
+          createEnvironment({
+            cwd,
+            moduleLoader: async () => ({
+              createGovernanceWorkspaceAdapter() {
+                return {
+                  id: 'governance-adapter:typed-deps',
+                  loadWorkspace() {
+                    return {
+                      workspaceId: 'demo',
+                      workspaceName: 'demo',
+                      workspaceRoot: '.',
+                      projects: [
+                        {
+                          name: 'a',
+                          root: 'a',
+                          type: 'library',
+                          tags: [],
+                        },
+                        {
+                          name: 'b',
+                          root: 'b',
+                          type: 'library',
+                          tags: [],
+                        },
+                      ],
+                      dependencies: [
+                        { source: 'a', target: 'b', type: 'static' },
+                        { source: 'b', target: 'a', type: 'dynamic' },
+                        { source: 'a', target: 'a', type: 'implicit' },
+                        { source: 'b', target: 'b', type: 'transitive' },
+                      ],
+                      diagnostics: [],
+                    };
+                  },
+                };
+              },
+            }),
+          }),
+        ),
+      ).toBe(AGOV_EXIT_SUCCESS);
+
+      const parsed = JSON.parse(scopedIo.out) as {
+        dependencies: Array<{ type: string }>;
+      };
+      expect(parsed.dependencies).toHaveLength(1);
+      expect(parsed.dependencies[0]?.type).toBe(dependencyType);
+      expect(scopedIo.err).toBe('');
+    }
+  });
+
+  it('rejects unsupported dependency type values', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-dependencies-invalid-type-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'dependencies',
+          '--workspace',
+          './workspace.json',
+          '--type',
+          'transitive',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+    expect(JSON.parse(io.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.invalid_config',
+      },
+    });
+  });
+
+  it('returns empty dependencies and zero summary counts when filters do not match', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-dependencies-empty-filter-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'dependencies',
+          '--workspace',
+          './workspace.json',
+          '--source',
+          'does-not-exist',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    const parsed = JSON.parse(io.out) as {
+      dependencies: Array<unknown>;
+      projects: Array<unknown>;
+      summary: {
+        totalDependencies: number;
+        projectCount: number;
+        sourceProjectCount: number;
+        targetProjectCount: number;
+      };
+    };
+
+    expect(parsed.dependencies).toEqual([]);
+    expect(parsed.projects).toEqual([]);
+    expect(parsed.summary.totalDependencies).toBe(0);
+    expect(parsed.summary.projectCount).toBe(0);
+    expect(parsed.summary.sourceProjectCount).toBe(0);
+    expect(parsed.summary.targetProjectCount).toBe(0);
+    expect(io.err).toBe('');
   });
 
   it('supports violations with explicit workspace/profile mode', async () => {
