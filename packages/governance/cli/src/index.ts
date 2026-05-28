@@ -8,6 +8,17 @@ export type {
 } from './check.js';
 export { runAgovAssess, runAgovCheck } from './check.js';
 export type {
+  AgovDependenciesFilters,
+  AgovDependenciesOptions,
+  AgovDependenciesProject,
+  AgovDependenciesResult,
+  AgovDependenciesSummary,
+  AgovDependenciesWorkspace,
+  AgovDependencyEntry,
+  AgovDependencyType,
+} from './dependencies.js';
+export { runAgovDependencies } from './dependencies.js';
+export type {
   AgovInspectAdapterMetadata,
   AgovInspectDependency,
   AgovInspectFilters,
@@ -64,6 +75,7 @@ export {
   resolveAgovAssessCommand,
   resolveAgovAssessmentCommand,
   resolveAgovCheckCommand,
+  resolveAgovDependenciesCommand,
   resolveAgovInspectCommand,
   resolveAgovMetricsCommand,
   resolveAgovRecommendationsCommand,
@@ -80,6 +92,7 @@ export {
   type AgovResolvedAssessCommand,
   type AgovResolvedAssessmentCommand,
   type AgovResolvedCheckCommand,
+  type AgovResolvedDependenciesCommand,
   type AgovResolvedInspectCommand,
   type AgovResolvedMetricsCommand,
   type AgovResolvedRecommendationsCommand,
@@ -90,6 +103,7 @@ export {
   type ParsedAgovAssessmentOptions,
   type ParsedAgovCheckOptions,
   type ParsedAgovCliArgs,
+  type ParsedAgovDependenciesOptions,
   type ParsedAgovInspectOptions,
   type ParsedAgovMetricsOptions,
   type ParsedAgovRecommendationsOptions,

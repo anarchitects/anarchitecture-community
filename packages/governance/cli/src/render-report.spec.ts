@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 
 import * as reportingPrimitives from './internal/reporting/render-primitives.js';
 import { runAgovAssess, runAgovCheck } from './check.js';
+import { runAgovDependencies } from './dependencies.js';
 import { runAgovInspect } from './inspect.js';
 import { runAgovMetrics } from './metrics.js';
 import { runAgovRecommendations } from './recommendations.js';
@@ -10,6 +11,8 @@ import { runAgovViolations } from './violations.js';
 import {
   renderAgovCheckJson,
   renderAgovCheckReport,
+  renderAgovDependenciesJson,
+  renderAgovDependenciesReport,
   renderAgovInspectJson,
   renderAgovInspectReport,
   renderAgovMetricsJson,
@@ -116,6 +119,60 @@ describe('agov command report rendering', () => {
     const tableRendered = renderAgovCheckReport(assessResult, 'table');
 
     expect(textRendered).toBe(tableRendered);
+  });
+
+  it('keeps dependencies JSON output shape stable', async () => {
+    const dependenciesResult = await runAgovDependencies({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+    });
+
+    const rendered = renderAgovDependenciesJson(dependenciesResult);
+    const parsed = JSON.parse(rendered) as Record<string, unknown>;
+
+    expect(Object.keys(parsed)).toEqual([
+      'command',
+      'dependencies',
+      'projects',
+      'summary',
+      'workspace',
+    ]);
+    expect(parsed).toMatchObject({
+      command: 'dependencies',
+      dependencies: expect.any(Array),
+      projects: expect.any(Array),
+      summary: {
+        totalDependencies: expect.any(Number),
+        byType: expect.any(Array),
+      },
+      workspace: {
+        name: 'demo',
+      },
+    });
+  });
+
+  it('delegates dependencies rendering to shared primitives', async () => {
+    const dependenciesResult = await runAgovDependencies({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+    });
+
+    const textTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderTwoColumnTextTable',
+    );
+    const markdownTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderMarkdownTable',
+    );
+
+    renderAgovDependenciesReport(dependenciesResult, 'text');
+    renderAgovDependenciesReport(dependenciesResult, 'markdown');
+
+    expect(textTableSpy).toHaveBeenCalled();
+    expect(markdownTableSpy).toHaveBeenCalled();
   });
 
   it('keeps inspect JSON output shape stable', async () => {
