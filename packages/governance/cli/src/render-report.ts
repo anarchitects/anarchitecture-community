@@ -10,6 +10,7 @@ import type { AgovProfileValidateResult } from './profile-validate.js';
 import type { AgovRecommendationsResult } from './recommendations.js';
 import type { AgovSignalsResult } from './signals.js';
 import type { AgovViolationsResult } from './violations.js';
+import type { AgovWorkspaceValidateResult } from './workspace-validate.js';
 
 type AgovCommandResult = AgovCheckResult | AgovAssessResult;
 
@@ -42,6 +43,21 @@ export function renderAgovProfileValidateReport(
     case 'table':
     case 'text':
       return renderAgovProfileValidateTable(result);
+  }
+}
+
+export function renderAgovWorkspaceValidateReport(
+  result: AgovWorkspaceValidateResult,
+  format: AgovOutputFormat,
+): string {
+  switch (format) {
+    case 'json':
+      return renderAgovWorkspaceValidateJson(result);
+    case 'markdown':
+      return renderAgovWorkspaceValidateMarkdown(result);
+    case 'table':
+    case 'text':
+      return renderAgovWorkspaceValidateTable(result);
   }
 }
 
@@ -145,6 +161,12 @@ export function renderAgovCheckJson(result: AgovCommandResult): string {
 
 export function renderAgovProfileValidateJson(
   result: AgovProfileValidateResult,
+): string {
+  return reportingPrimitives.renderJsonValue(result, { stable: true });
+}
+
+export function renderAgovWorkspaceValidateJson(
+  result: AgovWorkspaceValidateResult,
 ): string {
   return reportingPrimitives.renderJsonValue(result, { stable: true });
 }
@@ -276,6 +298,73 @@ function renderAgovProfileValidateTable(
         rows: (result.errors ?? []).map((issue) => [
           issue.code,
           [`message=${issue.message}`, `path=${issue.path}`]
+            .filter((part): part is string => Boolean(part))
+            .join(' :: '),
+        ]),
+      }),
+    );
+  }
+
+  return lines.join('\n');
+}
+
+function renderAgovWorkspaceValidateTable(
+  result: AgovWorkspaceValidateResult,
+): string {
+  const lines: string[] = [];
+
+  lines.push('agov workspace validate');
+  lines.push('');
+  lines.push('Summary');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['status', result.success ? 'valid' : 'invalid'],
+        ['workspace path', result.workspacePath ?? 'none'],
+        ['adapter package', result.adapterPackage ?? 'none'],
+        ['adapter id', result.adapter?.id ?? 'none'],
+        ['workspace name', result.summary.workspaceName ?? 'none'],
+        ['project count', String(result.summary.projectCount)],
+        ['dependency count', String(result.summary.dependencyCount)],
+        ['error count', String(result.summary.errorCount)],
+        ['diagnostic count', String(result.summary.diagnosticCount)],
+        ['warning count', String(result.summary.warningCount)],
+      ],
+    }),
+  );
+
+  if ((result.errors?.length ?? 0) > 0) {
+    lines.push('');
+    lines.push('Errors');
+    lines.push(
+      ...reportingPrimitives.renderTwoColumnTextTable({
+        headers: ['Issue', 'Details'],
+        rows: (result.errors ?? []).map((issue) => [
+          issue.code,
+          [`message=${issue.message}`, `path=${issue.path}`]
+            .filter((part): part is string => Boolean(part))
+            .join(' :: '),
+        ]),
+      }),
+    );
+  }
+
+  if ((result.diagnostics?.length ?? 0) > 0) {
+    lines.push('');
+    lines.push('Diagnostics');
+    lines.push(
+      ...reportingPrimitives.renderTwoColumnTextTable({
+        headers: ['Diagnostic', 'Details'],
+        rows: (result.diagnostics ?? []).map((diagnostic) => [
+          diagnostic.code,
+          [
+            `message=${diagnostic.message}`,
+            diagnostic.source ? `source=${diagnostic.source}` : undefined,
+            diagnostic.details
+              ? `details=${compactJson(diagnostic.details)}`
+              : undefined,
+          ]
             .filter((part): part is string => Boolean(part))
             .join(' :: '),
         ]),
@@ -594,6 +683,66 @@ function renderAgovProfileValidateMarkdown(
           issue.code,
           issue.message,
           issue.path,
+        ]),
+      }),
+    );
+  }
+
+  return lines.join('\n');
+}
+
+function renderAgovWorkspaceValidateMarkdown(
+  result: AgovWorkspaceValidateResult,
+): string {
+  const lines: string[] = [];
+
+  lines.push('# agov workspace validate');
+  lines.push('');
+  lines.push('## Summary');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['status', result.success ? 'valid' : 'invalid'],
+        ['workspace path', result.workspacePath ?? 'none'],
+        ['adapter package', result.adapterPackage ?? 'none'],
+        ['adapter id', result.adapter?.id ?? 'none'],
+        ['workspace name', result.summary.workspaceName ?? 'none'],
+        ['project count', String(result.summary.projectCount)],
+        ['dependency count', String(result.summary.dependencyCount)],
+        ['error count', String(result.summary.errorCount)],
+        ['diagnostic count', String(result.summary.diagnosticCount)],
+        ['warning count', String(result.summary.warningCount)],
+      ],
+    }),
+  );
+
+  if ((result.errors?.length ?? 0) > 0) {
+    lines.push('');
+    lines.push('## Errors');
+    lines.push(
+      ...reportingPrimitives.renderMarkdownTable({
+        headers: ['code', 'message', 'path'],
+        rows: (result.errors ?? []).map((issue) => [
+          issue.code,
+          issue.message,
+          issue.path,
+        ]),
+      }),
+    );
+  }
+
+  if ((result.diagnostics?.length ?? 0) > 0) {
+    lines.push('');
+    lines.push('## Diagnostics');
+    lines.push(
+      ...reportingPrimitives.renderMarkdownTable({
+        headers: ['code', 'message', 'source', 'details'],
+        rows: (result.diagnostics ?? []).map((diagnostic) => [
+          diagnostic.code,
+          diagnostic.message,
+          diagnostic.source ?? 'none',
+          diagnostic.details ? compactJson(diagnostic.details) : 'none',
         ]),
       }),
     );

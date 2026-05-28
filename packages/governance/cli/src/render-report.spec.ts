@@ -9,6 +9,7 @@ import { runAgovProfileValidate } from './profile-validate.js';
 import { runAgovRecommendations } from './recommendations.js';
 import { runAgovSignals } from './signals.js';
 import { runAgovViolations } from './violations.js';
+import { runAgovWorkspaceValidate } from './workspace-validate.js';
 import {
   renderAgovCheckJson,
   renderAgovCheckReport,
@@ -26,6 +27,8 @@ import {
   renderAgovSignalsReport,
   renderAgovViolationsJson,
   renderAgovViolationsReport,
+  renderAgovWorkspaceValidateJson,
+  renderAgovWorkspaceValidateReport,
 } from './render-report.js';
 
 describe('agov command report rendering', () => {
@@ -173,6 +176,61 @@ describe('agov command report rendering', () => {
 
     renderAgovProfileValidateReport(profileValidateResult, 'text');
     renderAgovProfileValidateReport(profileValidateResult, 'markdown');
+
+    expect(textTableSpy).toHaveBeenCalled();
+    expect(markdownTableSpy).toHaveBeenCalled();
+  });
+
+  it('keeps workspace validate JSON output shape stable', async () => {
+    const workspaceValidateResult = await runAgovWorkspaceValidate({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+    });
+
+    const rendered = renderAgovWorkspaceValidateJson(workspaceValidateResult);
+    const parsed = JSON.parse(rendered) as Record<string, unknown>;
+
+    expect(Object.keys(parsed)).toEqual([
+      'command',
+      'success',
+      'summary',
+      'workspace',
+      'workspacePath',
+    ]);
+    expect(parsed).toMatchObject({
+      command: 'workspace validate',
+      success: true,
+      workspacePath: expect.any(String),
+      workspace: {
+        name: 'demo',
+      },
+      summary: {
+        status: 'valid',
+        projectCount: expect.any(Number),
+        dependencyCount: expect.any(Number),
+      },
+    });
+  });
+
+  it('delegates workspace validate rendering to shared primitives', async () => {
+    const workspaceValidateResult = await runAgovWorkspaceValidate({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+    });
+
+    const textTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderTwoColumnTextTable',
+    );
+    const markdownTableSpy = vi.spyOn(
+      reportingPrimitives,
+      'renderMarkdownTable',
+    );
+
+    renderAgovWorkspaceValidateReport(workspaceValidateResult, 'text');
+    renderAgovWorkspaceValidateReport(workspaceValidateResult, 'markdown');
 
     expect(textTableSpy).toHaveBeenCalled();
     expect(markdownTableSpy).toHaveBeenCalled();
