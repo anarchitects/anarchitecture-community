@@ -18,6 +18,7 @@ describe('agov executable command surface', () => {
     expect(await runAgovCli(['--help'], io)).toBe(AGOV_EXIT_SUCCESS);
     expect(io.out).toContain('agov');
     expect(io.out).toContain('agov profile validate [options]');
+    expect(io.out).toContain('agov workspace validate [options]');
     expect(io.out).toContain('agov check [options]');
     expect(io.out).toContain('agov assess [options]');
     expect(io.out).toContain('agov dependencies [options]');
@@ -48,6 +49,18 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov profile validate');
     expect(io.out).toContain('--profile <path>');
     expect(io.out).toContain('--config <path>');
+    expect(io.err).toBe('');
+  });
+
+  it('renders workspace validate help', async () => {
+    const io = createMemoryIo();
+
+    expect(await runAgovCli(['workspace', 'validate', '--help'], io)).toBe(
+      AGOV_EXIT_SUCCESS,
+    );
+    expect(io.out).toContain('agov workspace validate');
+    expect(io.out).toContain('--workspace <path>');
+    expect(io.out).toContain('--adapter <package>');
     expect(io.err).toBe('');
   });
 
@@ -492,6 +505,352 @@ describe('agov executable command surface', () => {
     ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
 
     expect(io.out).toContain('# agov profile validate');
+    expect(io.out).toContain('## Summary');
+    expect(io.out).not.toContain('[object Object]');
+    expect(io.err).toBe('');
+  });
+
+  it('supports workspace validate with explicit --workspace and --format json', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-workspace-validate-explicit-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'workspace',
+          'validate',
+          '--workspace',
+          './workspace.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'workspace validate',
+      success: true,
+      workspacePath: path.join(cwd, 'workspace.json'),
+      summary: {
+        status: 'valid',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('validates workspace in conventional discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-workspace-validate-conventions-');
+
+    writeFixtureWorkspace(path.join(cwd, 'governance.workspace.json'));
+
+    expect(
+      await runAgovCli(
+        ['workspace', 'validate', '--format', 'json'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'workspace validate',
+      success: true,
+      workspacePath: expect.stringContaining('governance.workspace.json'),
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('validates workspace using config-based workspace resolution', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-workspace-validate-config-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeJson(path.join(cwd, 'agov.config.json'), {
+      workspace: './workspace.json',
+      format: 'json',
+    });
+
+    expect(
+      await runAgovCli(
+        ['workspace', 'validate'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'workspace validate',
+      success: true,
+      workspacePath: path.join(cwd, 'workspace.json'),
+      summary: {
+        status: 'valid',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('returns configuration failure and structured json for invalid workspace validation', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-workspace-validate-invalid-');
+
+    writeInvalidFixtureWorkspace(path.join(cwd, 'invalid-workspace.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'workspace',
+          'validate',
+          '--workspace',
+          './invalid-workspace.json',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+    const parsed = JSON.parse(io.out) as {
+      command: string;
+      success: boolean;
+      summary: { status: string };
+      errors: Array<unknown>;
+    };
+
+    expect(parsed.command).toBe('workspace validate');
+    expect(parsed.success).toBe(false);
+    expect(parsed.summary.status).toBe('invalid');
+    expect(parsed.errors.length).toBeGreaterThan(0);
+    expect(io.err).toBe('');
+  });
+
+  it('returns configuration failure for missing workspace path', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-workspace-validate-missing-');
+
+    expect(
+      await runAgovCli(
+        ['workspace', 'validate', '--workspace', './missing-workspace.json'],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+    expect(io.out).toContain('agov workspace validate');
+    expect(io.out).toContain('invalid');
+    expect(io.err).toBe('');
+  });
+
+  it('supports workspace validate with explicit adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-workspace-validate-adapter-');
+
+    expect(
+      await runAgovCli(
+        [
+          'workspace',
+          'validate',
+          '--adapter',
+          '@anarchitects/governance-adapter-typescript',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async () =>
+            createAdapterModule({ workspaceName: path.basename(cwd) }),
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'workspace validate',
+      success: true,
+      adapterPackage: '@anarchitects/governance-adapter-typescript',
+      summary: {
+        status: 'valid',
+      },
+      workspace: {
+        name: path.basename(cwd),
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('supports workspace validate in adapter discovery mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createAdapterDiscoveryFixture(
+      'agov-workspace-validate-discovery-',
+      ['adapter-one', 'adapter-two'],
+    );
+
+    expect(
+      await runAgovCli(
+        ['workspace', 'validate', '--format', 'json'],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === 'adapter-one') {
+              return createProbeableAdapterModule({
+                workspaceName: 'unsupported-workspace',
+                supported: false,
+                confidence: 'low',
+              });
+            }
+
+            return createProbeableAdapterModule({
+              workspaceName: 'supported-workspace',
+              supported: true,
+              confidence: 'high',
+            });
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'workspace validate',
+      success: true,
+      adapterPackage: 'adapter-two',
+      workspace: {
+        name: 'supported-workspace',
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('returns runtime failure for workspace validate adapter load or contract mismatches', async () => {
+    const loadFailureIo = createMemoryIo();
+    const loadFailureCwd = createTempWorkspaceRoot(
+      'agov-workspace-validate-adapter-load-failure-',
+    );
+
+    expect(
+      await runAgovCli(
+        [
+          'workspace',
+          'validate',
+          '--adapter',
+          'missing-adapter',
+          '--root',
+          '.',
+        ],
+        loadFailureIo,
+        undefined,
+        createEnvironment({
+          cwd: loadFailureCwd,
+          moduleLoader: async () => {
+            throw new Error('cannot resolve module');
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_RUNTIME_FAILURE);
+
+    expect(JSON.parse(loadFailureIo.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.adapter_not_found',
+      },
+    });
+    expect(loadFailureIo.out).toBe('');
+
+    const contractFailureIo = createMemoryIo();
+    const contractFailureCwd = createTempWorkspaceRoot(
+      'agov-workspace-validate-adapter-contract-failure-',
+    );
+
+    expect(
+      await runAgovCli(
+        [
+          'workspace',
+          'validate',
+          '--adapter',
+          'invalid-adapter',
+          '--root',
+          '.',
+        ],
+        contractFailureIo,
+        undefined,
+        createEnvironment({
+          cwd: contractFailureCwd,
+          moduleLoader: async () => ({ default: {} }),
+        }),
+      ),
+    ).toBe(AGOV_EXIT_RUNTIME_FAILURE);
+
+    expect(JSON.parse(contractFailureIo.err)).toMatchObject({
+      error: {
+        code: 'agov.cli.adapter_contract_mismatch',
+      },
+    });
+    expect(contractFailureIo.out).toBe('');
+  });
+
+  it('renders workspace validate status in text and table output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-workspace-validate-table-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'workspace',
+          'validate',
+          '--workspace',
+          './workspace.json',
+          '--format',
+          'table',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(io.out).toContain('agov workspace validate');
+    expect(io.out).toContain('status');
+    expect(io.out).toContain('valid');
+    expect(io.err).toBe('');
+  });
+
+  it('renders workspace validate markdown without raw object dumps', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-workspace-validate-markdown-');
+
+    writeInvalidFixtureWorkspace(path.join(cwd, 'invalid-workspace.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'workspace',
+          'validate',
+          '--workspace',
+          './invalid-workspace.json',
+          '--format',
+          'markdown',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_CONFIGURATION_FAILURE);
+
+    expect(io.out).toContain('# agov workspace validate');
     expect(io.out).toContain('## Summary');
     expect(io.out).not.toContain('[object Object]');
     expect(io.err).toBe('');
@@ -2998,6 +3357,18 @@ function writeInvalidFixtureProfile(filePath: string): void {
   writeJson(filePath, {
     boundaryPolicySource: 'profile',
     layers: [],
+  });
+}
+
+function writeInvalidFixtureWorkspace(filePath: string): void {
+  writeJson(filePath, {
+    schemaVersion: 1,
+    workspace: {
+      name: 'demo',
+      root: '.',
+    },
+    projects: [],
+    dependencies: [],
   });
 }
 

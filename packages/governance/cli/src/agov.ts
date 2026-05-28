@@ -33,6 +33,10 @@ import type {
   AgovProfileValidateResult,
 } from './profile-validate.js';
 import type {
+  AgovWorkspaceValidateOptions,
+  AgovWorkspaceValidateResult,
+} from './workspace-validate.js';
+import type {
   AgovSignalSeverity,
   AgovSignalsFilters,
   AgovSignalsOptions,
@@ -58,6 +62,7 @@ import * as profileValidateModule from './profile-validate.js';
 import * as recommendationsModule from './recommendations.js';
 import * as signalsModule from './signals.js';
 import * as violationsModule from './violations.js';
+import * as workspaceValidateModule from './workspace-validate.js';
 import {
   type AgovOutputFormat,
   renderAgovCheckReport,
@@ -68,6 +73,7 @@ import {
   renderAgovRecommendationsReport,
   renderAgovSignalsReport,
   renderAgovViolationsReport,
+  renderAgovWorkspaceValidateReport,
 } from './render-report.js';
 import {
   GenericWorkspaceLoadError,
@@ -114,6 +120,9 @@ export interface AgovCliRuntime {
   runAgovProfileValidate(
     options: AgovProfileValidateOptions,
   ): MaybePromise<AgovProfileValidateResult>;
+  runAgovWorkspaceValidate(
+    options: AgovWorkspaceValidateOptions,
+  ): MaybePromise<AgovWorkspaceValidateResult>;
   runAgovDependencies<TInput = unknown>(
     options: AgovDependenciesOptions<TInput>,
   ): MaybePromise<AgovDependenciesResult>;
@@ -154,7 +163,8 @@ export type AgovProfiledCommandName =
 export type AgovWorkspaceCommandName =
   | AgovProfiledCommandName
   | 'dependencies'
-  | 'inspect';
+  | 'inspect'
+  | 'workspace validate';
 
 export interface ParsedAgovDependenciesOptions {
   command: 'dependencies';
@@ -230,6 +240,10 @@ export type ParsedAgovCliArgs =
   | {
       kind: 'profile-validate';
       options: ParsedAgovProfileValidateOptions;
+    }
+  | {
+      kind: 'workspace-validate';
+      options: ParsedAgovWorkspaceValidateOptions;
     }
   | {
       kind: 'check';
@@ -353,12 +367,35 @@ export interface ParsedAgovProfileValidateOptions {
   showHelp: boolean;
 }
 
+export interface ParsedAgovWorkspaceValidateOptions {
+  command: 'workspace validate';
+  configPath?: string;
+  workspacePath?: string;
+  adapterPackage?: string;
+  rootPath?: string;
+  format?: AgovOutputFormat;
+  outputPath?: string;
+  showHelp: boolean;
+}
+
 export interface AgovResolvedProfileValidateCommand {
   command: 'profile validate';
   profilePath: string;
   format: AgovOutputFormat;
   outputPath?: string;
   configPath?: string;
+}
+
+export interface AgovResolvedWorkspaceValidateCommand {
+  command: 'workspace validate';
+  rootPath: string;
+  format: AgovOutputFormat;
+  outputPath?: string;
+  configPath?: string;
+  mode: 'workspace' | 'adapter' | 'adapter-discovery';
+  workspacePath?: string;
+  adapterPackage?: string;
+  adapterCandidates?: string[];
 }
 
 export type AgovAssessmentRuntimeOptions<TInput = unknown> =
@@ -373,6 +410,7 @@ const DEFAULT_AGOV_CLI_RUNTIME: AgovCliRuntime = {
   runAgovCheck: checkModule.runAgovCheck,
   runAgovAssess: checkModule.runAgovAssess,
   runAgovProfileValidate: profileValidateModule.runAgovProfileValidate,
+  runAgovWorkspaceValidate: workspaceValidateModule.runAgovWorkspaceValidate,
   runAgovDependencies: dependenciesModule.runAgovDependencies,
   runAgovInspect: inspectModule.runAgovInspect,
   runAgovMetrics: metricsModule.runAgovMetrics,
@@ -449,21 +487,23 @@ export async function runAgovCli(
       io.stdout(
         parsed.kind === 'profile-validate'
           ? renderAgovProfileValidateHelp()
-          : parsed.kind === 'check'
-            ? renderAgovCheckHelp()
-            : parsed.kind === 'assess'
-              ? renderAgovAssessHelp()
-              : parsed.kind === 'dependencies'
-                ? renderAgovDependenciesHelp()
-                : parsed.kind === 'metrics'
-                  ? renderAgovMetricsHelp()
-                  : parsed.kind === 'recommendations'
-                    ? renderAgovRecommendationsHelp()
-                    : parsed.kind === 'signals'
-                      ? renderAgovSignalsHelp()
-                      : parsed.kind === 'violations'
-                        ? renderAgovViolationsHelp()
-                        : renderAgovInspectHelp(),
+          : parsed.kind === 'workspace-validate'
+            ? renderAgovWorkspaceValidateHelp()
+            : parsed.kind === 'check'
+              ? renderAgovCheckHelp()
+              : parsed.kind === 'assess'
+                ? renderAgovAssessHelp()
+                : parsed.kind === 'dependencies'
+                  ? renderAgovDependenciesHelp()
+                  : parsed.kind === 'metrics'
+                    ? renderAgovMetricsHelp()
+                    : parsed.kind === 'recommendations'
+                      ? renderAgovRecommendationsHelp()
+                      : parsed.kind === 'signals'
+                        ? renderAgovSignalsHelp()
+                        : parsed.kind === 'violations'
+                          ? renderAgovViolationsHelp()
+                          : renderAgovInspectHelp(),
       );
       return AGOV_EXIT_SUCCESS;
     }
@@ -492,6 +532,34 @@ export async function runAgovCli(
       }
 
       const rendered = renderAgovProfileValidateReport(result, resolved.format);
+
+      if (resolved.outputPath) {
+        writeAgovOutput(resolved.outputPath, rendered);
+      } else {
+        io.stdout(rendered);
+      }
+
+      return result.success
+        ? AGOV_EXIT_SUCCESS
+        : AGOV_EXIT_CONFIGURATION_FAILURE;
+    }
+
+    if (parsed.kind === 'workspace-validate') {
+      const resolved = resolveAgovWorkspaceValidateCommand(
+        parsed.options,
+        environment,
+      );
+      const runtimeOptions = await resolveAgovRuntimeOptions(
+        resolved,
+        environment,
+      );
+      const result = await Promise.resolve(
+        runtime.runAgovWorkspaceValidate(runtimeOptions),
+      );
+      const rendered = renderAgovWorkspaceValidateReport(
+        result,
+        resolved.format,
+      );
 
       if (resolved.outputPath) {
         writeAgovOutput(resolved.outputPath, rendered);
@@ -741,6 +809,22 @@ export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
     );
   }
 
+  if (command === 'workspace') {
+    const [subcommand, ...subcommandArgs] = rest;
+
+    if (subcommand === 'validate') {
+      return {
+        kind: 'workspace-validate',
+        options: parseAgovWorkspaceValidateArgs(subcommandArgs),
+      };
+    }
+
+    throw new AgovCliUsageError(
+      'Unsupported agov command "workspace". Supported workspace command is "workspace validate".',
+      'agov.cli.unknown_command',
+    );
+  }
+
   if (
     command !== 'check' &&
     command !== 'assess' &&
@@ -752,7 +836,7 @@ export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
     command !== 'violations'
   ) {
     throw new AgovCliUsageError(
-      `Unsupported agov command "${command}". Supported commands are "check", "assess", "dependencies", "inspect", "metrics", "recommendations", "signals", "violations", "--help", and "--version".`,
+      `Unsupported agov command "${command}". Supported commands are "profile validate", "workspace validate", "check", "assess", "dependencies", "inspect", "metrics", "recommendations", "signals", "violations", "--help", and "--version".`,
       'agov.cli.unknown_command',
     );
   }
@@ -809,6 +893,93 @@ export function parseAgovCliArgs(argv: string[]): ParsedAgovCliArgs {
   return {
     kind: 'assess',
     options: parseAgovAssessArgs(rest),
+  };
+}
+
+function parseAgovWorkspaceValidateArgs(
+  args: string[],
+): ParsedAgovWorkspaceValidateOptions {
+  let configPath: string | undefined;
+  let workspacePath: string | undefined;
+  let adapterPackage: string | undefined;
+  let rootPath: string | undefined;
+  let format: AgovOutputFormat | undefined;
+  let outputPath: string | undefined;
+  let showHelp = false;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === '--help' || arg === '-h') {
+      showHelp = true;
+      continue;
+    }
+
+    if (arg === '--config') {
+      configPath = readRequiredOptionValue(args, index, '--config');
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--workspace') {
+      workspacePath = readRequiredOptionValue(args, index, '--workspace');
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--adapter') {
+      adapterPackage = readRequiredOptionValue(args, index, '--adapter');
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--root') {
+      rootPath = readRequiredOptionValue(args, index, '--root');
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--format') {
+      const value = readRequiredOptionValue(args, index, '--format');
+      index += 1;
+
+      if (
+        value !== 'text' &&
+        value !== 'json' &&
+        value !== 'markdown' &&
+        value !== 'table'
+      ) {
+        throw new AgovCliUsageError(
+          'Unsupported agov workspace validate format. Supported formats are "table", "markdown", "text", and "json".',
+          'agov.cli.unsupported_format',
+        );
+      }
+
+      format = value;
+      continue;
+    }
+
+    if (arg === '--output') {
+      outputPath = readRequiredOptionValue(args, index, '--output');
+      index += 1;
+      continue;
+    }
+
+    throw new AgovCliUsageError(
+      `Unknown agov option "${arg}".`,
+      'agov.cli.unknown_option',
+    );
+  }
+
+  return {
+    command: 'workspace validate',
+    configPath,
+    workspacePath,
+    adapterPackage,
+    rootPath,
+    format,
+    outputPath,
+    showHelp,
   };
 }
 
@@ -1601,6 +1772,18 @@ export function resolveAgovProfileValidateCommand(
   };
 }
 
+export function resolveAgovWorkspaceValidateCommand(
+  options: ParsedAgovWorkspaceValidateOptions,
+  environment: Pick<AgovCliEnvironment, 'cwd'>,
+): AgovResolvedWorkspaceValidateCommand {
+  const resolved = resolveAgovWorkspaceCommand(options, environment);
+
+  return {
+    ...resolved,
+    command: 'workspace validate',
+  };
+}
+
 export function resolveAgovAssessmentCommand(
   options: ParsedAgovCheckOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
@@ -1670,7 +1853,8 @@ function resolveAgovWorkspaceCommand(
   options:
     | ParsedAgovAssessmentOptions
     | ParsedAgovDependenciesOptions
-    | ParsedAgovInspectOptions,
+    | ParsedAgovInspectOptions
+    | ParsedAgovWorkspaceValidateOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
 ): AgovResolvedWorkspaceCommand {
   const cwd = path.resolve(environment.cwd());
@@ -1794,6 +1978,10 @@ export async function resolveAgovRuntimeOptions(
   environment: AgovCliEnvironment,
 ): Promise<AgovProfileValidateOptions>;
 export async function resolveAgovRuntimeOptions(
+  command: AgovResolvedWorkspaceValidateCommand,
+  environment: AgovCliEnvironment,
+): Promise<AgovWorkspaceValidateOptions>;
+export async function resolveAgovRuntimeOptions(
   command: AgovResolvedMetricsCommand,
   environment: AgovCliEnvironment,
 ): Promise<AgovMetricsOptions<unknown>>;
@@ -1822,6 +2010,7 @@ export async function resolveAgovRuntimeOptions(
     | AgovResolvedCheckCommand
     | AgovResolvedAssessCommand
     | AgovResolvedProfileValidateCommand
+    | AgovResolvedWorkspaceValidateCommand
     | AgovResolvedDependenciesCommand
     | AgovResolvedInspectCommand
     | AgovResolvedMetricsCommand
@@ -1832,6 +2021,7 @@ export async function resolveAgovRuntimeOptions(
 ): Promise<
   | AgovAssessmentRuntimeOptions<unknown>
   | AgovProfileValidateOptions
+  | AgovWorkspaceValidateOptions
   | AgovDependenciesOptions<unknown>
   | AgovInspectOptions<unknown>
   | AgovMetricsOptions<unknown>
@@ -1842,6 +2032,54 @@ export async function resolveAgovRuntimeOptions(
   if (command.command === 'profile validate') {
     return {
       profilePath: command.profilePath,
+    };
+  }
+
+  if (command.command === 'workspace validate') {
+    if (command.mode === 'workspace') {
+      if (!command.workspacePath) {
+        throw new AgovCliRuntimeError(
+          'Resolved workspace mode without a workspace path.',
+          'agov.cli.unhandled_error',
+        );
+      }
+
+      return {
+        workspacePath: command.workspacePath,
+      };
+    }
+
+    if (!command.adapterPackage) {
+      if (command.mode !== 'adapter-discovery' || !command.adapterCandidates) {
+        throw new AgovCliRuntimeError(
+          'Resolved adapter mode without an adapter package.',
+          'agov.cli.unhandled_error',
+        );
+      }
+
+      const resolvedAdapter = await discoverGovernanceWorkspaceAdapter(
+        command.adapterCandidates,
+        command.rootPath,
+        environment,
+      );
+
+      return {
+        workspaceAdapter: resolvedAdapter.adapter,
+        workspaceAdapterInput: command.rootPath,
+        adapterPackage: resolvedAdapter.packageName,
+      };
+    }
+
+    const workspaceAdapter = await loadGovernanceWorkspaceAdapter(
+      command.adapterPackage,
+      command.rootPath,
+      environment,
+    );
+
+    return {
+      workspaceAdapter,
+      workspaceAdapterInput: command.rootPath,
+      adapterPackage: command.adapterPackage,
     };
   }
 
@@ -2407,6 +2645,7 @@ function renderAgovHelp(): string {
     '  agov --help',
     '  agov --version',
     '  agov profile validate [options]',
+    '  agov workspace validate [options]',
     '  agov check [options]',
     '  agov assess [options]',
     '  agov dependencies [options]',
@@ -2420,6 +2659,7 @@ function renderAgovHelp(): string {
     '  check   Run a Governance check using canonical workspace mode or adapter mode.',
     '  assess  Run a Governance assessment using canonical workspace mode or adapter mode.',
     '  profile validate Validate standalone Governance profile documents.',
+    '  workspace validate Validate canonical or adapter-produced Governance workspace inputs.',
     '  dependencies Inspect Governance dependency graph data.',
     '  metrics Inspect Governance measurements and health-oriented metrics.',
     '  recommendations Inspect Governance recommendations from assessment artifacts.',
@@ -2427,7 +2667,34 @@ function renderAgovHelp(): string {
     '  violations Inspect Governance policy and extension violations.',
     '  inspect Inspect normalized Governance workspace inventory.',
     '',
-    'Run "agov profile validate --help", "agov check --help", "agov assess --help", "agov dependencies --help", "agov metrics --help", "agov recommendations --help", "agov signals --help", "agov violations --help", or "agov inspect --help" for command-specific options.',
+    'Run "agov profile validate --help", "agov workspace validate --help", "agov check --help", "agov assess --help", "agov dependencies --help", "agov metrics --help", "agov recommendations --help", "agov signals --help", "agov violations --help", or "agov inspect --help" for command-specific options.',
+  ].join('\n');
+}
+
+function renderAgovWorkspaceValidateHelp(): string {
+  return [
+    'agov workspace validate',
+    '',
+    'Usage:',
+    '  agov workspace validate --workspace <path> [--format table|markdown|text|json]',
+    '  agov workspace validate --adapter <package> --root <path> [--format table|markdown|text|json]',
+    '  agov workspace validate [--config <path>]',
+    '',
+    'Resolution order:',
+    '  explicit CLI flag -> config file -> conventional files -> generic adapter discovery and probe -> error',
+    '',
+    'Options:',
+    '  --help              Show workspace validate command help.',
+    '  --config <path>     Load agov.config.json or governance.config.json explicitly.',
+    '  --workspace <path>  Canonical Governance workspace document.',
+    '  --adapter <package> Dynamically load a concrete adapter package.',
+    '  --root <path>       Adapter input root. Defaults to the current working directory.',
+    '  --format <value>    Output format: table, markdown, text, or json. Defaults to text.',
+    '  --output <path>     Write command output to a file instead of stdout.',
+    '',
+    'Conventions:',
+    '  Config:   agov.config.json, governance.config.json',
+    '  Workspace: governance.workspace.json, agov.workspace.json, tools/governance/workspace.json',
   ].join('\n');
 }
 

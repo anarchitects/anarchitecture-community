@@ -11,6 +11,7 @@ describe('Governance CLI public API', () => {
     expect(typeof governanceCli.runAgovRecommendations).toBe('function');
     expect(typeof governanceCli.runAgovSignals).toBe('function');
     expect(typeof governanceCli.runAgovViolations).toBe('function');
+    expect(typeof governanceCli.runAgovWorkspaceValidate).toBe('function');
     expect(typeof governanceCli.runAgovCli).toBe('function');
     expect(typeof governanceCli.parseAgovCliArgs).toBe('function');
     expect(typeof governanceCli.resolveAgovAssessmentCommand).toBe('function');
@@ -29,6 +30,9 @@ describe('Governance CLI public API', () => {
     );
     expect(typeof governanceCli.resolveAgovSignalsCommand).toBe('function');
     expect(typeof governanceCli.resolveAgovViolationsCommand).toBe('function');
+    expect(typeof governanceCli.resolveAgovWorkspaceValidateCommand).toBe(
+      'function',
+    );
     expect(typeof governanceCli.loadGenericWorkspace).toBe('function');
     expect(typeof governanceCli.loadStandaloneGovernanceProfile).toBe(
       'function',

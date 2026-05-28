@@ -44,6 +44,15 @@ export type {
 } from './profile-validate.js';
 export { runAgovProfileValidate } from './profile-validate.js';
 export type {
+  AgovWorkspaceValidateAdapterMetadata,
+  AgovWorkspaceValidateOptions,
+  AgovWorkspaceValidateResult,
+  AgovWorkspaceValidateSummary,
+  AgovWorkspaceValidateWithAdapterOptions,
+  AgovWorkspaceValidateWithWorkspacePathOptions,
+} from './workspace-validate.js';
+export { runAgovWorkspaceValidate } from './workspace-validate.js';
+export type {
   AgovRecommendationPriority,
   AgovRecommendationsFilters,
   AgovRecommendationsOptions,
@@ -88,6 +97,7 @@ export {
   resolveAgovRecommendationsCommand,
   resolveAgovSignalsCommand,
   resolveAgovViolationsCommand,
+  resolveAgovWorkspaceValidateCommand,
   resolveAgovRuntimeOptions,
   runAgovCli,
   type AgovAssessmentCommandName,
@@ -106,6 +116,7 @@ export {
   type AgovResolvedRecommendationsCommand,
   type AgovResolvedSignalsCommand,
   type AgovResolvedViolationsCommand,
+  type AgovResolvedWorkspaceValidateCommand,
   type AgovResolvedWorkspaceCommand,
   type ParsedAgovAssessOptions,
   type ParsedAgovAssessmentOptions,
@@ -118,6 +129,7 @@ export {
   type ParsedAgovRecommendationsOptions,
   type ParsedAgovSignalsOptions,
   type ParsedAgovViolationsOptions,
+  type ParsedAgovWorkspaceValidateOptions,
 } from './agov.js';
 export {
   GenericWorkspaceLoadError,
