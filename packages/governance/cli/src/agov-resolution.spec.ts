@@ -6,13 +6,15 @@ import {
   resolveAgovAssessCommand,
   resolveAgovAssessmentCommand,
   resolveAgovCheckCommand,
+  resolveAgovMetricsCommand,
   type AgovCliEnvironment,
   type ParsedAgovAssessOptions,
   type ParsedAgovCheckOptions,
+  type ParsedAgovMetricsOptions,
 } from './agov.js';
 
 describe('agov shared command resolution', () => {
-  it('resolves check and assess with identical option behavior', () => {
+  it('resolves check, assess, and metrics with identical option behavior', () => {
     const cwd = createTempWorkspaceRoot('agov-shared-resolution-');
 
     writeJson(path.join(cwd, 'workspace.json'), {
@@ -56,8 +58,20 @@ describe('agov shared command resolution', () => {
       },
       createEnvironment({ cwd }),
     );
+    const metricsResolved = resolveAgovAssessmentCommand(
+      {
+        command: 'metrics',
+        profilePath: './profile.json',
+        workspacePath: './workspace.json',
+        showHelp: false,
+      },
+      createEnvironment({ cwd }),
+    );
 
     expect(withoutCommand(assessResolved)).toEqual(
+      withoutCommand(checkResolved),
+    );
+    expect(withoutCommand(metricsResolved)).toEqual(
       withoutCommand(checkResolved),
     );
   });
@@ -374,6 +388,12 @@ describe('agov shared command resolution', () => {
       profilePath: './profile.json',
       showHelp: false,
     };
+    const metricsOptions: ParsedAgovMetricsOptions = {
+      command: 'metrics',
+      workspacePath: './workspace.json',
+      profilePath: './profile.json',
+      showHelp: false,
+    };
 
     const generalizedCheck = resolveAgovAssessmentCommand(
       checkOptions,
@@ -391,9 +411,18 @@ describe('agov shared command resolution', () => {
       assessOptions,
       createEnvironment({ cwd }),
     );
+    const generalizedMetrics = resolveAgovAssessmentCommand(
+      metricsOptions,
+      createEnvironment({ cwd }),
+    );
+    const aliasMetrics = resolveAgovMetricsCommand(
+      metricsOptions,
+      createEnvironment({ cwd }),
+    );
 
     expect(aliasCheck).toEqual(generalizedCheck);
     expect(aliasAssess).toEqual(generalizedAssess);
+    expect(aliasMetrics).toEqual(generalizedMetrics);
   });
 });
 

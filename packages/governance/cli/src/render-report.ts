@@ -4,6 +4,7 @@ import * as reportingPrimitives from './internal/reporting/render-primitives.js'
 
 import type { AgovAssessResult, AgovCheckResult } from './check.js';
 import type { AgovInspectResult } from './inspect.js';
+import type { AgovMetricsResult } from './metrics.js';
 
 type AgovCommandResult = AgovCheckResult | AgovAssessResult;
 
@@ -39,6 +40,21 @@ export function renderAgovInspectReport(
   }
 }
 
+export function renderAgovMetricsReport(
+  result: AgovMetricsResult,
+  format: AgovOutputFormat,
+): string {
+  switch (format) {
+    case 'json':
+      return renderAgovMetricsJson(result);
+    case 'markdown':
+      return renderAgovMetricsMarkdown(result);
+    case 'table':
+    case 'text':
+      return renderAgovMetricsTable(result);
+  }
+}
+
 export function renderAgovCheckJson(result: AgovCommandResult): string {
   return reportingPrimitives.renderJsonValue({
     command: result.command,
@@ -48,6 +64,10 @@ export function renderAgovCheckJson(result: AgovCommandResult): string {
 }
 
 export function renderAgovInspectJson(result: AgovInspectResult): string {
+  return reportingPrimitives.renderJsonValue(result, { stable: true });
+}
+
+export function renderAgovMetricsJson(result: AgovMetricsResult): string {
   return reportingPrimitives.renderJsonValue(result, { stable: true });
 }
 
@@ -308,6 +328,152 @@ function renderAgovInspectMarkdown(result: AgovInspectResult): string {
       }),
     );
   }
+
+  return lines.join('\n');
+}
+
+function renderAgovMetricsTable(result: AgovMetricsResult): string {
+  const lines: string[] = [];
+
+  lines.push('agov metrics');
+  lines.push('');
+  lines.push('Health');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['profile', result.profile],
+        ['health score', String(result.health.score)],
+        ['health grade', result.health.grade],
+        ['health status', result.health.status],
+        [
+          'thresholds',
+          result.health.thresholds
+            ? `good>=${result.health.thresholds.goodMinScore}, warning>=${result.health.thresholds.warningMinScore}`
+            : 'none',
+        ],
+      ],
+    }),
+  );
+
+  lines.push('');
+  lines.push('Measurements');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Measurement', 'Details'],
+      rows: result.measurements.map((measurement) => [
+        measurement.id,
+        [
+          `name=${measurement.name}`,
+          `family=${measurement.family}`,
+          `score=${measurement.score}`,
+          `value=${measurement.value}`,
+          `max=${measurement.maxScore}`,
+          `unit=${measurement.unit}`,
+        ].join(' :: '),
+      ]),
+    }),
+  );
+
+  if ((result.summary?.weakestMetrics.length ?? 0) > 0) {
+    lines.push('');
+    lines.push('Weakest Metrics');
+    lines.push(
+      ...reportingPrimitives.renderTwoColumnTextTable({
+        headers: ['Metric', 'Score'],
+        rows: (result.summary?.weakestMetrics ?? []).map((metric) => [
+          `${metric.id} (${metric.name})`,
+          String(metric.score),
+        ]),
+      }),
+    );
+  }
+
+  lines.push('');
+  lines.push('Summary');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['measurement count', String(result.summary?.measurementCount ?? 0)],
+        ['metric family count', String(result.summary?.metricFamilyCount ?? 0)],
+      ],
+    }),
+  );
+
+  return lines.join('\n');
+}
+
+function renderAgovMetricsMarkdown(result: AgovMetricsResult): string {
+  const lines: string[] = [];
+
+  lines.push('# agov metrics');
+  lines.push('');
+  lines.push('## Health');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['profile', result.profile],
+        ['health score', String(result.health.score)],
+        ['health grade', result.health.grade],
+        ['health status', result.health.status],
+        [
+          'thresholds',
+          result.health.thresholds
+            ? `good>=${result.health.thresholds.goodMinScore}, warning>=${result.health.thresholds.warningMinScore}`
+            : 'none',
+        ],
+      ],
+    }),
+  );
+
+  lines.push('');
+  lines.push('## Measurements');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Measurement', 'Details'],
+      rows: result.measurements.map((measurement) => [
+        measurement.id,
+        [
+          `name=${measurement.name}`,
+          `family=${measurement.family}`,
+          `score=${measurement.score}`,
+          `value=${measurement.value}`,
+          `max=${measurement.maxScore}`,
+          `unit=${measurement.unit}`,
+        ].join(' :: '),
+      ]),
+    }),
+  );
+
+  if ((result.summary?.weakestMetrics.length ?? 0) > 0) {
+    lines.push('');
+    lines.push('## Weakest Metrics');
+    lines.push(
+      ...reportingPrimitives.renderMarkdownTable({
+        headers: ['Metric', 'Score'],
+        rows: (result.summary?.weakestMetrics ?? []).map((metric) => [
+          `${metric.id} (${metric.name})`,
+          String(metric.score),
+        ]),
+      }),
+    );
+  }
+
+  lines.push('');
+  lines.push('## Summary');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['measurement count', String(result.summary?.measurementCount ?? 0)],
+        ['metric family count', String(result.summary?.metricFamilyCount ?? 0)],
+      ],
+    }),
+  );
 
   return lines.join('\n');
 }
