@@ -6,6 +6,7 @@ import type { AgovAssessResult, AgovCheckResult } from './check.js';
 import type { AgovInspectResult } from './inspect.js';
 import type { AgovMetricsResult } from './metrics.js';
 import type { AgovRecommendationsResult } from './recommendations.js';
+import type { AgovSignalsResult } from './signals.js';
 import type { AgovViolationsResult } from './violations.js';
 
 type AgovCommandResult = AgovCheckResult | AgovAssessResult;
@@ -87,6 +88,21 @@ export function renderAgovRecommendationsReport(
   }
 }
 
+export function renderAgovSignalsReport(
+  result: AgovSignalsResult,
+  format: AgovOutputFormat,
+): string {
+  switch (format) {
+    case 'json':
+      return renderAgovSignalsJson(result);
+    case 'markdown':
+      return renderAgovSignalsMarkdown(result);
+    case 'table':
+    case 'text':
+      return renderAgovSignalsTable(result);
+  }
+}
+
 export function renderAgovCheckJson(result: AgovCommandResult): string {
   return reportingPrimitives.renderJsonValue({
     command: result.command,
@@ -110,6 +126,10 @@ export function renderAgovViolationsJson(result: AgovViolationsResult): string {
 export function renderAgovRecommendationsJson(
   result: AgovRecommendationsResult,
 ): string {
+  return reportingPrimitives.renderJsonValue(result, { stable: true });
+}
+
+export function renderAgovSignalsJson(result: AgovSignalsResult): string {
   return reportingPrimitives.renderJsonValue(result, { stable: true });
 }
 
@@ -618,6 +638,84 @@ function renderAgovRecommendationsTable(
   return lines.join('\n');
 }
 
+function renderAgovSignalsTable(result: AgovSignalsResult): string {
+  const lines: string[] = [];
+
+  lines.push('agov signals');
+  lines.push('');
+  lines.push('Summary');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['profile', result.profile],
+        ['total', String(result.summary.total)],
+        ['by source', formatCountSummary(result.summary.bySource, 'source')],
+        ['by type', formatCountSummary(result.summary.byType, 'type')],
+        [
+          'by severity',
+          formatCountSummary(result.summary.bySeverity, 'severity'),
+        ],
+        [
+          'extension signal count',
+          String(result.summary.extensionSignalCount),
+        ],
+      ],
+    }),
+  );
+
+  lines.push('');
+  lines.push('Signals');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Signal', 'Details'],
+      rows: result.signals.map((signal) => [
+        signal.id,
+        [
+          `severity=${signal.severity}`,
+          `source=${signal.source}`,
+          `type=${signal.type}`,
+          signal.sourceProjectId
+            ? `sourceProject=${signal.sourceProjectId}`
+            : undefined,
+          signal.targetProjectId
+            ? `targetProject=${signal.targetProjectId}`
+            : undefined,
+          signal.sourcePluginId
+            ? `sourcePlugin=${signal.sourcePluginId}`
+            : undefined,
+          `message=${signal.message}`,
+        ]
+          .filter((part): part is string => Boolean(part))
+          .join(' :: '),
+      ]),
+    }),
+  );
+
+  lines.push('');
+  lines.push('Signal Breakdown');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['total', String(result.signalBreakdown.total)],
+        [
+          'by source',
+          formatCountSummary(result.signalBreakdown.bySource, 'source'),
+        ],
+        ['by type', formatCountSummary(result.signalBreakdown.byType, 'type')],
+        [
+          'by severity',
+          formatCountSummary(result.signalBreakdown.bySeverity, 'severity'),
+        ],
+      ],
+    }),
+  );
+
+  return lines.join('\n');
+}
+
 function renderAgovViolationsMarkdown(result: AgovViolationsResult): string {
   const lines: string[] = [];
 
@@ -720,6 +818,83 @@ function renderAgovRecommendationsMarkdown(
   return lines.join('\n');
 }
 
+function renderAgovSignalsMarkdown(result: AgovSignalsResult): string {
+  const lines: string[] = [];
+
+  lines.push('# agov signals');
+  lines.push('');
+  lines.push('## Summary');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['workspace', result.workspace.name],
+        ['profile', result.profile],
+        ['total', String(result.summary.total)],
+        ['by source', formatCountSummary(result.summary.bySource, 'source')],
+        ['by type', formatCountSummary(result.summary.byType, 'type')],
+        [
+          'by severity',
+          formatCountSummary(result.summary.bySeverity, 'severity'),
+        ],
+        [
+          'extension signal count',
+          String(result.summary.extensionSignalCount),
+        ],
+      ],
+    }),
+  );
+
+  lines.push('');
+  lines.push('## Signals');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: [
+        'id',
+        'severity',
+        'source',
+        'type',
+        'source project',
+        'target project',
+        'source plugin',
+        'message',
+      ],
+      rows: result.signals.map((signal) => [
+        signal.id,
+        signal.severity,
+        signal.source,
+        signal.type,
+        signal.sourceProjectId ?? 'none',
+        signal.targetProjectId ?? 'none',
+        signal.sourcePluginId ?? 'none',
+        signal.message,
+      ]),
+    }),
+  );
+
+  lines.push('');
+  lines.push('## Signal Breakdown');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['total', String(result.signalBreakdown.total)],
+        [
+          'by source',
+          formatCountSummary(result.signalBreakdown.bySource, 'source'),
+        ],
+        ['by type', formatCountSummary(result.signalBreakdown.byType, 'type')],
+        [
+          'by severity',
+          formatCountSummary(result.signalBreakdown.bySeverity, 'severity'),
+        ],
+      ],
+    }),
+  );
+
+  return lines.join('\n');
+}
+
 function groupRecommendationsByPriority(result: AgovRecommendationsResult): {
   priority: string;
   recommendations: AgovRecommendationsResult['recommendations'];
@@ -733,8 +908,9 @@ function groupRecommendationsByPriority(result: AgovRecommendationsResult): {
 }
 
 function formatCountSummary<
-  T extends { count: number } & Record<string, string | number>,
->(entries: T[], key: Exclude<keyof T, 'count'>): string {
+  T extends { count: number },
+  K extends Exclude<keyof T, 'count'>,
+>(entries: T[], key: K): string {
   if (entries.length === 0) {
     return 'none';
   }
