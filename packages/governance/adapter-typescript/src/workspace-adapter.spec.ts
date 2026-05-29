@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readdirSync,
   renameSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -120,6 +121,75 @@ describe('generic Governance adapter exports', () => {
       confidence: 'high',
     });
   });
+
+  it('includes metadata diagnostics in loadWorkspace results and continues discovery', () => {
+    const workspaceRoot = materializeFixture('pnpm');
+    writeJsonFile(path.join(workspaceRoot, 'packages', 'customer'), {
+      name: '@fixture/customer',
+      governance: {
+        domain: 42,
+      },
+    });
+
+    const adapter = createGovernanceWorkspaceAdapter();
+    const result = adapter.loadWorkspace(workspaceRoot);
+
+    expect(result.projects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'web' }),
+        expect.objectContaining({ id: 'customer' }),
+        expect.objectContaining({ id: 'order' }),
+      ]),
+    );
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'governance.typescript_adapter.invalid_package_governance_metadata_field',
+          path: '/package.json/governance/domain',
+        }),
+      ]),
+    );
+  });
+
+  it('passes package metadata config through createGovernanceWorkspaceAdapter to discovery', () => {
+    const workspaceRoot = materializeFixture('pnpm');
+    writeJsonFile(path.join(workspaceRoot, 'packages', 'customer'), {
+      name: '@fixture/customer',
+      anarchitects: {
+        governance: {
+          domain: 'booking',
+          layer: 'domain',
+          scope: 'booking',
+          owner: 'booking-team',
+        },
+      },
+    });
+
+    const adapter = createGovernanceWorkspaceAdapter({
+      packageGovernanceMetadataConfig: {
+        ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+        path: ['anarchitects', 'governance'],
+      },
+    });
+    const result = adapter.loadWorkspace(workspaceRoot);
+
+    expect(result.projects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'customer',
+          domain: 'booking',
+          layer: 'domain',
+          scope: 'booking',
+          metadata: expect.objectContaining({ owner: 'booking-team' }),
+          tags: expect.arrayContaining([
+            'domain:booking',
+            'layer:domain',
+            'scope:booking',
+          ]),
+        }),
+      ]),
+    );
+  });
 });
 
 const specDir = fileURLToPath(new URL('.', import.meta.url));
@@ -166,4 +236,8 @@ function renameIfExists(root: string, from: string, to: string): void {
   if (existsSync(source)) {
     renameSync(source, path.join(root, to));
   }
+}
+
+function writeJsonFile(root: string, value: Record<string, unknown>): void {
+  writeFileSync(path.join(root, 'package.json'), JSON.stringify(value), 'utf8');
 }
