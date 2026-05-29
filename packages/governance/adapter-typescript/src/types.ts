@@ -59,10 +59,10 @@ export interface TypeScriptProjectDiscoveryConfig {
 }
 
 export interface TypeScriptPackageGovernanceMetadataFieldMapping {
-  domain: string;
-  layer: string;
-  scope: string;
-  owner: string;
+  domain?: string;
+  layer?: string;
+  scope?: string;
+  owner?: string;
 }
 
 export interface TypeScriptPackageGovernanceMetadataConfig {

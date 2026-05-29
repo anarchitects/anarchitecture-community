@@ -1,6 +1,7 @@
 import {
   invalidPackageGovernanceMetadataDiagnostic,
   invalidPackageGovernanceMetadataFieldDiagnostic,
+  invalidPackageGovernanceMetadataFieldMappingConfigDiagnostic,
   invalidPackageGovernanceMetadataPathConfigDiagnostic,
   invalidPackageGovernanceMetadataPathResolutionDiagnostic,
 } from './diagnostics.js';
@@ -24,6 +25,7 @@ export function extractPackageGovernanceMetadata(
 ): ExtractPackageGovernanceMetadataResult {
   const loaded = loadPackageMetadata(packageRoot);
   const metadataPath = normalizeMetadataPath(config.path);
+  const fieldMapping = normalizeFieldMapping(config.fields);
 
   if (!metadataPath) {
     return {
@@ -31,6 +33,7 @@ export function extractPackageGovernanceMetadata(
       diagnostics: [
         ...loaded.diagnostics,
         invalidPackageGovernanceMetadataPathConfigDiagnostic(),
+        ...fieldMapping.diagnostics,
       ],
     };
   }
@@ -38,12 +41,13 @@ export function extractPackageGovernanceMetadata(
   if (!loaded.packageJson) {
     return {
       packageJsonPath: loaded.packageJsonPath,
-      diagnostics: [...loaded.diagnostics],
+      diagnostics: [...loaded.diagnostics, ...fieldMapping.diagnostics],
     };
   }
 
   const diagnostics: TypeScriptWorkspaceDetectionDiagnostic[] = [
     ...loaded.diagnostics,
+    ...fieldMapping.diagnostics,
   ];
   const governanceValue = resolvePath(
     loaded.packageJson,
@@ -78,8 +82,7 @@ export function extractPackageGovernanceMetadata(
   const metadata: TypeScriptPackageGovernanceMetadata = {};
 
   for (const targetField of GOVERNANCE_METADATA_FIELDS) {
-    const sourceField =
-      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG.fields[targetField];
+    const sourceField = fieldMapping.fields[targetField];
     const fieldValue = governanceRecord[sourceField];
 
     if (fieldValue === undefined) {
@@ -154,6 +157,40 @@ function normalizeMetadataPath(
   return pathSegments.length > 0 && pathSegments.every(isNonEmptyString)
     ? [...pathSegments]
     : undefined;
+}
+
+function normalizeFieldMapping(
+  fields: TypeScriptPackageGovernanceMetadataConfig['fields'],
+): {
+  fields: Record<(typeof GOVERNANCE_METADATA_FIELDS)[number], string>;
+  diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
+} {
+  const diagnostics: TypeScriptWorkspaceDetectionDiagnostic[] = [];
+  const normalized = {
+    ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG.fields,
+  } as Record<(typeof GOVERNANCE_METADATA_FIELDS)[number], string>;
+
+  for (const field of GOVERNANCE_METADATA_FIELDS) {
+    const configuredField = fields[field];
+
+    if (configuredField === undefined) {
+      continue;
+    }
+
+    if (!isNonEmptyString(configuredField)) {
+      diagnostics.push(
+        invalidPackageGovernanceMetadataFieldMappingConfigDiagnostic(field),
+      );
+      continue;
+    }
+
+    normalized[field] = configuredField;
+  }
+
+  return {
+    fields: normalized,
+    diagnostics,
+  };
 }
 
 function hasMetadataFields(
