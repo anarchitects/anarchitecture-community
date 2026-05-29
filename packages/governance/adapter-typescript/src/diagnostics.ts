@@ -40,24 +40,51 @@ export function unsupportedPackageMetadataFormatDiagnostic(
 
 export function invalidPackageGovernanceMetadataDiagnostic(
   filePath: string,
+  metadataPath: readonly string[] = ['governance'],
 ): TypeScriptWorkspaceDetectionDiagnostic {
+  const pathLabel = metadataPath.join('.');
+
   return {
     code: 'governance.typescript_adapter.invalid_package_governance_metadata',
-    message: `Package metadata file "${filePath}" has invalid governance metadata at "governance"; expected an object.`,
+    message: `Package metadata file "${filePath}" has invalid governance metadata at "${pathLabel}"; expected an object.`,
     source: DIAGNOSTIC_SOURCE,
-    path: '/package.json/governance',
+    path: `/package.json/${metadataPath.join('/')}`,
   };
 }
 
 export function invalidPackageGovernanceMetadataFieldDiagnostic(
   filePath: string,
   field: string,
+  metadataPath: readonly string[] = ['governance'],
 ): TypeScriptWorkspaceDetectionDiagnostic {
   return {
     code: 'governance.typescript_adapter.invalid_package_governance_metadata_field',
     message: `Package metadata file "${filePath}" has invalid governance metadata field "${field}"; expected a string value.`,
     source: DIAGNOSTIC_SOURCE,
-    path: `/package.json/governance/${field}`,
+    path: `/package.json/${metadataPath.join('/')}/${field}`,
+  };
+}
+
+export function invalidPackageGovernanceMetadataPathConfigDiagnostic(): TypeScriptWorkspaceDetectionDiagnostic {
+  return {
+    code: 'governance.typescript_adapter.invalid_package_governance_metadata_path_config',
+    message:
+      'Package governance metadata path configuration must be a non-empty array of non-empty string segments.',
+    source: DIAGNOSTIC_SOURCE,
+    path: '/packageGovernanceMetadataConfig/path',
+  };
+}
+
+export function invalidPackageGovernanceMetadataPathResolutionDiagnostic(
+  filePath: string,
+  metadataPath: readonly string[],
+  resolvedPath: readonly string[],
+): TypeScriptWorkspaceDetectionDiagnostic {
+  return {
+    code: 'governance.typescript_adapter.invalid_package_governance_metadata_path_resolution',
+    message: `Package metadata file "${filePath}" could not resolve governance metadata path "${metadataPath.join('.')}" because "${resolvedPath.join('.')}" is not an object.`,
+    source: DIAGNOSTIC_SOURCE,
+    path: `/package.json/${resolvedPath.join('/')}`,
   };
 }
 
