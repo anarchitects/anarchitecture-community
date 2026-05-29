@@ -1,6 +1,7 @@
 export { detectTypeScriptWorkspace } from './detect-typescript-workspace.js';
 export { buildTypeScriptImportGraph } from './import-graph.js';
 export {
+  DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
   DEFAULT_TYPESCRIPT_PROJECT_DISCOVERY_CONFIG,
   createGovernanceWorkspaceAdapter,
   createTypeScriptWorkspaceAdapter,
@@ -27,6 +28,8 @@ export { resolveWorkspacePackages } from './resolve-workspace-packages.js';
 export { deriveProjectTags, type DerivedProjectTags } from './tag-mapping.js';
 export type {
   TsConfigResolutionModel,
+  TypeScriptPackageGovernanceMetadataConfig,
+  TypeScriptPackageGovernanceMetadataFieldMapping,
   TypeScriptImportEdge,
   TypeScriptImportGraph,
   TypeScriptImportKind,

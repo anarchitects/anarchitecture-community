@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import type { GovernanceWorkspaceAdapter } from '@anarchitects/governance-core';
 
 import {
+  DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
   createGovernanceWorkspaceAdapter,
   createTypeScriptWorkspaceAdapter,
   governanceWorkspaceAdapter,
@@ -35,6 +36,8 @@ describe('createTypeScriptWorkspaceAdapter', () => {
           },
         ],
       },
+      packageGovernanceMetadataConfig:
+        DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
     });
 
     const typedAdapter: GovernanceWorkspaceAdapter<string> = adapter;
@@ -75,6 +78,19 @@ describe('createTypeScriptWorkspaceAdapter', () => {
 });
 
 describe('generic Governance adapter exports', () => {
+  it('exports a deterministic default package governance metadata config', () => {
+    expect(DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG).toEqual({
+      sourceFile: 'package.json',
+      path: ['governance'],
+      fields: {
+        domain: 'domain',
+        layer: 'layer',
+        scope: 'scope',
+        owner: 'owner',
+      },
+    });
+  });
+
   it('creates a compatible adapter without host-owned discovery defaults in the CLI', () => {
     const workspaceRoot = materializeFixture('pnpm');
 
