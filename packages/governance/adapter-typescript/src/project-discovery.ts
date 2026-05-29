@@ -190,17 +190,55 @@ function createGovernanceProject({
   metadataLayer?: string;
   metadataScope?: string;
 }): GovernanceProjectInput {
+  const resolvedDomain = metadataDomain ?? domain;
+  const resolvedLayer = metadataLayer ?? layer;
+  const resolvedScope = metadataScope ?? scope;
+
   return {
     id: name,
     name,
     root,
     type: 'unknown',
-    tags,
-    ...((metadataDomain ?? domain) ? { domain: metadataDomain ?? domain } : {}),
-    ...((metadataLayer ?? layer) ? { layer: metadataLayer ?? layer } : {}),
-    ...((metadataScope ?? scope) ? { scope: metadataScope ?? scope } : {}),
+    tags: mergeProjectTags(tags, resolvedDomain, resolvedLayer, resolvedScope),
+    ...(resolvedDomain ? { domain: resolvedDomain } : {}),
+    ...(resolvedLayer ? { layer: resolvedLayer } : {}),
+    ...(resolvedScope ? { scope: resolvedScope } : {}),
     metadata: owner ? { owner } : {},
   };
+}
+
+function mergeProjectTags(
+  existingTags: readonly string[],
+  domain?: string,
+  layer?: string,
+  scope?: string,
+): string[] {
+  const merged: string[] = [];
+  const seenTags = new Set<string>();
+
+  for (const tag of existingTags) {
+    if (seenTags.has(tag)) {
+      continue;
+    }
+
+    seenTags.add(tag);
+    merged.push(tag);
+  }
+
+  for (const tag of [
+    ...(domain ? [`domain:${domain}`] : []),
+    ...(layer ? [`layer:${layer}`] : []),
+    ...(scope ? [`scope:${scope}`] : []),
+  ]) {
+    if (seenTags.has(tag)) {
+      continue;
+    }
+
+    seenTags.add(tag);
+    merged.push(tag);
+  }
+
+  return merged;
 }
 
 function normalizeDiscoveryPattern(pattern: unknown): string | undefined {

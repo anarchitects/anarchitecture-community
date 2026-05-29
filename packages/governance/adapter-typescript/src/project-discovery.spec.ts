@@ -342,7 +342,7 @@ describe('TypeScript project discovery', () => {
         name: 'order',
         root: 'packages/order',
         type: 'unknown',
-        tags: [],
+        tags: ['domain:booking', 'layer:domain', 'scope:booking'],
         domain: 'booking',
         layer: 'domain',
         scope: 'booking',
@@ -455,7 +455,7 @@ describe('TypeScript project discovery', () => {
         name: 'order',
         root: 'packages/order',
         type: 'unknown',
-        tags: ['layer:application'],
+        tags: ['layer:application', 'domain:booking'],
         domain: 'booking',
         layer: 'application',
         metadata: {
@@ -497,7 +497,12 @@ describe('TypeScript project discovery', () => {
         name: 'customer-application',
         root: 'libs/customer/application',
         type: 'unknown',
-        tags: ['scope:customer', 'layer:application'],
+        tags: [
+          'scope:customer',
+          'layer:application',
+          'domain:booking',
+          'layer:domain',
+        ],
         domain: 'booking',
         layer: 'domain',
         scope: 'customer',
@@ -505,6 +510,123 @@ describe('TypeScript project discovery', () => {
       },
     ]);
     expect(result.diagnostics).toEqual([]);
+  });
+
+  it('merges metadata-derived tags with existing discovery-rule tags deterministically', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        domain: 'booking',
+        scope: 'ordering',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: ['type:lib', 'layer:application'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects[0]?.tags).toEqual([
+      'type:lib',
+      'layer:application',
+      'domain:booking',
+      'scope:ordering',
+    ]);
+  });
+
+  it('removes duplicate metadata-derived tags', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        layer: 'application',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: ['layer:application', 'layer:application'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects[0]?.tags).toEqual(['layer:application']);
+  });
+
+  it('preserves existing tags when metadata is absent', () => {
+    const packageRoot = makeTempPackageRoot();
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: ['type:lib'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects[0]?.tags).toEqual(['type:lib']);
+  });
+
+  it('keeps metadata-generated tag ordering deterministic', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        scope: 'ordering',
+        domain: 'booking',
+        layer: 'application',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: ['type:lib'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects[0]?.tags).toEqual([
+      'type:lib',
+      'domain:booking',
+      'layer:application',
+      'scope:ordering',
+    ]);
   });
 
   it('does not import Nx APIs', () => {
