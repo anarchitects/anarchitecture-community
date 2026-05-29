@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { minimatch } from 'minimatch';
 
 import type { GovernanceProjectInput } from '@anarchitects/governance-core';
@@ -9,9 +11,11 @@ import {
   invalidDiscoveryPatternDiagnostic,
   invalidTagTemplateDiagnostic,
 } from './diagnostics.js';
+import { extractPackageGovernanceMetadata } from './extract-package-governance-metadata.js';
 import { renderProjectNameTemplate } from './project-naming.js';
 import { deriveProjectTags } from './tag-mapping.js';
 import type {
+  TypeScriptPackageGovernanceMetadataConfig,
   TypeScriptProjectDiscoveryConfig,
   TypeScriptProjectDiscoveryResult,
   TypeScriptWorkspaceDetectionDiagnostic,
@@ -21,6 +25,7 @@ import type {
 export function discoverTypeScriptProjects(
   workspace: WorkspacePackageResolution,
   config: TypeScriptProjectDiscoveryConfig,
+  packageGovernanceMetadataConfig?: TypeScriptPackageGovernanceMetadataConfig,
 ): TypeScriptProjectDiscoveryResult {
   const diagnostics: TypeScriptWorkspaceDetectionDiagnostic[] = [];
   const projects: GovernanceProjectInput[] = [];
@@ -125,6 +130,12 @@ export function discoverTypeScriptProjects(
 
       seenRoots.add(match);
       seenNames.add(name.value);
+      const extractedMetadata = extractPackageGovernanceMetadata(
+        path.join(workspace.workspaceRoot, match),
+        packageGovernanceMetadataConfig,
+      );
+      diagnostics.push(...extractedMetadata.diagnostics);
+
       projects.push(
         createGovernanceProject({
           root: match,
@@ -133,6 +144,10 @@ export function discoverTypeScriptProjects(
           domain: tags.domain,
           layer: tags.layer,
           scope: tags.scope,
+          owner: extractedMetadata.metadata?.owner,
+          metadataDomain: extractedMetadata.metadata?.domain,
+          metadataLayer: extractedMetadata.metadata?.layer,
+          metadataScope: extractedMetadata.metadata?.scope,
         }),
       );
     }
@@ -159,6 +174,10 @@ function createGovernanceProject({
   domain,
   layer,
   scope,
+  owner,
+  metadataDomain,
+  metadataLayer,
+  metadataScope,
 }: {
   root: string;
   name: string;
@@ -166,6 +185,10 @@ function createGovernanceProject({
   domain?: string;
   layer?: string;
   scope?: string;
+  owner?: string;
+  metadataDomain?: string;
+  metadataLayer?: string;
+  metadataScope?: string;
 }): GovernanceProjectInput {
   return {
     id: name,
@@ -173,10 +196,10 @@ function createGovernanceProject({
     root,
     type: 'unknown',
     tags,
-    ...(domain ? { domain } : {}),
-    ...(layer ? { layer } : {}),
-    ...(scope ? { scope } : {}),
-    metadata: {},
+    ...((metadataDomain ?? domain) ? { domain: metadataDomain ?? domain } : {}),
+    ...((metadataLayer ?? layer) ? { layer: metadataLayer ?? layer } : {}),
+    ...((metadataScope ?? scope) ? { scope: metadataScope ?? scope } : {}),
+    metadata: owner ? { owner } : {},
   };
 }
 

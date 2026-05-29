@@ -87,6 +87,7 @@ export function createTypeScriptWorkspaceAdapter(
       const discovered = discoverTypeScriptProjects(
         workspace,
         options.discoveryConfig,
+        options.packageGovernanceMetadataConfig,
       );
       const tsconfig = parseTsConfigResolution(
         workspaceRoot,

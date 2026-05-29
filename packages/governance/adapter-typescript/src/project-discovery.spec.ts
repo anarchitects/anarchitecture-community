@@ -1,8 +1,10 @@
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { discoverTypeScriptProjects } from './project-discovery.js';
+import { DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG } from './workspace-adapter.js';
 import type { WorkspacePackageResolution } from './types.js';
 
 const specDir = fileURLToPath(new URL('.', import.meta.url));
@@ -309,6 +311,202 @@ describe('TypeScript project discovery', () => {
     ]);
   });
 
+  it('maps package metadata to domain, layer, and scope', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        domain: 'booking',
+        layer: 'domain',
+        scope: 'booking',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects).toEqual([
+      {
+        id: 'order',
+        name: 'order',
+        root: 'packages/order',
+        type: 'unknown',
+        tags: [],
+        domain: 'booking',
+        layer: 'domain',
+        scope: 'booking',
+        metadata: {},
+      },
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('maps metadata owner to project.metadata.owner', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        owner: 'booking-team',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects).toEqual([
+      {
+        id: 'order',
+        name: 'order',
+        root: 'packages/order',
+        type: 'unknown',
+        tags: [],
+        metadata: {
+          owner: 'booking-team',
+        },
+      },
+    ]);
+  });
+
+  it('preserves existing discovery-derived output when package metadata is absent', () => {
+    const packageRoot = makeTempPackageRoot();
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['libs/customer/domain'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'libs/*/*',
+            name: '{segment:1}-{segment:2}',
+            tags: ['scope:{segment:1}', 'layer:{segment:2}'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects).toEqual([
+      {
+        id: 'customer-domain',
+        name: 'customer-domain',
+        root: 'libs/customer/domain',
+        type: 'unknown',
+        tags: ['scope:customer', 'layer:domain'],
+        layer: 'domain',
+        scope: 'customer',
+        metadata: {},
+      },
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('maps only the present package metadata fields', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        domain: 'booking',
+        owner: 'booking-team',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: ['layer:application'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects).toEqual([
+      {
+        id: 'order',
+        name: 'order',
+        root: 'packages/order',
+        type: 'unknown',
+        tags: ['layer:application'],
+        domain: 'booking',
+        layer: 'application',
+        metadata: {
+          owner: 'booking-team',
+        },
+      },
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('keeps existing discovery behavior stable when metadata and derived values both exist', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        domain: 'booking',
+        layer: 'domain',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['libs/customer/application'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'libs/*/*',
+            name: '{segment:1}-{segment:2}',
+            tags: ['scope:{segment:1}', 'layer:{segment:2}'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects).toEqual([
+      {
+        id: 'customer-application',
+        name: 'customer-application',
+        root: 'libs/customer/application',
+        type: 'unknown',
+        tags: ['scope:customer', 'layer:application'],
+        domain: 'booking',
+        layer: 'domain',
+        scope: 'customer',
+        metadata: {},
+      },
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
   it('does not import Nx APIs', () => {
     const discoverySource = readFileSync(
       path.join(specDir, 'project-discovery.ts'),
@@ -342,4 +540,44 @@ function workspace(
     diagnostics: [],
     ...overrides,
   };
+}
+
+function makeTempPackageRoot(packageJson: Record<string, unknown> = {}): {
+  workspaceRoot: string;
+} {
+  const workspaceRoot = mkdtempSync(
+    path.join(tmpdir(), 'governance-typescript-project-discovery-'),
+  );
+  const packageRoot = path.join(workspaceRoot, 'packages', 'order');
+  const libsRoot = path.join(workspaceRoot, 'libs', 'customer', 'domain');
+  const libsApplicationRoot = path.join(
+    workspaceRoot,
+    'libs',
+    'customer',
+    'application',
+  );
+
+  writePackageJson(path.join(workspaceRoot, 'packages', 'order'), packageJson);
+  writePackageJson(path.join(workspaceRoot, 'libs', 'customer', 'domain'), {});
+  writePackageJson(
+    path.join(workspaceRoot, 'libs', 'customer', 'application'),
+    packageJson,
+  );
+
+  void packageRoot;
+  void libsRoot;
+  void libsApplicationRoot;
+
+  return { workspaceRoot };
+}
+
+function writePackageJson(
+  root: string,
+  packageJson: Record<string, unknown>,
+): void {
+  mkdirSync(root, { recursive: true });
+  writeFileSync(path.join(root, 'package.json'), JSON.stringify(packageJson), {
+    encoding: 'utf8',
+    flag: 'w',
+  });
 }
