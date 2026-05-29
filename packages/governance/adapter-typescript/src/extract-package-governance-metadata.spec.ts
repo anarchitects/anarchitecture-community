@@ -93,6 +93,33 @@ describe('extractPackageGovernanceMetadata', () => {
     ]);
   });
 
+  it('returns diagnostics for empty-string governance field values', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(
+      packageRoot,
+      JSON.stringify({
+        governance: {
+          domain: '',
+          scope: 'booking',
+        },
+      }),
+    );
+
+    const result = extractPackageGovernanceMetadata(packageRoot);
+
+    expect(result.metadata).toEqual({
+      scope: 'booking',
+    });
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'governance.typescript_adapter.invalid_package_governance_metadata_field',
+        message: `Package metadata file "${path.join(packageRoot, 'package.json')}" has invalid governance metadata field "domain"; expected a string value.`,
+        source: 'governance.typescript_adapter',
+        path: '/package.json/governance/domain',
+      },
+    ]);
+  });
+
   it('extracts partial governance metadata when present', () => {
     const packageRoot = makeTempPackageRoot();
     writePackageJson(
@@ -363,6 +390,111 @@ describe('extractPackageGovernanceMetadata', () => {
           'Package governance metadata path configuration must be a non-empty array of non-empty string segments.',
         source: 'governance.typescript_adapter',
         path: '/packageGovernanceMetadataConfig/path',
+      },
+    ]);
+  });
+
+  it('returns diagnostics for non-array metadata path configuration', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(packageRoot, JSON.stringify({ governance: {} }));
+
+    const result = extractPackageGovernanceMetadata(packageRoot, {
+      ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+      path: 'governance' as unknown as string[],
+    });
+
+    expect(result.metadata).toBeUndefined();
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'governance.typescript_adapter.invalid_package_governance_metadata_path_config',
+        message:
+          'Package governance metadata path configuration must be a non-empty array of non-empty string segments.',
+        source: 'governance.typescript_adapter',
+        path: '/packageGovernanceMetadataConfig/path',
+      },
+    ]);
+  });
+
+  it('returns diagnostics for metadata path segments that are not non-empty strings', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(packageRoot, JSON.stringify({ governance: {} }));
+
+    const result = extractPackageGovernanceMetadata(packageRoot, {
+      ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+      path: ['governance', ''] as unknown as string[],
+    });
+
+    expect(result.metadata).toBeUndefined();
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'governance.typescript_adapter.invalid_package_governance_metadata_path_config',
+        message:
+          'Package governance metadata path configuration must be a non-empty array of non-empty string segments.',
+        source: 'governance.typescript_adapter',
+        path: '/packageGovernanceMetadataConfig/path',
+      },
+    ]);
+  });
+
+  it('returns diagnostics for malformed field mapping configuration', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(
+      packageRoot,
+      JSON.stringify({
+        governance: {
+          domain: 'booking',
+        },
+      }),
+    );
+
+    const result = extractPackageGovernanceMetadata(packageRoot, {
+      ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+      fields: 'invalid' as unknown as Record<string, string>,
+    });
+
+    expect(result.metadata).toEqual({
+      domain: 'booking',
+    });
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'governance.typescript_adapter.invalid_package_governance_metadata_field_mapping_format',
+        message:
+          'Package governance metadata field mapping configuration must be an object when provided.',
+        source: 'governance.typescript_adapter',
+        path: '/packageGovernanceMetadataConfig/fields',
+      },
+    ]);
+  });
+
+  it('returns diagnostics for non-string field mapping values', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(
+      packageRoot,
+      JSON.stringify({
+        governance: {
+          domain: 'booking',
+        },
+      }),
+    );
+
+    const result = extractPackageGovernanceMetadata(packageRoot, {
+      ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+      fields: {
+        ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG.fields,
+        domain: 42 as unknown as string,
+      },
+    });
+
+    expect(result.metadata).toEqual({
+      domain: 'booking',
+    });
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'governance.typescript_adapter.invalid_package_governance_metadata_field_mapping_config',
+        message:
+          'Package governance metadata field mapping for "domain" must be a non-empty string.',
+        source: 'governance.typescript_adapter',
+        path: '/packageGovernanceMetadataConfig/fields/domain',
       },
     ]);
   });
