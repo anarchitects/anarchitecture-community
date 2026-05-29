@@ -38,6 +38,29 @@ export function unsupportedPackageMetadataFormatDiagnostic(
   };
 }
 
+export function invalidPackageGovernanceMetadataDiagnostic(
+  filePath: string,
+): TypeScriptWorkspaceDetectionDiagnostic {
+  return {
+    code: 'governance.typescript_adapter.invalid_package_governance_metadata',
+    message: `Package metadata file "${filePath}" has invalid governance metadata at "governance"; expected an object.`,
+    source: DIAGNOSTIC_SOURCE,
+    path: '/package.json/governance',
+  };
+}
+
+export function invalidPackageGovernanceMetadataFieldDiagnostic(
+  filePath: string,
+  field: string,
+): TypeScriptWorkspaceDetectionDiagnostic {
+  return {
+    code: 'governance.typescript_adapter.invalid_package_governance_metadata_field',
+    message: `Package metadata file "${filePath}" has invalid governance metadata field "${field}"; expected a string value.`,
+    source: DIAGNOSTIC_SOURCE,
+    path: `/package.json/governance/${field}`,
+  };
+}
+
 export function partialWorkspaceDetectionDiagnostic(
   indicators: TypeScriptWorkspaceIndicators,
 ): TypeScriptWorkspaceDetectionDiagnostic {
