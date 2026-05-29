@@ -88,6 +88,17 @@ export function invalidPackageGovernanceMetadataPathResolutionDiagnostic(
   };
 }
 
+export function invalidPackageGovernanceMetadataFieldMappingConfigDiagnostic(
+  field: string,
+): TypeScriptWorkspaceDetectionDiagnostic {
+  return {
+    code: 'governance.typescript_adapter.invalid_package_governance_metadata_field_mapping_config',
+    message: `Package governance metadata field mapping for "${field}" must be a non-empty string.`,
+    source: DIAGNOSTIC_SOURCE,
+    path: `/packageGovernanceMetadataConfig/fields/${field}`,
+  };
+}
+
 export function partialWorkspaceDetectionDiagnostic(
   indicators: TypeScriptWorkspaceIndicators,
 ): TypeScriptWorkspaceDetectionDiagnostic {

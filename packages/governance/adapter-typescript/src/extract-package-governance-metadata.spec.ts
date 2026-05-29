@@ -114,6 +114,160 @@ describe('extractPackageGovernanceMetadata', () => {
     expect(result.diagnostics).toEqual([]);
   });
 
+  it('supports a custom governance field mapping', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(
+      packageRoot,
+      JSON.stringify({
+        governance: {
+          boundedContext: 'booking',
+          architecturalLayer: 'domain',
+          moduleScope: 'booking',
+          owningTeam: 'booking-team',
+        },
+      }),
+    );
+
+    const result = extractPackageGovernanceMetadata(packageRoot, {
+      ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+      fields: {
+        domain: 'boundedContext',
+        layer: 'architecturalLayer',
+        scope: 'moduleScope',
+        owner: 'owningTeam',
+      },
+    });
+
+    expect(result.metadata).toEqual({
+      domain: 'booking',
+      layer: 'domain',
+      scope: 'booking',
+      owner: 'booking-team',
+    });
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('extracts partial governance metadata with a custom field mapping', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(
+      packageRoot,
+      JSON.stringify({
+        governance: {
+          boundedContext: 'booking',
+          moduleScope: 'booking',
+        },
+      }),
+    );
+
+    const result = extractPackageGovernanceMetadata(packageRoot, {
+      ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+      fields: {
+        domain: 'boundedContext',
+        layer: 'architecturalLayer',
+        scope: 'moduleScope',
+        owner: 'owningTeam',
+      },
+    });
+
+    expect(result.metadata).toEqual({
+      domain: 'booking',
+      scope: 'booking',
+    });
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('handles missing mapped fields gracefully', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(
+      packageRoot,
+      JSON.stringify({
+        governance: {
+          boundedContext: 'booking',
+        },
+      }),
+    );
+
+    const result = extractPackageGovernanceMetadata(packageRoot, {
+      ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+      fields: {
+        domain: 'boundedContext',
+        layer: 'architecturalLayer',
+        scope: 'moduleScope',
+        owner: 'owningTeam',
+      },
+    });
+
+    expect(result.metadata).toEqual({
+      domain: 'booking',
+    });
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('returns diagnostics for invalid field mapping configuration and falls back to defaults', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(
+      packageRoot,
+      JSON.stringify({
+        governance: {
+          domain: 'booking',
+          owner: 'booking-team',
+        },
+      }),
+    );
+
+    const result = extractPackageGovernanceMetadata(packageRoot, {
+      ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+      fields: {
+        ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG.fields,
+        owner: '',
+      },
+    });
+
+    expect(result.metadata).toEqual({
+      domain: 'booking',
+      owner: 'booking-team',
+    });
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'governance.typescript_adapter.invalid_package_governance_metadata_field_mapping_config',
+        message:
+          'Package governance metadata field mapping for "owner" must be a non-empty string.',
+        source: 'governance.typescript_adapter',
+        path: '/packageGovernanceMetadataConfig/fields/owner',
+      },
+    ]);
+  });
+
+  it('falls back to default field mappings when some mappings are omitted', () => {
+    const packageRoot = makeTempPackageRoot();
+    writePackageJson(
+      packageRoot,
+      JSON.stringify({
+        governance: {
+          boundedContext: 'booking',
+          layer: 'domain',
+          scope: 'booking',
+          owner: 'booking-team',
+        },
+      }),
+    );
+
+    const result = extractPackageGovernanceMetadata(packageRoot, {
+      ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+      fields: {
+        domain: 'boundedContext',
+      },
+    });
+
+    expect(result.metadata).toEqual({
+      domain: 'booking',
+      layer: 'domain',
+      scope: 'booking',
+      owner: 'booking-team',
+    });
+    expect(result.diagnostics).toEqual([]);
+  });
+
   it('supports a custom nested governance metadata path', () => {
     const packageRoot = makeTempPackageRoot();
     writePackageJson(
