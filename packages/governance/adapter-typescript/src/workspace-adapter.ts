@@ -13,16 +13,21 @@ import { mapTypeScriptImportsToGovernanceDependencies } from './map-imports-to-p
 import { parsePackageManagerWorkspace } from './parse-package-manager-workspace.js';
 import { parseTsConfigResolution } from './parse-tsconfig.js';
 import { discoverTypeScriptProjects } from './project-discovery.js';
-import type { TypeScriptProjectDiscoveryConfig } from './types.js';
+import type {
+  TypeScriptPackageGovernanceMetadataConfig,
+  TypeScriptProjectDiscoveryConfig,
+} from './types.js';
 
 export interface CreateTypeScriptWorkspaceAdapterOptions {
   discoveryConfig: TypeScriptProjectDiscoveryConfig;
+  packageGovernanceMetadataConfig: TypeScriptPackageGovernanceMetadataConfig;
   tsconfigPath?: string;
   adapterId?: string;
 }
 
 export interface CreateGovernanceWorkspaceAdapterOptions {
   discoveryConfig?: TypeScriptProjectDiscoveryConfig;
+  packageGovernanceMetadataConfig?: TypeScriptPackageGovernanceMetadataConfig;
   tsconfigPath?: string;
   adapterId?: string;
 }
@@ -41,6 +46,17 @@ export const DEFAULT_TYPESCRIPT_PROJECT_DISCOVERY_CONFIG = {
     { pattern: 'tools/*/*' },
   ],
 } satisfies TypeScriptProjectDiscoveryConfig;
+
+export const DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG = {
+  sourceFile: 'package.json',
+  path: ['governance'],
+  fields: {
+    domain: 'domain',
+    layer: 'layer',
+    scope: 'scope',
+    owner: 'owner',
+  },
+} satisfies TypeScriptPackageGovernanceMetadataConfig;
 
 export function createTypeScriptWorkspaceAdapter(
   options: CreateTypeScriptWorkspaceAdapterOptions,
@@ -111,6 +127,9 @@ export function createGovernanceWorkspaceAdapter(
   return createTypeScriptWorkspaceAdapter({
     discoveryConfig:
       options.discoveryConfig ?? DEFAULT_TYPESCRIPT_PROJECT_DISCOVERY_CONFIG,
+    packageGovernanceMetadataConfig:
+      options.packageGovernanceMetadataConfig ??
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
     ...(options.tsconfigPath ? { tsconfigPath: options.tsconfigPath } : {}),
     ...(options.adapterId ? { adapterId: options.adapterId } : {}),
   });

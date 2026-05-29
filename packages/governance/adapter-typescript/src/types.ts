@@ -58,6 +58,19 @@ export interface TypeScriptProjectDiscoveryConfig {
   projects: TypeScriptProjectDiscoveryRule[];
 }
 
+export interface TypeScriptPackageGovernanceMetadataFieldMapping {
+  domain: string;
+  layer: string;
+  scope: string;
+  owner: string;
+}
+
+export interface TypeScriptPackageGovernanceMetadataConfig {
+  sourceFile: string;
+  path: string[];
+  fields: TypeScriptPackageGovernanceMetadataFieldMapping;
+}
+
 export interface TypeScriptProjectDiscoveryResult {
   workspaceRoot: string;
   projects: GovernanceProjectInput[];
