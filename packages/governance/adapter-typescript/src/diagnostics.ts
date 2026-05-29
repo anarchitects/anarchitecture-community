@@ -16,6 +16,28 @@ export function invalidPackageJsonDiagnostic(
   };
 }
 
+export function invalidPackageMetadataJsonDiagnostic(
+  filePath: string,
+): TypeScriptWorkspaceDetectionDiagnostic {
+  return {
+    code: 'governance.typescript_adapter.invalid_package_metadata_json',
+    message: `Failed to parse package metadata file "${filePath}" as JSON.`,
+    source: DIAGNOSTIC_SOURCE,
+    path: '/package.json',
+  };
+}
+
+export function unsupportedPackageMetadataFormatDiagnostic(
+  filePath: string,
+): TypeScriptWorkspaceDetectionDiagnostic {
+  return {
+    code: 'governance.typescript_adapter.unsupported_package_metadata_format',
+    message: `Package metadata file "${filePath}" must contain a JSON object.`,
+    source: DIAGNOSTIC_SOURCE,
+    path: '/package.json',
+  };
+}
+
 export function partialWorkspaceDetectionDiagnostic(
   indicators: TypeScriptWorkspaceIndicators,
 ): TypeScriptWorkspaceDetectionDiagnostic {
