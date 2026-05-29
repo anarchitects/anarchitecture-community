@@ -71,6 +71,13 @@ export interface TypeScriptPackageGovernanceMetadataConfig {
   fields: TypeScriptPackageGovernanceMetadataFieldMapping;
 }
 
+export interface TypeScriptPackageGovernanceMetadata {
+  domain?: string;
+  layer?: string;
+  scope?: string;
+  owner?: string;
+}
+
 export interface TypeScriptProjectDiscoveryResult {
   workspaceRoot: string;
   projects: GovernanceProjectInput[];
