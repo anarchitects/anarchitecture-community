@@ -806,6 +806,49 @@ describe('TypeScript project discovery', () => {
     ]);
   });
 
+  it('includes metadata diagnostics and continues discovery when package metadata is invalid', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        domain: 42,
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects).toEqual([
+      {
+        id: 'order',
+        name: 'order',
+        root: 'packages/order',
+        type: 'unknown',
+        tags: [],
+        metadata: {},
+      },
+    ]);
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'governance.typescript_adapter.invalid_package_governance_metadata_field',
+        message: `Package metadata file "${path.join(packageRoot.workspaceRoot, 'packages/order/package.json')}" has invalid governance metadata field "domain"; expected a string value.`,
+        source: 'governance.typescript_adapter',
+        path: '/package.json/governance/domain',
+      },
+    ]);
+  });
+
   it('does not import Nx APIs', () => {
     const discoverySource = readFileSync(
       path.join(specDir, 'project-discovery.ts'),

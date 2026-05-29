@@ -99,6 +99,16 @@ export function invalidPackageGovernanceMetadataFieldMappingConfigDiagnostic(
   };
 }
 
+export function invalidPackageGovernanceMetadataFieldMappingFormatDiagnostic(): TypeScriptWorkspaceDetectionDiagnostic {
+  return {
+    code: 'governance.typescript_adapter.invalid_package_governance_metadata_field_mapping_format',
+    message:
+      'Package governance metadata field mapping configuration must be an object when provided.',
+    source: DIAGNOSTIC_SOURCE,
+    path: '/packageGovernanceMetadataConfig/fields',
+  };
+}
+
 export function partialWorkspaceDetectionDiagnostic(
   indicators: TypeScriptWorkspaceIndicators,
 ): TypeScriptWorkspaceDetectionDiagnostic {

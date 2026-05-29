@@ -2,6 +2,7 @@ import {
   invalidPackageGovernanceMetadataDiagnostic,
   invalidPackageGovernanceMetadataFieldDiagnostic,
   invalidPackageGovernanceMetadataFieldMappingConfigDiagnostic,
+  invalidPackageGovernanceMetadataFieldMappingFormatDiagnostic,
   invalidPackageGovernanceMetadataPathConfigDiagnostic,
   invalidPackageGovernanceMetadataPathResolutionDiagnostic,
 } from './diagnostics.js';
@@ -24,8 +25,12 @@ export function extractPackageGovernanceMetadata(
   config: TypeScriptPackageGovernanceMetadataConfig = DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
 ): ExtractPackageGovernanceMetadataResult {
   const loaded = loadPackageMetadata(packageRoot);
-  const metadataPath = normalizeMetadataPath(config.path);
-  const fieldMapping = normalizeFieldMapping(config.fields);
+  const metadataPath = normalizeMetadataPath(
+    (config as unknown as { path?: unknown }).path,
+  );
+  const fieldMapping = normalizeFieldMapping(
+    (config as unknown as { fields?: unknown }).fields,
+  );
 
   if (!metadataPath) {
     return {
@@ -89,7 +94,7 @@ export function extractPackageGovernanceMetadata(
       continue;
     }
 
-    if (typeof fieldValue !== 'string') {
+    if (!isNonEmptyString(fieldValue)) {
       diagnostics.push(
         invalidPackageGovernanceMetadataFieldDiagnostic(
           loaded.packageJsonPath,
@@ -151,17 +156,17 @@ function resolvePath(
   return current;
 }
 
-function normalizeMetadataPath(
-  pathSegments: readonly string[],
-): string[] | undefined {
+function normalizeMetadataPath(pathSegments: unknown): string[] | undefined {
+  if (!Array.isArray(pathSegments)) {
+    return undefined;
+  }
+
   return pathSegments.length > 0 && pathSegments.every(isNonEmptyString)
     ? [...pathSegments]
     : undefined;
 }
 
-function normalizeFieldMapping(
-  fields: TypeScriptPackageGovernanceMetadataConfig['fields'],
-): {
+function normalizeFieldMapping(fields: unknown): {
   fields: Record<(typeof GOVERNANCE_METADATA_FIELDS)[number], string>;
   diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
 } {
@@ -170,8 +175,27 @@ function normalizeFieldMapping(
     ...DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG.fields,
   } as Record<(typeof GOVERNANCE_METADATA_FIELDS)[number], string>;
 
+  if (fields === undefined) {
+    return {
+      fields: normalized,
+      diagnostics,
+    };
+  }
+
+  const fieldsRecord = asRecord(fields);
+
+  if (!fieldsRecord) {
+    diagnostics.push(
+      invalidPackageGovernanceMetadataFieldMappingFormatDiagnostic(),
+    );
+    return {
+      fields: normalized,
+      diagnostics,
+    };
+  }
+
   for (const field of GOVERNANCE_METADATA_FIELDS) {
-    const configuredField = fields[field];
+    const configuredField = fieldsRecord[field];
 
     if (configuredField === undefined) {
       continue;
