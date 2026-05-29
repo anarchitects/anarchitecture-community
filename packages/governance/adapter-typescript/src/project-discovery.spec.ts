@@ -34,7 +34,7 @@ describe('TypeScript project discovery', () => {
           name: 'customer-domain',
           root: 'libs/customer/domain',
           type: 'unknown',
-          tags: ['scope:customer', 'layer:domain'],
+          tags: ['layer:domain', 'scope:customer'],
           layer: 'domain',
           scope: 'customer',
           metadata: {},
@@ -44,7 +44,7 @@ describe('TypeScript project discovery', () => {
           name: 'order-domain',
           root: 'libs/order/domain',
           type: 'unknown',
-          tags: ['scope:order', 'layer:domain'],
+          tags: ['layer:domain', 'scope:order'],
           layer: 'domain',
           scope: 'order',
           metadata: {},
@@ -269,7 +269,7 @@ describe('TypeScript project discovery', () => {
         name: 'shared-utils',
         root: 'libs/shared/utils',
         type: 'unknown',
-        tags: ['scope:shared', 'kind:static'],
+        tags: ['kind:static', 'scope:shared'],
         scope: 'shared',
         metadata: {},
       },
@@ -352,6 +352,111 @@ describe('TypeScript project discovery', () => {
     expect(result.diagnostics).toEqual([]);
   });
 
+  it('lets package metadata override discovery-derived domain', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        domain: 'booking',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: ['domain:payments', 'type:lib'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects[0]).toEqual({
+      id: 'order',
+      name: 'order',
+      root: 'packages/order',
+      type: 'unknown',
+      tags: ['type:lib', 'domain:booking'],
+      domain: 'booking',
+      metadata: {},
+    });
+  });
+
+  it('lets package metadata override discovery-derived layer', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        layer: 'domain',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: ['layer:application', 'type:lib'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects[0]).toEqual({
+      id: 'order',
+      name: 'order',
+      root: 'packages/order',
+      type: 'unknown',
+      tags: ['type:lib', 'layer:domain'],
+      layer: 'domain',
+      metadata: {},
+    });
+  });
+
+  it('lets package metadata override discovery-derived scope', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        scope: 'booking',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: ['scope:payments', 'type:lib'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects[0]).toEqual({
+      id: 'order',
+      name: 'order',
+      root: 'packages/order',
+      type: 'unknown',
+      tags: ['type:lib', 'scope:booking'],
+      scope: 'booking',
+      metadata: {},
+    });
+  });
+
   it('maps metadata owner to project.metadata.owner', () => {
     const packageRoot = makeTempPackageRoot({
       governance: {
@@ -415,7 +520,7 @@ describe('TypeScript project discovery', () => {
         name: 'customer-domain',
         root: 'libs/customer/domain',
         type: 'unknown',
-        tags: ['scope:customer', 'layer:domain'],
+        tags: ['layer:domain', 'scope:customer'],
         layer: 'domain',
         scope: 'customer',
         metadata: {},
@@ -455,7 +560,7 @@ describe('TypeScript project discovery', () => {
         name: 'order',
         root: 'packages/order',
         type: 'unknown',
-        tags: ['layer:application', 'domain:booking'],
+        tags: ['domain:booking', 'layer:application'],
         domain: 'booking',
         layer: 'application',
         metadata: {
@@ -497,12 +602,7 @@ describe('TypeScript project discovery', () => {
         name: 'customer-application',
         root: 'libs/customer/application',
         type: 'unknown',
-        tags: [
-          'scope:customer',
-          'layer:application',
-          'domain:booking',
-          'layer:domain',
-        ],
+        tags: ['domain:booking', 'layer:domain', 'scope:customer'],
         domain: 'booking',
         layer: 'domain',
         scope: 'customer',
@@ -539,8 +639,8 @@ describe('TypeScript project discovery', () => {
 
     expect(result.projects[0]?.tags).toEqual([
       'type:lib',
-      'layer:application',
       'domain:booking',
+      'layer:application',
       'scope:ordering',
     ]);
   });
@@ -626,6 +726,83 @@ describe('TypeScript project discovery', () => {
       'domain:booking',
       'layer:application',
       'scope:ordering',
+    ]);
+  });
+
+  it('keeps discovery-derived values as fallback when package metadata fields are absent', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        domain: 'booking',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['libs/customer/application'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'libs/*/*',
+            name: '{segment:1}-{segment:2}',
+            tags: ['scope:{segment:1}', 'layer:{segment:2}'],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects[0]).toEqual({
+      id: 'customer-application',
+      name: 'customer-application',
+      root: 'libs/customer/application',
+      type: 'unknown',
+      tags: ['domain:booking', 'layer:application', 'scope:customer'],
+      domain: 'booking',
+      layer: 'application',
+      scope: 'customer',
+      metadata: {},
+    });
+  });
+
+  it('handles conflicting governance tags deterministically by keeping only resolved values', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        domain: 'booking',
+        layer: 'domain',
+        scope: 'booking',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['packages/order'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: [
+              'scope:legacy',
+              'layer:application',
+              'type:lib',
+              'domain:payments',
+              'type:lib',
+            ],
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects[0]?.tags).toEqual([
+      'type:lib',
+      'domain:booking',
+      'layer:domain',
+      'scope:booking',
     ]);
   });
 
