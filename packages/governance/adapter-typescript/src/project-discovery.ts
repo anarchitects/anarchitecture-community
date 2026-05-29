@@ -190,24 +190,58 @@ function createGovernanceProject({
   metadataLayer?: string;
   metadataScope?: string;
 }): GovernanceProjectInput {
-  const resolvedDomain = metadataDomain ?? domain;
-  const resolvedLayer = metadataLayer ?? layer;
-  const resolvedScope = metadataScope ?? scope;
+  const resolvedGovernance = resolveGovernanceWithMetadataPrecedence({
+    domain,
+    layer,
+    scope,
+    metadataDomain,
+    metadataLayer,
+    metadataScope,
+  });
 
   return {
     id: name,
     name,
     root,
     type: 'unknown',
-    tags: mergeProjectTags(tags, resolvedDomain, resolvedLayer, resolvedScope),
-    ...(resolvedDomain ? { domain: resolvedDomain } : {}),
-    ...(resolvedLayer ? { layer: resolvedLayer } : {}),
-    ...(resolvedScope ? { scope: resolvedScope } : {}),
+    tags: mergeResolvedGovernanceTags(
+      tags,
+      resolvedGovernance.domain,
+      resolvedGovernance.layer,
+      resolvedGovernance.scope,
+    ),
+    ...(resolvedGovernance.domain ? { domain: resolvedGovernance.domain } : {}),
+    ...(resolvedGovernance.layer ? { layer: resolvedGovernance.layer } : {}),
+    ...(resolvedGovernance.scope ? { scope: resolvedGovernance.scope } : {}),
     metadata: owner ? { owner } : {},
   };
 }
 
-function mergeProjectTags(
+function resolveGovernanceWithMetadataPrecedence({
+  domain,
+  layer,
+  scope,
+  metadataDomain,
+  metadataLayer,
+  metadataScope,
+}: {
+  domain?: string;
+  layer?: string;
+  scope?: string;
+  metadataDomain?: string;
+  metadataLayer?: string;
+  metadataScope?: string;
+}): { domain?: string; layer?: string; scope?: string } {
+  // Package metadata is explicit project-owned governance metadata, so it wins
+  // over discovery-derived defaults when both are present.
+  return {
+    domain: metadataDomain ?? domain,
+    layer: metadataLayer ?? layer,
+    scope: metadataScope ?? scope,
+  };
+}
+
+function mergeResolvedGovernanceTags(
   existingTags: readonly string[],
   domain?: string,
   layer?: string,
@@ -217,6 +251,10 @@ function mergeProjectTags(
   const seenTags = new Set<string>();
 
   for (const tag of existingTags) {
+    if (isGovernanceDimensionTag(tag)) {
+      continue;
+    }
+
     if (seenTags.has(tag)) {
       continue;
     }
@@ -239,6 +277,14 @@ function mergeProjectTags(
   }
 
   return merged;
+}
+
+function isGovernanceDimensionTag(tag: string): boolean {
+  return (
+    tag.startsWith('domain:') ||
+    tag.startsWith('layer:') ||
+    tag.startsWith('scope:')
+  );
 }
 
 function normalizeDiscoveryPattern(pattern: unknown): string | undefined {
