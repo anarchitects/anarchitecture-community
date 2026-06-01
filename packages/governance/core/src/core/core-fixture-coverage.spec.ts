@@ -146,8 +146,13 @@ describe('Core adapter contract coverage', () => {
         {
           id: 'capability:test-fixture',
           version: '1',
+          source: 'adapter',
+          producer: 'core-fixture',
           data: {
             origin: 'core-fixture',
+          },
+          metadata: {
+            category: 'fixture',
           },
         },
       ],
@@ -165,6 +170,16 @@ describe('Core adapter contract coverage', () => {
     expect(adapterResult.nodes?.[0]?.id).toBe('asset-a');
     expect(adapterResult.relations?.[0]?.kind).toBe('traceability');
     expect(adapterResult.capabilities?.[0]?.id).toBe('capability:test-fixture');
+    expect(adapterResult.capabilities?.[0]?.source).toBe('adapter');
     expect(adapterResult.diagnostics?.[0]?.code).toBe('fixture-warning');
+  });
+
+  it('keeps adapter result capabilities optional', () => {
+    const adapterResult: GovernanceWorkspaceAdapterResult = {
+      projects: [],
+      dependencies: [],
+    };
+
+    expect(adapterResult.capabilities).toBeUndefined();
   });
 });

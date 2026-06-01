@@ -140,7 +140,10 @@ export interface GovernanceOwnershipInput {
 export interface GovernanceCapability<TData = unknown> {
   id: string;
   version?: string;
+  source?: string;
+  producer?: string;
   data?: TData;
+  metadata?: Record<string, unknown>;
 }
 
 export interface GovernanceDiagnostic {
