@@ -5,6 +5,10 @@ import type {
   GovernanceRelationInput,
   GovernanceWorkspaceAdapterResult,
 } from './adapter.js';
+import {
+  governanceDependenciesToRelations,
+  governanceProjectsToNodes,
+} from './compatibility.js';
 
 export interface GovernanceNormalizedGraph {
   nodes: GovernanceNormalizedNode[];
@@ -44,18 +48,22 @@ export function normalizeGovernanceGraph(
   const nodesById = new Map<string, GovernanceNormalizedNode>();
   const relationsById = new Map<string, GovernanceNormalizedRelation>();
 
-  for (const project of resolveProjectInputs(adapterResult)) {
-    nodesById.set(project.id, normalizeProjectNode(project));
+  for (const node of governanceProjectsToNodes(
+    resolveProjectInputs(adapterResult),
+  )) {
+    nodesById.set(node.id, normalizeNode(node));
   }
 
   for (const node of adapterResult.nodes ?? []) {
     nodesById.set(node.id, normalizeNode(node));
   }
 
-  resolveDependencyInputs(adapterResult).forEach((dependency, index) => {
-    const relation = normalizeDependencyRelation(dependency, index);
+  for (const dependencyRelation of governanceDependenciesToRelations(
+    resolveDependencyInputs(adapterResult),
+  )) {
+    const relation = normalizeRelation(dependencyRelation, 0);
     relationsById.set(relation.id, relation);
-  });
+  }
 
   (adapterResult.relations ?? []).forEach((relation, index) => {
     const normalized = normalizeRelation(relation, index);
@@ -111,24 +119,6 @@ function resolveDependencyInputs(
   return [];
 }
 
-function normalizeProjectNode(
-  project: GovernanceProjectInput,
-): GovernanceNormalizedNode {
-  const normalized: GovernanceNormalizedNode = {
-    id: project.id,
-    name: project.name ?? project.id,
-    kind: 'project',
-    tags: project.tags ?? [],
-    metadata: project.metadata ?? {},
-  };
-
-  if (project.root !== undefined) {
-    normalized.root = project.root;
-  }
-
-  return normalized;
-}
-
 function normalizeNode(node: GovernanceNodeInput): GovernanceNormalizedNode {
   const normalized: GovernanceNormalizedNode = {
     id: node.id,
@@ -149,21 +139,6 @@ function normalizeNode(node: GovernanceNodeInput): GovernanceNormalizedNode {
   if (node.ownership !== undefined) normalized.ownership = node.ownership;
 
   return normalized;
-}
-
-function normalizeDependencyRelation(
-  dependency: GovernanceDependencyInput,
-  index: number,
-): GovernanceNormalizedRelation {
-  const kind = dependency.type ?? 'dependency';
-
-  return {
-    id: `legacy:${dependency.sourceProjectId}->${dependency.targetProjectId}:${kind}:${index}`,
-    sourceNodeId: dependency.sourceProjectId,
-    targetNodeId: dependency.targetProjectId,
-    kind: 'dependency',
-    metadata: dependency.metadata ?? {},
-  };
 }
 
 function normalizeRelation(
