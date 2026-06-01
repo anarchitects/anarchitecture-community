@@ -129,6 +129,19 @@ describe('Core adapter contract coverage', () => {
   it('supports plain adapter result data through the core boundary', () => {
     const adapterResult: GovernanceWorkspaceAdapterResult = {
       ...coreTestAdapterResult,
+      nodes: [
+        {
+          id: 'asset-a',
+          kind: 'asset',
+        },
+      ],
+      relations: [
+        {
+          sourceNodeId: 'asset-a',
+          targetNodeId: 'booking-ui',
+          kind: 'traceability',
+        },
+      ],
       capabilities: [
         {
           id: 'capability:test-fixture',
@@ -149,6 +162,8 @@ describe('Core adapter contract coverage', () => {
 
     expect(adapterResult.projects).toHaveLength(3);
     expect(adapterResult.dependencies).toHaveLength(2);
+    expect(adapterResult.nodes?.[0]?.id).toBe('asset-a');
+    expect(adapterResult.relations?.[0]?.kind).toBe('traceability');
     expect(adapterResult.capabilities?.[0]?.id).toBe('capability:test-fixture');
     expect(adapterResult.diagnostics?.[0]?.code).toBe('fixture-warning');
   });

@@ -22,6 +22,7 @@ This package is responsible for:
 - defining adapter-facing input contracts such as `GovernanceNodeInput`, `GovernanceRelationInput`, `GovernanceClassificationInput`, `GovernanceOwnershipInput`, `GovernanceProjectInput`, `GovernanceDependencyInput`, and `GovernanceWorkspaceAdapterResult`
 - defining profile, rule, signal, exception, measurement, health, assessment, snapshot, and drift contracts
 - providing deterministic helpers such as profile normalization, rule evaluation, assessment assembly, snapshot comparison, and AI handoff payload builders
+- providing internal graph normalization infrastructure for legacy project/dependency inputs and additive node/relation inputs
 - providing host-independent helpers that map changed files onto canonical `GovernanceProject` models and shape snapshot delivery-impact summaries
 - providing portable extension contracts and runtime helpers that stay independent from Nx
 
@@ -115,7 +116,7 @@ Core contracts include:
 - Governance exceptions and exception reports
 - signal contracts and signal breakdowns
 - snapshot and drift contracts
-- adapter input/result contracts for hosts and adapters, including additive node/relation inputs and legacy project/dependency inputs
+- adapter input/result contracts for hosts and adapters, including additive node/relation result fields and legacy project/dependency inputs
 - adapter contract, probe, and normalization helpers such as `GovernanceWorkspaceAdapter`, `GovernanceWorkspaceAdapterProbeResult`, and `buildGovernanceWorkspace(...)`
 - AI analysis and handoff payload contracts
 

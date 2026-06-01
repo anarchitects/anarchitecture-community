@@ -1,0 +1,184 @@
+import type {
+  GovernanceDependencyInput,
+  GovernanceNodeInput,
+  GovernanceProjectInput,
+  GovernanceRelationInput,
+  GovernanceWorkspaceAdapterResult,
+} from './adapter.js';
+
+export interface GovernanceNormalizedGraph {
+  nodes: GovernanceNormalizedNode[];
+  relations: GovernanceNormalizedRelation[];
+}
+
+export interface GovernanceNormalizedNode {
+  id: string;
+  name?: string;
+  kind: string;
+  technology?: string;
+  sourceSystem?: string;
+  root?: string;
+  path?: string;
+  tags: string[];
+  classification?: GovernanceNodeInput['classification'];
+  ownership?: GovernanceNodeInput['ownership'];
+  metadata: Record<string, unknown>;
+}
+
+export interface GovernanceNormalizedRelation {
+  id: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  kind: string;
+  metadata: Record<string, unknown>;
+}
+
+/**
+ * Internal graph normalization for the Phase 1 canonical graph transition.
+ * It accepts legacy project/dependency fields and additive node/relation fields
+ * without changing existing workspace normalization behavior.
+ */
+export function normalizeGovernanceGraph(
+  adapterResult: GovernanceWorkspaceAdapterResult,
+): GovernanceNormalizedGraph {
+  const nodesById = new Map<string, GovernanceNormalizedNode>();
+  const relationsById = new Map<string, GovernanceNormalizedRelation>();
+
+  for (const project of resolveProjectInputs(adapterResult)) {
+    nodesById.set(project.id, normalizeProjectNode(project));
+  }
+
+  for (const node of adapterResult.nodes ?? []) {
+    nodesById.set(node.id, normalizeNode(node));
+  }
+
+  resolveDependencyInputs(adapterResult).forEach((dependency, index) => {
+    const relation = normalizeDependencyRelation(dependency, index);
+    relationsById.set(relation.id, relation);
+  });
+
+  (adapterResult.relations ?? []).forEach((relation, index) => {
+    const normalized = normalizeRelation(relation, index);
+    relationsById.set(normalized.id, normalized);
+  });
+
+  return {
+    nodes: [...nodesById.values()],
+    relations: [...relationsById.values()],
+  };
+}
+
+function resolveProjectInputs(
+  adapterResult: GovernanceWorkspaceAdapterResult,
+): GovernanceProjectInput[] {
+  if (adapterResult.projects) {
+    return adapterResult.projects;
+  }
+
+  if (adapterResult.workspace) {
+    return adapterResult.workspace.projects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      root: project.root,
+      type: project.type,
+      domain: project.domain,
+      layer: project.layer,
+      tags: project.tags,
+      ownership: project.ownership,
+      metadata: project.metadata,
+    }));
+  }
+
+  return [];
+}
+
+function resolveDependencyInputs(
+  adapterResult: GovernanceWorkspaceAdapterResult,
+): GovernanceDependencyInput[] {
+  if (adapterResult.dependencies) {
+    return adapterResult.dependencies;
+  }
+
+  if (adapterResult.workspace) {
+    return adapterResult.workspace.dependencies.map((dependency) => ({
+      sourceProjectId: dependency.source,
+      targetProjectId: dependency.target,
+      type: dependency.type,
+      sourceFile: dependency.sourceFile,
+    }));
+  }
+
+  return [];
+}
+
+function normalizeProjectNode(
+  project: GovernanceProjectInput,
+): GovernanceNormalizedNode {
+  const normalized: GovernanceNormalizedNode = {
+    id: project.id,
+    name: project.name ?? project.id,
+    kind: 'project',
+    tags: project.tags ?? [],
+    metadata: project.metadata ?? {},
+  };
+
+  if (project.root !== undefined) {
+    normalized.root = project.root;
+  }
+
+  return normalized;
+}
+
+function normalizeNode(node: GovernanceNodeInput): GovernanceNormalizedNode {
+  const normalized: GovernanceNormalizedNode = {
+    id: node.id,
+    kind: node.kind ?? 'unknown',
+    tags: node.tags ?? [],
+    metadata: node.metadata ?? {},
+  };
+
+  if (node.name !== undefined) normalized.name = node.name;
+  if (node.technology !== undefined) normalized.technology = node.technology;
+  if (node.sourceSystem !== undefined)
+    normalized.sourceSystem = node.sourceSystem;
+  if (node.root !== undefined) normalized.root = node.root;
+  if (node.path !== undefined) normalized.path = node.path;
+  if (node.classification !== undefined) {
+    normalized.classification = node.classification;
+  }
+  if (node.ownership !== undefined) normalized.ownership = node.ownership;
+
+  return normalized;
+}
+
+function normalizeDependencyRelation(
+  dependency: GovernanceDependencyInput,
+  index: number,
+): GovernanceNormalizedRelation {
+  const kind = dependency.type ?? 'dependency';
+
+  return {
+    id: `legacy:${dependency.sourceProjectId}->${dependency.targetProjectId}:${kind}:${index}`,
+    sourceNodeId: dependency.sourceProjectId,
+    targetNodeId: dependency.targetProjectId,
+    kind: 'dependency',
+    metadata: dependency.metadata ?? {},
+  };
+}
+
+function normalizeRelation(
+  relation: GovernanceRelationInput,
+  index: number,
+): GovernanceNormalizedRelation {
+  const kind = relation.kind ?? 'unknown';
+
+  return {
+    id:
+      relation.id ??
+      `canonical:${relation.sourceNodeId}->${relation.targetNodeId}:${kind}:${index}`,
+    sourceNodeId: relation.sourceNodeId,
+    targetNodeId: relation.targetNodeId,
+    kind,
+    metadata: relation.metadata ?? {},
+  };
+}
