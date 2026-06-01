@@ -122,6 +122,7 @@ Core contracts include:
 
 - workspace, node/relation input, classification input, ownership input, perspective, source/evidence, project, and dependency models
 - findings, signals, measurements, recommendations, score dimensions, health scores, and top issues
+- rule metadata, applicability, multi-perspective evaluation context, findings, conformance results, and drift results
 - Governance profiles and rule configuration
 - Governance exceptions and exception reports
 - signal contracts and signal breakdowns
@@ -138,6 +139,11 @@ reporting behavior.
 Runtime primitive contracts remain backward compatible while allowing generic
 findings, signals, measurements, assessments, and score dimensions to reference
 nodes, relations, perspectives, evidence, authority, confidence, and metadata.
+
+Rule contracts also expose optional applicability and multi-perspective result
+primitives. Existing rules can continue to return only violations, signals, and
+measurements; future rules can opt into findings, recommendations, conformance,
+and drift outputs without changing adapter, CLI, host, or extension behavior.
 
 ### Deterministic logic
 
