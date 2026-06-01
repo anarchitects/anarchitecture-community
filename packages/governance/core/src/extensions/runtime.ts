@@ -3,7 +3,7 @@ import type {
   Measurement,
   Violation,
 } from '../core/index.js';
-import type { GovernanceSignal } from '../core/signals.js';
+import type { GovernanceSignal } from '../core/evaluation/signals.js';
 import type {
   GovernanceExtensionDefinition,
   GovernanceExtensionHost as GovernanceExtensionHostContract,

@@ -96,26 +96,17 @@ import {
 } from '@anarchitects/governance-core';
 ```
 
-The root export currently re-exports these API groups:
+The root export preserves the package API while the implementation is organized
+around bounded contexts:
 
-- `adapter`
-- `assessment`
-- `ai`
-- `built-in-rule-pack`
-- `built-in-rules`
-- `drift`
-- `ai-context`
-- `ai-payload`
-- `models`
-- `exceptions`
-- `profile`
-- `project-matching`
-- `reporting`
-- `rule-engine`
-- `rules`
-- `signals`
-- `snapshots`
-- `extensions`
+- `adapter`: adapter contracts, adapter result contracts, and workspace normalization
+- `model`: canonical workspace, project, dependency, finding, metric, score, and assessment models
+- `graph`: canonical node/relation graph normalization
+- `compatibility`: legacy project/dependency compatibility mapping and project matching
+- `evaluation`: profiles, rules, rule engine, built-in rules, signals, metrics, health, and assessment assembly
+- `diagnostics`: diagnostics, exceptions, reporting, snapshots, drift, and delivery-impact summaries
+- `ai`: AI request/payload/context helpers built on top of Core assessment outputs
+- `extensions`: portable extension, capability, diagnostic, and runtime contracts
 
 ### Core contracts
 
