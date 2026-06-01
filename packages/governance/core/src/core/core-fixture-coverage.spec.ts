@@ -1,5 +1,7 @@
 import type {
+  GovernanceClassificationInput,
   GovernanceNodeInput,
+  GovernanceOwnershipInput,
   GovernanceRelationInput,
   GovernanceWorkspaceAdapterResult,
   GovernanceSignal,
@@ -67,6 +69,33 @@ describe('Core signal contracts', () => {
 
 describe('Core adapter contract coverage', () => {
   it('exports technology-neutral graph input contracts through the core boundary', () => {
+    const classification = {
+      domain: 'customer',
+      boundedContext: 'account-management',
+      capability: 'identity',
+      layer: 'data',
+      scope: 'internal',
+      system: 'customer-platform',
+      product: 'customer-portal',
+      tags: ['critical'],
+      metadata: {
+        classificationKind: 'example',
+      },
+    } satisfies GovernanceClassificationInput;
+
+    const ownership = {
+      team: 'customer-platform',
+      contacts: ['customer-platform@example.com'],
+      stewards: ['data-steward@example.com'],
+      productOwner: 'product-owner@example.com',
+      technicalOwner: 'technical-owner@example.com',
+      businessOwner: 'business-owner@example.com',
+      source: 'catalog',
+      metadata: {
+        ownershipKind: 'example',
+      },
+    } satisfies GovernanceOwnershipInput;
+
     const node = {
       id: 'asset-a',
       name: 'Asset A',
@@ -75,6 +104,8 @@ describe('Core adapter contract coverage', () => {
       sourceSystem: 'catalog',
       path: 'assets/a',
       tags: ['critical'],
+      classification,
+      ownership,
       metadata: {
         sourceKind: 'example',
       },
@@ -90,6 +121,8 @@ describe('Core adapter contract coverage', () => {
     } satisfies GovernanceRelationInput;
 
     expect(node.kind).toBe('asset');
+    expect(node.classification?.domain).toBe('customer');
+    expect(node.ownership?.team).toBe('customer-platform');
     expect(relation.sourceNodeId).toBe('asset-a');
   });
 
