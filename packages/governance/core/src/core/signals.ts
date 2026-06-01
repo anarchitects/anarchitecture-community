@@ -1,3 +1,11 @@
+import type {
+  GovernanceAuthority,
+  GovernanceConfidence,
+  GovernanceEvidence,
+  GovernancePerspective,
+  GovernanceSource,
+} from './adapter.js';
+
 export type GovernanceConformanceCategory =
   | 'boundary'
   | 'ownership'
@@ -21,7 +29,8 @@ export type GovernanceSignalSeverity = 'info' | 'warning' | 'error';
 
 export type GovernanceSignalCategory =
   | GovernanceConformanceCategory
-  | 'structure';
+  | 'structure'
+  | (string & {});
 
 export type GovernanceSignalSource =
   | 'graph'
@@ -35,11 +44,22 @@ export interface GovernanceSignal {
   sourceProjectId?: string;
   targetProjectId?: string;
   relatedProjectIds: string[];
+  nodeId?: string;
+  relationId?: string;
+  relatedNodeIds?: string[];
+  relatedRelationIds?: string[];
+  metricIds?: string[];
+  findingIds?: string[];
   severity: GovernanceSignalSeverity;
   category: GovernanceSignalCategory;
   message: string;
   metadata?: Record<string, unknown>;
   source: GovernanceSignalSource;
+  sourceRef?: GovernanceSource;
+  perspective?: GovernancePerspective;
+  evidence?: GovernanceEvidence[];
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
   sourcePluginId?: string;
   createdAt: string;
 }

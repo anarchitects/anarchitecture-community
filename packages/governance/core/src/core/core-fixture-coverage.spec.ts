@@ -1,17 +1,23 @@
 import type {
+  GovernanceAssessment,
+  GovernanceAssessmentScope,
   GovernanceClassificationInput,
   GovernanceEvidence,
+  GovernanceFinding,
   GovernanceNodeInput,
   GovernanceOwnershipInput,
   GovernancePerspective,
   GovernanceRelationInput,
+  GovernanceScore,
   GovernanceSource,
   GovernanceWorkspaceAdapterResult,
+  Measurement,
   GovernanceSignal,
   GovernanceSignalCategory,
   GovernanceSignalSeverity,
   GovernanceSignalSource,
   GovernanceSignalType,
+  Violation,
 } from './index.js';
 import {
   coreTestAdapterResult,
@@ -67,6 +73,196 @@ describe('Core signal contracts', () => {
       severity: 'warning',
       source: 'policy',
     });
+  });
+
+  it('support technology-neutral runtime primitive references', () => {
+    const perspective = {
+      id: 'software-architecture',
+      name: 'Software Architecture',
+    } satisfies GovernancePerspective;
+    const evidence = [
+      {
+        id: 'evidence:adr-1',
+        type: 'adr',
+        reference: 'docs/adr/0001.md',
+        authority: 'documented',
+        confidence: 0.9,
+      },
+    ] satisfies GovernanceEvidence[];
+    const reference = {
+      nodeId: 'node:booking-api',
+      relationId: 'relation:booking-api->shared-domain',
+      relatedNodeIds: ['node:shared-domain'],
+    };
+
+    const finding = {
+      id: 'finding:traceability-gap',
+      type: 'traceability-gap',
+      severity: 'warning',
+      category: 'architecture',
+      message: 'Implementation asset is missing documented traceability.',
+      reference,
+      perspective,
+      evidence,
+      authority: 'inferred',
+      confidence: 0.7,
+      metadata: {
+        source: 'fixture',
+      },
+    } satisfies GovernanceFinding;
+
+    const signal = {
+      id: 'signal:traceability-gap',
+      type: 'traceability-gap',
+      relatedProjectIds: [],
+      nodeId: 'node:booking-api',
+      relationId: 'relation:booking-api->shared-domain',
+      relatedNodeIds: ['node:shared-domain'],
+      findingIds: [finding.id],
+      severity: 'warning',
+      category: 'architecture',
+      message: 'Traceability is incomplete.',
+      source: 'extension',
+      perspective,
+      evidence,
+      authority: 'inferred',
+      confidence: 0.7,
+      createdAt: '2026-05-13T00:00:00.000Z',
+    } satisfies GovernanceSignal;
+
+    const measurement = {
+      id: 'traceability-coverage',
+      name: 'Traceability Coverage',
+      family: 'architecture',
+      value: 0.8,
+      score: 80,
+      maxScore: 100,
+      unit: 'ratio',
+      dimensions: {
+        perspective: perspective.id,
+      },
+      signalIds: [signal.id],
+      findingIds: [finding.id],
+      perspective,
+      evidence,
+    } satisfies Measurement;
+
+    const score = {
+      id: 'architecture-score',
+      name: 'Architecture Score',
+      value: 80,
+      maxScore: 100,
+      family: 'architecture',
+      measurementIds: [measurement.id],
+      findingIds: [finding.id],
+      signalIds: [signal.id],
+      perspective,
+      evidence,
+    } satisfies GovernanceScore;
+
+    const scope = {
+      workspaceId: coreTestWorkspace.id,
+      nodeIds: ['node:booking-api'],
+      relationIds: ['relation:booking-api->shared-domain'],
+      perspectives: [perspective],
+    } satisfies GovernanceAssessmentScope;
+
+    const assessment = {
+      workspace: coreTestWorkspace,
+      profile: 'runtime-fixture',
+      warnings: [],
+      exceptions: {
+        summary: {
+          declaredCount: 0,
+          matchedCount: 0,
+          suppressedPolicyViolationCount: 0,
+          suppressedConformanceFindingCount: 0,
+          unusedExceptionCount: 0,
+          activeExceptionCount: 0,
+          staleExceptionCount: 0,
+          expiredExceptionCount: 0,
+          reactivatedPolicyViolationCount: 0,
+          reactivatedConformanceFindingCount: 0,
+        },
+        used: [],
+        unused: [],
+        suppressedFindings: [],
+        reactivatedFindings: [],
+      },
+      violations: [],
+      findings: [finding],
+      signals: [signal],
+      measurements: [measurement],
+      scores: [score],
+      scope,
+      perspectives: [perspective],
+      signalBreakdown: {
+        total: 1,
+        bySource: [{ source: 'extension', count: 1 }],
+        byType: [{ type: 'traceability-gap', count: 1 }],
+        bySeverity: [{ severity: 'warning', count: 1 }],
+      },
+      metricBreakdown: {
+        families: [
+          {
+            family: 'architecture',
+            score: 80,
+            measurements: [
+              {
+                id: measurement.id,
+                name: measurement.name,
+                score: measurement.score,
+              },
+            ],
+          },
+        ],
+      },
+      topIssues: [],
+      health: {
+        score: 80,
+        status: 'good',
+        grade: 'B',
+        hotspots: [],
+        metricHotspots: [],
+        projectHotspots: [],
+        explainability: {
+          summary: 'Architecture traceability is mostly complete.',
+          statusReason: 'Score is above threshold.',
+          weakestMetrics: [],
+          dominantIssues: [],
+        },
+        dimensions: [score],
+      },
+      recommendations: [],
+      metadata: {
+        runtimePrimitiveFixture: true,
+      },
+    } satisfies GovernanceAssessment;
+
+    const violation = {
+      id: 'violation:traceability-gap',
+      ruleId: 'traceability-presence',
+      project: 'booking-api',
+      severity: 'warning',
+      category: 'architecture',
+      message: 'Traceability is missing.',
+      reference,
+      perspective,
+      evidence,
+      authority: 'inferred',
+      confidence: 0.7,
+    } satisfies Violation;
+
+    expect(assessment.findings?.[0]?.reference?.nodeId).toBe(
+      'node:booking-api',
+    );
+    expect(assessment.signals?.[0]?.findingIds).toEqual([
+      'finding:traceability-gap',
+    ]);
+    expect(assessment.scores?.[0]?.measurementIds).toEqual([
+      'traceability-coverage',
+    ]);
+    expect(violation.evidence?.[0]?.type).toBe('adr');
   });
 });
 
