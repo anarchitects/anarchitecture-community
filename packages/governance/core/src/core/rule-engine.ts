@@ -16,7 +16,29 @@ export async function evaluateRules<TOptions = unknown>(
 
     result.violations.push(...(ruleResult.violations ?? []));
     result.signals.push(...(ruleResult.signals ?? []));
-    result.measurements.push(...(ruleResult.measurements ?? []));
+    result.measurements.push(
+      ...(ruleResult.measurements ?? []),
+      ...(ruleResult.metrics ?? []),
+    );
+
+    if (ruleResult.findings?.length) {
+      result.findings = [...(result.findings ?? []), ...ruleResult.findings];
+    }
+    if (ruleResult.recommendations?.length) {
+      result.recommendations = [
+        ...(result.recommendations ?? []),
+        ...ruleResult.recommendations,
+      ];
+    }
+    if (ruleResult.conformance?.length) {
+      result.conformance = [
+        ...(result.conformance ?? []),
+        ...ruleResult.conformance,
+      ];
+    }
+    if (ruleResult.drift?.length) {
+      result.drift = [...(result.drift ?? []), ...ruleResult.drift];
+    }
   }
 
   return result;
