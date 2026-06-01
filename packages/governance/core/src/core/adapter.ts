@@ -1,4 +1,8 @@
-import type { Ownership, GovernanceWorkspace } from './models.js';
+import type {
+  GovernanceRuntimeReference,
+  Ownership,
+  GovernanceWorkspace,
+} from './models.js';
 import type { ProfileOverrides } from './profile.js';
 
 export interface GovernanceWorkspaceAdapterResult {
@@ -191,11 +195,46 @@ export interface GovernanceCapability<TData = unknown> {
   metadata?: Record<string, unknown>;
 }
 
+export type GovernanceDiagnosticSeverity =
+  | 'info'
+  | 'warning'
+  | 'error'
+  | (string & {});
+
+export type GovernanceDiagnosticKind =
+  | 'observation'
+  | 'warning'
+  | 'violation'
+  | 'error'
+  | 'recommendation'
+  | (string & {});
+
+export type GovernanceDiagnosticCategory =
+  | 'adapter'
+  | 'configuration'
+  | 'capability'
+  | 'evidence'
+  | 'conformance'
+  | 'drift'
+  | 'reporting'
+  | (string & {});
+
 export interface GovernanceDiagnostic {
+  id?: string;
   code: string;
   message: string;
+  severity?: GovernanceDiagnosticSeverity;
+  kind?: GovernanceDiagnosticKind;
+  category?: GovernanceDiagnosticCategory;
   source?: string;
+  reference?: GovernanceRuntimeReference;
+  perspective?: GovernancePerspective;
+  evidence?: GovernanceEvidence[];
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
+  recommendation?: string;
   details?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 export function buildGovernanceWorkspace(

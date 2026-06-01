@@ -17,6 +17,7 @@ export * from './health.js';
 export * from './metrics.js';
 export * from './profile.js';
 export * from './project-matching.js';
+export * from './reporting.js';
 export * from './rule-engine.js';
 export * from './rules.js';
 export * from './signal-builders.js';

@@ -141,6 +141,18 @@ export interface Recommendation {
   title: string;
   priority: 'high' | 'medium' | 'low';
   reason: string;
+  description?: string;
+  category?: string;
+  reference?: GovernanceRuntimeReference;
+  perspective?: GovernancePerspective;
+  source?: GovernanceSource;
+  evidence?: GovernanceEvidence[];
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
+  findingIds?: GovernanceFinding['id'][];
+  signalIds?: GovernanceSignal['id'][];
+  measurementIds?: Measurement['id'][];
+  metadata?: Record<string, unknown>;
 }
 
 export type HealthStatus = 'good' | 'warning' | 'critical';

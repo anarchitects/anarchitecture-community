@@ -109,6 +109,7 @@ export interface GovernanceConformanceResult {
   status: GovernanceConformanceStatus;
   expected?: unknown;
   observed?: unknown;
+  rationale?: string;
   findingIds?: string[];
   signalIds?: string[];
   perspective?: GovernancePerspective;
@@ -131,6 +132,7 @@ export interface GovernanceDriftResult {
   runtimeReality?: unknown;
   baseline?: unknown;
   current?: unknown;
+  rationale?: string;
   findingIds?: string[];
   signalIds?: string[];
   perspective?: GovernancePerspective;
