@@ -2,16 +2,23 @@ import type {
   GovernanceAssessment,
   GovernanceAssessmentScope,
   GovernanceClassificationInput,
+  GovernanceConformanceReport,
+  GovernanceConformanceResult,
+  GovernanceDiagnostic,
+  GovernanceDriftReport,
+  GovernanceDriftResult,
   GovernanceEvidence,
   GovernanceFinding,
   GovernanceNodeInput,
   GovernanceOwnershipInput,
   GovernancePerspective,
+  GovernanceReport,
   GovernanceRelationInput,
   GovernanceScore,
   GovernanceSource,
   GovernanceWorkspaceAdapterResult,
   Measurement,
+  Recommendation,
   GovernanceSignal,
   GovernanceSignalCategory,
   GovernanceSignalSeverity,
@@ -263,6 +270,169 @@ describe('Core signal contracts', () => {
       'traceability-coverage',
     ]);
     expect(violation.evidence?.[0]?.type).toBe('adr');
+  });
+
+  it('supports diagnostic, recommendation, and report primitives with evidence linkage', () => {
+    const source = {
+      id: 'source:catalog',
+      name: 'Governance Catalog',
+      type: 'catalog',
+    } satisfies GovernanceSource;
+    const intentPerspective = {
+      id: 'domain-intent',
+      name: 'Domain Intent',
+    } satisfies GovernancePerspective;
+    const implementationPerspective = {
+      id: 'implemented-reality',
+      name: 'Implemented Reality',
+    } satisfies GovernancePerspective;
+    const evidence = [
+      {
+        id: 'evidence:catalog-policy',
+        type: 'catalog-policy',
+        source,
+        reference: 'policies/customer-ownership',
+        authority: 'authoritative',
+        confidence: 0.95,
+      },
+    ] satisfies GovernanceEvidence[];
+    const reference = {
+      nodeId: 'node:customer-model',
+      relatedNodeIds: ['node:customer-capability'],
+    };
+    const diagnostic = {
+      id: 'diagnostic:ownership-gap',
+      code: 'governance.reporting.ownership_gap',
+      severity: 'warning',
+      kind: 'recommendation',
+      category: 'conformance',
+      message: 'Catalog ownership and implementation ownership differ.',
+      source: 'governance-core',
+      reference,
+      perspective: implementationPerspective,
+      evidence,
+      authority: 'inferred',
+      confidence: 0.8,
+      recommendation: 'Review ownership assignment for the implementation.',
+      metadata: {
+        reportFixture: true,
+      },
+    } satisfies GovernanceDiagnostic;
+    const recommendation = {
+      id: 'recommendation:ownership-gap',
+      title: 'Align implementation ownership',
+      priority: 'medium',
+      reason: 'Ownership differs between catalog intent and implementation.',
+      category: 'ownership',
+      reference,
+      perspective: implementationPerspective,
+      source,
+      evidence,
+      authority: 'inferred',
+      confidence: 0.8,
+      metadata: {
+        remediationType: 'ownership-alignment',
+      },
+    } satisfies Recommendation;
+    const conformance = {
+      id: 'conformance:ownership-gap',
+      status: 'partial',
+      expected: {
+        owner: 'customer-platform',
+      },
+      observed: {
+        owner: 'data-platform',
+      },
+      rationale: 'Catalog owner differs from implementation owner.',
+      perspective: implementationPerspective,
+      source,
+      evidence,
+      authority: 'inferred',
+      confidence: 0.8,
+    } satisfies GovernanceConformanceResult;
+    const drift = {
+      id: 'drift:ownership-gap',
+      status: 'drift-detected',
+      classification: 'intent-vs-implemented',
+      indicator: 'ownership-mismatch',
+      intent: {
+        perspectiveId: intentPerspective.id,
+      },
+      implementedReality: {
+        perspectiveId: implementationPerspective.id,
+      },
+      rationale: 'Intent and implementation ownership do not match.',
+      perspective: implementationPerspective,
+      source,
+      evidence,
+      authority: 'inferred',
+      confidence: 0.8,
+    } satisfies GovernanceDriftResult;
+    const conformanceReport = {
+      id: 'report:conformance:ownership',
+      title: 'Ownership Conformance',
+      summary: 'Ownership differs across perspectives.',
+      results: [conformance],
+      diagnostics: [diagnostic],
+      recommendations: [recommendation],
+      perspectives: [intentPerspective, implementationPerspective],
+      evidence,
+      authority: 'inferred',
+      confidence: 0.8,
+    } satisfies GovernanceConformanceReport;
+    const driftReport = {
+      id: 'report:drift:ownership',
+      title: 'Ownership Drift',
+      summary: 'Implemented ownership has drifted from intent.',
+      sourcePerspective: intentPerspective,
+      targetPerspective: implementationPerspective,
+      severity: 'warning',
+      rationale: 'Catalog and implementation owners differ.',
+      results: [drift],
+      diagnostics: [diagnostic],
+      recommendations: [recommendation],
+      evidence,
+      authority: 'inferred',
+      confidence: 0.8,
+    } satisfies GovernanceDriftReport;
+    const report = {
+      id: 'report:governance:ownership',
+      title: 'Ownership Governance Report',
+      kind: 'assessment',
+      summary: 'Multi-perspective ownership reporting fixture.',
+      generatedAt: '2026-05-13T00:00:00.000Z',
+      diagnostics: [diagnostic],
+      recommendations: [recommendation],
+      conformance: [conformanceReport],
+      drift: [driftReport],
+      perspectives: [intentPerspective, implementationPerspective],
+      sources: [source],
+      evidence,
+      sections: [
+        {
+          id: 'section:diagnostics',
+          title: 'Diagnostics',
+          kind: 'diagnostics',
+          diagnostics: [diagnostic],
+          recommendations: [recommendation],
+          perspective: implementationPerspective,
+          evidence,
+        },
+      ],
+      authority: 'inferred',
+      confidence: 0.8,
+      metadata: {
+        rendererAgnostic: true,
+      },
+    } satisfies GovernanceReport;
+
+    expect(diagnostic.evidence?.[0]?.id).toBe('evidence:catalog-policy');
+    expect(recommendation.reference?.nodeId).toBe('node:customer-model');
+    expect(conformanceReport.results[0]?.status).toBe('partial');
+    expect(driftReport.results[0]?.classification).toBe(
+      'intent-vs-implemented',
+    );
+    expect(report.sections?.[0]?.kind).toBe('diagnostics');
   });
 });
 

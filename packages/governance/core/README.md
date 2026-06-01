@@ -110,6 +110,7 @@ The root export currently re-exports these API groups:
 - `exceptions`
 - `profile`
 - `project-matching`
+- `reporting`
 - `rule-engine`
 - `rules`
 - `signals`
@@ -123,6 +124,7 @@ Core contracts include:
 - workspace, node/relation input, classification input, ownership input, perspective, source/evidence, project, and dependency models
 - findings, signals, measurements, recommendations, score dimensions, health scores, and top issues
 - rule metadata, applicability, multi-perspective evaluation context, findings, conformance results, and drift results
+- diagnostics, recommendations, and renderer-agnostic reporting primitives with optional evidence and perspective linkage
 - Governance profiles and rule configuration
 - Governance exceptions and exception reports
 - signal contracts and signal breakdowns
@@ -144,6 +146,10 @@ Rule contracts also expose optional applicability and multi-perspective result
 primitives. Existing rules can continue to return only violations, signals, and
 measurements; future rules can opt into findings, recommendations, conformance,
 and drift outputs without changing adapter, CLI, host, or extension behavior.
+
+Reporting primitives are data contracts only. They can represent diagnostics,
+recommendations, conformance reports, and drift reports across perspectives, but
+Core does not render dashboards, CLI output, or UI views from them.
 
 ### Deterministic logic
 
