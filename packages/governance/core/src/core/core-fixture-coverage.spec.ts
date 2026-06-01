@@ -1,4 +1,6 @@
 import type {
+  GovernanceNodeInput,
+  GovernanceRelationInput,
   GovernanceWorkspaceAdapterResult,
   GovernanceSignal,
   GovernanceSignalCategory,
@@ -64,6 +66,33 @@ describe('Core signal contracts', () => {
 });
 
 describe('Core adapter contract coverage', () => {
+  it('exports technology-neutral graph input contracts through the core boundary', () => {
+    const node = {
+      id: 'asset-a',
+      name: 'Asset A',
+      kind: 'asset',
+      technology: 'data-platform',
+      sourceSystem: 'catalog',
+      path: 'assets/a',
+      tags: ['critical'],
+      metadata: {
+        sourceKind: 'example',
+      },
+    } satisfies GovernanceNodeInput;
+
+    const relation = {
+      sourceNodeId: 'asset-a',
+      targetNodeId: 'asset-b',
+      kind: 'lineage',
+      metadata: {
+        relationKind: 'example',
+      },
+    } satisfies GovernanceRelationInput;
+
+    expect(node.kind).toBe('asset');
+    expect(relation.sourceNodeId).toBe('asset-a');
+  });
+
   it('supports plain adapter result data through the core boundary', () => {
     const adapterResult: GovernanceWorkspaceAdapterResult = {
       ...coreTestAdapterResult,

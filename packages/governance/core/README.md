@@ -8,7 +8,7 @@ Canonical Governance contracts, deterministic evaluation logic, and portable ext
 
 Use this package when you need:
 
-- canonical workspace, project, dependency, ownership, violation, measurement, health, assessment, snapshot, drift, signal, and AI-analysis contracts
+- canonical workspace, node, relation, project, dependency, ownership, violation, measurement, health, assessment, snapshot, drift, signal, and AI-analysis contracts
 - deterministic rule evaluation and assessment assembly
 - built-in Governance rule packs
 - portable adapter input contracts
@@ -19,7 +19,7 @@ Use this package when you need:
 This package is responsible for:
 
 - defining the canonical `GovernanceWorkspace` model and related result shapes
-- defining adapter-facing input contracts such as `GovernanceProjectInput`, `GovernanceDependencyInput`, and `GovernanceWorkspaceAdapterResult`
+- defining adapter-facing input contracts such as `GovernanceNodeInput`, `GovernanceRelationInput`, `GovernanceProjectInput`, `GovernanceDependencyInput`, and `GovernanceWorkspaceAdapterResult`
 - defining profile, rule, signal, exception, measurement, health, assessment, snapshot, and drift contracts
 - providing deterministic helpers such as profile normalization, rule evaluation, assessment assembly, snapshot comparison, and AI handoff payload builders
 - providing host-independent helpers that map changed files onto canonical `GovernanceProject` models and shape snapshot delivery-impact summaries
@@ -76,6 +76,8 @@ import {
   scopeGovernanceDependencies,
   sliceGovernancePayloadItems,
   type GovernanceWorkspaceAdapter,
+  type GovernanceNodeInput,
+  type GovernanceRelationInput,
   type GovernanceWorkspace,
   type GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
@@ -105,13 +107,13 @@ The root export currently re-exports these API groups:
 
 Core contracts include:
 
-- workspace, project, dependency, and ownership models
+- workspace, node/relation input, project, dependency, and ownership models
 - violations, measurements, recommendations, health scores, and top issues
 - Governance profiles and rule configuration
 - Governance exceptions and exception reports
 - signal contracts and signal breakdowns
 - snapshot and drift contracts
-- adapter input/result contracts for hosts and adapters
+- adapter input/result contracts for hosts and adapters, including additive node/relation inputs and legacy project/dependency inputs
 - adapter contract, probe, and normalization helpers such as `GovernanceWorkspaceAdapter`, `GovernanceWorkspaceAdapterProbeResult`, and `buildGovernanceWorkspace(...)`
 - AI analysis and handoff payload contracts
 
