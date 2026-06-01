@@ -55,6 +55,23 @@ export type GovernanceRelationKind =
   | (string & {});
 
 /**
+ * Adapter-facing governance classification before canonical normalization.
+ * Keep platform-specific classification systems in metadata until they become
+ * stable Core semantics.
+ */
+export interface GovernanceClassificationInput {
+  domain?: string;
+  boundedContext?: string;
+  capability?: string;
+  layer?: string;
+  scope?: string;
+  system?: string;
+  product?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+/**
  * Adapter-facing representation of a governed item before canonical
  * normalization. It is intentionally technology-neutral and additive to the
  * existing project compatibility input.
@@ -68,6 +85,8 @@ export interface GovernanceNodeInput {
   root?: string;
   path?: string;
   tags?: string[];
+  classification?: GovernanceClassificationInput;
+  ownership?: GovernanceOwnershipInput;
   metadata?: Record<string, unknown>;
 }
 
@@ -108,6 +127,10 @@ export interface GovernanceDependencyInput {
 export interface GovernanceOwnershipInput {
   team?: string;
   contacts?: string[];
+  stewards?: string[];
+  productOwner?: string;
+  technicalOwner?: string;
+  businessOwner?: string;
   source?: string;
   metadata?: Record<string, unknown>;
 }
