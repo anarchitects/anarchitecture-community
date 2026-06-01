@@ -39,7 +39,7 @@ describe('Governance graph normalization', () => {
       {
         id: 'project-a',
         name: 'Project A',
-        kind: 'project',
+        kind: 'library',
         root: 'packages/project-a',
         tags: ['domain:customer'],
         metadata: {
@@ -63,6 +63,7 @@ describe('Governance graph normalization', () => {
         kind: 'dependency',
         metadata: {
           dependencyKind: 'example',
+          dependencyType: 'static',
         },
       },
     ]);
@@ -198,7 +199,9 @@ describe('Governance graph normalization', () => {
         sourceNodeId: 'legacy-only',
         targetNodeId: 'shared-id',
         kind: 'dependency',
-        metadata: {},
+        metadata: {
+          dependencyType: 'implicit',
+        },
       },
       {
         id: 'canonical-relation',

@@ -23,6 +23,7 @@ This package is responsible for:
 - defining profile, rule, signal, exception, measurement, health, assessment, snapshot, and drift contracts
 - providing deterministic helpers such as profile normalization, rule evaluation, assessment assembly, snapshot comparison, and AI handoff payload builders
 - providing internal graph normalization infrastructure for legacy project/dependency inputs and additive node/relation inputs
+- providing compatibility helpers that map legacy project/dependency inputs to canonical node/relation inputs during the migration period
 - providing capability-based integration contracts so hosts can compose adapters and extensions without adapter-to-extension imports
 - providing host-independent helpers that map changed files onto canonical `GovernanceProject` models and shape snapshot delivery-impact summaries
 - providing portable extension contracts and runtime helpers that stay independent from Nx
@@ -61,6 +62,8 @@ import {
   buildRefactoringSuggestionsContext,
   buildGovernanceWorkspace,
   buildMetricSnapshot,
+  projectToNode,
+  dependencyToRelation,
   buildScopedDriftRequest,
   buildScopedRootCauseRequest,
   buildScopedScorecardRequest,
@@ -140,6 +143,7 @@ Deterministic helpers include:
 - scoped AI handoff request helpers such as `buildScopedRootCauseRequest(...)`, `buildScopedDriftRequest(...)`, and `buildScopedScorecardRequest(...)`
 - deterministic AI context builders such as `buildPrImpactContext(...)`, `buildCognitiveLoadContext(...)`, `buildRecommendationsTrendContext(...)`, `buildPersistentSmellSignals(...)`, `buildRefactoringSuggestionsContext(...)`, `buildOnboardingContext(...)`, and `buildDriftInterpretationAnalysis(...)`
 - `resolveAffectedGovernanceProjects(...)`
+- `projectToNode(...)`, `projectsToNodes(...)`, `dependencyToRelation(...)`, and `dependenciesToRelations(...)`
 - `evaluateRules(...)` and `evaluateRulePack(...)`
 - `normalizeGovernanceProfile(...)`
 - `normalizeGovernanceException(...)`

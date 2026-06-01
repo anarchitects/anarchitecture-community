@@ -7,6 +7,7 @@ export * from './assessment-artifacts.js';
 export * from './ai.js';
 export * from './built-in-rule-pack.js';
 export * from './built-in-rules.js';
+export * from './compatibility.js';
 export * from './delivery-impact.js';
 export * from './drift.js';
 export * from './exception-runtime.js';
