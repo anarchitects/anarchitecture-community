@@ -25,7 +25,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-adapter-typescript@workspace:packages/governance/adapter-typescript"
   dependencies:
-    "@anarchitects/governance-core": "npm:^0.0.4"
+    "@anarchitects/governance-core": "npm:^0.1.0"
     minimatch: "npm:^10.1.1"
     typescript: "npm:~5.9.2"
     yaml: "npm:^2.8.1"
@@ -36,14 +36,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-cli@workspace:packages/governance/cli"
   dependencies:
-    "@anarchitects/governance-core": "npm:^0.0.4"
+    "@anarchitects/governance-core": "npm:^0.1.0"
     yaml: "npm:^2.8.1"
   bin:
     agov: ./dist/bin/agov.js
   languageName: unknown
   linkType: soft
 
-"@anarchitects/governance-core@npm:^0.0.4, @anarchitects/governance-core@workspace:packages/governance/core":
+"@anarchitects/governance-core@npm:^0.1.0, @anarchitects/governance-core@workspace:packages/governance/core":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-core@workspace:packages/governance/core"
   languageName: unknown
