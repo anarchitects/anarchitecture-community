@@ -8,7 +8,7 @@ Canonical Governance contracts, deterministic evaluation logic, and portable ext
 
 Use this package when you need:
 
-- canonical workspace, node, relation, classification, ownership, perspective, source, evidence, project, dependency, violation, measurement, health, assessment, snapshot, drift, signal, and AI-analysis contracts
+- canonical workspace, node, relation, classification, ownership, perspective, source, evidence, finding, signal, metric, score, assessment, project, dependency, violation, measurement, health, snapshot, drift, and AI-analysis contracts
 - deterministic rule evaluation and assessment assembly
 - built-in Governance rule packs
 - portable adapter input contracts
@@ -20,7 +20,7 @@ This package is responsible for:
 
 - defining the canonical `GovernanceWorkspace` model and related result shapes
 - defining adapter-facing input contracts such as `GovernanceNodeInput`, `GovernanceRelationInput`, `GovernanceClassificationInput`, `GovernanceOwnershipInput`, `GovernancePerspective`, `GovernanceSource`, `GovernanceEvidence`, `GovernanceProjectInput`, `GovernanceDependencyInput`, and `GovernanceWorkspaceAdapterResult`
-- defining profile, rule, signal, exception, measurement, health, assessment, snapshot, and drift contracts
+- defining profile, rule, finding, signal, exception, measurement, score, health, assessment, snapshot, and drift contracts
 - providing deterministic helpers such as profile normalization, rule evaluation, assessment assembly, snapshot comparison, and AI handoff payload builders
 - providing internal graph normalization infrastructure for legacy project/dependency inputs and additive node/relation inputs
 - providing compatibility helpers that map legacy project/dependency inputs to canonical node/relation inputs during the migration period
@@ -88,6 +88,9 @@ import {
   type GovernancePerspective,
   type GovernanceSource,
   type GovernanceEvidence,
+  type GovernanceFinding,
+  type GovernanceScore,
+  type GovernanceAssessmentScope,
   type GovernanceWorkspace,
   type GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
@@ -118,7 +121,7 @@ The root export currently re-exports these API groups:
 Core contracts include:
 
 - workspace, node/relation input, classification input, ownership input, perspective, source/evidence, project, and dependency models
-- violations, measurements, recommendations, health scores, and top issues
+- findings, signals, measurements, recommendations, score dimensions, health scores, and top issues
 - Governance profiles and rule configuration
 - Governance exceptions and exception reports
 - signal contracts and signal breakdowns
@@ -131,6 +134,10 @@ Perspective and evidence contracts are metadata-bearing primitives for future
 traceability, conformance, and drift analysis. They are optional on node and
 relation inputs and do not change current adapter, host, extension, rule, or
 reporting behavior.
+
+Runtime primitive contracts remain backward compatible while allowing generic
+findings, signals, measurements, assessments, and score dimensions to reference
+nodes, relations, perspectives, evidence, authority, confidence, and metadata.
 
 ### Deterministic logic
 

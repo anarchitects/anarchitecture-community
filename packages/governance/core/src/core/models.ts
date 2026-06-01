@@ -1,9 +1,17 @@
 import type {
+  GovernanceSignal,
   GovernanceSignalCategory,
   GovernanceSignalSeverity,
   GovernanceSignalSource,
   GovernanceSignalType,
 } from './signals.js';
+import type {
+  GovernanceAuthority,
+  GovernanceConfidence,
+  GovernanceEvidence,
+  GovernancePerspective,
+  GovernanceSource,
+} from './adapter.js';
 
 export interface GovernanceWorkspace {
   id: string;
@@ -38,6 +46,43 @@ export interface Ownership {
   source: 'project-metadata' | 'codeowners' | 'merged' | 'none';
 }
 
+export interface GovernanceRuntimeReference {
+  nodeId?: string;
+  relationId?: string;
+  relatedNodeIds?: string[];
+  relatedRelationIds?: string[];
+  projectId?: string;
+  targetProjectId?: string;
+  relatedProjectIds?: string[];
+}
+
+export interface GovernanceAssessmentScope {
+  workspaceId?: string;
+  nodeIds?: string[];
+  relationIds?: string[];
+  projectIds?: string[];
+  perspectives?: GovernancePerspective[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface GovernanceFinding {
+  id: string;
+  type: string;
+  severity: GovernanceSignalSeverity;
+  category: GovernanceSignalCategory | (string & {});
+  message: string;
+  reference?: GovernanceRuntimeReference;
+  perspective?: GovernancePerspective;
+  source?: GovernanceSource;
+  evidence?: GovernanceEvidence[];
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
+  recommendation?: string;
+  sourcePluginId?: string;
+  metadata?: Record<string, unknown>;
+  createdAt?: string;
+}
+
 export interface Violation {
   id: string;
   ruleId: string;
@@ -53,6 +98,12 @@ export interface Violation {
   details?: Record<string, unknown>;
   recommendation?: string;
   sourcePluginId?: string;
+  reference?: GovernanceRuntimeReference;
+  perspective?: GovernancePerspective;
+  source?: GovernanceSource;
+  evidence?: GovernanceEvidence[];
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
 }
 
 export type KnownGovernanceMetricFamily =
@@ -74,6 +125,15 @@ export interface Measurement {
   maxScore: number;
   unit: 'ratio' | 'count' | 'score';
   sourcePluginId?: string;
+  dimensions?: Record<string, string | number | boolean>;
+  signalIds?: GovernanceSignal['id'][];
+  findingIds?: GovernanceFinding['id'][];
+  perspective?: GovernancePerspective;
+  source?: GovernanceSource;
+  evidence?: GovernanceEvidence[];
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Recommendation {
@@ -117,6 +177,27 @@ export interface HealthScore {
   metricHotspots: HealthMetricHotspot[];
   projectHotspots: HealthProjectHotspot[];
   explainability: HealthExplainability;
+  dimensions?: GovernanceScore[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface GovernanceScore {
+  id: string;
+  name: string;
+  value: number;
+  maxScore: number;
+  family?: GovernanceMetricFamily | (string & {});
+  status?: HealthStatus | (string & {});
+  grade?: HealthScore['grade'] | (string & {});
+  measurementIds?: Measurement['id'][];
+  findingIds?: GovernanceFinding['id'][];
+  signalIds?: GovernanceSignal['id'][];
+  perspective?: GovernancePerspective;
+  source?: GovernanceSource;
+  evidence?: GovernanceEvidence[];
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SignalBreakdownEntry {
@@ -227,12 +308,18 @@ export interface GovernanceAssessment {
   warnings: string[];
   exceptions: GovernanceExceptionReport;
   violations: Violation[];
+  findings?: GovernanceFinding[];
+  signals?: GovernanceSignal[];
   measurements: Measurement[];
+  scores?: GovernanceScore[];
+  scope?: GovernanceAssessmentScope;
+  perspectives?: GovernancePerspective[];
   signalBreakdown: SignalBreakdown;
   metricBreakdown: MetricBreakdown;
   topIssues: GovernanceTopIssue[];
   health: HealthScore;
   recommendations: Recommendation[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface SnapshotViolation {
