@@ -34,6 +34,56 @@ export interface GovernanceWorkspaceAdapter<TInput = unknown> {
   loadWorkspace(input: TInput): GovernanceWorkspaceAdapterResult;
 }
 
+export type GovernanceNodeKind =
+  | 'project'
+  | 'asset'
+  | 'resource'
+  | 'workflow'
+  | 'unknown'
+  | (string & {});
+
+export type GovernanceRelationKind =
+  | 'dependency'
+  | 'lineage'
+  | 'ownership'
+  | 'traceability'
+  | 'deployment'
+  | 'execution'
+  | 'conformance'
+  | 'drift'
+  | 'unknown'
+  | (string & {});
+
+/**
+ * Adapter-facing representation of a governed item before canonical
+ * normalization. It is intentionally technology-neutral and additive to the
+ * existing project compatibility input.
+ */
+export interface GovernanceNodeInput {
+  id: string;
+  name?: string;
+  kind?: GovernanceNodeKind;
+  technology?: string;
+  sourceSystem?: string;
+  root?: string;
+  path?: string;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Adapter-facing representation of a relationship between governed nodes
+ * before canonical normalization. Legacy project dependencies remain supported
+ * through GovernanceDependencyInput.
+ */
+export interface GovernanceRelationInput {
+  id?: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  kind?: GovernanceRelationKind;
+  metadata?: Record<string, unknown>;
+}
+
 export interface GovernanceProjectInput {
   id: string;
   name?: string;
