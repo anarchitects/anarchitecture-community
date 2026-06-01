@@ -5,7 +5,10 @@ import type {
   Violation,
 } from '../core/index.js';
 import type { GovernanceSignal } from '../core/signals.js';
-import type { GovernanceCapabilityRegistry } from './capabilities.js';
+import type {
+  GovernanceCapabilityRegistry,
+  GovernanceCapabilityRequirement,
+} from './capabilities.js';
 
 export interface GovernanceExtensionHostContext {
   // Kept as a portable host-provided string. Core does not read from the
@@ -14,11 +17,17 @@ export interface GovernanceExtensionHostContext {
   profileName: string;
   options: Readonly<Record<string, unknown>>;
   inventory: GovernanceWorkspace;
+  // Hosts compose adapter, extension, profile, and execution concerns through
+  // Core-owned capabilities. Adapters should not import extension packages.
   capabilities: GovernanceCapabilityRegistry;
 }
 
 export interface GovernanceExtensionDefinition {
   id: string;
+  name?: string;
+  version?: string;
+  requiredCapabilities?: GovernanceCapabilityRequirement[];
+  optionalCapabilities?: GovernanceCapabilityRequirement[];
   register(host: GovernanceExtensionHost): void | Promise<void>;
 }
 

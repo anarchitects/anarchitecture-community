@@ -111,6 +111,48 @@ describe('governance extension runtime', () => {
     expect(Object.isFrozen(receivedContext?.options)).toBe(true);
   });
 
+  it('lets extensions declare capability requirements and query host capabilities', async () => {
+    const context: GovernanceExtensionHostContext = {
+      ...baseContext,
+      capabilities: new DefaultGovernanceCapabilityRegistry([
+        {
+          id: 'capability:data:lineage',
+          version: '1',
+          source: 'adapter',
+        },
+      ]),
+    };
+    let hasRequiredCapability = false;
+
+    await registerLoadedGovernanceExtensions(context, [
+      createLoadedExtension('plugin-a', undefined, {
+        definition: {
+          id: 'plugin-a',
+          name: 'Plugin A',
+          version: '1',
+          requiredCapabilities: [
+            {
+              id: 'capability:data:lineage',
+              version: '1',
+            },
+          ],
+          optionalCapabilities: [
+            {
+              id: 'capability:data:catalog',
+            },
+          ],
+          register: (host) => {
+            hasRequiredCapability = host.context.capabilities.has(
+              'capability:data:lineage',
+            );
+          },
+        },
+      }),
+    ]);
+
+    expect(hasRequiredCapability).toBe(true);
+  });
+
   it('preserves precomputed loader diagnostics during runtime registration', async () => {
     const result = await registerLoadedGovernanceExtensionsWithDiagnostics(
       baseContext,

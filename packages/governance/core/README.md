@@ -23,6 +23,7 @@ This package is responsible for:
 - defining profile, rule, signal, exception, measurement, health, assessment, snapshot, and drift contracts
 - providing deterministic helpers such as profile normalization, rule evaluation, assessment assembly, snapshot comparison, and AI handoff payload builders
 - providing internal graph normalization infrastructure for legacy project/dependency inputs and additive node/relation inputs
+- providing capability-based integration contracts so hosts can compose adapters and extensions without adapter-to-extension imports
 - providing host-independent helpers that map changed files onto canonical `GovernanceProject` models and shape snapshot delivery-impact summaries
 - providing portable extension contracts and runtime helpers that stay independent from Nx
 
@@ -117,7 +118,7 @@ Core contracts include:
 - signal contracts and signal breakdowns
 - snapshot and drift contracts
 - adapter input/result contracts for hosts and adapters, including additive node/relation result fields and legacy project/dependency inputs
-- adapter contract, probe, and normalization helpers such as `GovernanceWorkspaceAdapter`, `GovernanceWorkspaceAdapterProbeResult`, and `buildGovernanceWorkspace(...)`
+- adapter contract, probe, capability, and normalization helpers such as `GovernanceWorkspaceAdapter`, `GovernanceWorkspaceAdapterProbeResult`, `GovernanceCapability`, and `buildGovernanceWorkspace(...)`
 - AI analysis and handoff payload contracts
 
 ### Deterministic logic
@@ -164,6 +165,11 @@ Portable extension APIs include:
 - capability registry contracts in `capabilities`
 - extension diagnostics in `diagnostics`
 - runtime registration and execution helpers in `runtime`
+
+Hosts compose Core, adapters, extensions, profiles, and execution. Adapters emit
+Core-owned capabilities through adapter results; extensions declare and query
+capability requirements through Core-owned contracts. Adapters should not import
+technology-specific extension packages.
 
 Notable extension exports include:
 
