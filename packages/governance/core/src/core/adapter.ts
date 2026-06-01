@@ -56,6 +56,41 @@ export type GovernanceRelationKind =
   | 'unknown'
   | (string & {});
 
+export type GovernanceAuthority =
+  | 'intended'
+  | 'documented'
+  | 'discovered'
+  | 'inferred'
+  | 'authoritative'
+  | (string & {});
+
+export type GovernanceConfidence = number;
+
+export interface GovernancePerspective {
+  id: string;
+  name: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface GovernanceSource {
+  id: string;
+  name: string;
+  type?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface GovernanceEvidence {
+  id: string;
+  type: string;
+  source?: string | GovernanceSource;
+  reference?: string;
+  description?: string;
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
+  metadata?: Record<string, unknown>;
+}
+
 /**
  * Adapter-facing governance classification before canonical normalization.
  * Keep platform-specific classification systems in metadata until they become
@@ -89,6 +124,11 @@ export interface GovernanceNodeInput {
   tags?: string[];
   classification?: GovernanceClassificationInput;
   ownership?: GovernanceOwnershipInput;
+  perspective?: GovernancePerspective;
+  source?: GovernanceSource;
+  evidence?: GovernanceEvidence[];
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
   metadata?: Record<string, unknown>;
 }
 
@@ -102,6 +142,11 @@ export interface GovernanceRelationInput {
   sourceNodeId: string;
   targetNodeId: string;
   kind?: GovernanceRelationKind;
+  perspective?: GovernancePerspective;
+  source?: GovernanceSource;
+  evidence?: GovernanceEvidence[];
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
   metadata?: Record<string, unknown>;
 }
 

@@ -80,6 +80,27 @@ describe('Governance graph normalization', () => {
           sourceSystem: 'inventory',
           path: 'assets/a',
           tags: ['critical'],
+          perspective: {
+            id: 'implemented-reality',
+            name: 'Implemented Reality',
+          },
+          source: {
+            id: 'source:inventory',
+            name: 'Inventory',
+            type: 'catalog',
+          },
+          evidence: [
+            {
+              id: 'evidence:asset-a',
+              type: 'catalog-entry',
+              source: 'source:inventory',
+              reference: 'assets/a',
+              authority: 'authoritative',
+              confidence: 1,
+            },
+          ],
+          authority: 'discovered',
+          confidence: 0.9,
           metadata: {
             assetKind: 'example',
           },
@@ -94,6 +115,8 @@ describe('Governance graph normalization', () => {
           sourceNodeId: 'asset-a',
           targetNodeId: 'asset-b',
           kind: 'lineage',
+          authority: 'inferred',
+          confidence: 0.7,
           metadata: {
             relationKind: 'example',
           },
@@ -112,6 +135,27 @@ describe('Governance graph normalization', () => {
         sourceSystem: 'inventory',
         path: 'assets/a',
         tags: ['critical'],
+        perspective: {
+          id: 'implemented-reality',
+          name: 'Implemented Reality',
+        },
+        source: {
+          id: 'source:inventory',
+          name: 'Inventory',
+          type: 'catalog',
+        },
+        evidence: [
+          {
+            id: 'evidence:asset-a',
+            type: 'catalog-entry',
+            source: 'source:inventory',
+            reference: 'assets/a',
+            authority: 'authoritative',
+            confidence: 1,
+          },
+        ],
+        authority: 'discovered',
+        confidence: 0.9,
         metadata: {
           assetKind: 'example',
         },
@@ -129,6 +173,8 @@ describe('Governance graph normalization', () => {
         sourceNodeId: 'asset-a',
         targetNodeId: 'asset-b',
         kind: 'lineage',
+        authority: 'inferred',
+        confidence: 0.7,
         metadata: {
           relationKind: 'example',
         },

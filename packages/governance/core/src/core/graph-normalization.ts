@@ -26,6 +26,11 @@ export interface GovernanceNormalizedNode {
   tags: string[];
   classification?: GovernanceNodeInput['classification'];
   ownership?: GovernanceNodeInput['ownership'];
+  perspective?: GovernanceNodeInput['perspective'];
+  source?: GovernanceNodeInput['source'];
+  evidence?: GovernanceNodeInput['evidence'];
+  authority?: GovernanceNodeInput['authority'];
+  confidence?: GovernanceNodeInput['confidence'];
   metadata: Record<string, unknown>;
 }
 
@@ -34,6 +39,11 @@ export interface GovernanceNormalizedRelation {
   sourceNodeId: string;
   targetNodeId: string;
   kind: string;
+  perspective?: GovernanceRelationInput['perspective'];
+  source?: GovernanceRelationInput['source'];
+  evidence?: GovernanceRelationInput['evidence'];
+  authority?: GovernanceRelationInput['authority'];
+  confidence?: GovernanceRelationInput['confidence'];
   metadata: Record<string, unknown>;
 }
 
@@ -137,6 +147,11 @@ function normalizeNode(node: GovernanceNodeInput): GovernanceNormalizedNode {
     normalized.classification = node.classification;
   }
   if (node.ownership !== undefined) normalized.ownership = node.ownership;
+  if (node.perspective !== undefined) normalized.perspective = node.perspective;
+  if (node.source !== undefined) normalized.source = node.source;
+  if (node.evidence !== undefined) normalized.evidence = node.evidence;
+  if (node.authority !== undefined) normalized.authority = node.authority;
+  if (node.confidence !== undefined) normalized.confidence = node.confidence;
 
   return normalized;
 }
@@ -147,7 +162,7 @@ function normalizeRelation(
 ): GovernanceNormalizedRelation {
   const kind = relation.kind ?? 'unknown';
 
-  return {
+  const normalized: GovernanceNormalizedRelation = {
     id:
       relation.id ??
       `canonical:${relation.sourceNodeId}->${relation.targetNodeId}:${kind}:${index}`,
@@ -156,4 +171,17 @@ function normalizeRelation(
     kind,
     metadata: relation.metadata ?? {},
   };
+
+  if (relation.perspective !== undefined) {
+    normalized.perspective = relation.perspective;
+  }
+  if (relation.source !== undefined) normalized.source = relation.source;
+  if (relation.evidence !== undefined) normalized.evidence = relation.evidence;
+  if (relation.authority !== undefined)
+    normalized.authority = relation.authority;
+  if (relation.confidence !== undefined) {
+    normalized.confidence = relation.confidence;
+  }
+
+  return normalized;
 }

@@ -1,8 +1,11 @@
 import type {
   GovernanceClassificationInput,
+  GovernanceEvidence,
   GovernanceNodeInput,
   GovernanceOwnershipInput,
+  GovernancePerspective,
   GovernanceRelationInput,
+  GovernanceSource,
   GovernanceWorkspaceAdapterResult,
   GovernanceSignal,
   GovernanceSignalCategory,
@@ -96,6 +99,36 @@ describe('Core adapter contract coverage', () => {
       },
     } satisfies GovernanceOwnershipInput;
 
+    const perspective = {
+      id: 'implemented-reality',
+      name: 'Implemented Reality',
+      description: 'Facts discovered from implementation artifacts.',
+    } satisfies GovernancePerspective;
+
+    const source = {
+      id: 'source:catalog',
+      name: 'Catalog',
+      type: 'governance-catalog',
+      metadata: {
+        endpoint: 'catalog',
+      },
+    } satisfies GovernanceSource;
+
+    const evidence = [
+      {
+        id: 'evidence:asset-a',
+        type: 'catalog-entry',
+        source,
+        reference: 'assets/a',
+        description: 'Catalog entry for Asset A.',
+        authority: 'authoritative',
+        confidence: 1,
+        metadata: {
+          sourceVersion: '1',
+        },
+      },
+    ] satisfies GovernanceEvidence[];
+
     const node = {
       id: 'asset-a',
       name: 'Asset A',
@@ -106,6 +139,11 @@ describe('Core adapter contract coverage', () => {
       tags: ['critical'],
       classification,
       ownership,
+      perspective,
+      source,
+      evidence,
+      authority: 'discovered',
+      confidence: 0.95,
       metadata: {
         sourceKind: 'example',
       },
@@ -115,6 +153,11 @@ describe('Core adapter contract coverage', () => {
       sourceNodeId: 'asset-a',
       targetNodeId: 'asset-b',
       kind: 'lineage',
+      perspective,
+      source,
+      evidence,
+      authority: 'inferred',
+      confidence: 0.75,
       metadata: {
         relationKind: 'example',
       },
@@ -123,7 +166,10 @@ describe('Core adapter contract coverage', () => {
     expect(node.kind).toBe('asset');
     expect(node.classification?.domain).toBe('customer');
     expect(node.ownership?.team).toBe('customer-platform');
+    expect(node.perspective?.id).toBe('implemented-reality');
+    expect(node.evidence?.[0]?.authority).toBe('authoritative');
     expect(relation.sourceNodeId).toBe('asset-a');
+    expect(relation.confidence).toBe(0.75);
   });
 
   it('supports plain adapter result data through the core boundary', () => {
