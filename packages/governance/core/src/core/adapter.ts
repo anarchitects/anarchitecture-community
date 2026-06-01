@@ -8,6 +8,8 @@ export interface GovernanceWorkspaceAdapterResult {
   workspaceRoot?: string;
   projects?: GovernanceProjectInput[];
   dependencies?: GovernanceDependencyInput[];
+  nodes?: GovernanceNodeInput[];
+  relations?: GovernanceRelationInput[];
   capabilities?: GovernanceCapability[];
   diagnostics?: GovernanceDiagnostic[];
   metadata?: Record<string, unknown>;
