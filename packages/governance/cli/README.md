@@ -65,6 +65,55 @@ Resolution precedence is:
 - conventional file discovery
 - adapter candidate discovery and probe selection
 
+## Canonical Graph Runtime
+
+`agov assess` and `agov check` consume the additive canonical graph fields from
+`GovernanceWorkspaceAdapterResult`:
+
+- `nodes`
+- `relations`
+- `capabilities`
+- `diagnostics`
+
+The CLI also preserves compatibility with existing adapter output:
+
+- `projects`
+- `dependencies`
+
+The CLI normalizes canonical graph data for command output and passes
+compatibility workspace data into the current assessment pipeline. Existing
+consumers of project/dependency-based assessments continue to work while newer
+adapters can expose canonical node/relation facts.
+
+Adapter diagnostics are surfaced through the Core-owned `GovernanceDiagnostic`
+model. The CLI presents diagnostic severity, kind, category, and status without
+introducing findings, recommendations, or rule evaluations.
+
+## Extension Runtime
+
+The CLI is the runtime host for extension registration. In adapter mode it can
+load a matching Governance extension package through the existing dynamic module
+loader when one is available. For example, an adapter package named
+`@anarchitects/governance-adapter-typescript` maps to the optional sibling
+extension package `@anarchitects/governance-extension-typescript`.
+
+The CLI owns orchestration only:
+
+- adapter loading and probing
+- extension loading and registration
+- output routing
+- process exit-code handling
+- diagnostic presentation
+
+Governance semantics remain outside the CLI:
+
+- Core owns canonical contracts, normalization, diagnostics, and deterministic
+  assessment primitives.
+- Adapters own workspace extraction and discovered facts.
+- Extensions own technology-specific interpretation such as rules, metrics, and
+  recommendations.
+- Reporting package changes remain separate follow-up work.
+
 ## Output Formats
 
 Supported output formats:

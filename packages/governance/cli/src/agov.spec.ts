@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import type { GovernanceExtensionHost } from '@anarchitects/governance-core';
+
 import {
   type AgovCliEnvironment,
   AGOV_EXIT_CONFIGURATION_FAILURE,
@@ -1283,6 +1285,121 @@ describe('agov executable command surface', () => {
         workspace: {
           name: path.basename(cwd),
         },
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('loads an inferred governance extension in explicit adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-assess-extension-mode-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'assess',
+          '--profile',
+          './profile.json',
+          '--adapter',
+          '@anarchitects/governance-adapter-typescript',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === '@anarchitects/governance-adapter-typescript') {
+              return createAdapterModule({
+                workspaceName: path.basename(cwd),
+              });
+            }
+
+            if (specifier === '@anarchitects/governance-extension-typescript') {
+              return createExtensionModule();
+            }
+
+            throw new Error(`Unexpected module specifier: ${specifier}`);
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'assess',
+      success: true,
+      artifacts: {
+        extensionDiagnostics: [],
+      },
+      assessment: {
+        violations: [
+          expect.objectContaining({
+            id: 'test-extension:workspace',
+            ruleId: 'test.extension.loaded',
+            sourcePluginId: 'test.extension:typescript',
+          }),
+        ],
+      },
+    });
+    expect(io.err).toBe('');
+  });
+
+  it('renders adapter diagnostics through canonical check JSON output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-check-diagnostics-');
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'check',
+          '--profile',
+          './profile.json',
+          '--adapter',
+          '@anarchitects/governance-adapter-typescript',
+          '--root',
+          '.',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === '@anarchitects/governance-adapter-typescript') {
+              return createDiagnosticAdapterModule({
+                workspaceName: path.basename(cwd),
+              });
+            }
+
+            throw new Error(`Unexpected module specifier: ${specifier}`);
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'check',
+      success: true,
+      artifacts: {
+        diagnostics: [
+          expect.objectContaining({
+            code: 'governance.adapter.partial_extraction',
+            severity: 'warning',
+            kind: 'observation',
+            category: 'adapter',
+            details: {
+              status: 'partial',
+            },
+          }),
+        ],
       },
     });
     expect(io.err).toBe('');
@@ -3495,6 +3612,65 @@ function createAdapterModule(input: { workspaceName: string }): unknown {
           };
         },
       };
+    },
+  };
+}
+
+function createDiagnosticAdapterModule(input: {
+  workspaceName: string;
+}): unknown {
+  return {
+    createGovernanceWorkspaceAdapter() {
+      return {
+        id: 'governance-adapter:typescript',
+        loadWorkspace() {
+          return {
+            workspaceId: input.workspaceName,
+            workspaceName: input.workspaceName,
+            workspaceRoot: '.',
+            projects: [],
+            dependencies: [],
+            diagnostics: [
+              {
+                code: 'governance.adapter.partial_extraction',
+                message: 'Workspace extraction was partial.',
+                severity: 'warning',
+                kind: 'observation',
+                category: 'adapter',
+                source: 'governance-adapter:typescript',
+                details: {
+                  status: 'partial',
+                },
+              },
+            ],
+          };
+        },
+      };
+    },
+  };
+}
+
+function createExtensionModule(): unknown {
+  return {
+    governanceTypeScriptExtension: {
+      id: 'test.extension:typescript',
+      name: 'Test TypeScript Governance Extension',
+      register(host: GovernanceExtensionHost) {
+        host.registerRulePack({
+          evaluate() {
+            return [
+              {
+                id: 'test-extension:workspace',
+                ruleId: 'test.extension.loaded',
+                project: 'workspace',
+                severity: 'warning',
+                category: 'architecture',
+                message: 'Test extension executed.',
+              },
+            ];
+          },
+        });
+      },
     },
   };
 }
