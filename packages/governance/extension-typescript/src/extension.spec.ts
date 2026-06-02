@@ -60,7 +60,7 @@ describe('TypeScript Governance extension', () => {
     });
   });
 
-  it('registers with the Governance Core extension runtime as a no-op package boundary', async () => {
+  it('does not duplicate generic Core rules during TypeScript extension registration', async () => {
     const result = await registerLoadedGovernanceExtensionsWithDiagnostics(
       context,
       [
