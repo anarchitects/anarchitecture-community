@@ -89,6 +89,36 @@ Adapter diagnostics are surfaced through the Core-owned `GovernanceDiagnostic`
 model. The CLI presents diagnostic severity, kind, category, and status without
 introducing findings, recommendations, or rule evaluations.
 
+## Canonical Reporting Views
+
+`agov inspect` renders canonical graph artifacts as first-class report inputs:
+
+- `nodes`
+- `relations`
+- `capabilities`
+- `diagnostics`
+
+The command still includes compatibility `projects` and `dependencies` fields
+for existing consumers. Those fields remain compatibility contracts; canonical
+`nodes` and `relations` are the long-term reporting model.
+
+Focused artifact commands shape reports from already-evaluated Core artifacts:
+
+- `agov violations`
+- `agov metrics`
+- `agov recommendations`
+- `agov signals`
+
+When these commands are run with filters, human-readable reports include a
+`Report Scope` section. The scope documents the active filter set so focused
+reports, such as a domain-boundary or severity-specific report, do not read like
+full assessment dumps. Filtering is presentation/report shaping only; it does
+not suppress findings in `agov assess` or change `agov check` gate semantics.
+
+Governance diagnostics remain diagnostics. The reporting layer renders
+`GovernanceDiagnostic` records directly and does not reinterpret them as
+findings, recommendations, or scores.
+
 ## Extension Runtime
 
 The CLI is the runtime host for extension registration. In adapter mode it can
@@ -112,7 +142,7 @@ Governance semantics remain outside the CLI:
 - Adapters own workspace extraction and discovered facts.
 - Extensions own technology-specific interpretation such as rules, metrics, and
   recommendations.
-- Reporting package changes remain separate follow-up work.
+- Reporting owns presentation, report shaping, and output formatting.
 
 ## Output Formats
 

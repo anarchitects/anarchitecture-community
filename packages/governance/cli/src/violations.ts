@@ -22,6 +22,11 @@ export interface AgovViolationsSummary {
   bySourcePlugin: Array<{ sourcePlugin: string; count: number }>;
 }
 
+export interface AgovViolationsScope {
+  mode: 'filtered';
+  filters: AgovViolationsFilters;
+}
+
 export interface AgovViolationsResult {
   command: 'violations';
   workspace: {
@@ -30,6 +35,7 @@ export interface AgovViolationsResult {
     root: string;
   };
   profile: string;
+  scope?: AgovViolationsScope;
   violations: Violation[];
   summary: AgovViolationsSummary;
 }
@@ -56,9 +62,24 @@ export async function runAgovViolations<TInput = unknown>(
       root: assessResult.assessment.workspace.root,
     },
     profile: assessResult.assessment.profile,
+    ...(hasViolationFilters(options.filters)
+      ? { scope: { mode: 'filtered', filters: options.filters } }
+      : {}),
     violations: filteredViolations,
     summary: buildSummary(filteredViolations),
   };
+}
+
+function hasViolationFilters(
+  filters: AgovViolationsFilters | undefined,
+): filters is AgovViolationsFilters {
+  return Boolean(
+    filters?.severity ||
+      filters?.rule ||
+      filters?.category ||
+      filters?.project ||
+      filters?.sourcePlugin,
+  );
 }
 
 function applyViolationFilters(

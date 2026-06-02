@@ -14,6 +14,11 @@ export interface AgovMetricsFilters {
   weakest?: number;
 }
 
+export interface AgovMetricsScope {
+  mode: 'filtered';
+  filters: AgovMetricsFilters;
+}
+
 export interface AgovMetricsResult {
   command: 'metrics';
   workspace: {
@@ -22,6 +27,7 @@ export interface AgovMetricsResult {
     root: string;
   };
   profile: string;
+  scope?: AgovMetricsScope;
   health: GovernanceAssessment['health'] & {
     thresholds?: {
       goodMinScore: number;
@@ -75,6 +81,9 @@ export async function runAgovMetrics<TInput = unknown>(
       root: assessResult.assessment.workspace.root,
     },
     profile: assessResult.assessment.profile,
+    ...(hasMetricsFilters(options.filters)
+      ? { scope: { mode: 'filtered', filters: options.filters } }
+      : {}),
     health: {
       ...assessResult.assessment.health,
       thresholds: {
@@ -93,6 +102,12 @@ export async function runAgovMetrics<TInput = unknown>(
       metricFamilyCount,
     },
   };
+}
+
+function hasMetricsFilters(
+  filters: AgovMetricsFilters | undefined,
+): filters is AgovMetricsFilters {
+  return Boolean(filters?.family || filters?.metric || filters?.weakest);
 }
 
 function applyMeasurementFilters(

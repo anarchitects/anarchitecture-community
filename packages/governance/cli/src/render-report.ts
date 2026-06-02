@@ -16,6 +16,11 @@ type AgovCommandResult = AgovCheckResult | AgovAssessResult;
 
 export type AgovOutputFormat = 'json' | 'markdown' | 'table' | 'text';
 
+interface RenderableReportScope {
+  mode: string;
+  filters: object;
+}
+
 export function renderAgovCheckReport(
   result: AgovCommandResult,
   format: AgovOutputFormat,
@@ -409,6 +414,60 @@ function readDiagnosticStatus(
   return metadataStatus ?? detailsStatus;
 }
 
+function appendReportScopeText(
+  lines: string[],
+  scope: RenderableReportScope | undefined,
+): void {
+  if (!scope) {
+    return;
+  }
+
+  lines.push('');
+  lines.push('Report Scope');
+  lines.push(
+    ...reportingPrimitives.renderTwoColumnTextTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['mode', scope.mode],
+        ['filters', formatReportScopeFilters(scope.filters)],
+      ],
+    }),
+  );
+}
+
+function appendReportScopeMarkdown(
+  lines: string[],
+  scope: RenderableReportScope | undefined,
+): void {
+  if (!scope) {
+    return;
+  }
+
+  lines.push('');
+  lines.push('## Report Scope');
+  lines.push(
+    ...reportingPrimitives.renderMarkdownTable({
+      headers: ['Field', 'Value'],
+      rows: [
+        ['mode', scope.mode],
+        ['filters', formatReportScopeFilters(scope.filters)],
+      ],
+    }),
+  );
+}
+
+function formatReportScopeFilters(filters: object): string {
+  const entries = Object.entries(filters as Record<string, unknown>).filter(
+    ([, value]) => value !== undefined && value !== null && value !== '',
+  );
+
+  if (entries.length === 0) {
+    return 'none';
+  }
+
+  return entries.map(([key, value]) => `${key}=${String(value)}`).join(', ');
+}
+
 function renderAgovProfileValidateTable(
   result: AgovProfileValidateResult,
 ): string {
@@ -607,6 +666,11 @@ function renderAgovInspectTable(result: AgovInspectResult): string {
       headers: ['Field', 'Value'],
       rows: [
         ['workspace', result.summary?.workspaceName ?? result.workspace.name],
+        ['nodes', String(result.summary?.nodeCount ?? result.nodes.length)],
+        [
+          'relations',
+          String(result.summary?.relationCount ?? result.relations.length),
+        ],
         [
           'projects',
           String(result.summary?.projectCount ?? result.projects.length),
@@ -614,6 +678,14 @@ function renderAgovInspectTable(result: AgovInspectResult): string {
         [
           'dependencies',
           String(result.summary?.dependencyCount ?? result.dependencies.length),
+        ],
+        [
+          'node kinds',
+          formatStringSummary(result.summary?.distinctNodeKinds ?? []),
+        ],
+        [
+          'relation kinds',
+          formatStringSummary(result.summary?.distinctRelationKinds ?? []),
         ],
         ['domains', String(result.summary?.distinctDomains.length ?? 0)],
         ['layers', String(result.summary?.distinctLayers.length ?? 0)],
@@ -625,9 +697,34 @@ function renderAgovInspectTable(result: AgovInspectResult): string {
     }),
   );
 
+  if (result.nodes.length > 0) {
+    lines.push('');
+    lines.push('Nodes');
+    lines.push(
+      ...reportingPrimitives.renderTwoColumnTextTable({
+        headers: ['Node', 'Details'],
+        rows: result.nodes.map((node) => [node.id, formatNodeDetails(node)]),
+      }),
+    );
+  }
+
+  if (result.relations.length > 0) {
+    lines.push('');
+    lines.push('Relations');
+    lines.push(
+      ...reportingPrimitives.renderTwoColumnTextTable({
+        headers: ['Relation', 'Details'],
+        rows: result.relations.map((relation) => [
+          `${relation.sourceNodeId} -> ${relation.targetNodeId}`,
+          formatRelationDetails(relation),
+        ]),
+      }),
+    );
+  }
+
   if (result.projects.length > 0) {
     lines.push('');
-    lines.push('Projects');
+    lines.push('Compatibility Projects');
     lines.push(
       ...reportingPrimitives.renderTwoColumnTextTable({
         headers: ['Project', 'Details'],
@@ -641,7 +738,7 @@ function renderAgovInspectTable(result: AgovInspectResult): string {
 
   if (result.dependencies.length > 0) {
     lines.push('');
-    lines.push('Dependencies');
+    lines.push('Compatibility Dependencies');
     lines.push(
       ...reportingPrimitives.renderTwoColumnTextTable({
         headers: ['Dependency', 'Details'],
@@ -703,6 +800,11 @@ function renderAgovInspectMarkdown(result: AgovInspectResult): string {
       headers: ['Field', 'Value'],
       rows: [
         ['workspace', result.summary?.workspaceName ?? result.workspace.name],
+        ['nodes', String(result.summary?.nodeCount ?? result.nodes.length)],
+        [
+          'relations',
+          String(result.summary?.relationCount ?? result.relations.length),
+        ],
         [
           'projects',
           String(result.summary?.projectCount ?? result.projects.length),
@@ -710,6 +812,14 @@ function renderAgovInspectMarkdown(result: AgovInspectResult): string {
         [
           'dependencies',
           String(result.summary?.dependencyCount ?? result.dependencies.length),
+        ],
+        [
+          'node kinds',
+          formatStringSummary(result.summary?.distinctNodeKinds ?? []),
+        ],
+        [
+          'relation kinds',
+          formatStringSummary(result.summary?.distinctRelationKinds ?? []),
         ],
         ['domains', String(result.summary?.distinctDomains.length ?? 0)],
         ['layers', String(result.summary?.distinctLayers.length ?? 0)],
@@ -721,9 +831,35 @@ function renderAgovInspectMarkdown(result: AgovInspectResult): string {
     }),
   );
 
+  if (result.nodes.length > 0) {
+    lines.push('');
+    lines.push('## Nodes');
+    lines.push(
+      ...reportingPrimitives.renderMarkdownTable({
+        headers: ['node', 'details'],
+        rows: result.nodes.map((node) => [node.id, formatNodeDetails(node)]),
+      }),
+    );
+  }
+
+  if (result.relations.length > 0) {
+    lines.push('');
+    lines.push('## Relations');
+    lines.push(
+      ...reportingPrimitives.renderMarkdownTable({
+        headers: ['source', 'target', 'details'],
+        rows: result.relations.map((relation) => [
+          relation.sourceNodeId,
+          relation.targetNodeId,
+          formatRelationDetails(relation),
+        ]),
+      }),
+    );
+  }
+
   if (result.projects.length > 0) {
     lines.push('');
-    lines.push('## Projects');
+    lines.push('## Compatibility Projects');
     lines.push(
       ...reportingPrimitives.renderMarkdownTable({
         headers: ['Project', 'Details'],
@@ -737,7 +873,7 @@ function renderAgovInspectMarkdown(result: AgovInspectResult): string {
 
   if (result.dependencies.length > 0) {
     lines.push('');
-    lines.push('## Dependencies');
+    lines.push('## Compatibility Dependencies');
     lines.push(
       ...reportingPrimitives.renderMarkdownTable({
         headers: ['Dependency', 'Details'],
@@ -916,6 +1052,7 @@ function renderAgovMetricsTable(result: AgovMetricsResult): string {
       ],
     }),
   );
+  appendReportScopeText(lines, result.scope);
 
   lines.push('');
   lines.push('Measurements');
@@ -989,6 +1126,7 @@ function renderAgovMetricsMarkdown(result: AgovMetricsResult): string {
       ],
     }),
   );
+  appendReportScopeMarkdown(lines, result.scope);
 
   lines.push('');
   lines.push('## Measurements');
@@ -1068,6 +1206,7 @@ function renderAgovViolationsTable(result: AgovViolationsResult): string {
       ],
     }),
   );
+  appendReportScopeText(lines, result.scope);
 
   lines.push('');
   lines.push('Violations');
@@ -1112,6 +1251,7 @@ function renderAgovRecommendationsTable(
       ],
     }),
   );
+  appendReportScopeText(lines, result.scope);
 
   const groupedRecommendations = groupRecommendationsByPriority(result);
 
@@ -1159,6 +1299,7 @@ function renderAgovSignalsTable(result: AgovSignalsResult): string {
       ],
     }),
   );
+  appendReportScopeText(lines, result.scope);
 
   lines.push('');
   lines.push('Signals');
@@ -1241,6 +1382,7 @@ function renderAgovViolationsMarkdown(result: AgovViolationsResult): string {
       ],
     }),
   );
+  appendReportScopeMarkdown(lines, result.scope);
 
   lines.push('');
   lines.push('## Violations');
@@ -1291,6 +1433,7 @@ function renderAgovRecommendationsMarkdown(
       ],
     }),
   );
+  appendReportScopeMarkdown(lines, result.scope);
 
   const groupedRecommendations = groupRecommendationsByPriority(result);
 
@@ -1336,6 +1479,7 @@ function renderAgovSignalsMarkdown(result: AgovSignalsResult): string {
       ],
     }),
   );
+  appendReportScopeMarkdown(lines, result.scope);
 
   lines.push('');
   lines.push('## Signals');
@@ -1410,6 +1554,49 @@ function formatCountSummary<
   return entries
     .map((entry) => `${String(entry[key])}:${entry.count}`)
     .join(', ');
+}
+
+function formatStringSummary(values: readonly string[]): string {
+  if (values.length === 0) {
+    return 'none';
+  }
+
+  return values.join(', ');
+}
+
+function formatNodeDetails(node: AgovInspectResult['nodes'][number]): string {
+  return [
+    `kind=${node.kind}`,
+    node.name ? `name=${node.name}` : undefined,
+    node.technology ? `technology=${node.technology}` : undefined,
+    node.sourceSystem ? `sourceSystem=${node.sourceSystem}` : undefined,
+    node.path ? `path=${node.path}` : undefined,
+    node.root ? `root=${node.root}` : undefined,
+    node.tags.length > 0 ? `tags=${node.tags.join(',')}` : undefined,
+    node.classification
+      ? `classification=${compactJson(node.classification)}`
+      : undefined,
+    node.ownership ? `ownership=${compactJson(node.ownership)}` : undefined,
+    Object.keys(node.metadata).length > 0
+      ? `metadata=${compactJson(node.metadata)}`
+      : undefined,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(' :: ');
+}
+
+function formatRelationDetails(
+  relation: AgovInspectResult['relations'][number],
+): string {
+  return [
+    `kind=${relation.kind}`,
+    `id=${relation.id}`,
+    Object.keys(relation.metadata).length > 0
+      ? `metadata=${compactJson(relation.metadata)}`
+      : undefined,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(' :: ');
 }
 
 function formatProjectDetails(
