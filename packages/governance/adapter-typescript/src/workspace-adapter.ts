@@ -2,9 +2,21 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type {
+  GovernanceDependencyInput,
+  GovernanceDiagnostic,
+  GovernanceDiagnosticCategory,
+  GovernanceDiagnosticKind,
+  GovernanceDiagnosticSeverity,
+  GovernanceNodeInput,
+  GovernanceProjectInput,
+  GovernanceRelationInput,
   GovernanceWorkspaceAdapter,
   GovernanceWorkspaceAdapterProbeResult,
   GovernanceWorkspaceAdapterResult,
+} from '@anarchitects/governance-core';
+import {
+  governanceDependenciesToRelations,
+  governanceProjectsToNodes,
 } from '@anarchitects/governance-core';
 
 import { detectTypeScriptWorkspace } from './detect-typescript-workspace.js';
@@ -14,6 +26,7 @@ import { parsePackageManagerWorkspace } from './parse-package-manager-workspace.
 import { parseTsConfigResolution } from './parse-tsconfig.js';
 import { discoverTypeScriptProjects } from './project-discovery.js';
 import type {
+  TypeScriptWorkspaceDetectionDiagnostic,
   TypeScriptPackageGovernanceMetadataConfig,
   TypeScriptProjectDiscoveryConfig,
 } from './types.js';
@@ -74,7 +87,7 @@ export function createTypeScriptWorkspaceAdapter(
             : 'low'
           : 'none',
         reasons: buildProbeReasons(detection),
-        diagnostics: detection.diagnostics,
+        diagnostics: canonicalizeAdapterDiagnostics(detection.diagnostics),
         metadata: {
           status: detection.status,
           indicators: detection.indicators,
@@ -103,20 +116,24 @@ export function createTypeScriptWorkspaceAdapter(
         projects: discovered.projects,
         importGraph,
       });
+      const projects = discovered.projects;
+      const dependencies = mapping.dependencies;
 
       return {
         workspaceId: inferWorkspaceId(workspaceRoot),
         workspaceName: inferWorkspaceName(workspaceRoot),
         workspaceRoot: '.',
-        projects: discovered.projects,
-        dependencies: mapping.dependencies,
-        diagnostics: [
+        projects,
+        dependencies,
+        nodes: mapTypeScriptProjectsToGovernanceNodes(projects),
+        relations: mapTypeScriptDependenciesToGovernanceRelations(dependencies),
+        diagnostics: canonicalizeAdapterDiagnostics([
           ...workspace.diagnostics,
           ...discovered.diagnostics,
           ...tsconfig.diagnostics,
           ...importGraph.diagnostics,
           ...mapping.diagnostics,
-        ],
+        ]),
       };
     },
   };
@@ -195,4 +212,141 @@ function inferWorkspaceName(workspaceRoot: string): string {
   }
 
   return path.basename(workspaceRoot);
+}
+
+function mapTypeScriptProjectsToGovernanceNodes(
+  projects: readonly GovernanceProjectInput[],
+): GovernanceNodeInput[] {
+  return governanceProjectsToNodes(projects).map((node, index) => {
+    const project = projects[index];
+    const projectType = inferTypeScriptProjectType(project);
+
+    return {
+      ...node,
+      kind: projectType,
+      technology: 'typescript',
+      sourceSystem: 'typescript',
+      path: project.root ?? node.root,
+      classification: {
+        ...(node.classification ?? {}),
+        tags: project.tags ?? [],
+        metadata: {
+          ...(node.classification?.metadata ?? {}),
+          projectType,
+        },
+      },
+      metadata: {
+        ...(node.metadata ?? {}),
+        projectType,
+        compatibilityProjectType: project.type ?? 'unknown',
+      },
+    };
+  });
+}
+
+function mapTypeScriptDependenciesToGovernanceRelations(
+  dependencies: readonly GovernanceDependencyInput[],
+): GovernanceRelationInput[] {
+  return governanceDependenciesToRelations(dependencies).map(
+    (relation, index) => {
+      const dependency = dependencies[index];
+
+      return {
+        ...relation,
+        metadata: {
+          ...(relation.metadata ?? {}),
+          compatibilityDependencyType: dependency.type ?? 'unknown',
+        },
+      };
+    },
+  );
+}
+
+function inferTypeScriptProjectType(
+  project: GovernanceProjectInput,
+): GovernanceNodeInput['kind'] {
+  const tagType = tagValue(project.tags ?? [], 'type');
+
+  if (tagType === 'app' || tagType === 'application') {
+    return 'application';
+  }
+
+  if (tagType === 'lib' || tagType === 'library') {
+    return 'library';
+  }
+
+  if (tagType === 'tool') {
+    return 'tool';
+  }
+
+  if (project.type && project.type !== 'unknown') {
+    return project.type;
+  }
+
+  return 'project';
+}
+
+function tagValue(tags: readonly string[], prefix: string): string | undefined {
+  const found = tags.find((tag) => tag.startsWith(`${prefix}:`));
+  return found?.split(':').slice(1).join(':');
+}
+
+function canonicalizeAdapterDiagnostics(
+  diagnostics: readonly TypeScriptWorkspaceDetectionDiagnostic[],
+): GovernanceDiagnostic[] {
+  return diagnostics.map((diagnostic) => ({
+    severity: diagnosticSeverity(diagnostic),
+    kind: diagnosticKind(diagnostic),
+    category: diagnosticCategory(diagnostic),
+    ...diagnostic,
+  }));
+}
+
+function diagnosticSeverity(
+  diagnostic: TypeScriptWorkspaceDetectionDiagnostic,
+): GovernanceDiagnosticSeverity {
+  if (
+    diagnostic.code === 'governance.typescript_adapter.no_workspace_indicators'
+  ) {
+    return 'info';
+  }
+
+  return 'warning';
+}
+
+function diagnosticKind(
+  diagnostic: TypeScriptWorkspaceDetectionDiagnostic,
+): GovernanceDiagnosticKind {
+  if (diagnosticSeverity(diagnostic) === 'info') {
+    return 'observation';
+  }
+
+  return 'warning';
+}
+
+function diagnosticCategory(
+  diagnostic: TypeScriptWorkspaceDetectionDiagnostic,
+): GovernanceDiagnosticCategory {
+  const configurationCodes = new Set([
+    'governance.typescript_adapter.invalid_package_json',
+    'governance.typescript_adapter.invalid_package_metadata_json',
+    'governance.typescript_adapter.unsupported_package_metadata_format',
+    'governance.typescript_adapter.invalid_package_governance_metadata',
+    'governance.typescript_adapter.invalid_package_governance_metadata_field',
+    'governance.typescript_adapter.invalid_package_governance_metadata_path_config',
+    'governance.typescript_adapter.invalid_package_governance_metadata_path_resolution',
+    'governance.typescript_adapter.invalid_package_governance_metadata_field_mapping_config',
+    'governance.typescript_adapter.invalid_package_governance_metadata_field_mapping_format',
+    'governance.typescript_adapter.invalid_workspace_config',
+    'governance.typescript_adapter.unsupported_workspace_format',
+    'governance.typescript_adapter.invalid_tsconfig',
+    'governance.typescript_adapter.invalid_tsconfig_extends',
+    'governance.typescript_adapter.circular_tsconfig_extends',
+    'governance.typescript_adapter.invalid_path_alias',
+    'governance.typescript_adapter.invalid_discovery_pattern',
+    'governance.typescript_adapter.invalid_tag_template',
+    'governance.typescript_adapter.invalid_project_name_template',
+  ]);
+
+  return configurationCodes.has(diagnostic.code) ? 'configuration' : 'adapter';
 }

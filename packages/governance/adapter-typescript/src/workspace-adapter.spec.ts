@@ -74,6 +74,72 @@ describe('createTypeScriptWorkspaceAdapter', () => {
         sourceFile: 'apps/web/src/index.ts',
       },
     ]);
+    expect(result.nodes).toEqual([
+      expect.objectContaining({
+        id: 'web',
+        name: 'web',
+        root: 'apps/web',
+        path: 'apps/web',
+        kind: 'application',
+        technology: 'typescript',
+        sourceSystem: 'typescript',
+        tags: expect.arrayContaining(['type:app']),
+        classification: expect.objectContaining({
+          tags: expect.arrayContaining(['type:app']),
+        }),
+        metadata: expect.objectContaining({
+          projectType: 'application',
+          compatibilityProjectType: 'unknown',
+        }),
+      }),
+      expect.objectContaining({
+        id: 'customer',
+        root: 'packages/customer',
+        kind: 'library',
+        tags: expect.arrayContaining(['type:lib']),
+      }),
+      expect.objectContaining({
+        id: 'order',
+        root: 'packages/order',
+        kind: 'library',
+        tags: expect.arrayContaining(['type:lib']),
+      }),
+    ]);
+    expect(result.relations).toEqual([
+      expect.objectContaining({
+        id: 'legacy:customer->order:static:0',
+        sourceNodeId: 'customer',
+        targetNodeId: 'order',
+        kind: 'dependency',
+        metadata: expect.objectContaining({
+          dependencyType: 'static',
+          compatibilityDependencyType: 'static',
+          sourceFile: 'packages/customer/src/index.ts',
+        }),
+      }),
+      expect.objectContaining({
+        id: 'legacy:web->customer:static:1',
+        sourceNodeId: 'web',
+        targetNodeId: 'customer',
+        kind: 'dependency',
+        metadata: expect.objectContaining({
+          dependencyType: 'static',
+          compatibilityDependencyType: 'static',
+          sourceFile: 'apps/web/src/index.ts',
+        }),
+      }),
+    ]);
+    expect(result.nodes?.map((node) => node.id)).toEqual(
+      result.projects?.map((project) => project.id),
+    );
+    expect(
+      result.relations?.map((relation) => ({
+        sourceProjectId: relation.sourceNodeId,
+        targetProjectId: relation.targetNodeId,
+        type: relation.metadata?.dependencyType,
+        sourceFile: relation.metadata?.sourceFile,
+      })),
+    ).toEqual(result.dependencies);
     expect(result.diagnostics).toEqual([]);
   });
 });
@@ -145,6 +211,9 @@ describe('generic Governance adapter exports', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.typescript_adapter.invalid_package_governance_metadata_field',
+          severity: 'warning',
+          kind: 'warning',
+          category: 'configuration',
           path: '/package.json/governance/domain',
         }),
       ]),
