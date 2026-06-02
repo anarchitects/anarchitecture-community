@@ -4,8 +4,8 @@ TypeScript-specific Governance extension package for the Anarchitects Community
 Governance runtime.
 
 This package establishes the package boundary and registration surface for
-future TypeScript-specific Governance interpretation. It is intentionally a
-minimal no-op extension in #237.
+TypeScript-specific Governance interpretation. #238 classified the current Core
+rule implementations and found no existing TypeScript-specific rules to move.
 
 ## Purpose
 
@@ -17,7 +17,8 @@ TypeScript-specific Governance contributions:
 - TypeScript-specific recommendations.
 - TypeScript-specific enrichers.
 
-Those contributions are not implemented in this package introduction.
+Current Core rules are generic project/dependency, metadata, ownership, and
+convention rules, so they remain in `@anarchitects/governance-core`.
 
 ## Architecture Boundary
 
@@ -53,11 +54,14 @@ The package exports:
 - `TYPESCRIPT_GOVERNANCE_EXTENSION_ID`
 
 Registration is currently a no-op. No rule packs, metric providers, signal
-providers, or enrichers are registered in #237.
+providers, or enrichers are registered because no current Core rule is
+TypeScript-specific.
 
-## Future Responsibilities
+## Rule Migration Status
 
-- #238 moves TypeScript-specific rules into this package.
+- #238 classified existing Core rule implementations.
+- No existing Core rule moved because the current built-in rules are generic.
+- Future TypeScript-specific rules should be implemented in this package.
 - #239 moves TypeScript-specific metrics and recommendations into this package.
 
 ## Non-Responsibilities
