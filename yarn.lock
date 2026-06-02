@@ -49,6 +49,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@anarchitects/governance-extension-typescript@workspace:packages/governance/extension-typescript":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/governance-extension-typescript@workspace:packages/governance/extension-typescript"
+  dependencies:
+    "@anarchitects/governance-core": "npm:^0.1.0"
+  languageName: unknown
+  linkType: soft
+
 "@anarchitects/nest-angular-ssr@workspace:packages/nest/angular-ssr":
   version: 0.0.0-use.local
   resolution: "@anarchitects/nest-angular-ssr@workspace:packages/nest/angular-ssr"

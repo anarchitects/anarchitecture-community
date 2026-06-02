@@ -1,0 +1,57 @@
+{
+  "name": "@anarchitects/governance-extension-typescript",
+  "version": "0.0.1",
+  "description": "TypeScript-specific Governance extension package boundary for future rules, metrics, recommendations, and enrichers.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/governance/extension-typescript"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/governance/extension-typescript#readme",
+  "keywords": [
+    "governance",
+    "typescript",
+    "extension"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@anarchitecture-community/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "nx": {
+    "name": "governance-extension-typescript",
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/governance/extension-typescript"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@anarchitects/governance-core": "^0.1.0"
+  }
+}
