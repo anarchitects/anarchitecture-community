@@ -3,6 +3,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type {
+  GovernanceExtensionDefinition,
+  GovernanceExtensionDiagnostic,
+  GovernanceLoadedExtension,
   GovernanceWorkspaceAdapter,
   GovernanceWorkspaceAdapterProbeConfidence,
   GovernanceWorkspaceAdapterProbeResult,
@@ -2119,6 +2122,10 @@ export async function resolveAgovRuntimeOptions(
         profilePath: command.profilePath,
         workspaceAdapter: resolvedAdapter.adapter,
         workspaceAdapterInput: command.rootPath,
+        ...(await loadInferredGovernanceExtensions(
+          resolvedAdapter.packageName,
+          environment,
+        )),
         ...('filters' in command && command.filters
           ? { filters: command.filters }
           : {}),
@@ -2135,6 +2142,10 @@ export async function resolveAgovRuntimeOptions(
       profilePath: command.profilePath,
       workspaceAdapter,
       workspaceAdapterInput: command.rootPath,
+      ...(await loadInferredGovernanceExtensions(
+        command.adapterPackage,
+        environment,
+      )),
       ...('filters' in command && command.filters
         ? { filters: command.filters }
         : {}),
@@ -2335,6 +2346,91 @@ function resolveAdapterExport(
   return undefined;
 }
 
+async function loadInferredGovernanceExtensions(
+  adapterPackage: string,
+  environment: Pick<AgovCliEnvironment, 'moduleLoader'>,
+): Promise<{
+  extensions?: readonly GovernanceLoadedExtension[];
+  extensionDiagnostics?: readonly GovernanceExtensionDiagnostic[];
+}> {
+  const extensionPackage = inferGovernanceExtensionPackage(adapterPackage);
+
+  if (!extensionPackage) {
+    return {};
+  }
+
+  let loadedModule: unknown;
+
+  try {
+    loadedModule = await environment.moduleLoader(extensionPackage);
+  } catch {
+    // Inferred extensions are optional for compatibility with existing
+    // adapter-only installations.
+    return {};
+  }
+
+  const definition = resolveExtensionExport(loadedModule);
+
+  if (!definition) {
+    return {};
+  }
+
+  return {
+    extensions: [
+      {
+        sourceSpecifier: extensionPackage,
+        moduleSpecifier: extensionPackage,
+        definition,
+      },
+    ],
+  };
+}
+
+function inferGovernanceExtensionPackage(
+  adapterPackage: string,
+): string | undefined {
+  return adapterPackage.includes('governance-adapter-')
+    ? adapterPackage.replace('governance-adapter-', 'governance-extension-')
+    : undefined;
+}
+
+function resolveExtensionExport(
+  loadedModule: unknown,
+): GovernanceExtensionDefinition | undefined {
+  const moduleRecord =
+    typeof loadedModule === 'object' && loadedModule !== null
+      ? (loadedModule as Record<string, unknown>)
+      : {};
+
+  for (const candidate of [
+    moduleRecord.default,
+    moduleRecord.governanceExtension,
+    moduleRecord.governanceTypeScriptExtension,
+    moduleRecord.extension,
+  ]) {
+    if (isGovernanceExtensionDefinition(candidate)) {
+      return candidate;
+    }
+  }
+
+  for (const factoryName of [
+    'createGovernanceExtension',
+    'createTypeScriptGovernanceExtension',
+  ]) {
+    const factory = moduleRecord[factoryName];
+    if (typeof factory !== 'function') {
+      continue;
+    }
+
+    const created = factory();
+    if (isGovernanceExtensionDefinition(created)) {
+      return created;
+    }
+  }
+
+  return undefined;
+}
+
 function isGovernanceWorkspaceAdapter(
   value: unknown,
 ): value is GovernanceWorkspaceAdapter<string> {
@@ -2343,6 +2439,17 @@ function isGovernanceWorkspaceAdapter(
     value !== null &&
     typeof (value as Record<string, unknown>).id === 'string' &&
     typeof (value as Record<string, unknown>).loadWorkspace === 'function'
+  );
+}
+
+function isGovernanceExtensionDefinition(
+  value: unknown,
+): value is GovernanceExtensionDefinition {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as Record<string, unknown>).id === 'string' &&
+    typeof (value as Record<string, unknown>).register === 'function'
   );
 }
 

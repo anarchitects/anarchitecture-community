@@ -32,7 +32,7 @@ import {
 } from './render-report.js';
 
 describe('agov command report rendering', () => {
-  it('keeps check JSON output shape stable', async () => {
+  it('keeps check JSON output shape canonical-aware', async () => {
     const checkResult = await runAgovCheck({
       workspacePath: fixturePath(
         '../tests/fixtures/manual-workspace/demo-workspace.json',
@@ -45,7 +45,13 @@ describe('agov command report rendering', () => {
     const rendered = renderAgovCheckJson(checkResult);
     const parsed = JSON.parse(rendered) as Record<string, unknown>;
 
-    expect(Object.keys(parsed)).toEqual(['command', 'success', 'assessment']);
+    expect(Object.keys(parsed)).toEqual([
+      'command',
+      'success',
+      'assessment',
+      'graph',
+      'artifacts',
+    ]);
     expect(parsed).toMatchObject({
       command: 'check',
       success: true,
@@ -54,10 +60,19 @@ describe('agov command report rendering', () => {
           name: 'demo',
         },
       },
+      graph: {
+        nodes: expect.any(Array),
+        relations: expect.any(Array),
+      },
+      artifacts: {
+        capabilities: expect.any(Array),
+        diagnostics: expect.any(Array),
+        extensionDiagnostics: expect.any(Array),
+      },
     });
   });
 
-  it('keeps assess JSON output shape stable', async () => {
+  it('keeps assess JSON output shape canonical-aware', async () => {
     const assessResult = await runAgovAssess({
       workspacePath: fixturePath(
         '../tests/fixtures/manual-workspace/demo-workspace.json',
@@ -70,7 +85,13 @@ describe('agov command report rendering', () => {
     const rendered = renderAgovCheckJson(assessResult);
     const parsed = JSON.parse(rendered) as Record<string, unknown>;
 
-    expect(Object.keys(parsed)).toEqual(['command', 'success', 'assessment']);
+    expect(Object.keys(parsed)).toEqual([
+      'command',
+      'success',
+      'assessment',
+      'graph',
+      'artifacts',
+    ]);
     expect(parsed).toMatchObject({
       command: 'assess',
       success: true,
@@ -78,6 +99,15 @@ describe('agov command report rendering', () => {
         workspace: {
           name: 'demo',
         },
+      },
+      graph: {
+        nodes: expect.any(Array),
+        relations: expect.any(Array),
+      },
+      artifacts: {
+        capabilities: expect.any(Array),
+        diagnostics: expect.any(Array),
+        extensionDiagnostics: expect.any(Array),
       },
     });
   });
@@ -125,6 +155,59 @@ describe('agov command report rendering', () => {
     const tableRendered = renderAgovCheckReport(assessResult, 'table');
 
     expect(textRendered).toBe(tableRendered);
+  });
+
+  it('renders canonical diagnostics in JSON and text outputs', async () => {
+    const assessResult = await runAgovAssess({
+      workspaceAdapter: {
+        id: 'test-adapter:diagnostics',
+        loadWorkspace() {
+          return {
+            workspaceId: 'diagnostic-workspace',
+            workspaceName: 'diagnostic-workspace',
+            workspaceRoot: '.',
+            projects: [],
+            dependencies: [],
+            diagnostics: [
+              {
+                code: 'governance.adapter.partial_extraction',
+                message: 'Workspace extraction was partial.',
+                severity: 'warning',
+                kind: 'observation',
+                category: 'adapter',
+                details: {
+                  status: 'partial',
+                },
+              },
+            ],
+          };
+        },
+      },
+      workspaceAdapterInput: '.',
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/passing-profile.json',
+      ),
+    });
+
+    const parsed = JSON.parse(renderAgovCheckJson(assessResult)) as {
+      artifacts: {
+        diagnostics: Array<Record<string, unknown>>;
+      };
+    };
+    const textRendered = renderAgovCheckReport(assessResult, 'text');
+
+    expect(parsed.artifacts.diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'governance.adapter.partial_extraction',
+        severity: 'warning',
+        details: {
+          status: 'partial',
+        },
+      }),
+    ]);
+    expect(textRendered).toContain('Diagnostics');
+    expect(textRendered).toContain('severity=warning');
+    expect(textRendered).toContain('status=partial');
   });
 
   it('keeps profile validate JSON output shape stable', async () => {

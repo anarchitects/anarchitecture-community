@@ -1,6 +1,9 @@
 import type {
   GovernanceAssessment,
   GovernanceAssessmentArtifacts,
+  GovernanceExtensionDiagnostic,
+  GovernanceLoadedExtension,
+  GovernanceNormalizedGraph,
   GovernanceWorkspaceAdapter,
   GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
@@ -13,6 +16,8 @@ export interface AgovCheckWithWorkspacePathOptions {
   workspacePath: string;
   workspaceAdapter?: undefined;
   workspaceAdapterInput?: undefined;
+  extensions?: readonly GovernanceLoadedExtension[];
+  extensionDiagnostics?: readonly GovernanceExtensionDiagnostic[];
 }
 
 export interface AgovCheckWithAdapterOptions<TInput = unknown> {
@@ -20,6 +25,8 @@ export interface AgovCheckWithAdapterOptions<TInput = unknown> {
   workspaceAdapter: GovernanceWorkspaceAdapter<TInput>;
   workspaceAdapterInput: TInput;
   workspacePath?: undefined;
+  extensions?: readonly GovernanceLoadedExtension[];
+  extensionDiagnostics?: readonly GovernanceExtensionDiagnostic[];
 }
 
 export type AgovCheckOptions<TInput = unknown> =
@@ -32,6 +39,8 @@ export interface AgovCheckResult {
   command: 'check';
   success: boolean;
   assessment: GovernanceAssessment;
+  artifacts: GovernanceAssessmentArtifacts;
+  graph: GovernanceNormalizedGraph;
 }
 
 export interface AgovAssessResult {
@@ -39,6 +48,7 @@ export interface AgovAssessResult {
   success: boolean;
   assessment: GovernanceAssessment;
   artifacts: GovernanceAssessmentArtifacts;
+  graph: GovernanceNormalizedGraph;
 }
 
 const MANUAL_WORKSPACE_ADAPTER: GovernanceWorkspaceAdapter<string> = {
@@ -60,20 +70,50 @@ export function runAgovCheck<TInput = unknown>(
       command: 'check',
       success,
       assessment: result.assessment,
+      artifacts: result.artifacts,
+      graph: result.graph,
     };
   });
 }
 
-export function runAgovAssess<TInput = unknown>(
+export async function runAgovAssess<TInput = unknown>(
   options: AgovAssessOptions<TInput>,
 ): Promise<AgovAssessResult> {
   const profile = loadStandaloneGovernanceProfile(options.profilePath).profile;
   const workspaceAdapterResult = resolveWorkspaceAdapterResult(options);
+  const graph = governanceCore.normalizeGovernanceGraph(workspaceAdapterResult);
+  const workspace = governanceCore.buildGovernanceWorkspace(
+    workspaceAdapterResult,
+  );
+  const capabilities = [...(workspaceAdapterResult.capabilities ?? [])];
+  const diagnostics = [...(workspaceAdapterResult.diagnostics ?? [])];
+  const extensionContext = {
+    workspaceRoot: workspace.root,
+    profileName: profile.name,
+    options: buildExtensionOptions(options),
+    inventory: workspace,
+    capabilities: new governanceCore.DefaultGovernanceCapabilityRegistry(
+      capabilities,
+    ),
+  };
+  const extensionRegistration =
+    await governanceCore.registerLoadedGovernanceExtensionsWithDiagnostics(
+      extensionContext,
+      options.extensions ?? [],
+      {
+        diagnostics: options.extensionDiagnostics ?? [],
+      },
+    );
 
   return governanceCore
     .buildGovernanceAssessmentArtifacts({
       profile,
-      workspaceAdapterResult,
+      workspace,
+      capabilities,
+      diagnostics,
+      extensionRegistry: extensionRegistration.registry,
+      extensionContext,
+      extensionDiagnostics: extensionRegistration.diagnostics,
     })
     .then((artifacts) => ({
       command: 'assess',
@@ -82,6 +122,7 @@ export function runAgovAssess<TInput = unknown>(
       ),
       assessment: artifacts.assessment,
       artifacts,
+      graph,
     }));
 }
 
@@ -95,4 +136,16 @@ function resolveWorkspaceAdapterResult<TInput>(
   }
 
   return MANUAL_WORKSPACE_ADAPTER.loadWorkspace(options.workspacePath);
+}
+
+function buildExtensionOptions<TInput>(
+  options: AgovAssessOptions<TInput>,
+): Readonly<Record<string, unknown>> {
+  return {
+    profilePath: options.profilePath,
+    ...(options.workspacePath ? { workspacePath: options.workspacePath } : {}),
+    ...('workspaceAdapter' in options && options.workspaceAdapter
+      ? { workspaceAdapterId: options.workspaceAdapter.id }
+      : {}),
+  };
 }

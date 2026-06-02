@@ -156,6 +156,12 @@ export function renderAgovCheckJson(result: AgovCommandResult): string {
     command: result.command,
     success: result.success,
     assessment: JSON.parse(renderJsonReport(result.assessment)) as object,
+    graph: result.graph,
+    artifacts: {
+      capabilities: result.artifacts.capabilities,
+      diagnostics: result.artifacts.diagnostics,
+      extensionDiagnostics: result.artifacts.extensionDiagnostics,
+    },
   });
 }
 
@@ -223,6 +229,7 @@ function renderAgovCheckTable(result: AgovCommandResult): string {
   );
   lines.push('');
   lines.push(...assessmentLines);
+  appendDiagnosticsText(lines, result);
 
   return lines.join('\n');
 }
@@ -264,8 +271,142 @@ function renderAgovCheckMarkdown(result: AgovCommandResult): string {
 
     lines.push(line);
   }
+  appendDiagnosticsMarkdown(lines, result);
 
   return lines.join('\n');
+}
+
+function appendDiagnosticsText(
+  lines: string[],
+  result: AgovCommandResult,
+): void {
+  if (result.artifacts.diagnostics.length > 0) {
+    lines.push('');
+    lines.push('Diagnostics');
+    lines.push(
+      ...reportingPrimitives.renderTwoColumnTextTable({
+        headers: ['Diagnostic', 'Details'],
+        rows: result.artifacts.diagnostics.map((diagnostic) => [
+          diagnostic.code,
+          formatDiagnosticDetails(diagnostic),
+        ]),
+      }),
+    );
+  }
+
+  if (result.artifacts.extensionDiagnostics.length > 0) {
+    lines.push('');
+    lines.push('Extension Diagnostics');
+    lines.push(
+      ...reportingPrimitives.renderTwoColumnTextTable({
+        headers: ['Diagnostic', 'Details'],
+        rows: result.artifacts.extensionDiagnostics.map((diagnostic) => [
+          diagnostic.code,
+          [
+            `message=${diagnostic.message}`,
+            `severity=${diagnostic.severity}`,
+            diagnostic.extensionId
+              ? `extension=${diagnostic.extensionId}`
+              : undefined,
+            diagnostic.packageName
+              ? `package=${diagnostic.packageName}`
+              : undefined,
+            diagnostic.moduleSpecifier
+              ? `module=${diagnostic.moduleSpecifier}`
+              : undefined,
+          ]
+            .filter((part): part is string => Boolean(part))
+            .join(' :: '),
+        ]),
+      }),
+    );
+  }
+}
+
+function appendDiagnosticsMarkdown(
+  lines: string[],
+  result: AgovCommandResult,
+): void {
+  if (result.artifacts.diagnostics.length > 0) {
+    lines.push('');
+    lines.push('## Diagnostics');
+    lines.push(
+      ...reportingPrimitives.renderMarkdownTable({
+        headers: ['Diagnostic', 'Details'],
+        rows: result.artifacts.diagnostics.map((diagnostic) => [
+          diagnostic.code,
+          formatDiagnosticDetails(diagnostic),
+        ]),
+      }),
+    );
+  }
+
+  if (result.artifacts.extensionDiagnostics.length > 0) {
+    lines.push('');
+    lines.push('## Extension Diagnostics');
+    lines.push(
+      ...reportingPrimitives.renderMarkdownTable({
+        headers: ['Diagnostic', 'Details'],
+        rows: result.artifacts.extensionDiagnostics.map((diagnostic) => [
+          diagnostic.code,
+          [
+            `message=${diagnostic.message}`,
+            `severity=${diagnostic.severity}`,
+            diagnostic.extensionId
+              ? `extension=${diagnostic.extensionId}`
+              : undefined,
+            diagnostic.packageName
+              ? `package=${diagnostic.packageName}`
+              : undefined,
+            diagnostic.moduleSpecifier
+              ? `module=${diagnostic.moduleSpecifier}`
+              : undefined,
+          ]
+            .filter((part): part is string => Boolean(part))
+            .join(' :: '),
+        ]),
+      }),
+    );
+  }
+}
+
+function formatDiagnosticDetails(
+  diagnostic: AgovCommandResult['artifacts']['diagnostics'][number],
+): string {
+  const status = readDiagnosticStatus(diagnostic);
+
+  return [
+    `message=${diagnostic.message}`,
+    diagnostic.severity ? `severity=${diagnostic.severity}` : undefined,
+    diagnostic.kind ? `kind=${diagnostic.kind}` : undefined,
+    diagnostic.category ? `category=${diagnostic.category}` : undefined,
+    status ? `status=${status}` : undefined,
+    diagnostic.source ? `source=${diagnostic.source}` : undefined,
+    diagnostic.details
+      ? `details=${compactJson(diagnostic.details)}`
+      : undefined,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(' :: ');
+}
+
+function readDiagnosticStatus(
+  diagnostic: AgovCommandResult['artifacts']['diagnostics'][number],
+): string | undefined {
+  const metadataStatus =
+    diagnostic.metadata &&
+    typeof diagnostic.metadata.status === 'string' &&
+    diagnostic.metadata.status.length > 0
+      ? diagnostic.metadata.status
+      : undefined;
+  const detailsStatus =
+    diagnostic.details &&
+    typeof diagnostic.details.status === 'string' &&
+    diagnostic.details.status.length > 0
+      ? diagnostic.details.status
+      : undefined;
+
+  return metadataStatus ?? detailsStatus;
 }
 
 function renderAgovProfileValidateTable(
