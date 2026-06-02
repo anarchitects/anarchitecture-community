@@ -60,7 +60,7 @@ describe('TypeScript Governance extension', () => {
     });
   });
 
-  it('does not duplicate generic Core rules during TypeScript extension registration', async () => {
+  it('does not duplicate generic Core rules, signals, or metrics during TypeScript extension registration', async () => {
     const result = await registerLoadedGovernanceExtensionsWithDiagnostics(
       context,
       [

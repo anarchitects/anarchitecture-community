@@ -6,6 +6,8 @@ Governance runtime.
 This package establishes the package boundary and registration surface for
 TypeScript-specific Governance interpretation. #238 classified the current Core
 rule implementations and found no existing TypeScript-specific rules to move.
+#239 classified the current metrics, signals, scoring, and recommendations and
+found no existing TypeScript-specific implementation to move.
 
 ## Purpose
 
@@ -19,6 +21,9 @@ TypeScript-specific Governance contributions:
 
 Current Core rules are generic project/dependency, metadata, ownership, and
 convention rules, so they remain in `@anarchitects/governance-core`.
+Current Core metrics, signals, scoring, and recommendations are also generic
+Governance assessment primitives, so they remain in
+`@anarchitects/governance-core`.
 
 ## Architecture Boundary
 
@@ -54,15 +59,20 @@ The package exports:
 - `TYPESCRIPT_GOVERNANCE_EXTENSION_ID`
 
 Registration is currently a no-op. No rule packs, metric providers, signal
-providers, or enrichers are registered because no current Core rule is
-TypeScript-specific.
+providers, or enrichers are registered because no current Core rule, metric,
+signal, or recommendation implementation is TypeScript-specific.
 
-## Rule Migration Status
+## Migration Status
 
 - #238 classified existing Core rule implementations.
 - No existing Core rule moved because the current built-in rules are generic.
 - Future TypeScript-specific rules should be implemented in this package.
-- #239 moves TypeScript-specific metrics and recommendations into this package.
+- #239 classified existing metrics, signals, scoring, and recommendations.
+- No existing metric, signal, scoring, or recommendation implementation moved
+  because the current implementations are generic or host-owned.
+- Future TypeScript-specific metrics, signals, and recommendations should be
+  implemented in this package.
+- #240 and #241 remain follow-up issues for host and reporting migration.
 
 ## Non-Responsibilities
 

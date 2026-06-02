@@ -53,8 +53,8 @@ export function registerTypeScriptGovernanceExtension(
   host: GovernanceExtensionHost,
 ): void {
   void host;
-  // #237 only establishes the package boundary. TypeScript-specific
-  // contributions move here in #238 and #239.
+  // #237 establishes the package boundary. #238 and #239 found no existing
+  // TypeScript-specific Core contributions to register here yet.
 }
 
 export default governanceTypeScriptExtension;
