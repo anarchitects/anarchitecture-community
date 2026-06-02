@@ -23,6 +23,9 @@
     },
     {
       "path": "./packages/governance/adapter-typescript"
+    },
+    {
+      "path": "./packages/governance/extension-typescript"
     }
   ]
 }
