@@ -17,6 +17,11 @@ export interface AgovSignalsFilters {
   severity?: AgovSignalSeverity;
 }
 
+export interface AgovSignalsScope {
+  mode: 'filtered';
+  filters: AgovSignalsFilters;
+}
+
 export interface AgovSignalsSummary {
   total: number;
   bySource: Array<{ source: string; count: number }>;
@@ -33,6 +38,7 @@ export interface AgovSignalsResult {
     root: string;
   };
   profile: string;
+  scope?: AgovSignalsScope;
   signals: GovernanceSignal[];
   signalBreakdown: SignalBreakdown;
   summary: AgovSignalsSummary;
@@ -63,10 +69,19 @@ export async function runAgovSignals<TInput = unknown>(
       root: assessResult.assessment.workspace.root,
     },
     profile: assessResult.assessment.profile,
+    ...(hasSignalFilters(options.filters)
+      ? { scope: { mode: 'filtered', filters: options.filters } }
+      : {}),
     signals: filteredSignals,
     signalBreakdown,
     summary: buildSummary(filteredSignals),
   };
+}
+
+function hasSignalFilters(
+  filters: AgovSignalsFilters | undefined,
+): filters is AgovSignalsFilters {
+  return Boolean(filters?.source || filters?.type || filters?.severity);
 }
 
 function applySignalFilters(

@@ -1,5 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
+import type { GovernanceWorkspaceAdapter } from '@anarchitects/governance-core';
+
 import * as reportingPrimitives from './internal/reporting/render-primitives.js';
 import { runAgovAssess, runAgovCheck } from './check.js';
 import { runAgovDependencies } from './dependencies.js';
@@ -387,7 +389,9 @@ describe('agov command report rendering', () => {
       'adapter',
       'command',
       'dependencies',
+      'nodes',
       'projects',
+      'relations',
       'summary',
       'workspace',
     ]);
@@ -396,7 +400,51 @@ describe('agov command report rendering', () => {
       workspace: {
         name: 'demo',
       },
+      nodes: expect.any(Array),
+      relations: expect.any(Array),
+      summary: {
+        nodeCount: expect.any(Number),
+        relationCount: expect.any(Number),
+      },
     });
+  });
+
+  it('renders canonical graph artifacts in inspect reports', async () => {
+    const inspectResult = await runAgovInspect({
+      workspaceAdapter: createCanonicalGraphAdapter(),
+      workspaceAdapterInput: '.',
+    });
+
+    const parsed = JSON.parse(renderAgovInspectJson(inspectResult)) as {
+      nodes: Array<{ id: string; kind: string }>;
+      relations: Array<{ sourceNodeId: string; targetNodeId: string }>;
+      projects: unknown[];
+      dependencies: unknown[];
+    };
+    const textRendered = renderAgovInspectReport(inspectResult, 'text');
+
+    expect(parsed.nodes).toEqual([
+      expect.objectContaining({
+        id: 'dbt.model.orders',
+        kind: 'model',
+      }),
+      expect.objectContaining({
+        id: 'dbt.source.raw.orders',
+        kind: 'source',
+      }),
+    ]);
+    expect(parsed.relations).toEqual([
+      expect.objectContaining({
+        sourceNodeId: 'dbt.source.raw.orders',
+        targetNodeId: 'dbt.model.orders',
+      }),
+    ]);
+    expect(parsed.projects).toEqual([]);
+    expect(parsed.dependencies).toEqual([]);
+    expect(textRendered).toContain('Nodes');
+    expect(textRendered).toContain('Relations');
+    expect(textRendered).toContain('kind=model');
+    expect(textRendered).not.toContain('Compatibility Projects');
   });
 
   it('delegates inspect rendering to shared primitives', async () => {
@@ -659,8 +707,93 @@ describe('agov command report rendering', () => {
     expect(textTableSpy).toHaveBeenCalled();
     expect(markdownTableSpy).toHaveBeenCalled();
   });
+
+  it('renders focused report scope for filtered violations', async () => {
+    const violationsResult = await runAgovViolations({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+      filters: {
+        severity: 'error',
+      },
+    });
+
+    const parsed = JSON.parse(renderAgovViolationsJson(violationsResult)) as {
+      scope: {
+        mode: string;
+        filters: {
+          severity: string;
+        };
+      };
+      violations: Array<{ severity: string }>;
+    };
+    const textRendered = renderAgovViolationsReport(violationsResult, 'text');
+
+    expect(parsed.scope).toEqual({
+      mode: 'filtered',
+      filters: {
+        severity: 'error',
+      },
+    });
+    expect(
+      parsed.violations.every((violation) => violation.severity === 'error'),
+    ).toBe(true);
+    expect(textRendered).toContain('Report Scope');
+    expect(textRendered).toContain('filters  severity=error');
+  });
 });
 
 function fixturePath(relativePath: string): string {
   return fileURLToPath(new URL(relativePath, import.meta.url));
+}
+
+function createCanonicalGraphAdapter(): GovernanceWorkspaceAdapter<string> {
+  return {
+    id: 'test-adapter:canonical-reporting',
+    loadWorkspace() {
+      return {
+        workspaceId: 'canonical-reporting',
+        workspaceName: 'canonical-reporting',
+        workspaceRoot: '.',
+        projects: [],
+        dependencies: [],
+        nodes: [
+          {
+            id: 'dbt.model.orders',
+            name: 'orders',
+            kind: 'model',
+            technology: 'dbt',
+            path: 'models/orders.sql',
+            tags: ['finance'],
+            metadata: {
+              materialization: 'table',
+            },
+          },
+          {
+            id: 'dbt.source.raw.orders',
+            name: 'raw.orders',
+            kind: 'source',
+            technology: 'dbt',
+            metadata: {
+              database: 'raw',
+            },
+          },
+        ],
+        relations: [
+          {
+            id: 'raw.orders->orders',
+            sourceNodeId: 'dbt.source.raw.orders',
+            targetNodeId: 'dbt.model.orders',
+            kind: 'lineage',
+            metadata: {
+              selector: 'source("raw", "orders")',
+            },
+          },
+        ],
+      };
+    },
+  };
 }

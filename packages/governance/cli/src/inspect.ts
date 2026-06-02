@@ -1,8 +1,12 @@
 import {
   buildGovernanceWorkspace,
+  normalizeGovernanceGraph,
   type GovernanceCapability,
   type GovernanceDependency,
   type GovernanceDiagnostic,
+  type GovernanceNormalizedGraph,
+  type GovernanceNormalizedNode,
+  type GovernanceNormalizedRelation,
   type GovernanceProject,
   type GovernanceWorkspace,
   type GovernanceWorkspaceAdapter,
@@ -54,8 +58,12 @@ export interface AgovInspectDependency {
 
 export interface AgovInspectSummary {
   workspaceName: string;
+  nodeCount: number;
+  relationCount: number;
   projectCount: number;
   dependencyCount: number;
+  distinctNodeKinds: string[];
+  distinctRelationKinds: string[];
   distinctDomains: string[];
   distinctLayers: string[];
   ownershipCoverage: {
@@ -68,6 +76,8 @@ export interface AgovInspectSummary {
 export interface AgovInspectResult {
   command: 'inspect';
   workspace: AgovInspectWorkspace;
+  nodes: GovernanceNormalizedNode[];
+  relations: GovernanceNormalizedRelation[];
   projects: AgovInspectProject[];
   dependencies: AgovInspectDependency[];
   summary?: AgovInspectSummary;
@@ -100,6 +110,12 @@ export async function runAgovInspect<TInput = unknown>(
   const workspaceAdapterResult = resolveWorkspaceAdapterResult(options);
   const workspace = buildGovernanceWorkspace(workspaceAdapterResult);
   const filteredWorkspace = applyInspectFilters(workspace, options.filters);
+  const graph = normalizeGovernanceGraph(workspaceAdapterResult);
+  const filteredGraph = applyInspectGraphFilters(
+    graph,
+    filteredWorkspace,
+    options.filters,
+  );
   const projects = sortProjects(filteredWorkspace.projects).map(
     normalizeProject,
   );
@@ -110,9 +126,17 @@ export async function runAgovInspect<TInput = unknown>(
   return {
     command: 'inspect',
     workspace: normalizeWorkspace(workspace, workspaceAdapterResult),
+    nodes: sortNodes(filteredGraph.nodes),
+    relations: sortRelations(filteredGraph.relations),
     projects,
     dependencies,
-    summary: buildSummary(filteredWorkspace.name, projects, dependencies),
+    summary: buildSummary(
+      filteredWorkspace.name,
+      filteredGraph.nodes,
+      filteredGraph.relations,
+      projects,
+      dependencies,
+    ),
     adapter: normalizeAdapterMetadata(
       workspaceAdapterResult,
       resolveAdapterId(options),
@@ -238,6 +262,54 @@ function applyInspectFilters(
   };
 }
 
+function applyInspectGraphFilters(
+  graph: GovernanceNormalizedGraph,
+  workspace: GovernanceWorkspace,
+  filters: AgovInspectFilters | undefined,
+): GovernanceNormalizedGraph {
+  if (!filters) {
+    return graph;
+  }
+
+  const nodeIds = new Set(workspace.projects.map((project) => project.id));
+  const nodes = graph.nodes.filter((node) => nodeIds.has(node.id));
+  const relations = graph.relations.filter(
+    (relation) =>
+      nodeIds.has(relation.sourceNodeId) || nodeIds.has(relation.targetNodeId),
+  );
+
+  return {
+    nodes,
+    relations,
+  };
+}
+
+function sortNodes(
+  nodes: readonly GovernanceNormalizedNode[],
+): GovernanceNormalizedNode[] {
+  return [...nodes].sort((left, right) => {
+    const byKind = left.kind.localeCompare(right.kind);
+    if (byKind !== 0) {
+      return byKind;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+}
+
+function sortRelations(
+  relations: readonly GovernanceNormalizedRelation[],
+): GovernanceNormalizedRelation[] {
+  return [...relations].sort((left, right) => {
+    const byKind = left.kind.localeCompare(right.kind);
+    if (byKind !== 0) {
+      return byKind;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+}
+
 function sortProjects(projects: GovernanceProject[]): GovernanceProject[] {
   return [...projects].sort((left, right) => {
     const byName = left.name.localeCompare(right.name);
@@ -279,6 +351,8 @@ function sortDependencies(
 
 function buildSummary(
   workspaceName: string,
+  nodes: GovernanceNormalizedNode[],
+  relations: GovernanceNormalizedRelation[],
   projects: AgovInspectProject[],
   dependencies: AgovInspectDependency[],
 ): AgovInspectSummary {
@@ -295,8 +369,14 @@ function buildSummary(
 
   return {
     workspaceName,
+    nodeCount: nodes.length,
+    relationCount: relations.length,
     projectCount: projects.length,
     dependencyCount: dependencies.length,
+    distinctNodeKinds: uniqueSortedValues(nodes.map((node) => node.kind)),
+    distinctRelationKinds: uniqueSortedValues(
+      relations.map((relation) => relation.kind),
+    ),
     distinctDomains,
     distinctLayers,
     ownershipCoverage: {

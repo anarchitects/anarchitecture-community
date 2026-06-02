@@ -9,6 +9,11 @@ export interface AgovRecommendationsFilters {
   priority?: AgovRecommendationPriority;
 }
 
+export interface AgovRecommendationsScope {
+  mode: 'filtered';
+  filters: AgovRecommendationsFilters;
+}
+
 export interface AgovRecommendationsSummary {
   total: number;
   byPriority: Array<{ priority: AgovRecommendationPriority; count: number }>;
@@ -30,6 +35,7 @@ export interface AgovRecommendationsResult {
     root: string;
   };
   profile: string;
+  scope?: AgovRecommendationsScope;
   recommendations: Recommendation[];
   summary: AgovRecommendationsSummary;
 }
@@ -62,9 +68,18 @@ export async function runAgovRecommendations<TInput = unknown>(
       root: assessResult.assessment.workspace.root,
     },
     profile: assessResult.assessment.profile,
+    ...(hasRecommendationFilters(options.filters)
+      ? { scope: { mode: 'filtered', filters: options.filters } }
+      : {}),
     recommendations: filteredRecommendations,
     summary: buildSummary(filteredRecommendations),
   };
+}
+
+function hasRecommendationFilters(
+  filters: AgovRecommendationsFilters | undefined,
+): filters is AgovRecommendationsFilters {
+  return Boolean(filters?.priority);
 }
 
 function applyRecommendationFilters(
