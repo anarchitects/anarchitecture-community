@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+    "dbt_version": "1.8.0",
+    "project_name": "layered_project"
+  },
+  "nodes": {
+    "model.layered_project.stg_orders": {
+      "unique_id": "model.layered_project.stg_orders",
+      "resource_type": "model",
+      "package_name": "layered_project",
+      "name": "stg_orders",
+      "alias": "stg_orders",
+      "database": "analytics",
+      "schema": "staging",
+      "path": "stg_orders.sql",
+      "original_file_path": "models/staging/stg_orders.sql",
+      "fqn": ["layered_project", "staging", "stg_orders"],
+      "depends_on": {
+        "nodes": ["source.layered_project.raw.orders"]
+      },
+      "config": {
+        "materialized": "view"
+      }
+    },
+    "model.layered_project.stg_customers": {
+      "unique_id": "model.layered_project.stg_customers",
+      "resource_type": "model",
+      "package_name": "layered_project",
+      "name": "stg_customers",
+      "alias": "stg_customers",
+      "database": "analytics",
+      "schema": "staging",
+      "path": "stg_customers.sql",
+      "original_file_path": "models/staging/stg_customers.sql",
+      "fqn": ["layered_project", "staging", "stg_customers"],
+      "depends_on": {
+        "nodes": ["source.layered_project.raw.customers"]
+      },
+      "config": {
+        "materialized": "view"
+      }
+    },
+    "model.layered_project.int_orders_enriched": {
+      "unique_id": "model.layered_project.int_orders_enriched",
+      "resource_type": "model",
+      "package_name": "layered_project",
+      "name": "int_orders_enriched",
+      "alias": "int_orders_enriched",
+      "database": "analytics",
+      "schema": "intermediate",
+      "path": "int_orders_enriched.sql",
+      "original_file_path": "models/intermediate/int_orders_enriched.sql",
+      "fqn": ["layered_project", "intermediate", "int_orders_enriched"],
+      "depends_on": {
+        "nodes": [
+          "model.layered_project.stg_orders",
+          "model.layered_project.stg_customers",
+          "seed.layered_project.country_codes"
+        ]
+      },
+      "config": {
+        "materialized": "ephemeral"
+      }
+    },
+    "model.layered_project.fct_orders": {
+      "unique_id": "model.layered_project.fct_orders",
+      "resource_type": "model",
+      "package_name": "layered_project",
+      "name": "fct_orders",
+      "alias": "fct_orders",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "fct_orders.sql",
+      "original_file_path": "models/marts/fct_orders.sql",
+      "fqn": ["layered_project", "marts", "fct_orders"],
+      "depends_on": {
+        "nodes": ["model.layered_project.int_orders_enriched"]
+      },
+      "config": {
+        "materialized": "table"
+      }
+    },
+    "model.layered_project.dim_customers": {
+      "unique_id": "model.layered_project.dim_customers",
+      "resource_type": "model",
+      "package_name": "layered_project",
+      "name": "dim_customers",
+      "alias": "dim_customers",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "dim_customers.sql",
+      "original_file_path": "models/marts/dim_customers.sql",
+      "fqn": ["layered_project", "marts", "dim_customers"],
+      "depends_on": {
+        "nodes": ["model.layered_project.stg_customers"]
+      },
+      "config": {
+        "materialized": "table"
+      }
+    },
+    "snapshot.layered_project.fct_orders_snapshot": {
+      "unique_id": "snapshot.layered_project.fct_orders_snapshot",
+      "resource_type": "snapshot",
+      "package_name": "layered_project",
+      "name": "fct_orders_snapshot",
+      "alias": "fct_orders_snapshot",
+      "database": "analytics",
+      "schema": "snapshots",
+      "path": "fct_orders_snapshot.sql",
+      "original_file_path": "snapshots/fct_orders_snapshot.sql",
+      "fqn": ["layered_project", "fct_orders_snapshot"],
+      "depends_on": {
+        "nodes": ["model.layered_project.fct_orders"]
+      },
+      "config": {
+        "materialized": "snapshot"
+      }
+    },
+    "seed.layered_project.country_codes": {
+      "unique_id": "seed.layered_project.country_codes",
+      "resource_type": "seed",
+      "package_name": "layered_project",
+      "name": "country_codes",
+      "alias": "country_codes",
+      "database": "analytics",
+      "schema": "reference",
+      "path": "country_codes.csv",
+      "original_file_path": "seeds/country_codes.csv",
+      "fqn": ["layered_project", "country_codes"],
+      "config": {
+        "materialized": "seed"
+      }
+    }
+  },
+  "sources": {
+    "source.layered_project.raw.orders": {
+      "unique_id": "source.layered_project.raw.orders",
+      "resource_type": "source",
+      "package_name": "layered_project",
+      "name": "orders",
+      "source_name": "raw",
+      "alias": "orders",
+      "database": "warehouse",
+      "schema": "raw",
+      "path": "raw.yml",
+      "original_file_path": "models/raw/raw.yml",
+      "fqn": ["layered_project", "raw", "orders"]
+    },
+    "source.layered_project.raw.customers": {
+      "unique_id": "source.layered_project.raw.customers",
+      "resource_type": "source",
+      "package_name": "layered_project",
+      "name": "customers",
+      "source_name": "raw",
+      "alias": "customers",
+      "database": "warehouse",
+      "schema": "raw",
+      "path": "raw.yml",
+      "original_file_path": "models/raw/raw.yml",
+      "fqn": ["layered_project", "raw", "customers"]
+    }
+  },
+  "exposures": {},
+  "parent_map": {},
+  "child_map": {}
+}

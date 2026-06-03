@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+    "dbt_version": "1.8.0",
+    "project_name": "metadata_rich"
+  },
+  "nodes": {
+    "model.metadata_rich.orders": {
+      "unique_id": "model.metadata_rich.orders",
+      "resource_type": "model",
+      "package_name": "metadata_rich",
+      "name": "orders",
+      "alias": "orders",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "orders.sql",
+      "original_file_path": "models/marts/orders.sql",
+      "fqn": ["metadata_rich", "marts", "orders"],
+      "relation_name": "\"analytics\".\"marts\".\"orders\"",
+      "description": "Documented orders model",
+      "tags": ["finance", "published", "scope:analytics"],
+      "meta": {
+        "governance": {
+          "domain": "finance",
+          "layer": "mart",
+          "scope": "analytics"
+        },
+        "sla": "daily"
+      },
+      "group": "finance",
+      "owner": {
+        "name": "finance-platform",
+        "email": "finance@example.com"
+      },
+      "tests": ["unique:order_id", "not_null:order_id"],
+      "docs": {
+        "show": true
+      },
+      "config": {
+        "materialized": "table",
+        "contract": {
+          "enforced": true
+        }
+      }
+    },
+    "model.metadata_rich.customer_health": {
+      "unique_id": "model.metadata_rich.customer_health",
+      "resource_type": "model",
+      "package_name": "metadata_rich",
+      "name": "customer_health",
+      "alias": "customer_health",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "customer_health.sql",
+      "original_file_path": "models/marts/customer_health.sql",
+      "fqn": ["metadata_rich", "marts", "customer_health"],
+      "tags": ["customer"],
+      "meta": {},
+      "config": {
+        "materialized": "view"
+      }
+    },
+    "seed.metadata_rich.country_codes": {
+      "unique_id": "seed.metadata_rich.country_codes",
+      "resource_type": "seed",
+      "package_name": "metadata_rich",
+      "name": "country_codes",
+      "alias": "country_codes",
+      "database": "analytics",
+      "schema": "reference",
+      "path": "country_codes.csv",
+      "original_file_path": "seeds/country_codes.csv",
+      "fqn": ["metadata_rich", "country_codes"],
+      "tests": ["unique:code"],
+      "config": {
+        "materialized": "seed"
+      }
+    }
+  },
+  "sources": {},
+  "exposures": {},
+  "parent_map": {},
+  "child_map": {}
+}

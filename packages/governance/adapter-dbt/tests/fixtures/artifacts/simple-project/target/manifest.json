@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+    "dbt_version": "1.8.0",
+    "project_name": "simple_project"
+  },
+  "nodes": {
+    "model.simple_project.hello_world": {
+      "unique_id": "model.simple_project.hello_world",
+      "resource_type": "model",
+      "package_name": "simple_project",
+      "name": "hello_world",
+      "alias": "hello_world",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "hello_world.sql",
+      "original_file_path": "models/hello_world.sql",
+      "fqn": ["simple_project", "hello_world"],
+      "config": {
+        "materialized": "view"
+      }
+    }
+  },
+  "sources": {},
+  "exposures": {},
+  "parent_map": {},
+  "child_map": {}
+}
