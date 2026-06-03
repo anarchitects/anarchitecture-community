@@ -25,7 +25,11 @@ describe('dbt artifact loading', () => {
         project_name: 'valid_project',
         dbt_schema_version: 'https://schemas.getdbt.com/dbt/manifest/v12.json',
       },
-      nodes: {},
+      nodes: expect.objectContaining({
+        'model.valid_project.orders': expect.objectContaining({
+          resource_type: 'model',
+        }),
+      }),
     });
   });
 

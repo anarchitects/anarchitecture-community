@@ -4,8 +4,141 @@
     "dbt_version": "1.8.0",
     "project_name": "valid_project"
   },
-  "nodes": {},
-  "sources": {},
+  "nodes": {
+    "model.valid_project.orders": {
+      "unique_id": "model.valid_project.orders",
+      "resource_type": "model",
+      "package_name": "valid_project",
+      "name": "orders",
+      "alias": "orders",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "orders.sql",
+      "original_file_path": "models/marts/orders.sql",
+      "fqn": ["valid_project", "marts", "orders"],
+      "description": "Normalized orders model",
+      "tags": ["finance", "published", "scope:analytics"],
+      "meta": {
+        "governance": {
+          "domain": "finance",
+          "layer": "transform",
+          "scope": "analytics"
+        }
+      },
+      "config": {
+        "materialized": "table"
+      },
+      "group": "finance",
+      "owner": {
+        "name": "finance-platform",
+        "email": "finance@example.com"
+      },
+      "docs": {
+        "show": true
+      }
+    },
+    "seed.valid_project.countries": {
+      "unique_id": "seed.valid_project.countries",
+      "resource_type": "seed",
+      "package_name": "valid_project",
+      "name": "countries",
+      "alias": "countries",
+      "database": "analytics",
+      "schema": "reference",
+      "path": "countries.csv",
+      "original_file_path": "seeds/countries.csv",
+      "fqn": ["valid_project", "countries"],
+      "tags": ["reference"],
+      "meta": {},
+      "config": {
+        "materialized": "seed"
+      }
+    },
+    "snapshot.valid_project.orders_snapshot": {
+      "unique_id": "snapshot.valid_project.orders_snapshot",
+      "resource_type": "snapshot",
+      "package_name": "valid_project",
+      "name": "orders_snapshot",
+      "alias": "orders_snapshot",
+      "database": "analytics",
+      "schema": "snapshots",
+      "path": "orders_snapshot.sql",
+      "original_file_path": "snapshots/orders_snapshot.sql",
+      "fqn": ["valid_project", "orders_snapshot"],
+      "tags": ["history"],
+      "meta": {
+        "governance": {
+          "layer": "history"
+        }
+      },
+      "config": {
+        "materialized": "snapshot"
+      }
+    },
+    "analysis.valid_project.model_audit": {
+      "unique_id": "analysis.valid_project.model_audit",
+      "resource_type": "analysis",
+      "package_name": "valid_project",
+      "name": "model_audit",
+      "original_file_path": "analyses/model_audit.sql",
+      "fqn": ["valid_project", "analyses", "model_audit"]
+    },
+    "model.valid_project.missing_identity": {
+      "unique_id": "model.valid_project.missing_identity",
+      "resource_type": "model",
+      "package_name": "valid_project",
+      "original_file_path": "models/broken/missing_identity.sql"
+    }
+  },
+  "sources": {
+    "source.valid_project.raw.orders": {
+      "unique_id": "source.valid_project.raw.orders",
+      "resource_type": "source",
+      "package_name": "valid_project",
+      "name": "orders",
+      "source_name": "raw",
+      "alias": "orders",
+      "database": "warehouse",
+      "schema": "raw",
+      "path": "raw.yml",
+      "original_file_path": "models/raw/raw.yml",
+      "fqn": ["valid_project", "raw", "orders"],
+      "description": "Source orders table",
+      "tags": ["raw"],
+      "meta": {
+        "lineage": "external"
+      },
+      "group": "raw-data",
+      "owner": "data-eng",
+      "docs": {
+        "show": false
+      }
+    }
+  },
+  "exposures": {
+    "exposure.valid_project.executive_dashboard": {
+      "unique_id": "exposure.valid_project.executive_dashboard",
+      "resource_type": "exposure",
+      "package_name": "valid_project",
+      "name": "executive_dashboard",
+      "alias": "executive_dashboard",
+      "path": "exposures.yml",
+      "original_file_path": "models/exposures.yml",
+      "fqn": ["valid_project", "executive_dashboard"],
+      "description": "Executive dashboard exposure",
+      "tags": ["bi"],
+      "meta": {
+        "tool": "looker"
+      },
+      "owner": {
+        "name": "analytics-team"
+      },
+      "type": "dashboard",
+      "docs": {
+        "show": true
+      }
+    }
+  },
   "parent_map": {},
   "child_map": {}
 }

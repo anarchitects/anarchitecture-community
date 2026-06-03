@@ -8,8 +8,8 @@ Core-compatible output types, project detection, artifact loading, and dbt
 adapter metadata contracts for discovery, loading, validation, normalization,
 and metadata preservation workflows.
 
-This package does not implement normalization logic, dependency mapping,
-runtime composition, or Python host behavior.
+This package does not implement dependency mapping, runtime composition, dbt
+governance meaning, or Python host behavior.
 
 ## Location
 
@@ -132,6 +132,7 @@ Loading is:
 - deterministic
 - driven only by explicit paths or resolved project context
 - non-throwing for expected user/configuration errors
+- minimal by design so later normalization can safely consume the artifacts
 
 Current validation includes:
 
@@ -153,6 +154,83 @@ Prepared but not implemented yet:
 - `catalog.json`
 - `run_results.json`
 - `sources.json`
+
+## Resource Normalization
+
+Use `normalizeDbtArtifacts(...)` to convert loaded dbt resources into
+Core-compatible governance workspace, project, and node inputs.
+
+```ts
+import {
+  detectDbtProject,
+  loadDbtArtifacts,
+  normalizeDbtArtifacts,
+} from '@anarchitects/governance-adapter-dbt';
+
+const detected = detectDbtProject({
+  paths: {
+    projectDir: '/repo/analytics',
+  },
+});
+
+if (detected.context) {
+  const loaded = loadDbtArtifacts(detected.context);
+
+  if (loaded.artifacts) {
+    const normalized = normalizeDbtArtifacts(
+      detected.context,
+      loaded.artifacts,
+    );
+
+    console.log(normalized.workspaceName);
+    console.log(normalized.nodes?.map((node) => node.id));
+  }
+}
+```
+
+Current resource support:
+
+- `model`
+- `source`
+- `seed`
+- `snapshot`
+- `exposure`
+
+Current mapping:
+
+- dbt project -> governance workspace result
+- dbt model/seed/snapshot -> governance compatibility project input plus
+  governance `asset` node
+- dbt source/exposure -> governance compatibility project input plus
+  governance `resource` node
+
+Preserved dbt metadata includes:
+
+- `unique_id`
+- `package_name`
+- resource name
+- fully qualified dbt identifier when present
+- `resource_type`
+- `materialization`
+- `tags`
+- `meta`
+- `group`
+- `owner`
+- `path`
+- `original_file_path`
+- `database` / `schema` / `alias`
+- description/docs presence hints
+
+Unsupported resource types are skipped with diagnostics. Invalid resource
+shapes emit diagnostics instead of being silently dropped. Dependency mapping
+is intentionally not implemented here.
+
+Normalization is:
+
+- deterministic
+- artifact-driven
+- limited to identity, classification hints, ownership hints, and factual dbt
+  metadata preservation
 
 ## Output Contract
 
@@ -214,6 +292,10 @@ Artifact loading emits structured diagnostics for:
 - malformed dbt project YAML
 - unsupported manifest shape
 - incomplete required manifest fields
+- skipped resource types
+- unsupported resource shapes
+- missing required resource identity fields
+- partial normalization
 
 ## Runtime And Host Boundary
 
@@ -224,6 +306,8 @@ Artifact loading emits structured diagnostics for:
 - This package detects the dbt project from explicit local inputs only.
 - This package loads only local artifact files passed through those explicit
   paths.
+- This package normalizes dbt resources into Core-owned workspace/project/node
+  inputs without evaluating architecture quality.
 - This package does not invoke dbt commands.
 
 ## Architectural Boundary
@@ -240,10 +324,10 @@ runtime, or host packages.
 
 ## Non-Goals
 
-- Implementing manifest parsing
-- Implementing dbt normalization
 - Implementing dbt dependency mapping
 - Implementing dbt rules, metrics, scores, or recommendations
+- Evaluating whether a dbt architecture is good or bad
+- Deciding governance meaning that belongs in an extension layer
 - Adding dependencies on `@anarchitects/governance-extension-dbt`
 - Adding dependencies on `@anarchitects/governance-runtime-dbt`
 - Adding dependencies on `@anarchitects/governance-host-dbt`
