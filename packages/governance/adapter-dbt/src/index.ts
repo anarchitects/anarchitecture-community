@@ -1,6 +1,14 @@
 export {
   DBT_ADAPTER_VALIDATION_MODES,
+  type DbtArtifactLoadResult,
+  type DbtArtifacts,
+  type DbtManifest,
+  type DbtManifestLoadResult,
+  type DbtManifestMetadata,
+  type DbtManifestResource,
   type DbtProjectContext,
+  type DbtProjectConfig,
+  type DbtProjectConfigLoadResult,
   type DbtProjectDetectionResult,
   isDbtAdapterValidationMode,
   type ResolvedDbtArtifactPaths,
@@ -20,6 +28,12 @@ export {
   detectDbtProject,
   resolveDbtProjectContext,
 } from './detect-dbt-project.js';
+export {
+  loadDbtArtifacts,
+  loadDbtManifest,
+  loadDbtProjectConfig,
+  validateDbtManifest,
+} from './load-dbt-artifacts.js';
 export {
   DBT_GOVERNANCE_ADAPTER_ID,
   dbtGovernanceAdapterMetadata,

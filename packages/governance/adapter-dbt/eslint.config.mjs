@@ -20,6 +20,9 @@ export default [
     },
   },
   {
-    ignores: ['**/out-tsc'],
+    ignores: [
+      '**/out-tsc',
+      'tests/fixtures/artifacts/malformed-manifest/target/manifest.json',
+    ],
   },
 ];

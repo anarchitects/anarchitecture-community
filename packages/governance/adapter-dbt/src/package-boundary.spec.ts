@@ -18,6 +18,7 @@ describe('dbt Governance adapter package boundary', () => {
 
     expect(Object.keys(packageJson.dependencies ?? {})).toEqual([
       '@anarchitects/governance-core',
+      'yaml',
     ]);
     expect(packageJson.devDependencies).toBeUndefined();
     expect(packageJson.peerDependencies).toBeUndefined();
