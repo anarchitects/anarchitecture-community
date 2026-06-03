@@ -5,6 +5,32 @@
     "project_name": "valid_project"
   },
   "nodes": {
+    "model.valid_project.stg_orders": {
+      "unique_id": "model.valid_project.stg_orders",
+      "resource_type": "model",
+      "package_name": "valid_project",
+      "name": "stg_orders",
+      "alias": "stg_orders",
+      "database": "analytics",
+      "schema": "staging",
+      "path": "stg_orders.sql",
+      "original_file_path": "models/staging/stg_orders.sql",
+      "fqn": ["valid_project", "staging", "stg_orders"],
+      "description": "Staged orders model",
+      "tags": ["staging", "scope:analytics"],
+      "meta": {
+        "governance": {
+          "layer": "staging",
+          "scope": "analytics"
+        }
+      },
+      "config": {
+        "materialized": "view"
+      },
+      "depends_on": {
+        "nodes": ["source.valid_project.raw.orders"]
+      }
+    },
     "model.valid_project.orders": {
       "unique_id": "model.valid_project.orders",
       "resource_type": "model",
@@ -35,6 +61,38 @@
       },
       "docs": {
         "show": true
+      },
+      "depends_on": {
+        "nodes": [
+          "model.valid_project.stg_orders",
+          "seed.valid_project.countries"
+        ]
+      }
+    },
+    "model.valid_project.orders_regional": {
+      "unique_id": "model.valid_project.orders_regional",
+      "resource_type": "model",
+      "package_name": "valid_project",
+      "name": "orders_regional",
+      "alias": "orders_regional",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "orders_regional.sql",
+      "original_file_path": "models/marts/orders_regional.sql",
+      "fqn": ["valid_project", "marts", "orders_regional"],
+      "tags": ["finance", "scope:analytics"],
+      "meta": {
+        "governance": {
+          "domain": "finance",
+          "layer": "mart",
+          "scope": "analytics"
+        }
+      },
+      "config": {
+        "materialized": "table"
+      },
+      "depends_on": {
+        "nodes": ["model.valid_project.orders"]
       }
     },
     "seed.valid_project.countries": {
@@ -73,6 +131,69 @@
       },
       "config": {
         "materialized": "snapshot"
+      },
+      "depends_on": {
+        "nodes": ["model.valid_project.orders"]
+      }
+    },
+    "model.valid_project.unresolved_consumer": {
+      "unique_id": "model.valid_project.unresolved_consumer",
+      "resource_type": "model",
+      "package_name": "valid_project",
+      "name": "unresolved_consumer",
+      "alias": "unresolved_consumer",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "unresolved_consumer.sql",
+      "original_file_path": "models/marts/unresolved_consumer.sql",
+      "fqn": ["valid_project", "marts", "unresolved_consumer"],
+      "tags": ["finance"],
+      "meta": {},
+      "config": {
+        "materialized": "view"
+      },
+      "depends_on": {
+        "nodes": ["model.valid_project.missing_upstream"]
+      }
+    },
+    "model.valid_project.invalid_target_consumer": {
+      "unique_id": "model.valid_project.invalid_target_consumer",
+      "resource_type": "model",
+      "package_name": "valid_project",
+      "name": "invalid_target_consumer",
+      "alias": "invalid_target_consumer",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "invalid_target_consumer.sql",
+      "original_file_path": "models/marts/invalid_target_consumer.sql",
+      "fqn": ["valid_project", "marts", "invalid_target_consumer"],
+      "tags": ["finance"],
+      "meta": {},
+      "config": {
+        "materialized": "view"
+      },
+      "depends_on": {
+        "nodes": ["model.valid_project.missing_identity"]
+      }
+    },
+    "model.valid_project.malformed_depends_on": {
+      "unique_id": "model.valid_project.malformed_depends_on",
+      "resource_type": "model",
+      "package_name": "valid_project",
+      "name": "malformed_depends_on",
+      "alias": "malformed_depends_on",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "malformed_depends_on.sql",
+      "original_file_path": "models/marts/malformed_depends_on.sql",
+      "fqn": ["valid_project", "marts", "malformed_depends_on"],
+      "tags": ["finance"],
+      "meta": {},
+      "config": {
+        "materialized": "view"
+      },
+      "depends_on": {
+        "nodes": "model.valid_project.orders"
       }
     },
     "analysis.valid_project.model_audit": {
@@ -136,6 +257,9 @@
       "type": "dashboard",
       "docs": {
         "show": true
+      },
+      "depends_on": {
+        "nodes": ["model.valid_project.orders"]
       }
     }
   },

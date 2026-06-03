@@ -1,11 +1,15 @@
 import path from 'node:path';
 
 import type {
+  GovernanceDependencyInput,
   GovernanceNodeInput,
   GovernanceOwnershipInput,
   GovernanceProjectInput,
 } from '@anarchitects/governance-core';
-import { governanceProjectsToNodes } from '@anarchitects/governance-core';
+import {
+  governanceDependenciesToRelations,
+  governanceProjectsToNodes,
+} from '@anarchitects/governance-core';
 
 import type {
   DbtAdapterDiagnostic,
@@ -15,15 +19,20 @@ import type {
   DbtProjectContext,
 } from './contracts.js';
 import {
+  dependencyTargetNotNormalizedDiagnostic,
   missingDbtResourceIdentityDiagnostic,
+  partialDbtDependencyMappingDiagnostic,
   partialDbtNormalizationDiagnostic,
   skippedDbtResourceTypeDiagnostic,
+  unresolvedDbtDependencyTargetDiagnostic,
+  unsupportedDbtDependencyShapeDiagnostic,
   unsupportedDbtResourceShapeDiagnostic,
 } from './diagnostics.js';
 
 const SUPPORTED_NODE_RESOURCE_TYPES = new Set(['model', 'seed', 'snapshot']);
 const SUPPORTED_SOURCE_RESOURCE_TYPES = new Set(['source']);
 const SUPPORTED_EXPOSURE_RESOURCE_TYPES = new Set(['exposure']);
+const DBT_ARTIFACT_DEPENDENCY_KIND = 'depends_on.nodes';
 
 type ResourceRecord = Record<string, unknown>;
 
@@ -31,8 +40,19 @@ interface NormalizedResource {
   project: GovernanceProjectInput;
   nodeMetadata: Record<string, unknown>;
   path?: string;
-  sourcePath?: string;
   kind: GovernanceNodeInput['kind'];
+}
+
+interface DependencyNodeIdsResult {
+  nodeIds: string[];
+  unsupported: boolean;
+}
+
+interface DependencyMappingResult {
+  dependencies: GovernanceDependencyInput[];
+  unresolvedCount: number;
+  notNormalizedCount: number;
+  unsupportedCount: number;
 }
 
 export function normalizeDbtArtifacts(
@@ -41,7 +61,7 @@ export function normalizeDbtArtifacts(
 ): DbtAdapterResult {
   const diagnostics: DbtAdapterDiagnostic[] = [];
   const normalizedProjects: GovernanceProjectInput[] = [];
-  const normalizedNodeMetadata = new Map<string, NormalizedResource>();
+  const normalizedResourcesById = new Map<string, NormalizedResource>();
   let skippedCount = 0;
   let invalidCount = 0;
 
@@ -62,7 +82,7 @@ export function normalizeDbtArtifacts(
     }
 
     normalizedProjects.push(normalized.project);
-    normalizedNodeMetadata.set(normalized.project.id, normalized);
+    normalizedResourcesById.set(normalized.project.id, normalized);
   }
 
   for (const resource of Object.values(artifacts.manifest.sources ?? {})) {
@@ -78,7 +98,7 @@ export function normalizeDbtArtifacts(
     }
 
     normalizedProjects.push(normalized.project);
-    normalizedNodeMetadata.set(normalized.project.id, normalized);
+    normalizedResourcesById.set(normalized.project.id, normalized);
   }
 
   for (const resource of Object.values(artifacts.manifest.exposures ?? {})) {
@@ -94,7 +114,7 @@ export function normalizeDbtArtifacts(
     }
 
     normalizedProjects.push(normalized.project);
-    normalizedNodeMetadata.set(normalized.project.id, normalized);
+    normalizedResourcesById.set(normalized.project.id, normalized);
   }
 
   if (skippedCount > 0 || invalidCount > 0) {
@@ -108,7 +128,7 @@ export function normalizeDbtArtifacts(
   }
 
   const nodes = governanceProjectsToNodes(normalizedProjects).map((node) => {
-    const normalized = normalizedNodeMetadata.get(node.id);
+    const normalized = normalizedResourcesById.get(node.id);
 
     return {
       ...node,
@@ -122,15 +142,229 @@ export function normalizeDbtArtifacts(
     };
   });
 
+  const dependencyMapping = mapDbtDependencies(
+    artifacts,
+    normalizedResourcesById,
+    diagnostics,
+  );
+  const relations = governanceDependenciesToRelations(
+    dependencyMapping.dependencies,
+  );
+
+  if (
+    dependencyMapping.unresolvedCount > 0 ||
+    dependencyMapping.notNormalizedCount > 0 ||
+    dependencyMapping.unsupportedCount > 0
+  ) {
+    diagnostics.push(
+      partialDbtDependencyMappingDiagnostic({
+        mappedCount: dependencyMapping.dependencies.length,
+        unresolvedCount: dependencyMapping.unresolvedCount,
+        notNormalizedCount: dependencyMapping.notNormalizedCount,
+        unsupportedCount: dependencyMapping.unsupportedCount,
+      }),
+    );
+  }
+
   return {
     workspaceId: `dbt:${artifacts.projectConfig.name}`,
     workspaceName: artifacts.projectConfig.name,
     workspaceRoot: projectContext.projectDir,
     projects: normalizedProjects,
     nodes,
-    dependencies: [],
-    relations: [],
+    dependencies: dependencyMapping.dependencies,
+    relations,
     diagnostics: [...projectContext.diagnostics, ...diagnostics],
+  };
+}
+
+function mapDbtDependencies(
+  artifacts: DbtArtifacts,
+  normalizedResourcesById: ReadonlyMap<string, NormalizedResource>,
+  diagnostics: DbtAdapterDiagnostic[],
+): DependencyMappingResult {
+  const manifestResourcesById = collectManifestResources(artifacts);
+  const dependencies: GovernanceDependencyInput[] = [];
+  const dependencyKeys = new Set<string>();
+  let unresolvedCount = 0;
+  let notNormalizedCount = 0;
+  let unsupportedCount = 0;
+
+  for (const sourceUniqueId of normalizedResourcesById.keys()) {
+    const sourceResource = manifestResourcesById.get(sourceUniqueId);
+
+    if (!sourceResource) {
+      continue;
+    }
+
+    const record = asRecord(sourceResource);
+    if (!record) {
+      diagnostics.push(
+        unsupportedDbtDependencyShapeDiagnostic(sourceUniqueId, 'depends_on'),
+      );
+      unsupportedCount += 1;
+      continue;
+    }
+
+    const dependsOn = readDependsOnNodeIds(record, sourceUniqueId, diagnostics);
+    if (dependsOn.unsupported) {
+      unsupportedCount += 1;
+      continue;
+    }
+
+    for (const targetUniqueId of dependsOn.nodeIds) {
+      const dependencyKey = `${sourceUniqueId}->${targetUniqueId}`;
+      if (dependencyKeys.has(dependencyKey)) {
+        continue;
+      }
+
+      const targetResource = manifestResourcesById.get(targetUniqueId);
+      if (!targetResource) {
+        diagnostics.push(
+          unresolvedDbtDependencyTargetDiagnostic(
+            sourceUniqueId,
+            targetUniqueId,
+          ),
+        );
+        unresolvedCount += 1;
+        continue;
+      }
+
+      if (!normalizedResourcesById.has(targetUniqueId)) {
+        diagnostics.push(
+          dependencyTargetNotNormalizedDiagnostic(
+            sourceUniqueId,
+            targetUniqueId,
+          ),
+        );
+        notNormalizedCount += 1;
+        continue;
+      }
+
+      dependencyKeys.add(dependencyKey);
+      dependencies.push({
+        sourceProjectId: sourceUniqueId,
+        targetProjectId: targetUniqueId,
+        type: 'static',
+        metadata: buildDependencyMetadata(
+          sourceUniqueId,
+          targetUniqueId,
+          targetResource,
+        ),
+      });
+    }
+  }
+
+  return {
+    dependencies,
+    unresolvedCount,
+    notNormalizedCount,
+    unsupportedCount,
+  };
+}
+
+function buildDependencyMetadata(
+  sourceUniqueId: string,
+  targetUniqueId: string,
+  targetResource: DbtManifestResource,
+): Record<string, unknown> {
+  const targetRecord = asRecord(targetResource) ?? {};
+  const targetResourceType = readOptionalString(targetRecord.resource_type);
+  const dependencyKind = targetResourceType === 'source' ? 'source' : 'ref';
+
+  return {
+    dbt: {
+      sourceUniqueId,
+      targetUniqueId,
+      dependencyKind,
+      artifactDependencyKind: DBT_ARTIFACT_DEPENDENCY_KIND,
+      ...(dependencyKind === 'ref'
+        ? {
+            ref: {
+              packageName: readOptionalString(targetRecord.package_name),
+              name: readOptionalString(targetRecord.name),
+              fqn: readStringArray(targetRecord.fqn),
+            },
+          }
+        : {}),
+      ...(dependencyKind === 'source'
+        ? {
+            source: {
+              packageName: readOptionalString(targetRecord.package_name),
+              sourceName: readOptionalString(targetRecord.source_name),
+              name: readOptionalString(targetRecord.name),
+            },
+          }
+        : {}),
+    },
+  };
+}
+
+function collectManifestResources(
+  artifacts: DbtArtifacts,
+): Map<string, DbtManifestResource> {
+  const resources = new Map<string, DbtManifestResource>();
+
+  for (const [uniqueId, resource] of Object.entries(artifacts.manifest.nodes)) {
+    resources.set(uniqueId, resource);
+  }
+
+  for (const [uniqueId, resource] of Object.entries(
+    artifacts.manifest.sources ?? {},
+  )) {
+    resources.set(uniqueId, resource);
+  }
+
+  for (const [uniqueId, resource] of Object.entries(
+    artifacts.manifest.exposures ?? {},
+  )) {
+    resources.set(uniqueId, resource);
+  }
+
+  return resources;
+}
+
+function readDependsOnNodeIds(
+  resource: ResourceRecord,
+  sourceUniqueId: string,
+  diagnostics: DbtAdapterDiagnostic[],
+): DependencyNodeIdsResult {
+  const dependsOn = resource.depends_on;
+  if (dependsOn === undefined) {
+    return { nodeIds: [], unsupported: false };
+  }
+
+  const dependsOnRecord = asRecord(dependsOn);
+  if (!dependsOnRecord) {
+    diagnostics.push(
+      unsupportedDbtDependencyShapeDiagnostic(sourceUniqueId, 'depends_on'),
+    );
+    return { nodeIds: [], unsupported: true };
+  }
+
+  const nodes = dependsOnRecord.nodes;
+  if (nodes === undefined) {
+    return { nodeIds: [], unsupported: false };
+  }
+
+  if (
+    !Array.isArray(nodes) ||
+    nodes.some(
+      (entry) => typeof entry !== 'string' || entry.trim().length === 0,
+    )
+  ) {
+    diagnostics.push(
+      unsupportedDbtDependencyShapeDiagnostic(
+        sourceUniqueId,
+        'depends_on.nodes',
+      ),
+    );
+    return { nodeIds: [], unsupported: true };
+  }
+
+  return {
+    nodeIds: nodes.map((entry) => entry.trim()),
+    unsupported: false,
   };
 }
 
@@ -182,7 +416,7 @@ function normalizeDbtManifestResource(
     return undefined;
   }
 
-  const resourceName = readResourceName(record, resourceType);
+  const resourceName = readResourceName(record);
   if (!resourceName) {
     diagnostics.push(
       missingDbtResourceIdentityDiagnostic(resourceType, 'name', uniqueId),
@@ -216,7 +450,6 @@ function normalizeDbtManifestResource(
   return {
     kind,
     path: absoluteSourcePath,
-    sourcePath: absoluteSourcePath,
     project: {
       id: uniqueId,
       name: resourceName,
@@ -292,6 +525,8 @@ function deriveClassification(
   scope?: string;
 } {
   const governanceMeta = asRecord(meta.governance);
+  const scope =
+    readOptionalString(governanceMeta?.scope ?? meta.scope) ?? inferScope(tags);
 
   return {
     ...(readOptionalString(governanceMeta?.domain ?? meta.domain)
@@ -300,14 +535,7 @@ function deriveClassification(
     ...(readOptionalString(governanceMeta?.layer ?? meta.layer)
       ? { layer: readOptionalString(governanceMeta?.layer ?? meta.layer) }
       : {}),
-    ...((readOptionalString(governanceMeta?.scope ?? meta.scope) ??
-    inferScope(tags))
-      ? {
-          scope:
-            readOptionalString(governanceMeta?.scope ?? meta.scope) ??
-            inferScope(tags),
-        }
-      : {}),
+    ...(scope ? { scope } : {}),
   };
 }
 
@@ -352,14 +580,7 @@ function normalizeOwner(
   return undefined;
 }
 
-function readResourceName(
-  resource: ResourceRecord,
-  resourceType: string,
-): string | undefined {
-  if (resourceType === 'source') {
-    return readOptionalString(resource.name);
-  }
-
+function readResourceName(resource: ResourceRecord): string | undefined {
   return readOptionalString(resource.name);
 }
 
@@ -407,7 +628,7 @@ function readStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter(
         (entry): entry is string =>
-          typeof entry === 'string' && entry.length > 0,
+          typeof entry === 'string' && entry.trim().length > 0,
       )
     : [];
 }
