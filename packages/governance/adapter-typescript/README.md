@@ -1,74 +1,103 @@
-# `@anarchitects/governance-adapter-typescript`
-
-Platform-independent TypeScript workspace discovery and normalization for Governance.
+# @anarchitects/governance-adapter-typescript
 
 ## Overview
 
-`@anarchitects/governance-adapter-typescript` reads a TypeScript-oriented workspace as plain files and maps the result into contracts owned by `@anarchitects/governance-core`.
+`@anarchitects/governance-adapter-typescript` discovers facts from a
+TypeScript-oriented workspace and emits `@anarchitects/governance-core` adapter
+results. It reads repository files directly and maps discovered packages,
+imports, path aliases, tags, metadata, and diagnostics into Core-owned
+contracts.
 
-The package focuses on discovery and normalization, not on owning the canonical Governance model. It is intended for hosts that need to inspect a TypeScript workspace from repository files and then feed the normalized result into Governance Core.
+Use this package when you need Governance workspace facts from a TypeScript,
+JavaScript, or mixed monorepo without depending on a framework-specific project
+graph.
+
+## Key Concepts
+
+- Workspace detection identifies whether a directory contains TypeScript
+  workspace indicators.
+- Package-manager workspace parsing resolves package roots from
+  `pnpm-workspace.yaml` and `package.json#workspaces`.
+- Project discovery maps package roots into Governance project and node facts.
+- `tsconfig` parsing resolves base config files, `baseUrl`, and path aliases.
+- Import graph extraction captures static imports, re-exports, and
+  string-literal dynamic imports.
+- Dependency mapping converts discovered imports into Governance dependency and
+  relation facts.
+- Package governance metadata can provide domain, layer, scope, and owner
+  values.
+
+## Installation
+
+```bash
+npm install @anarchitects/governance-adapter-typescript
+```
+
+Hosts that evaluate the result also need `@anarchitects/governance-core`.
+
+## Quick Start
+
+```ts
+import { createGovernanceWorkspaceAdapter } from '@anarchitects/governance-adapter-typescript';
+
+const adapter = createGovernanceWorkspaceAdapter();
+const probe = adapter.probe(process.cwd());
+
+if (probe.supported) {
+  const result = adapter.loadWorkspace(process.cwd());
+
+  console.log(result.nodes);
+  console.log(result.relations);
+}
+```
+
+## Architecture
+
+```text
+TypeScript workspace files
+  -> workspace detection
+  -> package and tsconfig discovery
+  -> import graph extraction
+  -> GovernanceWorkspaceAdapterResult
+  -> Governance Core or a host such as agov
+```
+
+The adapter emits canonical graph output and project/dependency compatibility
+output from the same discovered workspace facts.
 
 ## Responsibilities
 
-This package is responsible for:
+This package owns:
 
-- detecting whether a repository looks like a supported TypeScript workspace
-- parsing package-manager workspace configuration
-- parsing `tsconfig.json` and `tsconfig.base.json` resolution state
-- discovering TypeScript projects from workspace package roots
-- building a static TypeScript import graph
-- mapping discovered imports into Core-owned dependency inputs
-- deriving project tags from naming and path rules
+- TypeScript workspace detection
+- package-manager workspace parsing
+- TypeScript project discovery from package roots
+- `tsconfig` and path-alias resolution
+- static TypeScript import graph extraction
+- mapping discovered projects into `GovernanceNodeInput`
+- mapping discovered dependencies into `GovernanceRelationInput`
+- preserving `GovernanceProjectInput` and `GovernanceDependencyInput` output
+- adapter-owned diagnostics for discovery, metadata, config, and mapping
+  problems
 
-This package is not responsible for:
+This package does not own:
 
-- CLI command behavior
 - canonical Governance contracts
-- external project-graph APIs
-- framework-specific metadata extraction
-- plugin runtime behavior
-- executor or generator ownership
-
-## Supported Assumptions
-
-The current implementation assumes:
-
-- workspace detection based on plain package-manager files such as `pnpm-workspace.yaml` and `package.json#workspaces`
-- `tsconfig` parsing through root `tsconfig.json`, `tsconfig.base.json`, and deterministic `extends` chains
-- static analysis of relative imports, package-name imports, `compilerOptions.paths`, `baseUrl`, re-exports, and string-literal dynamic imports
-- project discovery from package-manager workspace roots
+- rule evaluation
+- metrics, recommendations, signals, or scoring
+- CLI command behavior
+- report rendering
+- TypeScript-specific extension behavior
+- framework-specific project graph APIs
+- workspace generators, executors, or plugin runtime behavior
 
 ## Public API
 
-The public package surface is intentionally adapter-oriented:
+The package publishes one root entrypoint. Common adapter APIs include:
 
-```ts
-import {
-  buildTypeScriptImportGraph,
-  createGovernanceWorkspaceAdapter,
-  createTypeScriptWorkspaceAdapter,
-  detectTypeScriptWorkspace,
-  discoverTypeScriptProjects,
-  deriveProjectTags,
-  mapTypeScriptImportsToGovernanceDependencies,
-  normalizeTypeScriptPathAliases,
-  parsePackageManagerWorkspace,
-  parseTsconfig,
-  parseTsConfigResolution,
-  resolveTsconfigExtends,
-  resolveWorkspacePackages,
-  type TsConfigResolutionModel,
-  type TypeScriptImportGraph,
-  type TypeScriptProjectDiscoveryResult,
-  type TypeScriptWorkspaceDetectionResult,
-  type WorkspacePackageResolution,
-} from '@anarchitects/governance-adapter-typescript';
-```
-
-The root export currently includes:
-
-- `createTypeScriptWorkspaceAdapter(...)`
 - `createGovernanceWorkspaceAdapter(...)`
+- `createTypeScriptWorkspaceAdapter(...)`
+- `governanceWorkspaceAdapter`
 - `detectTypeScriptWorkspace(...)`
 - `parsePackageManagerWorkspace(...)`
 - `resolveWorkspacePackages(...)`
@@ -82,46 +111,42 @@ The root export currently includes:
 - `buildTypeScriptImportGraph(...)`
 - `mapTypeScriptImportsToGovernanceDependencies(...)`
 - `deriveProjectTags(...)`
-- exported adapter result and diagnostic types from `types.ts`
 
-The current API is a set of composable adapter primitives. It does not expose a single all-in-one host runner.
+The root entrypoint also exports adapter option types, discovery result types,
+diagnostic types, import graph types, workspace package types, and metadata
+configuration types.
 
-Parity already covered inside this package includes:
-
-- workspace detection and probe-style support heuristics
-- package-manager workspace parsing
-- TypeScript project discovery and tag derivation
-- `tsconfig` / path-alias resolution
-- static import graph extraction
-- normalization into Governance Core adapter result inputs
-
-The package-root API now exposes the exact reusable parity helpers that host
-packages can consume directly:
-
-- `detectTypeScriptWorkspace(...)`
-- `parseTsconfig(...)`
-- `resolveTsconfigExtends(...)`
-- `normalizeTypeScriptPathAliases(...)`
-- `parsePackageManagerWorkspace(...)`
-- `resolveWorkspacePackages(...)`
-- `discoverTypeScriptProjects(...)`
-- `buildTypeScriptImportGraph(...)`
-- `mapTypeScriptImportsToGovernanceDependencies(...)`
+```ts
+import {
+  createGovernanceWorkspaceAdapter,
+  detectTypeScriptWorkspace,
+  type TypeScriptImportGraph,
+  type TypeScriptProjectDiscoveryResult,
+} from '@anarchitects/governance-adapter-typescript';
+```
 
 ## Usage
 
-The typical workflow is:
+### Adapter Mode
 
-1. detect a supported workspace
-2. resolve workspace package roots
-3. discover projects
-4. resolve TypeScript path aliases
-5. build a static import graph
-6. map that graph into Core-owned dependency inputs
+Use the default adapter when a host expects the Core
+`GovernanceWorkspaceAdapter` contract:
+
+```ts
+import { createGovernanceWorkspaceAdapter } from '@anarchitects/governance-adapter-typescript';
+
+const adapter = createGovernanceWorkspaceAdapter();
+const result = adapter.loadWorkspace('/path/to/workspace');
+```
+
+### Composable Discovery Helpers
+
+Use lower-level helpers when a host needs direct control over discovery steps:
 
 ```ts
 import {
   buildTypeScriptImportGraph,
+  DEFAULT_TYPESCRIPT_PROJECT_DISCOVERY_CONFIG,
   detectTypeScriptWorkspace,
   discoverTypeScriptProjects,
   mapTypeScriptImportsToGovernanceDependencies,
@@ -130,36 +155,39 @@ import {
 } from '@anarchitects/governance-adapter-typescript';
 
 const detection = detectTypeScriptWorkspace(process.cwd());
-
-if (!detection.supported) {
-  throw new Error('Unsupported TypeScript workspace.');
-}
-
-const workspacePackages = parsePackageManagerWorkspace(detection.workspaceRoot);
-const projectDiscovery = discoverTypeScriptProjects({
-  workspaceRoot: workspacePackages.workspaceRoot,
-  packageRoots: workspacePackages.packageRoots,
-});
+const workspace = parsePackageManagerWorkspace(detection.workspaceRoot);
+const discovery = discoverTypeScriptProjects(
+  workspace,
+  DEFAULT_TYPESCRIPT_PROJECT_DISCOVERY_CONFIG,
+);
 const tsconfig = parseTsconfig(detection.workspaceRoot);
 const importGraph = buildTypeScriptImportGraph({
   workspaceRoot: detection.workspaceRoot,
-  projects: projectDiscovery.projects,
+  projects: discovery.projects,
   tsconfig,
 });
-const dependencyMapping = mapTypeScriptImportsToGovernanceDependencies({
-  projects: projectDiscovery.projects,
+const mapping = mapTypeScriptImportsToGovernanceDependencies({
+  workspaceRoot: detection.workspaceRoot,
+  projects: discovery.projects,
   importGraph,
 });
 ```
 
-## Package Governance Metadata
+## Configuration
 
-The adapter can read governance metadata from each discovered package
-`package.json` and merge it into the discovered `GovernanceProjectInput`.
+`createGovernanceWorkspaceAdapter(...)` accepts optional configuration:
 
-### Default `package.json` Shape
+- `discoveryConfig` controls project root patterns.
+- `packageGovernanceMetadataConfig` controls how governance metadata is read
+  from package files.
+- `tsconfigPath` selects a TypeScript config file relative to the workspace
+  root.
+- `adapterId` overrides the adapter identifier.
 
-By default, metadata is read from `package.json#governance`.
+Default project patterns include common `packages`, `apps`, `libs`, `services`,
+and `tools` layouts.
+
+Default governance metadata is read from `package.json#governance`:
 
 ```json
 {
@@ -172,86 +200,7 @@ By default, metadata is read from `package.json#governance`.
 }
 ```
 
-### Configurable Metadata Path
-
-The default metadata path is:
-
-- `governance`
-
-You can configure a nested path, for example:
-
-- `anarchitects.governance`
-
-### Configurable Field Mapping
-
-Default field mapping:
-
-- `domain -> domain`
-- `layer -> layer`
-- `scope -> scope`
-- `owner -> owner`
-
-Custom field mapping example:
-
-- `domain -> boundedContext`
-- `layer -> architecturalLayer`
-- `scope -> moduleScope`
-- `owner -> owningTeam`
-
-### Mapping Into `GovernanceProjectInput`
-
-Extracted metadata is mapped as follows:
-
-- metadata `domain` -> `project.domain`
-- metadata `layer` -> `project.layer`
-- metadata `scope` -> `project.scope`
-- metadata `owner` -> `project.metadata.owner`
-
-### Generated Tags
-
-After governance values are resolved, tags are generated from:
-
-- `domain:<value>`
-- `layer:<value>`
-- `scope:<value>`
-
-`owner` is stored in `project.metadata.owner` and is not converted into a tag.
-
-### Precedence Rules
-
-Resolution is deterministic:
-
-- package metadata overrides discovery-derived `domain`, `layer`, and `scope`
-  when metadata values are present
-- discovery-derived values remain fallback when package metadata is absent
-- partial package metadata overrides only the fields that are present
-- generated governance tags reflect the final resolved
-  `domain`/`layer`/`scope` values
-
-### Diagnostics Behavior
-
-The adapter reports deterministic diagnostics for metadata problems while still
-returning discovery results where possible.
-
-- invalid metadata structures produce diagnostics
-- invalid metadata paths produce diagnostics
-- invalid field mappings produce diagnostics
-- discovery continues where possible, including when a package has metadata
-  diagnostics
-- packages without governance metadata are valid and do not emit metadata
-  diagnostics
-
-### Configuration Examples
-
-Default configuration:
-
-```ts
-import { createGovernanceWorkspaceAdapter } from '@anarchitects/governance-adapter-typescript';
-
-const adapter = createGovernanceWorkspaceAdapter();
-```
-
-Custom metadata path:
+Custom metadata mapping example:
 
 ```ts
 import { createGovernanceWorkspaceAdapter } from '@anarchitects/governance-adapter-typescript';
@@ -260,25 +209,6 @@ const adapter = createGovernanceWorkspaceAdapter({
   packageGovernanceMetadataConfig: {
     sourceFile: 'package.json',
     path: ['anarchitects', 'governance'],
-    fields: {
-      domain: 'domain',
-      layer: 'layer',
-      scope: 'scope',
-      owner: 'owner',
-    },
-  },
-});
-```
-
-Custom field mapping:
-
-```ts
-import { createGovernanceWorkspaceAdapter } from '@anarchitects/governance-adapter-typescript';
-
-const adapter = createGovernanceWorkspaceAdapter({
-  packageGovernanceMetadataConfig: {
-    sourceFile: 'package.json',
-    path: ['governance'],
     fields: {
       domain: 'boundedContext',
       layer: 'architecturalLayer',
@@ -289,36 +219,49 @@ const adapter = createGovernanceWorkspaceAdapter({
 });
 ```
 
-## Normalization into Governance Core
+## Extension Points
 
-This adapter normalizes into `@anarchitects/governance-core` contracts rather than defining a parallel model.
-
-In practice:
-
-- project discovery produces `GovernanceProjectInput` values
-- dependency mapping produces `GovernanceDependencyInput` values
-- diagnostics align with Core-owned diagnostic shapes where the exported types reference them
-
-Hosts can combine these results with Core-owned assessment, rule, signal, and extension APIs.
-
-## Package Boundaries
-
-`@anarchitects/governance-adapter-typescript` is framework-independent.
-
-That means:
-
-- no framework-specific devkit dependency
-- no framework-specific CLI dependency
-- no external project-graph loading dependency
-- no framework plugin runtime assumptions
-- no executor or generator ownership
-
-The package reads repository files directly and stays usable in plain TypeScript or mixed monorepo environments.
-
-For detailed package-boundary rules and the adapter ownership model, see
-[ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](../../../docs/adr/0001-governance-package-boundaries.md).
+The adapter is intended to be consumed by hosts and Core normalization helpers.
+It does not load extensions and does not depend on
+`@anarchitects/governance-extension-typescript`. Hosts compose adapters and
+extensions through public Core contracts.
 
 ## Related Packages
 
-- `@anarchitects/governance-core` owns the canonical Governance contracts and deterministic evaluation logic
-- `@anarchitects/governance-cli` is a separate host/runtime package and should not be treated as part of this adapter’s public API
+- `@anarchitects/governance-core` owns the contracts emitted by this adapter.
+- `@anarchitects/governance-cli` can load this adapter by package name.
+- `@anarchitects/governance-extension-typescript` owns TypeScript-specific
+  interpretation contributions and is separate from workspace extraction.
+
+## Compatibility
+
+The adapter emits:
+
+- `GovernanceWorkspaceAdapterResult.nodes`
+- `GovernanceWorkspaceAdapterResult.relations`
+- `GovernanceWorkspaceAdapterResult.projects`
+- `GovernanceWorkspaceAdapterResult.dependencies`
+- `GovernanceWorkspaceAdapterResult.diagnostics`
+
+`nodes` and `relations` are the canonical graph output. `projects` and
+`dependencies` remain populated for consumers that need project/dependency
+views.
+
+## FAQ
+
+### Does this adapter evaluate Governance rules?
+
+No. It only discovers workspace facts and emits Core adapter results.
+
+### Does this adapter require Nx?
+
+No. It reads package-manager workspace files, TypeScript config files, package
+metadata, and source imports directly.
+
+### Does this adapter load the TypeScript extension?
+
+No. Hosts decide which adapters and extensions to load.
+
+## License
+
+MIT

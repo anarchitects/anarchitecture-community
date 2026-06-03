@@ -17,10 +17,33 @@ export interface GovernanceWorkspace {
   id: string;
   name: string;
   root: string;
+  /**
+   * Compatibility inventory view used by existing rules, metrics, and
+   * assessment consumers.
+   *
+   * @deprecated New graph-aware consumers should prefer canonical nodes from
+   * adapter results or `normalizeGovernanceGraph(...)`. Keep this view for
+   * project/dependency compatibility.
+   */
   projects: GovernanceProject[];
+  /**
+   * Compatibility relation view used by existing rules, metrics, and
+   * assessment consumers.
+   *
+   * @deprecated New graph-aware consumers should prefer canonical relations
+   * from adapter results or `normalizeGovernanceGraph(...)`. Keep this view for
+   * project/dependency compatibility.
+   */
   dependencies: GovernanceDependency[];
 }
 
+/**
+ * Compatibility representation of a project-oriented governable item.
+ *
+ * @deprecated Prefer canonical node contracts for new multi-technology
+ * integrations. `GovernanceProject` remains supported as the compatibility
+ * assessment view.
+ */
 export interface GovernanceProject {
   id: string;
   name: string;
@@ -33,6 +56,13 @@ export interface GovernanceProject {
   metadata: Record<string, unknown>;
 }
 
+/**
+ * Compatibility representation of a project-to-project dependency.
+ *
+ * @deprecated Prefer canonical relation contracts for new multi-technology
+ * integrations. `GovernanceDependency` remains supported as the compatibility
+ * assessment view.
+ */
 export interface GovernanceDependency {
   source: string;
   target: string;
