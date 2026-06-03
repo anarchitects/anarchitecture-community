@@ -1,0 +1,67 @@
+import type {
+  GovernanceDiagnostic,
+  GovernanceWorkspaceAdapter,
+  GovernanceWorkspaceAdapterResult,
+} from '@anarchitects/governance-core';
+
+export const DBT_ADAPTER_VALIDATION_MODES = ['strict', 'lenient'] as const;
+
+export type DbtAdapterValidationMode =
+  (typeof DBT_ADAPTER_VALIDATION_MODES)[number];
+
+export interface DbtArtifactPaths {
+  projectDirectory: string;
+  dbtProjectFilePath: string;
+  manifestPath: string;
+  catalogPath?: string;
+  runResultsPath?: string;
+  sourcesPath?: string;
+}
+
+export interface DbtAdapterOptions {
+  validationMode?: DbtAdapterValidationMode;
+}
+
+export type DbtArtifactPathField = keyof DbtArtifactPaths;
+
+export type DbtAdapterInputField =
+  | `paths.${DbtArtifactPathField}`
+  | 'options.validationMode';
+
+export interface DbtAdapterMetadataEnvelope {
+  dbt?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface DbtGovernanceAdapterInput {
+  paths: DbtArtifactPaths;
+  options?: DbtAdapterOptions;
+  metadata?: DbtAdapterMetadataEnvelope;
+}
+
+export interface DbtAdapterDiagnostic extends GovernanceDiagnostic {
+  path?: string;
+  inputField?: DbtAdapterInputField;
+}
+
+export interface DbtAdapterResultMetadata extends DbtAdapterMetadataEnvelope {
+  adapter: 'dbt';
+  validationMode: DbtAdapterValidationMode;
+  paths: DbtArtifactPaths;
+}
+
+export interface DbtAdapterResult extends GovernanceWorkspaceAdapterResult {
+  diagnostics?: DbtAdapterDiagnostic[];
+  metadata?: DbtAdapterResultMetadata;
+}
+
+export type DbtGovernanceWorkspaceAdapter =
+  GovernanceWorkspaceAdapter<DbtGovernanceAdapterInput>;
+
+export function isDbtAdapterValidationMode(
+  value: string,
+): value is DbtAdapterValidationMode {
+  return DBT_ADAPTER_VALIDATION_MODES.includes(
+    value as DbtAdapterValidationMode,
+  );
+}
