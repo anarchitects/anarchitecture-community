@@ -21,12 +21,11 @@ export const dbtGovernanceAdapterMetadata: DbtGovernanceAdapterMetadata = {
     'dbt artifact validation',
     'dbt validation',
     'dbt resource normalization',
-    'dbt normalization',
+    'dbt dependency mapping',
     'dbt metadata preservation',
     'dbt adapter contract definition',
   ],
   nonGoals: [
-    'dbt dependency mapping implementation',
     'dbt rules, metrics, scores, or recommendations',
     'TypeScript runtime composition',
     'dbt-native Python host experience',

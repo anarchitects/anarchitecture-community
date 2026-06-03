@@ -13,27 +13,9 @@ const fixturesRoot = fileURLToPath(
 
 describe('dbt artifact normalization', () => {
   it('maps the dbt project to a governance workspace result', () => {
-    const context = resolveDbtProjectContext({
-      paths: {
-        projectDir: path.join(fixturesRoot, 'valid-project'),
-      },
-    });
-
-    expect(context).toBeDefined();
-    if (!context) {
-      throw new Error(
-        'Expected valid-project fixture to resolve a dbt context.',
-      );
-    }
-
-    const loaded = loadDbtArtifacts(context);
-
-    expect(loaded.artifacts).toBeDefined();
-    if (!loaded.artifacts) {
-      throw new Error('Expected valid-project fixture to load dbt artifacts.');
-    }
-
-    const normalized = normalizeDbtArtifacts(context, loaded.artifacts);
+    const context = mustResolveContext('valid-project');
+    const artifacts = mustLoadArtifacts(context);
+    const normalized = normalizeDbtArtifacts(context, artifacts);
 
     expect(normalized.workspaceId).toBe('dbt:valid_project');
     expect(normalized.workspaceName).toBe('valid_project');
@@ -45,13 +27,14 @@ describe('dbt artifact normalization', () => {
   it('normalizes models, sources, seeds, snapshots, and exposures into governance nodes', () => {
     const context = mustResolveContext('valid-project');
     const artifacts = mustLoadArtifacts(context);
-
     const normalized = normalizeDbtArtifacts(context, artifacts);
     const nodeIds = normalized.nodes?.map((node) => node.id) ?? [];
 
     expect(nodeIds).toEqual(
       expect.arrayContaining([
+        'model.valid_project.stg_orders',
         'model.valid_project.orders',
+        'model.valid_project.orders_regional',
         'source.valid_project.raw.orders',
         'seed.valid_project.countries',
         'snapshot.valid_project.orders_snapshot',
@@ -108,7 +91,6 @@ describe('dbt artifact normalization', () => {
   it('preserves stable dbt identifiers and metadata on compatibility projects', () => {
     const context = mustResolveContext('valid-project');
     const artifacts = mustLoadArtifacts(context);
-
     const normalized = normalizeDbtArtifacts(context, artifacts);
     const project = normalized.projects?.find(
       (entry) => entry.id === 'exposure.valid_project.executive_dashboard',
@@ -133,10 +115,95 @@ describe('dbt artifact normalization', () => {
     });
   });
 
-  it('emits diagnostics for skipped, invalid, and partial normalization cases', () => {
+  it('maps model-to-model and model-to-source dependencies from manifest DAG metadata', () => {
     const context = mustResolveContext('valid-project');
     const artifacts = mustLoadArtifacts(context);
+    const normalized = normalizeDbtArtifacts(context, artifacts);
 
+    expect(normalized.dependencies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceProjectId: 'model.valid_project.stg_orders',
+          targetProjectId: 'source.valid_project.raw.orders',
+          type: 'static',
+          metadata: {
+            dbt: expect.objectContaining({
+              sourceUniqueId: 'model.valid_project.stg_orders',
+              targetUniqueId: 'source.valid_project.raw.orders',
+              dependencyKind: 'source',
+              artifactDependencyKind: 'depends_on.nodes',
+              source: {
+                packageName: 'valid_project',
+                sourceName: 'raw',
+                name: 'orders',
+              },
+            }),
+          },
+        }),
+        expect.objectContaining({
+          sourceProjectId: 'model.valid_project.orders',
+          targetProjectId: 'model.valid_project.stg_orders',
+          type: 'static',
+          metadata: {
+            dbt: expect.objectContaining({
+              sourceUniqueId: 'model.valid_project.orders',
+              targetUniqueId: 'model.valid_project.stg_orders',
+              dependencyKind: 'ref',
+              artifactDependencyKind: 'depends_on.nodes',
+              ref: {
+                packageName: 'valid_project',
+                name: 'stg_orders',
+                fqn: ['valid_project', 'staging', 'stg_orders'],
+              },
+            }),
+          },
+        }),
+      ]),
+    );
+  });
+
+  it('maps layered, fan-in, fan-out, seed, snapshot, and exposure dependencies', () => {
+    const context = mustResolveContext('valid-project');
+    const artifacts = mustLoadArtifacts(context);
+    const normalized = normalizeDbtArtifacts(context, artifacts);
+    const dependencies = normalized.dependencies ?? [];
+    const relationIds =
+      normalized.relations?.map((relation) => relation.id) ?? [];
+
+    expect(dependencies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceProjectId: 'model.valid_project.orders',
+          targetProjectId: 'seed.valid_project.countries',
+        }),
+        expect.objectContaining({
+          sourceProjectId: 'model.valid_project.orders_regional',
+          targetProjectId: 'model.valid_project.orders',
+        }),
+        expect.objectContaining({
+          sourceProjectId: 'snapshot.valid_project.orders_snapshot',
+          targetProjectId: 'model.valid_project.orders',
+        }),
+        expect.objectContaining({
+          sourceProjectId: 'exposure.valid_project.executive_dashboard',
+          targetProjectId: 'model.valid_project.orders',
+        }),
+      ]),
+    );
+
+    expect(
+      dependencies.filter(
+        (dependency) =>
+          dependency.targetProjectId === 'model.valid_project.orders',
+      ),
+    ).toHaveLength(3);
+    expect(relationIds.length).toBe(dependencies.length);
+    expect(relationIds[0]).toContain('legacy:');
+  });
+
+  it('emits dependency diagnostics for unresolved, unnormalized, unsupported, and partial mapping cases', () => {
+    const context = mustResolveContext('valid-project');
+    const artifacts = mustLoadArtifacts(context);
     const normalized = normalizeDbtArtifacts(context, artifacts);
 
     expect(normalized.diagnostics).toEqual(
@@ -157,9 +224,39 @@ describe('dbt artifact normalization', () => {
         expect.objectContaining({
           code: 'governance.dbt_adapter.partial_normalization',
           details: expect.objectContaining({
-            normalizedCount: 5,
+            normalizedCount: 10,
             skippedCount: 1,
             invalidCount: 1,
+          }),
+        }),
+        expect.objectContaining({
+          code: 'governance.dbt_adapter.unresolved_dependency_target',
+          details: expect.objectContaining({
+            sourceUniqueId: 'model.valid_project.unresolved_consumer',
+            targetUniqueId: 'model.valid_project.missing_upstream',
+          }),
+        }),
+        expect.objectContaining({
+          code: 'governance.dbt_adapter.dependency_target_not_normalized',
+          details: expect.objectContaining({
+            sourceUniqueId: 'model.valid_project.invalid_target_consumer',
+            targetUniqueId: 'model.valid_project.missing_identity',
+          }),
+        }),
+        expect.objectContaining({
+          code: 'governance.dbt_adapter.unsupported_dependency_shape',
+          details: expect.objectContaining({
+            sourceUniqueId: 'model.valid_project.malformed_depends_on',
+            field: 'depends_on.nodes',
+          }),
+        }),
+        expect.objectContaining({
+          code: 'governance.dbt_adapter.partial_dependency_mapping',
+          details: expect.objectContaining({
+            mappedCount: 6,
+            unresolvedCount: 1,
+            notNormalizedCount: 1,
+            unsupportedCount: 1,
           }),
         }),
       ]),

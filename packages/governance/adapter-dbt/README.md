@@ -6,10 +6,10 @@
 for a dbt Governance adapter. It owns explicit input paths, adapter options,
 Core-compatible output types, project detection, artifact loading, and dbt
 adapter metadata contracts for discovery, loading, validation, normalization,
-and metadata preservation workflows.
+dependency mapping, and metadata preservation workflows.
 
-This package does not implement dependency mapping, runtime composition, dbt
-governance meaning, or Python host behavior.
+This package does not implement runtime composition, dbt governance meaning,
+or Python host behavior.
 
 ## Location
 
@@ -222,8 +222,7 @@ Preserved dbt metadata includes:
 - description/docs presence hints
 
 Unsupported resource types are skipped with diagnostics. Invalid resource
-shapes emit diagnostics instead of being silently dropped. Dependency mapping
-is intentionally not implemented here.
+shapes emit diagnostics instead of being silently dropped.
 
 Normalization is:
 
@@ -231,6 +230,41 @@ Normalization is:
 - artifact-driven
 - limited to identity, classification hints, ownership hints, and factual dbt
   metadata preservation
+
+## Dependency Mapping
+
+`normalizeDbtArtifacts(...)` also maps manifest DAG edges into Core-compatible
+governance dependency and relation inputs.
+
+Dependency mapping uses only:
+
+- `depends_on.nodes`
+- target manifest metadata for `ref()`-style lineage
+- target manifest metadata for `source()`-style lineage
+
+Current dependency support:
+
+- model-to-model
+- model-to-source
+- seed dependencies represented in `depends_on.nodes`
+- snapshot dependencies represented in `depends_on.nodes`
+- exposure dependencies represented in `depends_on.nodes`
+
+Dependency metadata preserves:
+
+- source dbt `unique_id`
+- target dbt `unique_id`
+- dbt dependency kind: `ref` or `source`
+- artifact-derived dependency kind: `depends_on.nodes`
+- `ref` target hints when the target is a dbt node
+- `source` target hints when the target is a dbt source
+
+Dependency mapping is:
+
+- deterministic
+- artifact-driven
+- limited to dbt manifest lineage facts
+- non-inferential: no SQL parsing, no Jinja parsing, no generic lineage
 
 ## Output Contract
 
@@ -296,6 +330,10 @@ Artifact loading emits structured diagnostics for:
 - unsupported resource shapes
 - missing required resource identity fields
 - partial normalization
+- unresolved dependency targets
+- dependency targets present in manifest but not normalized as governance nodes
+- unsupported dependency metadata shape
+- partial dependency mapping
 
 ## Runtime And Host Boundary
 
@@ -308,6 +346,8 @@ Artifact loading emits structured diagnostics for:
   paths.
 - This package normalizes dbt resources into Core-owned workspace/project/node
   inputs without evaluating architecture quality.
+- This package maps dbt DAG edges into Core-owned dependency/relation inputs
+  using manifest facts only.
 - This package does not invoke dbt commands.
 
 ## Architectural Boundary
@@ -324,10 +364,10 @@ runtime, or host packages.
 
 ## Non-Goals
 
-- Implementing dbt dependency mapping
 - Implementing dbt rules, metrics, scores, or recommendations
 - Evaluating whether a dbt architecture is good or bad
 - Deciding governance meaning that belongs in an extension layer
+- Inferring lineage from SQL or Jinja outside dbt manifest artifacts
 - Adding dependencies on `@anarchitects/governance-extension-dbt`
 - Adding dependencies on `@anarchitects/governance-runtime-dbt`
 - Adding dependencies on `@anarchitects/governance-host-dbt`

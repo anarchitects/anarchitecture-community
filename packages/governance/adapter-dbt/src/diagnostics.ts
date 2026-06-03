@@ -126,6 +126,84 @@ export function partialDbtNormalizationDiagnostic({
   });
 }
 
+export function unresolvedDbtDependencyTargetDiagnostic(
+  sourceUniqueId: string,
+  targetUniqueId: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.unresolved_dependency_target',
+    message: `dbt dependency target "${targetUniqueId}" could not be resolved from manifest artifacts.`,
+    severity: 'warning',
+    kind: 'warning',
+    category: 'adapter',
+    details: {
+      sourceUniqueId,
+      targetUniqueId,
+    },
+  });
+}
+
+export function dependencyTargetNotNormalizedDiagnostic(
+  sourceUniqueId: string,
+  targetUniqueId: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.dependency_target_not_normalized',
+    message: `dbt dependency target "${targetUniqueId}" was present in manifest artifacts but was not normalized as a governance node.`,
+    severity: 'warning',
+    kind: 'warning',
+    category: 'adapter',
+    details: {
+      sourceUniqueId,
+      targetUniqueId,
+    },
+  });
+}
+
+export function unsupportedDbtDependencyShapeDiagnostic(
+  sourceUniqueId: string,
+  field: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.unsupported_dependency_shape',
+    message: `dbt dependency metadata for "${sourceUniqueId}" has unsupported shape at "${field}".`,
+    severity: 'warning',
+    kind: 'warning',
+    category: 'adapter',
+    details: {
+      sourceUniqueId,
+      field,
+    },
+  });
+}
+
+export function partialDbtDependencyMappingDiagnostic({
+  mappedCount,
+  unresolvedCount,
+  notNormalizedCount,
+  unsupportedCount,
+}: {
+  mappedCount: number;
+  unresolvedCount: number;
+  notNormalizedCount: number;
+  unsupportedCount: number;
+}): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.partial_dependency_mapping',
+    message:
+      'dbt dependency mapping completed with unresolved or unsupported dependency metadata.',
+    severity: 'warning',
+    kind: 'warning',
+    category: 'adapter',
+    details: {
+      mappedCount,
+      unresolvedCount,
+      notNormalizedCount,
+      unsupportedCount,
+    },
+  });
+}
+
 export function missingDbtProjectPathDiagnostic(
   projectDir: string,
   inputField: DbtAdapterInputField,
