@@ -16,7 +16,9 @@ describe('dbt Governance adapter package boundary', () => {
       peerDependencies?: Record<string, string>;
     };
 
-    expect(packageJson.dependencies).toBeUndefined();
+    expect(Object.keys(packageJson.dependencies ?? {})).toEqual([
+      '@anarchitects/governance-core',
+    ]);
     expect(packageJson.devDependencies).toBeUndefined();
     expect(packageJson.peerDependencies).toBeUndefined();
   });

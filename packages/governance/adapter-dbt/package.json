@@ -56,5 +56,8 @@
         }
       }
     }
+  },
+  "dependencies": {
+    "@anarchitects/governance-core": "^0.1.1"
   }
 }
