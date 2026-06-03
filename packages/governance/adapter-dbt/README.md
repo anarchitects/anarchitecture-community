@@ -208,8 +208,7 @@ Preserved dbt metadata includes:
 
 - `unique_id`
 - `package_name`
-- resource name
-- fully qualified dbt identifier when present
+- resource name and fully qualified identifier when present
 - `resource_type`
 - `materialization`
 - `tags`
@@ -219,7 +218,18 @@ Preserved dbt metadata includes:
 - `path`
 - `original_file_path`
 - `database` / `schema` / `alias`
+- `relation_name`
+- `tests`
+- `contract`
 - description/docs presence hints
+
+Preserved metadata is namespaced under `metadata.dbt` and structured as:
+
+- `metadata.dbt.identity`
+- `metadata.dbt.resource`
+- `metadata.dbt.relation`
+- `metadata.dbt.validation`
+- `metadata.dbt.documentation`
 
 Unsupported resource types are skipped with diagnostics. Invalid resource
 shapes emit diagnostics instead of being silently dropped.
@@ -252,8 +262,10 @@ Current dependency support:
 
 Dependency metadata preserves:
 
-- source dbt `unique_id`
-- target dbt `unique_id`
+- source endpoint metadata under `metadata.dbt.source`
+- target endpoint metadata under `metadata.dbt.target`
+- dependency lineage metadata under `metadata.dbt.lineage`
+- source and target dbt `unique_id`
 - dbt dependency kind: `ref` or `source`
 - artifact-derived dependency kind: `depends_on.nodes`
 - `ref` target hints when the target is a dbt node
@@ -265,6 +277,8 @@ Dependency mapping is:
 - artifact-driven
 - limited to dbt manifest lineage facts
 - non-inferential: no SQL parsing, no Jinja parsing, no generic lineage
+- descriptive only: semantic interpretation belongs to
+  `@anarchitects/governance-extension-dbt`
 
 ## Output Contract
 
@@ -348,6 +362,9 @@ Artifact loading emits structured diagnostics for:
   inputs without evaluating architecture quality.
 - This package maps dbt DAG edges into Core-owned dependency/relation inputs
   using manifest facts only.
+- This package preserves dbt-specific facts so downstream extensions can
+  compute dbt-aware signals, metrics, rules, diagnostics, and recommendations
+  without rereading dbt artifacts.
 - This package does not invoke dbt commands.
 
 ## Architectural Boundary
@@ -367,6 +384,7 @@ runtime, or host packages.
 - Implementing dbt rules, metrics, scores, or recommendations
 - Evaluating whether a dbt architecture is good or bad
 - Deciding governance meaning that belongs in an extension layer
+- Computing dbt-aware governance semantics inside the adapter
 - Inferring lineage from SQL or Jinja outside dbt manifest artifacts
 - Adding dependencies on `@anarchitects/governance-extension-dbt`
 - Adding dependencies on `@anarchitects/governance-runtime-dbt`

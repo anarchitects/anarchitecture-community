@@ -197,8 +197,8 @@ function mapDbtDependencies(
       continue;
     }
 
-    const record = asRecord(sourceResource);
-    if (!record) {
+    const sourceRecord = asRecord(sourceResource);
+    if (!sourceRecord) {
       diagnostics.push(
         unsupportedDbtDependencyShapeDiagnostic(sourceUniqueId, 'depends_on'),
       );
@@ -206,7 +206,11 @@ function mapDbtDependencies(
       continue;
     }
 
-    const dependsOn = readDependsOnNodeIds(record, sourceUniqueId, diagnostics);
+    const dependsOn = readDependsOnNodeIds(
+      sourceRecord,
+      sourceUniqueId,
+      diagnostics,
+    );
     if (dependsOn.unsupported) {
       unsupportedCount += 1;
       continue;
@@ -248,6 +252,7 @@ function mapDbtDependencies(
         type: 'static',
         metadata: buildDependencyMetadata(
           sourceUniqueId,
+          sourceRecord,
           targetUniqueId,
           targetResource,
         ),
@@ -265,6 +270,7 @@ function mapDbtDependencies(
 
 function buildDependencyMetadata(
   sourceUniqueId: string,
+  sourceResource: ResourceRecord,
   targetUniqueId: string,
   targetResource: DbtManifestResource,
 ): Record<string, unknown> {
@@ -274,28 +280,70 @@ function buildDependencyMetadata(
 
   return {
     dbt: {
-      sourceUniqueId,
-      targetUniqueId,
-      dependencyKind,
-      artifactDependencyKind: DBT_ARTIFACT_DEPENDENCY_KIND,
-      ...(dependencyKind === 'ref'
-        ? {
-            ref: {
-              packageName: readOptionalString(targetRecord.package_name),
-              name: readOptionalString(targetRecord.name),
-              fqn: readStringArray(targetRecord.fqn),
-            },
-          }
+      source: buildDependencyEndpoint(sourceUniqueId, sourceResource),
+      target: buildDependencyEndpoint(targetUniqueId, targetRecord),
+      lineage: {
+        dependencyKind,
+        artifactDependencyKind: DBT_ARTIFACT_DEPENDENCY_KIND,
+        ...(dependencyKind === 'ref'
+          ? {
+              ref: {
+                packageName: readOptionalString(targetRecord.package_name),
+                name: readOptionalString(targetRecord.name),
+                fqn: readOptionalStringArray(targetRecord.fqn),
+              },
+            }
+          : {}),
+        ...(dependencyKind === 'source'
+          ? {
+              source: {
+                packageName: readOptionalString(targetRecord.package_name),
+                sourceName: readOptionalString(targetRecord.source_name),
+                name: readOptionalString(targetRecord.name),
+              },
+            }
+          : {}),
+      },
+    },
+  };
+}
+
+function buildDependencyEndpoint(
+  uniqueId: string,
+  resource: ResourceRecord,
+): Record<string, unknown> {
+  const relationName = readOptionalString(resource.relation_name);
+
+  return {
+    identity: {
+      uniqueId,
+      ...(readOptionalString(resource.resource_type)
+        ? { resourceType: readOptionalString(resource.resource_type) }
         : {}),
-      ...(dependencyKind === 'source'
-        ? {
-            source: {
-              packageName: readOptionalString(targetRecord.package_name),
-              sourceName: readOptionalString(targetRecord.source_name),
-              name: readOptionalString(targetRecord.name),
-            },
-          }
+      ...(readOptionalString(resource.package_name)
+        ? { packageName: readOptionalString(resource.package_name) }
         : {}),
+      ...(readOptionalString(resource.name)
+        ? { resourceName: readOptionalString(resource.name) }
+        : {}),
+      ...(readOptionalString(resource.source_name)
+        ? { sourceName: readOptionalString(resource.source_name) }
+        : {}),
+      ...(readOptionalStringArray(resource.fqn)
+        ? { fqn: readOptionalStringArray(resource.fqn) }
+        : {}),
+    },
+    relation: {
+      ...(readOptionalString(resource.database)
+        ? { database: readOptionalString(resource.database) }
+        : {}),
+      ...(readOptionalString(resource.schema)
+        ? { schema: readOptionalString(resource.schema) }
+        : {}),
+      ...(readOptionalString(resource.alias)
+        ? { alias: readOptionalString(resource.alias) }
+        : {}),
+      ...(relationName ? { relationName } : {}),
     },
   };
 }
@@ -416,7 +464,7 @@ function normalizeDbtManifestResource(
     return undefined;
   }
 
-  const resourceName = readResourceName(record);
+  const resourceName = readOptionalString(record.name);
   if (!resourceName) {
     diagnostics.push(
       missingDbtResourceIdentityDiagnostic(resourceType, 'name', uniqueId),
@@ -430,22 +478,23 @@ function normalizeDbtManifestResource(
     : undefined;
   const resourceTags = readStringArray(record.tags);
   const resourceMeta = asRecord(record.meta) ?? {};
-  const materialization = readMaterialization(record);
   const group = readOptionalString(record.group);
-  const owner = normalizeOwner(record.owner, group);
   const fqn = readStringArray(record.fqn);
   const fullyQualifiedName = fqn.length > 0 ? fqn.join('.') : undefined;
-  const description = readOptionalString(record.description);
-  const docs = asRecord(record.docs);
-  const database = readOptionalString(record.database);
-  const schema = readOptionalString(record.schema);
-  const alias = readOptionalString(record.alias);
 
   const classification = deriveClassification(resourceMeta, resourceTags);
   const kind = resourceKind(resourceType);
   const rootPath = absoluteSourcePath
     ? path.dirname(absoluteSourcePath)
     : projectContext.projectDir;
+  const dbtMetadata = buildDbtResourceMetadata(record, {
+    uniqueId,
+    packageName,
+    resourceName,
+    fullyQualifiedName,
+    fqn,
+    sourcePath: absoluteSourcePath,
+  });
 
   return {
     kind,
@@ -459,59 +508,97 @@ function normalizeDbtManifestResource(
       ...(classification.domain ? { domain: classification.domain } : {}),
       ...(classification.layer ? { layer: classification.layer } : {}),
       ...(classification.scope ? { scope: classification.scope } : {}),
-      ...(owner ? { ownership: owner } : {}),
+      ...(normalizeOwner(record.owner, group)
+        ? { ownership: normalizeOwner(record.owner, group) }
+        : {}),
       metadata: {
-        dbt: {
-          uniqueId,
-          packageName,
-          resourceName,
-          fullyQualifiedName,
-          fqn,
-          resourceType,
-          materialization,
-          tags: resourceTags,
-          meta: resourceMeta,
-          group,
-          owner: record.owner,
-          path: readOptionalString(record.path),
-          originalFilePath,
-          sourcePath: absoluteSourcePath,
-          database,
-          schema,
-          alias,
-          description,
-          hasDescription: Boolean(description),
-          docs,
-          hasDocs: docs !== undefined,
-          docsShow: typeof docs?.show === 'boolean' ? docs.show : undefined,
-        },
+        dbt: dbtMetadata,
       },
     },
     nodeMetadata: {
-      dbt: {
-        uniqueId,
-        packageName,
-        resourceName,
-        fullyQualifiedName,
-        fqn,
-        resourceType,
-        materialization,
-        tags: resourceTags,
-        meta: resourceMeta,
-        group,
-        owner: record.owner,
-        path: readOptionalString(record.path),
-        originalFilePath,
-        sourcePath: absoluteSourcePath,
-        database,
-        schema,
-        alias,
-        description,
-        hasDescription: Boolean(description),
-        docs,
-        hasDocs: docs !== undefined,
-        docsShow: typeof docs?.show === 'boolean' ? docs.show : undefined,
-      },
+      dbt: dbtMetadata,
+    },
+  };
+}
+
+function buildDbtResourceMetadata(
+  resource: ResourceRecord,
+  options: {
+    uniqueId: string;
+    packageName: string;
+    resourceName: string;
+    fullyQualifiedName?: string;
+    fqn: string[];
+    sourcePath?: string;
+  },
+): Record<string, unknown> {
+  const docs = asRecord(resource.docs);
+  const description = readOptionalString(resource.description);
+  const relationName = readOptionalString(resource.relation_name);
+  const contract = readContract(resource);
+  const tests = readOptionalValue(resource.tests);
+
+  return {
+    identity: {
+      uniqueId: options.uniqueId,
+      packageName: options.packageName,
+      resourceName: options.resourceName,
+      resourceType: readOptionalString(resource.resource_type),
+      ...(readOptionalString(resource.source_name)
+        ? { sourceName: readOptionalString(resource.source_name) }
+        : {}),
+      ...(options.fullyQualifiedName
+        ? { fullyQualifiedName: options.fullyQualifiedName }
+        : {}),
+      ...(options.fqn.length > 0 ? { fqn: options.fqn } : {}),
+    },
+    resource: {
+      tags: readStringArray(resource.tags),
+      meta: asRecord(resource.meta) ?? {},
+      ...(readMaterialization(resource)
+        ? { materialization: readMaterialization(resource) }
+        : {}),
+      ...(readOptionalString(resource.group)
+        ? { group: readOptionalString(resource.group) }
+        : {}),
+      ...(readOptionalValue(resource.owner) !== undefined
+        ? { owner: readOptionalValue(resource.owner) }
+        : {}),
+      ...(readOptionalString(resource.type)
+        ? { subtype: readOptionalString(resource.type) }
+        : {}),
+    },
+    relation: {
+      ...(readOptionalString(resource.path)
+        ? { path: readOptionalString(resource.path) }
+        : {}),
+      ...(readOptionalString(resource.original_file_path)
+        ? {
+            originalFilePath: readOptionalString(resource.original_file_path),
+          }
+        : {}),
+      ...(options.sourcePath ? { sourcePath: options.sourcePath } : {}),
+      ...(readOptionalString(resource.database)
+        ? { database: readOptionalString(resource.database) }
+        : {}),
+      ...(readOptionalString(resource.schema)
+        ? { schema: readOptionalString(resource.schema) }
+        : {}),
+      ...(readOptionalString(resource.alias)
+        ? { alias: readOptionalString(resource.alias) }
+        : {}),
+      ...(relationName ? { relationName } : {}),
+    },
+    validation: {
+      ...(tests !== undefined ? { tests } : {}),
+      ...(contract !== undefined ? { contract } : {}),
+    },
+    documentation: {
+      ...(description ? { description } : {}),
+      hasDescription: Boolean(description),
+      ...(docs ? { docs } : {}),
+      hasDocs: docs !== undefined,
+      ...(typeof docs?.show === 'boolean' ? { docsShow: docs.show } : {}),
     },
   };
 }
@@ -580,15 +667,18 @@ function normalizeOwner(
   return undefined;
 }
 
-function readResourceName(resource: ResourceRecord): string | undefined {
-  return readOptionalString(resource.name);
-}
-
 function readMaterialization(resource: ResourceRecord): string | undefined {
   const config = asRecord(resource.config);
   return (
     readOptionalString(config?.materialized) ??
     readOptionalString(resource.materialized)
+  );
+}
+
+function readContract(resource: ResourceRecord): unknown {
+  const config = asRecord(resource.config);
+  return (
+    readOptionalValue(config?.contract) ?? readOptionalValue(resource.contract)
   );
 }
 
@@ -624,6 +714,10 @@ function readOptionalString(value: unknown): string | undefined {
     : undefined;
 }
 
+function readOptionalValue<T = unknown>(value: T): T | undefined {
+  return value === undefined || value === null ? undefined : value;
+}
+
 function readStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter(
@@ -631,4 +725,9 @@ function readStringArray(value: unknown): string[] {
           typeof entry === 'string' && entry.trim().length > 0,
       )
     : [];
+}
+
+function readOptionalStringArray(value: unknown): string[] | undefined {
+  const values = readStringArray(value);
+  return values.length > 0 ? values : undefined;
 }

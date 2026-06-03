@@ -16,6 +16,7 @@
       "path": "stg_orders.sql",
       "original_file_path": "models/staging/stg_orders.sql",
       "fqn": ["valid_project", "staging", "stg_orders"],
+      "relation_name": "\"analytics\".\"staging\".\"stg_orders\"",
       "description": "Staged orders model",
       "tags": ["staging", "scope:analytics"],
       "meta": {
@@ -24,8 +25,12 @@
           "scope": "analytics"
         }
       },
+      "tests": ["not_null:order_id"],
       "config": {
-        "materialized": "view"
+        "materialized": "view",
+        "contract": {
+          "enforced": false
+        }
       },
       "depends_on": {
         "nodes": ["source.valid_project.raw.orders"]
@@ -42,6 +47,7 @@
       "path": "orders.sql",
       "original_file_path": "models/marts/orders.sql",
       "fqn": ["valid_project", "marts", "orders"],
+      "relation_name": "\"analytics\".\"marts\".\"orders\"",
       "description": "Normalized orders model",
       "tags": ["finance", "published", "scope:analytics"],
       "meta": {
@@ -51,8 +57,13 @@
           "scope": "analytics"
         }
       },
+      "tests": ["unique:order_id", "not_null:order_id"],
       "config": {
-        "materialized": "table"
+        "materialized": "table",
+        "contract": {
+          "enforced": true,
+          "alias_types": false
+        }
       },
       "group": "finance",
       "owner": {
@@ -80,6 +91,7 @@
       "path": "orders_regional.sql",
       "original_file_path": "models/marts/orders_regional.sql",
       "fqn": ["valid_project", "marts", "orders_regional"],
+      "relation_name": "\"analytics\".\"marts\".\"orders_regional\"",
       "tags": ["finance", "scope:analytics"],
       "meta": {
         "governance": {
@@ -88,6 +100,7 @@
           "scope": "analytics"
         }
       },
+      "tests": ["accepted_values:region"],
       "config": {
         "materialized": "table"
       },
@@ -106,8 +119,10 @@
       "path": "countries.csv",
       "original_file_path": "seeds/countries.csv",
       "fqn": ["valid_project", "countries"],
+      "relation_name": "\"analytics\".\"reference\".\"countries\"",
       "tags": ["reference"],
       "meta": {},
+      "tests": ["unique:country_code"],
       "config": {
         "materialized": "seed"
       }
@@ -123,12 +138,14 @@
       "path": "orders_snapshot.sql",
       "original_file_path": "snapshots/orders_snapshot.sql",
       "fqn": ["valid_project", "orders_snapshot"],
+      "relation_name": "\"analytics\".\"snapshots\".\"orders_snapshot\"",
       "tags": ["history"],
       "meta": {
         "governance": {
           "layer": "history"
         }
       },
+      "tests": ["not_null:dbt_valid_from"],
       "config": {
         "materialized": "snapshot"
       },
@@ -224,11 +241,13 @@
       "path": "raw.yml",
       "original_file_path": "models/raw/raw.yml",
       "fqn": ["valid_project", "raw", "orders"],
+      "relation_name": "\"warehouse\".\"raw\".\"orders\"",
       "description": "Source orders table",
       "tags": ["raw"],
       "meta": {
         "lineage": "external"
       },
+      "tests": ["freshness", "not_null:order_id"],
       "group": "raw-data",
       "owner": "data-eng",
       "docs": {
