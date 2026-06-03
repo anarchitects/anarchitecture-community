@@ -20,6 +20,7 @@ import type {
 } from './contracts.js';
 import {
   dependencyTargetNotNormalizedDiagnostic,
+  incompleteDbtMetadataDiagnostic,
   missingDbtResourceIdentityDiagnostic,
   partialDbtDependencyMappingDiagnostic,
   partialDbtNormalizationDiagnostic,
@@ -434,6 +435,11 @@ function normalizeDbtManifestResource(
   }
 
   const resourceType = readOptionalString(record.resource_type) ?? 'unknown';
+  const originalFilePath = readOptionalString(record.original_file_path);
+  const diagnosticSourcePath = originalFilePath
+    ? path.join(projectContext.projectDir, originalFilePath)
+    : undefined;
+
   if (!isSupportedResourceType(resourceType)) {
     diagnostics.push(
       skippedDbtResourceTypeDiagnostic(
@@ -447,7 +453,12 @@ function normalizeDbtManifestResource(
   const uniqueId = readOptionalString(record.unique_id);
   if (!uniqueId) {
     diagnostics.push(
-      missingDbtResourceIdentityDiagnostic(resourceType, 'unique_id'),
+      missingDbtResourceIdentityDiagnostic(
+        resourceType,
+        'unique_id',
+        undefined,
+        diagnosticSourcePath,
+      ),
     );
     return undefined;
   }
@@ -459,6 +470,7 @@ function normalizeDbtManifestResource(
         resourceType,
         'package_name',
         uniqueId,
+        diagnosticSourcePath,
       ),
     );
     return undefined;
@@ -467,12 +479,16 @@ function normalizeDbtManifestResource(
   const resourceName = readOptionalString(record.name);
   if (!resourceName) {
     diagnostics.push(
-      missingDbtResourceIdentityDiagnostic(resourceType, 'name', uniqueId),
+      missingDbtResourceIdentityDiagnostic(
+        resourceType,
+        'name',
+        uniqueId,
+        diagnosticSourcePath,
+      ),
     );
     return undefined;
   }
 
-  const originalFilePath = readOptionalString(record.original_file_path);
   const absoluteSourcePath = originalFilePath
     ? path.join(projectContext.projectDir, originalFilePath)
     : undefined;
@@ -495,6 +511,20 @@ function normalizeDbtManifestResource(
     fqn,
     sourcePath: absoluteSourcePath,
   });
+  const incompleteMetadataFields = collectIncompleteMetadataFields(
+    resourceType,
+    dbtMetadata,
+  );
+
+  if (incompleteMetadataFields.length > 0) {
+    diagnostics.push(
+      incompleteDbtMetadataDiagnostic(
+        uniqueId,
+        incompleteMetadataFields,
+        absoluteSourcePath,
+      ),
+    );
+  }
 
   return {
     kind,
@@ -601,6 +631,52 @@ function buildDbtResourceMetadata(
       ...(typeof docs?.show === 'boolean' ? { docsShow: docs.show } : {}),
     },
   };
+}
+
+function collectIncompleteMetadataFields(
+  resourceType: string,
+  metadata: Record<string, unknown>,
+): string[] {
+  const dbtMetadata = asRecord(metadata);
+  const relation = asRecord(dbtMetadata?.relation);
+  const validation = asRecord(dbtMetadata?.validation);
+  const documentation = asRecord(dbtMetadata?.documentation);
+  const missingFields: string[] = [];
+
+  if (!readOptionalString(relation?.relationName)) {
+    missingFields.push('relation.relationName');
+  }
+
+  if (
+    resourceType === 'model' ||
+    resourceType === 'seed' ||
+    resourceType === 'snapshot' ||
+    resourceType === 'source'
+  ) {
+    if (readOptionalValue(validation?.tests) === undefined) {
+      missingFields.push('validation.tests');
+    }
+  }
+
+  if (
+    resourceType === 'model' ||
+    resourceType === 'seed' ||
+    resourceType === 'snapshot'
+  ) {
+    if (readOptionalValue(validation?.contract) === undefined) {
+      missingFields.push('validation.contract');
+    }
+  }
+
+  if (
+    documentation &&
+    documentation.hasDescription === false &&
+    documentation.hasDocs === false
+  ) {
+    missingFields.push('documentation.description');
+  }
+
+  return missingFields;
 }
 
 function deriveClassification(

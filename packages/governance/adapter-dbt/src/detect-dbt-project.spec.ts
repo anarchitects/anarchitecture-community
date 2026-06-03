@@ -74,7 +74,10 @@ describe('dbt project detection', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.missing_project_directory',
+          severity: 'error',
           inputField: 'paths.projectDir',
+          path: path.join(fixturesRoot, 'missing-project-dir'),
+          recommendation: expect.stringContaining('projectDir'),
         }),
       ]),
     );
@@ -93,8 +96,10 @@ describe('dbt project detection', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.missing_dbt_project_file',
+          severity: 'error',
           inputField: 'paths.projectDir',
           path: projectDir,
+          recommendation: expect.stringContaining('dbt_project.yml'),
         }),
       ]),
     );
@@ -120,7 +125,9 @@ describe('dbt project detection', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.inconsistent_project_inputs',
+          severity: 'error',
           inputField: 'paths.dbtProjectPath',
+          recommendation: expect.stringContaining('Align'),
         }),
       ]),
     );
@@ -138,7 +145,9 @@ describe('dbt project detection', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.invalid_dbt_project_path',
+          severity: 'error',
           inputField: 'paths.dbtProjectPath',
+          recommendation: expect.stringContaining('dbt_project.yml'),
         }),
       ]),
     );

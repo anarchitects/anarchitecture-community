@@ -203,6 +203,33 @@ describe('dbt artifact normalization', () => {
     expect(node?.metadata).toEqual(project?.metadata);
   });
 
+  it('emits informational diagnostics when downstream extension metadata is incomplete', () => {
+    const context = mustResolveContext('valid-project');
+    const artifacts = mustLoadArtifacts(context);
+    const normalized = normalizeDbtArtifacts(context, artifacts);
+
+    expect(normalized.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'governance.dbt_adapter.incomplete_metadata',
+          severity: 'info',
+          kind: 'observation',
+          dbtUniqueId: 'model.valid_project.unresolved_consumer',
+          recommendation: expect.stringContaining('richer dbt metadata'),
+          details: expect.objectContaining({
+            uniqueId: 'model.valid_project.unresolved_consumer',
+            missingFields: expect.arrayContaining([
+              'relation.relationName',
+              'validation.tests',
+              'validation.contract',
+              'documentation.description',
+            ]),
+          }),
+        }),
+      ]),
+    );
+  });
+
   it('maps model-to-model and model-to-source dependencies from manifest DAG metadata', () => {
     const context = mustResolveContext('valid-project');
     const artifacts = mustLoadArtifacts(context);
@@ -337,12 +364,18 @@ describe('dbt artifact normalization', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.skipped_resource_type',
+          severity: 'warning',
+          kind: 'warning',
+          dbtUniqueId: 'analysis.valid_project.model_audit',
           details: expect.objectContaining({
             resourceType: 'analysis',
           }),
         }),
         expect.objectContaining({
           code: 'governance.dbt_adapter.missing_resource_identity',
+          severity: 'warning',
+          kind: 'warning',
+          dbtUniqueId: 'model.valid_project.missing_identity',
           details: expect.objectContaining({
             resourceType: 'model',
             field: 'name',
@@ -358,6 +391,8 @@ describe('dbt artifact normalization', () => {
         }),
         expect.objectContaining({
           code: 'governance.dbt_adapter.unresolved_dependency_target',
+          severity: 'warning',
+          dbtUniqueId: 'model.valid_project.unresolved_consumer',
           details: expect.objectContaining({
             sourceUniqueId: 'model.valid_project.unresolved_consumer',
             targetUniqueId: 'model.valid_project.missing_upstream',
@@ -365,6 +400,8 @@ describe('dbt artifact normalization', () => {
         }),
         expect.objectContaining({
           code: 'governance.dbt_adapter.dependency_target_not_normalized',
+          severity: 'warning',
+          dbtUniqueId: 'model.valid_project.invalid_target_consumer',
           details: expect.objectContaining({
             sourceUniqueId: 'model.valid_project.invalid_target_consumer',
             targetUniqueId: 'model.valid_project.missing_identity',
@@ -372,6 +409,8 @@ describe('dbt artifact normalization', () => {
         }),
         expect.objectContaining({
           code: 'governance.dbt_adapter.unsupported_dependency_shape',
+          severity: 'warning',
+          dbtUniqueId: 'model.valid_project.malformed_depends_on',
           details: expect.objectContaining({
             sourceUniqueId: 'model.valid_project.malformed_depends_on',
             field: 'depends_on.nodes',
