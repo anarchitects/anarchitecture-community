@@ -1,9 +1,18 @@
 name: Publish
 
 on:
-  push:
-    tags:
-      - '*@*'
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to publish, for example governance-core@1.2.3
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, for example governance-core@1.2.3
+        required: true
+        type: string
 
 env:
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
@@ -13,7 +22,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: publish-${{ inputs.tag }}
   cancel-in-progress: false
 
 jobs:
@@ -21,15 +30,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Resolve release ref
+        id: ref
+        shell: bash
+        run: |
+          ref_name='${{ inputs.tag }}'
+
+          if [ -z "$ref_name" ]; then
+            echo "Unable to resolve a release tag from the event payload"
+            exit 1
+          fi
+
+          echo "ref_name=$ref_name" >> "$GITHUB_OUTPUT"
+
       - name: Derive project from tag
         id: tag
         shell: bash
         run: |
-          project="${GITHUB_REF_NAME%@*}"
-          version="${GITHUB_REF_NAME##*@}"
+          ref_name='${{ steps.ref.outputs.ref_name }}'
+          project="${ref_name%@*}"
+          version="${ref_name##*@}"
 
-          if [ -z "$project" ] || [ -z "$version" ] || [ "$project" = "$GITHUB_REF_NAME" ]; then
-            echo "Invalid release tag: $GITHUB_REF_NAME"
+          if [ -z "$project" ] || [ -z "$version" ] || [ "$project" = "$ref_name" ]; then
+            echo "Invalid release tag: $ref_name"
             echo "Expected format: <nx-project-name>@<version>"
             exit 1
           fi
@@ -43,6 +66,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
+          ref: refs/tags/${{ steps.ref.outputs.ref_name }}
           fetch-depth: 0
           filter: tree:0
 

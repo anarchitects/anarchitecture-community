@@ -31,6 +31,8 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      release_tags: ${{ steps.release-tags.outputs.tags }}
 
     steps:
       - name: Ensure workflow runs from main
@@ -89,3 +91,28 @@ jobs:
           yarn nx release "${args[@]}"
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Collect release tags
+        id: release-tags
+        shell: bash
+        run: |
+          mapfile -t tags < <(git tag --points-at HEAD | grep '@' || true)
+
+          if [ "${#tags[@]}" -eq 0 ]; then
+            echo "No release tags were found on HEAD after nx release"
+            exit 1
+          fi
+
+          json=$(printf '%s\n' "${tags[@]}" | node -e "const fs=require('fs'); const tags=fs.readFileSync(0,'utf8').split(/\r?\n/).filter(Boolean); process.stdout.write(JSON.stringify(tags));")
+          echo "tags=$json" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: ${{ fromJSON(needs.release.outputs.release_tags) }}
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: ${{ matrix.tag }}
+    secrets: inherit
