@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/governance-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Platform-independent Governance Core contracts, deterministic logic, and portable extension APIs for the Community repository.",
   "license": "MIT",
   "type": "module",

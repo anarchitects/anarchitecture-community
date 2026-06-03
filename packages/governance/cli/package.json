@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/governance-cli",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Platform-independent standalone Governance CLI that orchestrates Anarchitects Governance Core contracts outside Nx.",
   "license": "MIT",
   "type": "module",
@@ -54,7 +54,7 @@
     }
   },
   "dependencies": {
-    "@anarchitects/governance-core": "^0.1.0",
+    "@anarchitects/governance-core": "^0.1.1",
     "yaml": "^2.8.1"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/governance-adapter-typescript",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Platform-independent Governance TypeScript workspace adapter that normalizes discovery into Governance Core contracts.",
   "license": "MIT",
   "type": "module",
@@ -52,7 +52,7 @@
     }
   },
   "dependencies": {
-    "@anarchitects/governance-core": "^0.1.0",
+    "@anarchitects/governance-core": "^0.1.1",
     "minimatch": "^10.1.1",
     "typescript": "~5.9.2",
     "yaml": "^2.8.1"

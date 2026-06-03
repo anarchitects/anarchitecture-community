@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/governance-extension-typescript",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "TypeScript-specific Governance extension package boundary for future rules, metrics, recommendations, and enrichers.",
   "license": "MIT",
   "type": "module",
@@ -52,6 +52,6 @@
     }
   },
   "dependencies": {
-    "@anarchitects/governance-core": "^0.1.0"
+    "@anarchitects/governance-core": "^0.1.1"
   }
 }
