@@ -1,0 +1,60 @@
+{
+  "name": "@anarchitects/governance-adapter-dbt",
+  "version": "0.0.1",
+  "description": "dbt Governance adapter package boundary for future discovery, loading, validation, normalization, and metadata preservation.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/governance/adapter-dbt"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/governance/adapter-dbt#readme",
+  "keywords": [
+    "governance",
+    "dbt",
+    "adapter"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@anarchitecture-community/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "nx": {
+    "name": "governance-adapter-dbt",
+    "tags": [
+      "scope:governance",
+      "type:adapter",
+      "platform:node",
+      "integration:dbt"
+    ],
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/governance/adapter-dbt"
+        }
+      }
+    }
+  }
+}
