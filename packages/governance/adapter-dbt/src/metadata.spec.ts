@@ -21,6 +21,7 @@ describe('dbt Governance adapter metadata', () => {
       status: 'contracts',
       responsibilities: expect.arrayContaining([
         'dbt discovery',
+        'dbt project detection',
         'dbt loading',
         'dbt validation',
         'dbt normalization',
@@ -29,7 +30,6 @@ describe('dbt Governance adapter metadata', () => {
       ]),
       nonGoals: expect.arrayContaining([
         'dbt artifact loading implementation',
-        'dbt project detection implementation',
         'dbt normalization implementation',
         'dbt dependency mapping implementation',
         'TypeScript runtime composition',

@@ -7,6 +7,8 @@ describe('dbt adapter public API', () => {
       'lenient',
     ]);
     expect(typeof adapterDbt.isDbtAdapterValidationMode).toBe('function');
+    expect(typeof adapterDbt.detectDbtProject).toBe('function');
+    expect(typeof adapterDbt.resolveDbtProjectContext).toBe('function');
     expect(adapterDbt.DBT_GOVERNANCE_ADAPTER_ID).toBe('governance-adapter:dbt');
     expect(adapterDbt.dbtGovernanceAdapterMetadata.name).toBe(
       'dbt Governance Adapter',

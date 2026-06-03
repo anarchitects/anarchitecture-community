@@ -1,6 +1,9 @@
 export {
   DBT_ADAPTER_VALIDATION_MODES,
+  type DbtProjectContext,
+  type DbtProjectDetectionResult,
   isDbtAdapterValidationMode,
+  type ResolvedDbtArtifactPaths,
   type DbtAdapterDiagnostic,
   type DbtAdapterInputField,
   type DbtAdapterMetadataEnvelope,
@@ -13,6 +16,10 @@ export {
   type DbtGovernanceAdapterInput,
   type DbtGovernanceWorkspaceAdapter,
 } from './contracts.js';
+export {
+  detectDbtProject,
+  resolveDbtProjectContext,
+} from './detect-dbt-project.js';
 export {
   DBT_GOVERNANCE_ADAPTER_ID,
   dbtGovernanceAdapterMetadata,

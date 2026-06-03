@@ -11,14 +11,13 @@ import {
 
 describe('dbt adapter contracts', () => {
   it('models explicit local paths without relying on cwd state', () => {
-    const paths = {
-      projectDirectory: '/repo/analytics',
-      dbtProjectFilePath: '/repo/analytics/dbt_project.yml',
-      manifestPath: '/repo/analytics/target/manifest.json',
+    const paths: DbtArtifactPaths = {
+      projectDir: '/repo/analytics',
+      dbtProjectPath: '/repo/analytics/dbt_project.yml',
       catalogPath: '/repo/analytics/target/catalog.json',
       runResultsPath: '/repo/analytics/target/run_results.json',
       sourcesPath: '/repo/analytics/target/sources.json',
-    } satisfies DbtArtifactPaths;
+    };
 
     const input = {
       paths,
@@ -32,13 +31,9 @@ describe('dbt adapter contracts', () => {
       },
     } satisfies DbtGovernanceAdapterInput;
 
-    expect(input.paths.projectDirectory).toBe('/repo/analytics');
-    expect(input.paths.dbtProjectFilePath).toBe(
-      '/repo/analytics/dbt_project.yml',
-    );
-    expect(input.paths.manifestPath).toBe(
-      '/repo/analytics/target/manifest.json',
-    );
+    expect(input.paths.projectDir).toBe('/repo/analytics');
+    expect(input.paths.dbtProjectPath).toBe('/repo/analytics/dbt_project.yml');
+    expect(input.paths.manifestPath).toBeUndefined();
     expect(input.options?.validationMode).toBe('strict');
   });
 
@@ -63,8 +58,8 @@ describe('dbt adapter contracts', () => {
         adapter: 'dbt',
         validationMode: 'lenient',
         paths: {
-          projectDirectory: '/repo/analytics',
-          dbtProjectFilePath: '/repo/analytics/dbt_project.yml',
+          projectDir: '/repo/analytics',
+          dbtProjectPath: '/repo/analytics/dbt_project.yml',
           manifestPath: '/repo/analytics/target/manifest.json',
         },
         dbt: {

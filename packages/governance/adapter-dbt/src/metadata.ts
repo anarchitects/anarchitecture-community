@@ -16,6 +16,7 @@ export const dbtGovernanceAdapterMetadata: DbtGovernanceAdapterMetadata = {
   status: 'contracts',
   responsibilities: [
     'dbt discovery',
+    'dbt project detection',
     'dbt loading',
     'dbt validation',
     'dbt normalization',
@@ -24,7 +25,6 @@ export const dbtGovernanceAdapterMetadata: DbtGovernanceAdapterMetadata = {
   ],
   nonGoals: [
     'dbt artifact loading implementation',
-    'dbt project detection implementation',
     'dbt normalization implementation',
     'dbt dependency mapping implementation',
     'dbt rules, metrics, scores, or recommendations',

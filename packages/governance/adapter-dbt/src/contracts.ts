@@ -10,9 +10,9 @@ export type DbtAdapterValidationMode =
   (typeof DBT_ADAPTER_VALIDATION_MODES)[number];
 
 export interface DbtArtifactPaths {
-  projectDirectory: string;
-  dbtProjectFilePath: string;
-  manifestPath: string;
+  projectDir?: string;
+  dbtProjectPath?: string;
+  manifestPath?: string;
   catalogPath?: string;
   runResultsPath?: string;
   sourcesPath?: string;
@@ -44,10 +44,32 @@ export interface DbtAdapterDiagnostic extends GovernanceDiagnostic {
   inputField?: DbtAdapterInputField;
 }
 
+export interface ResolvedDbtArtifactPaths {
+  projectDir: string;
+  dbtProjectPath: string;
+  manifestPath: string;
+  catalogPath?: string;
+  runResultsPath?: string;
+  sourcesPath?: string;
+}
+
+export interface DbtProjectContext {
+  projectDir: string;
+  dbtProjectPath: string;
+  artifactPaths: ResolvedDbtArtifactPaths;
+  diagnostics: DbtAdapterDiagnostic[];
+}
+
+export interface DbtProjectDetectionResult {
+  supported: boolean;
+  context?: DbtProjectContext;
+  diagnostics: DbtAdapterDiagnostic[];
+}
+
 export interface DbtAdapterResultMetadata extends DbtAdapterMetadataEnvelope {
   adapter: 'dbt';
   validationMode: DbtAdapterValidationMode;
-  paths: DbtArtifactPaths;
+  paths: ResolvedDbtArtifactPaths;
 }
 
 export interface DbtAdapterResult extends GovernanceWorkspaceAdapterResult {
