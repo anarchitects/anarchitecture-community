@@ -85,6 +85,7 @@ export interface DbtManifest {
   metadata: DbtManifestMetadata;
   nodes: Record<string, DbtManifestResource>;
   sources?: Record<string, DbtManifestResource>;
+  exposures?: Record<string, DbtManifestResource>;
   child_map?: Record<string, string[]>;
   parent_map?: Record<string, string[]>;
   [key: string]: unknown;

@@ -34,6 +34,7 @@ export {
   loadDbtProjectConfig,
   validateDbtManifest,
 } from './load-dbt-artifacts.js';
+export { normalizeDbtArtifacts } from './normalize-dbt-artifacts.js';
 export {
   DBT_GOVERNANCE_ADAPTER_ID,
   dbtGovernanceAdapterMetadata,

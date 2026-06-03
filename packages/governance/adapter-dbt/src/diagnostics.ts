@@ -11,6 +11,9 @@ interface DbtDiagnosticOptions {
   inputField?: DbtAdapterInputField;
   path?: string;
   details?: Record<string, unknown>;
+  severity?: DbtAdapterDiagnostic['severity'];
+  kind?: DbtAdapterDiagnostic['kind'];
+  category?: DbtAdapterDiagnostic['category'];
 }
 
 function createDiagnostic({
@@ -19,13 +22,16 @@ function createDiagnostic({
   inputField,
   path,
   details,
+  severity,
+  kind,
+  category,
 }: DbtDiagnosticOptions): DbtAdapterDiagnostic {
   return {
     code,
     message,
-    severity: 'error',
-    kind: 'error',
-    category: 'configuration',
+    severity: severity ?? 'error',
+    kind: kind ?? 'error',
+    category: category ?? 'configuration',
     source: DIAGNOSTIC_SOURCE,
     ...(inputField ? { inputField } : {}),
     ...(path ? { path } : {}),
@@ -39,6 +45,84 @@ export function missingProjectDirectoryDiagnostic(): DbtAdapterDiagnostic {
     message:
       'Adapter input must provide an existing dbt project directory or an explicit dbt_project.yml path.',
     inputField: 'paths.projectDir',
+  });
+}
+
+export function skippedDbtResourceTypeDiagnostic(
+  resourceType: string,
+  uniqueId?: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.skipped_resource_type',
+    message: `Skipped unsupported dbt resource type "${resourceType}".`,
+    severity: 'warning',
+    kind: 'warning',
+    category: 'adapter',
+    details: {
+      ...(uniqueId ? { uniqueId } : {}),
+      resourceType,
+    },
+  });
+}
+
+export function unsupportedDbtResourceShapeDiagnostic(
+  resourceType: string,
+  message: string,
+  uniqueId?: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.unsupported_resource_shape',
+    message,
+    severity: 'warning',
+    kind: 'warning',
+    category: 'adapter',
+    details: {
+      ...(uniqueId ? { uniqueId } : {}),
+      resourceType,
+    },
+  });
+}
+
+export function missingDbtResourceIdentityDiagnostic(
+  resourceType: string,
+  field: string,
+  uniqueId?: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.missing_resource_identity',
+    message: `dbt resource type "${resourceType}" is missing required identity field "${field}".`,
+    severity: 'warning',
+    kind: 'warning',
+    category: 'adapter',
+    details: {
+      ...(uniqueId ? { uniqueId } : {}),
+      resourceType,
+      field,
+    },
+  });
+}
+
+export function partialDbtNormalizationDiagnostic({
+  normalizedCount,
+  skippedCount,
+  invalidCount,
+}: {
+  normalizedCount: number;
+  skippedCount: number;
+  invalidCount: number;
+}): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.partial_normalization',
+    message:
+      'dbt manifest normalization completed with skipped or invalid resources.',
+    severity: 'warning',
+    kind: 'warning',
+    category: 'adapter',
+    details: {
+      normalizedCount,
+      skippedCount,
+      invalidCount,
+    },
   });
 }
 

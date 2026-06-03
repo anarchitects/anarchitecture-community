@@ -13,6 +13,7 @@ describe('dbt adapter public API', () => {
     expect(typeof adapterDbt.loadDbtManifest).toBe('function');
     expect(typeof adapterDbt.loadDbtProjectConfig).toBe('function');
     expect(typeof adapterDbt.validateDbtManifest).toBe('function');
+    expect(typeof adapterDbt.normalizeDbtArtifacts).toBe('function');
     expect(adapterDbt.DBT_GOVERNANCE_ADAPTER_ID).toBe('governance-adapter:dbt');
     expect(adapterDbt.dbtGovernanceAdapterMetadata.name).toBe(
       'dbt Governance Adapter',
