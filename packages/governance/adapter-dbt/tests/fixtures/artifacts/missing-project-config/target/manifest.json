@@ -1,0 +1,7 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+    "project_name": "missing_project_config"
+  },
+  "nodes": {}
+}

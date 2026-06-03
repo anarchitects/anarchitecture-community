@@ -9,6 +9,10 @@ describe('dbt adapter public API', () => {
     expect(typeof adapterDbt.isDbtAdapterValidationMode).toBe('function');
     expect(typeof adapterDbt.detectDbtProject).toBe('function');
     expect(typeof adapterDbt.resolveDbtProjectContext).toBe('function');
+    expect(typeof adapterDbt.loadDbtArtifacts).toBe('function');
+    expect(typeof adapterDbt.loadDbtManifest).toBe('function');
+    expect(typeof adapterDbt.loadDbtProjectConfig).toBe('function');
+    expect(typeof adapterDbt.validateDbtManifest).toBe('function');
     expect(adapterDbt.DBT_GOVERNANCE_ADAPTER_ID).toBe('governance-adapter:dbt');
     expect(adapterDbt.dbtGovernanceAdapterMetadata.name).toBe(
       'dbt Governance Adapter',

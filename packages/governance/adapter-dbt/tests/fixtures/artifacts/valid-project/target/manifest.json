@@ -1,0 +1,11 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+    "dbt_version": "1.8.0",
+    "project_name": "valid_project"
+  },
+  "nodes": {},
+  "sources": {},
+  "parent_map": {},
+  "child_map": {}
+}

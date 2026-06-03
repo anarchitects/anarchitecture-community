@@ -25,7 +25,7 @@ export default defineConfig(() => ({
       formats: ['es' as const],
     },
     rollupOptions: {
-      external: [/^node:.+$/, 'tslib'],
+      external: [/^node:.+$/, 'tslib', 'yaml'],
     },
   },
   test: {

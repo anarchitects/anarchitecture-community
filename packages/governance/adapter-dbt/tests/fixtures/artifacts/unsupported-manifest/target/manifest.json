@@ -1,0 +1,7 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/catalog/v1.json",
+    "project_name": "unsupported_manifest"
+  },
+  "nodes": {}
+}

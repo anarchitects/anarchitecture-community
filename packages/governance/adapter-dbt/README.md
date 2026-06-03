@@ -4,12 +4,12 @@
 
 `@anarchitects/governance-adapter-dbt` defines the TypeScript contract boundary
 for a dbt Governance adapter. It owns explicit input paths, adapter options,
-Core-compatible output types, and dbt adapter metadata contracts for discovery,
-loading, validation, normalization, and metadata preservation workflows.
+Core-compatible output types, project detection, artifact loading, and dbt
+adapter metadata contracts for discovery, loading, validation, normalization,
+and metadata preservation workflows.
 
-This package does not implement dbt artifact loading, manifest parsing,
-normalization logic, dependency mapping, runtime composition, or Python host
-behavior.
+This package does not implement normalization logic, dependency mapping,
+runtime composition, or Python host behavior.
 
 ## Location
 
@@ -82,7 +82,6 @@ local dbt project from explicit inputs only.
   checks `projectDir/dbt_project.yml`.
 - If both are provided, they must resolve to the same project directory.
 - No dbt command is invoked.
-- No manifest file is parsed or loaded.
 
 ```ts
 import { detectDbtProject } from '@anarchitects/governance-adapter-dbt';
@@ -97,6 +96,63 @@ if (detected.supported) {
   console.log(detected.context.artifactPaths.manifestPath);
 }
 ```
+
+## Artifact Loading
+
+Use `loadDbtArtifacts(...)` after detection to load:
+
+- `dbt_project.yml`
+- `manifest.json`
+
+```ts
+import {
+  detectDbtProject,
+  loadDbtArtifacts,
+} from '@anarchitects/governance-adapter-dbt';
+
+const detected = detectDbtProject({
+  paths: {
+    projectDir: '/repo/analytics',
+  },
+});
+
+if (detected.context) {
+  const loaded = loadDbtArtifacts(detected.context);
+
+  if (loaded.artifacts) {
+    console.log(loaded.artifacts.projectConfig.name);
+    console.log(loaded.artifacts.manifest.metadata.project_name);
+  }
+}
+```
+
+Loading is:
+
+- local-file based
+- deterministic
+- driven only by explicit paths or resolved project context
+- non-throwing for expected user/configuration errors
+
+Current validation includes:
+
+- `manifest.json` presence and JSON parseability
+- `dbt_project.yml` presence and YAML parseability
+- minimum manifest requirements:
+  - top-level object
+  - `metadata`
+  - `metadata.dbt_schema_version`
+  - `metadata.project_name`
+  - `nodes`
+- useful dbt project config requirements:
+  - top-level object
+  - non-empty `name`
+  - optional path arrays must be arrays of non-empty strings
+
+Prepared but not implemented yet:
+
+- `catalog.json`
+- `run_results.json`
+- `sources.json`
 
 ## Output Contract
 
@@ -150,6 +206,15 @@ Validation mode is constrained to:
 Use `isDbtAdapterValidationMode(...)` when a runtime or host needs to validate
 external configuration before constructing adapter input.
 
+Artifact loading emits structured diagnostics for:
+
+- missing artifact path
+- missing artifact file
+- malformed manifest JSON
+- malformed dbt project YAML
+- unsupported manifest shape
+- incomplete required manifest fields
+
 ## Runtime And Host Boundary
 
 - Runtime is responsible for TypeScript composition and for passing a fully
@@ -157,6 +222,8 @@ external configuration before constructing adapter input.
 - Host is responsible for the dbt-native developer experience and for
   resolving concrete filesystem paths before invoking the adapter contract.
 - This package detects the dbt project from explicit local inputs only.
+- This package loads only local artifact files passed through those explicit
+  paths.
 - This package does not invoke dbt commands.
 
 ## Architectural Boundary
@@ -173,7 +240,6 @@ runtime, or host packages.
 
 ## Non-Goals
 
-- Implementing dbt artifact loading
 - Implementing manifest parsing
 - Implementing dbt normalization
 - Implementing dbt dependency mapping

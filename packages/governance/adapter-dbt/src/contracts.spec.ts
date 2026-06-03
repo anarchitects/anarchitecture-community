@@ -14,6 +14,7 @@ describe('dbt adapter contracts', () => {
     const paths: DbtArtifactPaths = {
       projectDir: '/repo/analytics',
       dbtProjectPath: '/repo/analytics/dbt_project.yml',
+      manifestPath: '/repo/analytics/target/manifest.json',
       catalogPath: '/repo/analytics/target/catalog.json',
       runResultsPath: '/repo/analytics/target/run_results.json',
       sourcesPath: '/repo/analytics/target/sources.json',
@@ -33,7 +34,9 @@ describe('dbt adapter contracts', () => {
 
     expect(input.paths.projectDir).toBe('/repo/analytics');
     expect(input.paths.dbtProjectPath).toBe('/repo/analytics/dbt_project.yml');
-    expect(input.paths.manifestPath).toBeUndefined();
+    expect(input.paths.manifestPath).toBe(
+      '/repo/analytics/target/manifest.json',
+    );
     expect(input.options?.validationMode).toBe('strict');
   });
 

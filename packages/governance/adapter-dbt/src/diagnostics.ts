@@ -81,3 +81,97 @@ export function inconsistentProjectInputsDiagnostic(
     },
   });
 }
+
+export function missingArtifactPathDiagnostic(
+  artifactName: string,
+  inputField: DbtAdapterInputField,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.missing_artifact_path',
+    message: `Adapter input did not provide a path for required artifact "${artifactName}".`,
+    inputField,
+  });
+}
+
+export function missingArtifactFileDiagnostic(
+  artifactName: string,
+  filePath: string,
+  inputField: DbtAdapterInputField,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.missing_artifact_file',
+    message: `Required artifact "${artifactName}" was not found at "${filePath}".`,
+    inputField,
+    path: filePath,
+  });
+}
+
+export function malformedManifestJsonDiagnostic(
+  manifestPath: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.malformed_manifest_json',
+    message: `Failed to parse manifest JSON file "${manifestPath}".`,
+    inputField: 'paths.manifestPath',
+    path: manifestPath,
+  });
+}
+
+export function malformedDbtProjectYamlDiagnostic(
+  dbtProjectPath: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.malformed_dbt_project_yaml',
+    message: `Failed to parse dbt project YAML file "${dbtProjectPath}".`,
+    inputField: 'paths.dbtProjectPath',
+    path: dbtProjectPath,
+  });
+}
+
+export function unsupportedManifestShapeDiagnostic(
+  manifestPath: string,
+  message: string,
+  pathLabel?: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.unsupported_manifest_shape',
+    message,
+    inputField: 'paths.manifestPath',
+    path: pathLabel ?? manifestPath,
+    details: {
+      manifestPath,
+    },
+  });
+}
+
+export function incompleteManifestFieldDiagnostic(
+  manifestPath: string,
+  fieldPath: string,
+  message: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.incomplete_manifest_field',
+    message,
+    inputField: 'paths.manifestPath',
+    path: fieldPath,
+    details: {
+      manifestPath,
+    },
+  });
+}
+
+export function invalidDbtProjectConfigDiagnostic(
+  dbtProjectPath: string,
+  message: string,
+  pathLabel?: string,
+): DbtAdapterDiagnostic {
+  return createDiagnostic({
+    code: 'governance.dbt_adapter.invalid_dbt_project_config',
+    message,
+    inputField: 'paths.dbtProjectPath',
+    path: pathLabel ?? dbtProjectPath,
+    details: {
+      dbtProjectPath,
+    },
+  });
+}
