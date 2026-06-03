@@ -1,0 +1,6 @@
+name: unresolved_dependency
+version: '1.0'
+config-version: 2
+profile: analytics
+model-paths:
+  - models

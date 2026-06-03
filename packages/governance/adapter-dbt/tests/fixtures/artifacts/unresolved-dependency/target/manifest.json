@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+    "dbt_version": "1.8.0",
+    "project_name": "unresolved_dependency"
+  },
+  "nodes": {
+    "model.unresolved_dependency.orders": {
+      "unique_id": "model.unresolved_dependency.orders",
+      "resource_type": "model",
+      "package_name": "unresolved_dependency",
+      "name": "orders",
+      "alias": "orders",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "orders.sql",
+      "original_file_path": "models/orders.sql",
+      "fqn": ["unresolved_dependency", "orders"],
+      "depends_on": {
+        "nodes": ["model.unresolved_dependency.missing_upstream"]
+      },
+      "config": {
+        "materialized": "view"
+      }
+    }
+  },
+  "sources": {},
+  "exposures": {},
+  "parent_map": {},
+  "child_map": {}
+}
