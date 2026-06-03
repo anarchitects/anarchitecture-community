@@ -11,13 +11,13 @@ import {
 
 describe('dbt adapter contracts', () => {
   it('models explicit local paths without relying on cwd state', () => {
-    const paths = {
+    const paths: DbtArtifactPaths = {
       projectDir: '/repo/analytics',
       dbtProjectPath: '/repo/analytics/dbt_project.yml',
       catalogPath: '/repo/analytics/target/catalog.json',
       runResultsPath: '/repo/analytics/target/run_results.json',
       sourcesPath: '/repo/analytics/target/sources.json',
-    } satisfies DbtArtifactPaths;
+    };
 
     const input = {
       paths,
