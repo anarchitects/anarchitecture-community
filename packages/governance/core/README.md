@@ -1,320 +1,230 @@
-# `@anarchitects/governance-core`
-
-Canonical Governance contracts, deterministic evaluation logic, and portable extension APIs.
+# @anarchitects/governance-core
 
 ## Overview
 
-`@anarchitects/governance-core` is the package that defines the Governance model layer for the Anarchitects Governance package family. It owns the public contracts that adapters, hosts, and extensions normalize into, plus the deterministic logic that evaluates those contracts.
+`@anarchitects/governance-core` provides the shared Governance contracts,
+canonical graph model, deterministic assessment helpers, diagnostics, and
+extension APIs used by the Anarchitects Governance package family.
 
-Use this package when you need:
+Use this package when you are building:
 
-- canonical workspace, node, relation, classification, ownership, perspective, source, evidence, finding, signal, metric, score, assessment, project, dependency, violation, measurement, health, snapshot, drift, and AI-analysis contracts
-- deterministic rule evaluation and assessment assembly
-- built-in Governance rule packs
-- portable adapter input contracts
-- portable extension contracts, capability contracts, diagnostics, and runtime registration helpers
+- a Governance adapter that emits workspace facts
+- a host that evaluates or reports Governance data
+- an extension that contributes technology-specific interpretation
+- tooling that needs stable Governance types without depending on a concrete
+  adapter or CLI
 
-## Responsibilities
+## Key Concepts
 
-This package is responsible for:
+- `GovernanceWorkspace` represents the normalized workspace view used by Core
+  assessment helpers.
+- `GovernanceNodeInput` represents a governed asset, item, or entity before
+  normalization.
+- `GovernanceRelationInput` represents a relationship between governed nodes
+  before normalization.
+- `GovernanceProjectInput` and `GovernanceDependencyInput` are supported
+  project-oriented compatibility contracts for codebase consumers.
+- `GovernanceWorkspaceAdapterResult` is the adapter result shape consumed by
+  hosts and normalization helpers.
+- `GovernanceDiagnostic` represents adapter-owned or host-owned diagnostic
+  information.
+- Governance profiles, rules, findings, signals, measurements, scores, and
+  assessments describe deterministic evaluation output.
+- Extension contracts let hosts register optional technology-specific
+  contributions without creating adapter-to-extension dependencies.
 
-- defining the canonical `GovernanceWorkspace` model and related result shapes
-- defining adapter-facing input contracts such as `GovernanceNodeInput`, `GovernanceRelationInput`, `GovernanceClassificationInput`, `GovernanceOwnershipInput`, `GovernancePerspective`, `GovernanceSource`, `GovernanceEvidence`, `GovernanceProjectInput`, `GovernanceDependencyInput`, and `GovernanceWorkspaceAdapterResult`
-- defining profile, rule, finding, signal, exception, measurement, score, health, assessment, snapshot, and drift contracts
-- providing deterministic helpers such as profile normalization, rule evaluation, assessment assembly, snapshot comparison, and AI handoff payload builders
-- providing internal graph normalization infrastructure for legacy project/dependency inputs and additive node/relation inputs
-- providing compatibility helpers that map legacy project/dependency inputs to canonical node/relation inputs during the migration period
-- providing capability-based integration contracts so hosts can compose adapters and extensions without adapter-to-extension imports
-- providing host-independent helpers that map changed files onto canonical `GovernanceProject` models and shape snapshot delivery-impact summaries
-- providing portable extension contracts and runtime helpers that stay independent from Nx
+## Installation
 
-This package is not responsible for:
-
-- concrete adapter implementations
-- CLI command behavior or argument parsing
-- Nx runtime behavior
-- Nx graph loading or metadata extraction
-- Nx executors or generators
-- plugin runtime behavior
-
-## Public API
-
-The package has a single public entrypoint:
-
-```ts
-import {
-  buildDeliveryImpactAssessment,
-  buildSnapshotDeliveryImpactSummary,
-  buildCognitiveLoadContext,
-  buildDriftInterpretationAnalysis,
-  buildGovernanceAssessment,
-  buildGovernanceAssessmentArtifacts,
-  buildGovernancePayloadTruncationMetadata,
-  buildGovernanceConformanceSignals,
-  buildGovernanceGraphSignals,
-  buildGovernancePolicySignals,
-  buildGovernanceRecommendations,
-  buildOnboardingContext,
-  buildPersistentSmellSignals,
-  buildPrImpactContext,
-  buildRecommendationsTrendContext,
-  resolveAffectedGovernanceProjects,
-  buildRefactoringSuggestionsContext,
-  buildGovernanceWorkspace,
-  buildMetricSnapshot,
-  projectToNode,
-  dependencyToRelation,
-  buildScopedDriftRequest,
-  buildScopedRootCauseRequest,
-  buildScopedScorecardRequest,
-  calculateGovernanceHealth,
-  calculateGovernanceMetrics,
-  compareGovernanceViolationsForPriority,
-  compareSnapshots,
-  coreBuiltInRulePack,
-  evaluateGovernancePolicies,
-  evaluateRulePack,
-  buildManagementInsightsAiRequest,
-  normalizeGovernanceException,
-  normalizeGovernanceProfile,
-  registerLoadedGovernanceExtensions,
-  scopeGovernanceDependencies,
-  sliceGovernancePayloadItems,
-  type GovernanceWorkspaceAdapter,
-  type GovernanceNodeInput,
-  type GovernanceRelationInput,
-  type GovernanceClassificationInput,
-  type GovernanceOwnershipInput,
-  type GovernancePerspective,
-  type GovernanceSource,
-  type GovernanceEvidence,
-  type GovernanceFinding,
-  type GovernanceScore,
-  type GovernanceAssessmentScope,
-  type GovernanceWorkspace,
-  type GovernanceWorkspaceAdapterResult,
-} from '@anarchitects/governance-core';
+```bash
+npm install @anarchitects/governance-core
 ```
 
-The root export preserves the package API while the implementation is organized
-around bounded contexts:
-
-- `adapter`: adapter contracts, adapter result contracts, and workspace normalization
-- `model`: canonical workspace, project, dependency, finding, metric, score, and assessment models
-- `graph`: canonical node/relation graph normalization
-- `compatibility`: legacy project/dependency compatibility mapping and project matching
-- `evaluation`: profiles, rules, rule engine, built-in rules, signals, metrics, health, and assessment assembly
-- `diagnostics`: diagnostics, exceptions, reporting, snapshots, drift, and delivery-impact summaries
-- `ai`: AI request/payload/context helpers built on top of Core assessment outputs
-- `extensions`: portable extension, capability, diagnostic, and runtime contracts
-
-### Core contracts
-
-Core contracts include:
-
-- workspace, node/relation input, classification input, ownership input, perspective, source/evidence, project, and dependency models
-- findings, signals, measurements, recommendations, score dimensions, health scores, and top issues
-- rule metadata, applicability, multi-perspective evaluation context, findings, conformance results, and drift results
-- diagnostics, recommendations, and renderer-agnostic reporting primitives with optional evidence and perspective linkage
-- Governance profiles and rule configuration
-- Governance exceptions and exception reports
-- signal contracts and signal breakdowns
-- snapshot and drift contracts
-- adapter input/result contracts for hosts and adapters, including additive node/relation result fields and legacy project/dependency inputs
-- adapter contract, probe, capability, and normalization helpers such as `GovernanceWorkspaceAdapter`, `GovernanceWorkspaceAdapterProbeResult`, `GovernanceCapability`, and `buildGovernanceWorkspace(...)`
-- AI analysis and handoff payload contracts
-
-Perspective and evidence contracts are metadata-bearing primitives for future
-traceability, conformance, and drift analysis. They are optional on node and
-relation inputs and do not change current adapter, host, extension, rule, or
-reporting behavior.
-
-Runtime primitive contracts remain backward compatible while allowing generic
-findings, signals, measurements, assessments, and score dimensions to reference
-nodes, relations, perspectives, evidence, authority, confidence, and metadata.
-
-Rule contracts also expose optional applicability and multi-perspective result
-primitives. Existing rules can continue to return only violations, signals, and
-measurements; future rules can opt into findings, recommendations, conformance,
-and drift outputs without changing adapter, CLI, host, or extension behavior.
-
-Reporting primitives are data contracts only. They can represent diagnostics,
-recommendations, conformance reports, and drift reports across perspectives, but
-Core does not render dashboards, CLI output, or UI views from them.
-
-### Deterministic logic
-
-Deterministic helpers include:
-
-- `buildGovernanceAssessment(...)`
-- `buildGovernanceAssessmentArtifacts(...)`
-- `buildGovernanceWorkspace(...)`, `buildGovernanceInventory(...)`, and `buildGovernanceWorkspaceFromAdapterResult(...)`
-- `buildGovernanceGraphSignals(...)`, `buildGovernanceConformanceSignals(...)`, `buildGovernancePolicySignals(...)`, and `mergeGovernanceSignals(...)`
-- `calculateGovernanceMetrics(...)`
-- `calculateGovernanceHealth(...)`
-- `buildGovernanceRecommendations(...)`
-- `applyGovernanceExceptions(...)`, `evaluateGovernanceExceptionLifecycle(...)`, and `buildGovernanceExceptionReport(...)`
-- `buildDeliveryImpactAssessment(...)` and `summarizeDeliveryImpact(...)`
-- `buildSnapshotDeliveryImpactSummary(...)`
-- deterministic AI request builders and summarizers such as `buildRootCauseRequest(...)`, `buildPrImpactRequest(...)`, `buildScorecardRequest(...)`, `buildOnboardingRequest(...)`, `buildManagementInsightsAiRequest(...)`, `summarizeRootCause(...)`, `summarizePrImpact(...)`, `summarizeScorecard(...)`, `summarizeOnboarding(...)`, and `summarizeManagementInsights(...)`
-- deterministic payload-scope helpers such as `buildGovernancePayloadTruncationMetadata(...)`, `sliceGovernancePayloadItems(...)`, `scopeGovernanceDependencies(...)`, and `compareGovernanceViolationsForPriority(...)`
-- scoped AI handoff request helpers such as `buildScopedRootCauseRequest(...)`, `buildScopedDriftRequest(...)`, and `buildScopedScorecardRequest(...)`
-- deterministic AI context builders such as `buildPrImpactContext(...)`, `buildCognitiveLoadContext(...)`, `buildRecommendationsTrendContext(...)`, `buildPersistentSmellSignals(...)`, `buildRefactoringSuggestionsContext(...)`, `buildOnboardingContext(...)`, and `buildDriftInterpretationAnalysis(...)`
-- `resolveAffectedGovernanceProjects(...)`
-- `projectToNode(...)`, `projectsToNodes(...)`, `dependencyToRelation(...)`, and `dependenciesToRelations(...)`
-- `evaluateRules(...)` and `evaluateRulePack(...)`
-- `normalizeGovernanceProfile(...)`
-- `normalizeGovernanceException(...)`
-- `buildMetricSnapshot(...)`
-- `compareSnapshots(...)`, `summarizeDrift(...)`, and `buildDriftSummary(...)`
-- `buildAiHandoffPayload(...)` and the specialized AI handoff helpers
-
-### Built-in rule content
-
-Built-in Governance rule content includes:
-
-- `coreBuiltInRulePack`
-- `coreBuiltInRulePacks`
-- `coreBuiltInPolicyRules`
-- `evaluateCoreBuiltInPolicyViolations(...)`
-- `evaluateGovernancePolicies(...)`
-
-### Extension APIs
-
-Portable extension APIs include:
-
-- extension contracts in `contracts`
-- capability registry contracts in `capabilities`
-- extension diagnostics in `diagnostics`
-- runtime registration and execution helpers in `runtime`
-
-Hosts compose Core, adapters, extensions, profiles, and execution. Adapters emit
-Core-owned capabilities through adapter results; extensions declare and query
-capability requirements through Core-owned contracts. Adapters should not import
-technology-specific extension packages.
-
-Notable extension exports include:
-
-- `DefaultGovernanceCapabilityRegistry`
-- `GovernanceExtensionHostContext`
-- `GovernanceExtensionDefinition`
-- `GovernanceWorkspaceEnricher`
-- `GovernanceExtensionRulePack`
-- `GovernanceSignalProvider`
-- `GovernanceMetricProvider`
-- `GovernanceExtensionDiagnostic`
-- `registerLoadedGovernanceExtensions(...)`
-- `applyGovernanceEnrichers(...)`
-- `evaluateGovernanceRulePacks(...)`
-- `collectGovernanceSignals(...)`
-- `collectGovernanceMeasurements(...)`
-
-## Usage
-
-The package is designed to sit between concrete adapters and higher-level hosts:
+## Quick Start
 
 ```ts
 import {
-  buildGovernanceAssessmentArtifacts,
-  normalizeGovernanceProfile,
+  buildGovernanceWorkspace,
   type GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
 
 const adapterResult: GovernanceWorkspaceAdapterResult = {
-  workspaceId: 'demo',
-  workspaceName: 'demo',
+  workspaceId: 'example',
+  workspaceName: 'Example Workspace',
   workspaceRoot: '.',
+  nodes: [
+    {
+      id: 'package:api',
+      name: 'api',
+      kind: 'project',
+      type: 'package',
+      path: 'packages/api',
+    },
+  ],
+  relations: [],
   projects: [],
   dependencies: [],
 };
 
-const profile = normalizeGovernanceProfile({
-  name: 'default',
-  boundaryPolicySource: 'profile',
-  layers: ['app', 'domain', 'data'],
-  allowedDomainDependencies: {},
-  ownership: { required: false, metadataField: 'team' },
-  health: {
-    statusThresholds: {
-      goodMinScore: 80,
-      warningMinScore: 60,
-    },
-  },
-  metrics: {},
-});
+const workspace = buildGovernanceWorkspace(adapterResult);
 
-const artifacts = await buildGovernanceAssessmentArtifacts({
-  workspaceAdapterResult: adapterResult,
-  profile,
-  exceptions: [],
-});
-
-console.log(artifacts.assessment.health.status);
+console.log(workspace.nodes);
 ```
 
-## Host Consumption Surface
+## Architecture
 
-Thin runtime hosts can consume the package in this order:
+```text
+Adapters
+  -> GovernanceWorkspaceAdapterResult
+  -> Governance Core normalization and evaluation
+  -> Assessment artifacts
+  -> Hosts, reports, and automation
 
-- normalize adapter output with `buildGovernanceWorkspace(...)` or `buildGovernanceAssessmentArtifacts(...)`
-- evaluate built-in policies with `evaluateGovernancePolicies(...)`
-- build canonical signals with `buildGovernanceGraphSignals(...)`, `buildGovernanceConformanceSignals(...)`, `buildGovernancePolicySignals(...)`, and `mergeGovernanceSignals(...)`
-- calculate metrics and health with `calculateGovernanceMetrics(...)` and `calculateGovernanceHealth(...)`
-- build recommendations with `buildGovernanceRecommendations(...)`
-- apply exception lifecycle and suppression with `evaluateGovernanceExceptionLifecycle(...)`, `applyGovernanceExceptions(...)`, and `buildGovernanceExceptionReport(...)`
-- build higher-level delivery and AI artifacts with `buildDeliveryImpactAssessment(...)`, `buildManagementInsightsAiRequest(...)`, `summarizeManagementInsights(...)`, and the other deterministic AI request/summarizer helpers
+Extensions
+  -> Governance Core extension contracts
+  -> Host registration
+  -> Optional technology-specific contributions
+```
 
-Hosts remain responsible for:
+Core owns shared contracts and deterministic logic. It does not own workspace
+extraction, command-line orchestration, report rendering, or technology-specific
+runtime behavior.
 
-- collecting changed files from git or another host runtime
-- resolving refs, workspace roots, and process execution
-- discovering snapshot files and choosing baseline/current snapshot inputs
-- persisting snapshots and other host-owned artifacts
+## Responsibilities
 
-Core also provides two small host-independent handoff helpers:
+This package owns:
 
-- `resolveAffectedGovernanceProjects(...)` maps host-supplied repo-relative changed file paths onto canonical `GovernanceProject` records. It normalizes Windows separators, trims trailing slashes from project roots, ignores empty changed-file entries, and treats `'.'` or `''` project roots as root-level projects that match any non-empty changed file.
-- `buildSnapshotDeliveryImpactSummary(...)` shapes a `DeliveryImpactAssessment` into a `SnapshotDeliveryImpactSummary` by sorting indices by `id` and copying the first five delivery-impact drivers into the snapshot-safe summary contract.
+- canonical Governance contracts for workspaces, nodes, relations,
+  classifications, ownership, diagnostics, profiles, rules, findings, signals,
+  measurements, scores, and assessments
+- adapter result contracts and workspace normalization helpers
+- deterministic rule evaluation and assessment assembly primitives
+- built-in generic Governance rule packs
+- compatibility helpers for project/dependency-oriented consumers
+- extension contracts, capability contracts, diagnostics, and registration
+  helpers
+- deterministic AI handoff payload builders that operate on Core assessment
+  data
 
-## AI Host Helpers
+This package does not own:
 
-Thin host packages can now keep AI handoff shaping in Core by composing:
+- concrete adapter implementations
+- TypeScript, Nx, dbt, GitHub, Atlassian, or other platform extraction logic
+- CLI argument parsing or process exit behavior
+- report rendering or dashboard presentation
+- extension package implementations
+- host-specific configuration discovery
 
-- `scopeGovernanceDependencies(...)`
-- `sliceGovernancePayloadItems(...)`
-- `compareGovernanceViolationsForPriority(...)`
-- `buildScopedRootCauseRequest(...)`
-- `buildScopedDriftRequest(...)`
-- `buildScopedScorecardRequest(...)`
-- `buildDriftInterpretationAnalysis(...)`
-- `buildPrImpactContext(...)`
-- `buildCognitiveLoadContext(...)`
-- `buildRecommendationsTrendContext(...)`
-- `buildPersistentSmellSignals(...)`
-- `buildRefactoringSuggestionsContext(...)`
-- `buildOnboardingContext(...)`
+## Public API
 
-These helpers are deterministic and host-independent. Hosts still own file IO,
-git diffing, workspace-root path resolution, output rendering, and persistence.
+The package publishes one root entrypoint:
 
-## Package Boundaries
+```ts
+import {
+  buildGovernanceWorkspace,
+  buildGovernanceAssessment,
+  buildGovernanceAssessmentArtifacts,
+  calculateGovernanceHealth,
+  calculateGovernanceMetrics,
+  coreBuiltInRulePack,
+  evaluateRulePack,
+  normalizeGovernanceProfile,
+  registerLoadedGovernanceExtensions,
+  type GovernanceWorkspaceAdapter,
+  type GovernanceWorkspaceAdapterResult,
+  type GovernanceNodeInput,
+  type GovernanceRelationInput,
+  type GovernanceProjectInput,
+  type GovernanceDependencyInput,
+  type GovernanceDiagnostic,
+  type GovernanceExtensionDefinition,
+} from '@anarchitects/governance-core';
+```
 
-`@anarchitects/governance-core` is platform-independent.
+The public surface includes these export groups:
 
-That means:
+- adapter contracts and adapter result types
+- canonical graph contracts and graph normalization helpers
+- project/dependency compatibility contracts and mapping helpers
+- workspace, profile, rule, finding, signal, metric, score, health, assessment,
+  snapshot, drift, and exception contracts
+- deterministic evaluation helpers such as `evaluateRulePack(...)`,
+  `buildGovernanceAssessment(...)`, and
+  `buildGovernanceAssessmentArtifacts(...)`
+- generic built-in rule packs such as `coreBuiltInRulePack`
+- extension contracts, capability contracts, diagnostics, and runtime helpers
+- deterministic AI request, context, payload, and summary helpers
 
-- no Nx runtime assumptions
-- no dependency on concrete adapters
-- no dependency on CLI runtime concerns
-- no dependency on executor, generator, or plugin infrastructure
+Internal source paths are not part of the public API. Import from
+`@anarchitects/governance-core`.
 
-Concrete adapters should emit canonical Core-owned contracts. Hosts and CLIs should orchestrate Core APIs without moving canonical model ownership out of this package.
+## Usage
 
-For detailed package-boundary rules and allowed dependency direction, see
-[ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](../../../docs/adr/0001-governance-package-boundaries.md).
+### Adapter Results
+
+Adapters should emit `GovernanceWorkspaceAdapterResult`. New adapters should use
+`nodes` and `relations` for canonical graph output. Codebase-oriented adapters
+may also emit `projects` and `dependencies` for consumers that need
+project/dependency views.
+
+### Assessment Artifacts
+
+Hosts can pass normalized workspace data into Core helpers to produce rule
+results, findings, signals, measurements, recommendations, health scores, and
+assessment artifacts.
+
+### Extensions
+
+Hosts can register extension definitions through Core extension runtime helpers.
+Extensions consume public Core contracts and should not depend on concrete
+adapter or CLI internals.
+
+## Configuration
+
+Core does not read configuration files directly. Profiles, adapter results,
+exceptions, and extension definitions are supplied by hosts. This keeps the
+package portable across CLIs, CI jobs, applications, and other automation.
+
+## Extension Points
+
+Core exposes extension contracts for packages that contribute optional
+technology-specific interpretation. Extension packages can declare metadata,
+register through a host, and use Core-owned capability and diagnostic contracts.
 
 ## Related Packages
 
-- `@anarchitects/governance-adapter-typescript` discovers TypeScript workspaces and maps them into Core-owned contracts
-- `@anarchitects/governance-cli` provides a standalone host/runtime surface over Core APIs
-- `@anarchitects/governance-extension-*` packages should plug into Core-owned extension contracts
+- `@anarchitects/governance-cli` provides the `agov` executable and host APIs.
+- `@anarchitects/governance-adapter-typescript` discovers TypeScript workspace
+  facts and emits Core adapter results.
+- `@anarchitects/governance-extension-typescript` provides the TypeScript
+  extension package boundary and registration surface.
+
+## Compatibility
+
+`GovernanceNodeInput` and `GovernanceRelationInput` are the canonical graph
+input contracts. `GovernanceProjectInput` and `GovernanceDependencyInput`
+remain supported for project/dependency-oriented consumers and for packages that
+need compatibility views.
+
+Consumers should prefer the canonical graph fields when they need to model
+assets or relationships that are broader than code projects and code
+dependencies.
+
+## FAQ
+
+### Does Core discover workspaces?
+
+No. Adapters discover workspace facts and emit Core-owned contracts.
+
+### Does Core render CLI or UI reports?
+
+No. Core provides renderer-agnostic assessment data. Hosts and reporting
+packages decide how to present that data.
+
+### Can extensions depend on adapters?
+
+No. Extensions should depend on public Core contracts only. Hosts compose
+adapters and extensions.
+
+## License
+
+MIT

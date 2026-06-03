@@ -242,6 +242,7 @@ Deprecation policy:
 - Do not deprecate legacy contracts during #201.
 - During #202, document which contracts are compatibility conveniences versus migration targets.
 - Remove or hard-deprecate only after all known consumers are migrated and a versioned breaking-change plan is accepted.
+- The community-side Phase 2 policy is captured in `docs/governance/phase-2-deprecation-strategy.md`.
 
 Migration checkpoints:
 

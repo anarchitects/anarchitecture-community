@@ -1,6 +1,15 @@
 import { renderCliReport } from './internal/reporting/render-cli.js';
+import {
+  formatNodeDetails,
+  formatRelationDetails,
+  formatStringSummary,
+} from './internal/reporting/render-canonical-graph.js';
 import { renderJsonReport } from './internal/reporting/render-json.js';
 import * as reportingPrimitives from './internal/reporting/render-primitives.js';
+import {
+  appendReportScopeMarkdown,
+  appendReportScopeText,
+} from './internal/reporting/render-report-scope.js';
 
 import type { AgovAssessResult, AgovCheckResult } from './check.js';
 import type { AgovDependenciesResult } from './dependencies.js';
@@ -15,11 +24,6 @@ import type { AgovWorkspaceValidateResult } from './workspace-validate.js';
 type AgovCommandResult = AgovCheckResult | AgovAssessResult;
 
 export type AgovOutputFormat = 'json' | 'markdown' | 'table' | 'text';
-
-interface RenderableReportScope {
-  mode: string;
-  filters: object;
-}
 
 export function renderAgovCheckReport(
   result: AgovCommandResult,
@@ -412,60 +416,6 @@ function readDiagnosticStatus(
       : undefined;
 
   return metadataStatus ?? detailsStatus;
-}
-
-function appendReportScopeText(
-  lines: string[],
-  scope: RenderableReportScope | undefined,
-): void {
-  if (!scope) {
-    return;
-  }
-
-  lines.push('');
-  lines.push('Report Scope');
-  lines.push(
-    ...reportingPrimitives.renderTwoColumnTextTable({
-      headers: ['Field', 'Value'],
-      rows: [
-        ['mode', scope.mode],
-        ['filters', formatReportScopeFilters(scope.filters)],
-      ],
-    }),
-  );
-}
-
-function appendReportScopeMarkdown(
-  lines: string[],
-  scope: RenderableReportScope | undefined,
-): void {
-  if (!scope) {
-    return;
-  }
-
-  lines.push('');
-  lines.push('## Report Scope');
-  lines.push(
-    ...reportingPrimitives.renderMarkdownTable({
-      headers: ['Field', 'Value'],
-      rows: [
-        ['mode', scope.mode],
-        ['filters', formatReportScopeFilters(scope.filters)],
-      ],
-    }),
-  );
-}
-
-function formatReportScopeFilters(filters: object): string {
-  const entries = Object.entries(filters as Record<string, unknown>).filter(
-    ([, value]) => value !== undefined && value !== null && value !== '',
-  );
-
-  if (entries.length === 0) {
-    return 'none';
-  }
-
-  return entries.map(([key, value]) => `${key}=${String(value)}`).join(', ');
 }
 
 function renderAgovProfileValidateTable(
@@ -1554,49 +1504,6 @@ function formatCountSummary<
   return entries
     .map((entry) => `${String(entry[key])}:${entry.count}`)
     .join(', ');
-}
-
-function formatStringSummary(values: readonly string[]): string {
-  if (values.length === 0) {
-    return 'none';
-  }
-
-  return values.join(', ');
-}
-
-function formatNodeDetails(node: AgovInspectResult['nodes'][number]): string {
-  return [
-    `kind=${node.kind}`,
-    node.name ? `name=${node.name}` : undefined,
-    node.technology ? `technology=${node.technology}` : undefined,
-    node.sourceSystem ? `sourceSystem=${node.sourceSystem}` : undefined,
-    node.path ? `path=${node.path}` : undefined,
-    node.root ? `root=${node.root}` : undefined,
-    node.tags.length > 0 ? `tags=${node.tags.join(',')}` : undefined,
-    node.classification
-      ? `classification=${compactJson(node.classification)}`
-      : undefined,
-    node.ownership ? `ownership=${compactJson(node.ownership)}` : undefined,
-    Object.keys(node.metadata).length > 0
-      ? `metadata=${compactJson(node.metadata)}`
-      : undefined,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .join(' :: ');
-}
-
-function formatRelationDetails(
-  relation: AgovInspectResult['relations'][number],
-): string {
-  return [
-    `kind=${relation.kind}`,
-    `id=${relation.id}`,
-    Object.keys(relation.metadata).length > 0
-      ? `metadata=${compactJson(relation.metadata)}`
-      : undefined,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .join(' :: ');
 }
 
 function formatProjectDetails(

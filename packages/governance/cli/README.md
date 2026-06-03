@@ -1,170 +1,153 @@
-# `@anarchitects/governance-cli`
-
-Standalone Governance CLI and runtime host for running Governance commands across repository and CI environments.
+# @anarchitects/governance-cli
 
 ## Overview
 
-`@anarchitects/governance-cli` publishes the `agov` executable and host APIs for:
+`@anarchitects/governance-cli` provides the `agov` command-line interface and a
+standalone Governance host API. It loads workspace data, runs Governance
+assessment commands, validates inputs, renders command output, and returns
+process-friendly exit codes for local and CI usage.
 
-- Governance assessment and gate commands
-- inventory and inspection commands over normalized Governance artifacts
-- input validation commands for profiles and workspaces
+Use this package when you want to run Governance from a shell, CI job, or
+automation script without writing a custom host.
 
-The package depends on `@anarchitects/governance-core` and is adapter-agnostic.
-Concrete adapters are installed separately by consumers and loaded dynamically by package name at runtime.
+## Key Concepts
 
-For package boundary rules and dependency direction, see [ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](../../../docs/adr/0001-governance-package-boundaries.md).
+- `agov assess` runs a Governance assessment and renders assessment artifacts.
+- `agov check` runs a Governance gate suitable for CI.
+- Inspection commands render focused slices such as metrics, violations,
+  recommendations, signals, dependencies, and workspace inventory.
+- Validation commands check profile and workspace documents.
+- Adapter mode loads a concrete Governance adapter package by name.
+- Workspace document mode reads an existing workspace or adapter-result
+  document from disk.
 
-## Command Categories
+## Installation
 
-Assessment and gate commands:
+```bash
+npm install --save-dev @anarchitects/governance-cli
+```
 
-- `agov assess`
-- `agov check`
+After installation, the package exposes the `agov` executable.
 
-Inventory and inspection commands:
+## Quick Start
 
-- `agov inspect`
-- `agov metrics`
-- `agov violations`
-- `agov recommendations`
-- `agov signals`
-- `agov dependencies`
+Run an assessment from explicit workspace and profile files:
 
-Validation commands:
+```bash
+npx agov assess --workspace ./governance.workspace.json --profile ./governance.profile.json
+```
 
-- `agov profile validate`
-- `agov workspace validate`
+Run a CI gate:
 
-Utility commands:
+```bash
+npx agov check --workspace ./governance.workspace.json --profile ./governance.profile.json
+```
 
-- `agov --help`
-- `agov --version`
+Run with an installed adapter package:
 
-## Command Semantics
+```bash
+npx agov assess --adapter @anarchitects/governance-adapter-typescript --root . --profile ./governance.profile.json
+```
 
-- `assess` is the primary assessment orchestration command.
-- `check` is the governance gate command and is suitable for CI exit-code gating.
-- `inspect`, `metrics`, `violations`, `recommendations`, `signals`, and `dependencies` provide inventory/inspection slices and are not gates.
-- `profile validate` and `workspace validate` validate inputs and do not imply full assessment/gating semantics.
+## Architecture
 
-## Runtime Modes
+```text
+agov command
+  -> CLI option and config resolution
+  -> Workspace document or adapter loading
+  -> Governance Core normalization and assessment
+  -> Optional extension registration
+  -> Command-specific output and exit code
+```
 
-Commands that operate on workspace data support these input modes:
+The CLI is adapter-agnostic. Concrete adapter and extension packages are loaded
+by the host when requested or configured.
 
-- canonical workspace document mode via `--workspace <path>`
-- explicit adapter mode via `--adapter <package> --root <path>`
-- adapter discovery mode via configured/discovered adapter candidates and probe-based selection
-- config discovery via `agov.config.json` or `governance.config.json`
-- conventional file discovery when explicit/config values are absent
+## Responsibilities
 
-Resolution precedence is:
+This package owns:
 
-- explicit CLI flags
-- config file values
-- conventional file discovery
-- adapter candidate discovery and probe selection
+- the `agov` executable
+- command parsing and option resolution
+- config-file discovery for CLI execution
+- workspace document loading and adapter loading
+- extension loading and registration orchestration
+- command output formatting for supported CLI formats
+- process exit-code behavior for governance gates and runtime failures
 
-## Canonical Graph Runtime
+This package does not own:
 
-`agov assess` and `agov check` consume the additive canonical graph fields from
-`GovernanceWorkspaceAdapterResult`:
+- canonical Governance contracts or assessment semantics
+- TypeScript workspace discovery or other adapter extraction logic
+- technology-specific rules, metrics, or recommendations
+- report data contracts owned by Core
+- adapter package APIs
+- extension package APIs beyond loading and registration
 
-- `nodes`
-- `relations`
-- `capabilities`
-- `diagnostics`
+## Public API
 
-The CLI also preserves compatibility with existing adapter output:
+The package publishes the `agov` binary and a root TypeScript entrypoint.
 
-- `projects`
-- `dependencies`
+Programmatic command APIs include:
 
-The CLI normalizes canonical graph data for command output and passes
-compatibility workspace data into the current assessment pipeline. Existing
-consumers of project/dependency-based assessments continue to work while newer
-adapters can expose canonical node/relation facts.
+- `runAgovAssess(...)`
+- `runAgovCheck(...)`
+- `runAgovInspect(...)`
+- `runAgovMetrics(...)`
+- `runAgovViolations(...)`
+- `runAgovRecommendations(...)`
+- `runAgovSignals(...)`
+- `runAgovDependencies(...)`
+- `runAgovProfileValidate(...)`
+- `runAgovWorkspaceValidate(...)`
+- `runAgovCli(...)`
 
-Adapter diagnostics are surfaced through the Core-owned `GovernanceDiagnostic`
-model. The CLI presents diagnostic severity, kind, category, and status without
-introducing findings, recommendations, or rule evaluations.
+The root entrypoint also exports command option/result types, parser helpers,
+runtime option resolution helpers, exit-code constants, and CLI runtime error
+types.
 
-## Canonical Reporting Views
+Import programmatic APIs from the package root:
 
-`agov inspect` renders canonical graph artifacts as first-class report inputs:
+```ts
+import {
+  runAgovCheck,
+  type AgovCheckResult,
+} from '@anarchitects/governance-cli';
+```
 
-- `nodes`
-- `relations`
-- `capabilities`
-- `diagnostics`
+## Usage
 
-The command still includes compatibility `projects` and `dependencies` fields
-for existing consumers. Those fields remain compatibility contracts; canonical
-`nodes` and `relations` are the long-term reporting model.
+### Assessment And Gate Commands
 
-Focused artifact commands shape reports from already-evaluated Core artifacts:
+```bash
+agov assess --workspace ./governance.workspace.json --profile ./governance.profile.json
+agov check --workspace ./governance.workspace.json --profile ./governance.profile.json
+```
 
-- `agov violations`
-- `agov metrics`
-- `agov recommendations`
-- `agov signals`
+### Inspection Commands
 
-When these commands are run with filters, human-readable reports include a
-`Report Scope` section. The scope documents the active filter set so focused
-reports, such as a domain-boundary or severity-specific report, do not read like
-full assessment dumps. Filtering is presentation/report shaping only; it does
-not suppress findings in `agov assess` or change `agov check` gate semantics.
+```bash
+agov inspect --workspace ./governance.workspace.json --format table
+agov metrics --workspace ./governance.workspace.json --profile ./governance.profile.json --format json
+agov violations --workspace ./governance.workspace.json --profile ./governance.profile.json --severity error
+agov recommendations --workspace ./governance.workspace.json --profile ./governance.profile.json --priority high
+agov signals --workspace ./governance.workspace.json --profile ./governance.profile.json --source rule
+agov dependencies --workspace ./governance.workspace.json --format json
+```
 
-Governance diagnostics remain diagnostics. The reporting layer renders
-`GovernanceDiagnostic` records directly and does not reinterpret them as
-findings, recommendations, or scores.
+### Validation Commands
 
-## Extension Runtime
+```bash
+agov profile validate --profile ./governance.profile.json --format table
+agov workspace validate --workspace ./governance.workspace.json --format markdown
+```
 
-The CLI is the runtime host for extension registration. In adapter mode it can
-load a matching Governance extension package through the existing dynamic module
-loader when one is available. For example, an adapter package named
-`@anarchitects/governance-adapter-typescript` maps to the optional sibling
-extension package `@anarchitects/governance-extension-typescript`.
+## Configuration
 
-The CLI owns orchestration only:
+Commands can receive input through explicit CLI flags, a config file, or
+conventional workspace/profile file discovery.
 
-- adapter loading and probing
-- extension loading and registration
-- output routing
-- process exit-code handling
-- diagnostic presentation
-
-Governance semantics remain outside the CLI:
-
-- Core owns canonical contracts, normalization, diagnostics, and deterministic
-  assessment primitives.
-- Adapters own workspace extraction and discovered facts.
-- Extensions own technology-specific interpretation such as rules, metrics, and
-  recommendations.
-- Reporting owns presentation, report shaping, and output formatting.
-
-## Output Formats
-
-Supported output formats:
-
-- `--format text`
-- `--format table`
-- `--format markdown`
-- `--format json`
-
-Output destination:
-
-- `--output <path>` where supported by the command
-
-Output intent:
-
-- `json` is intended for automation and scripting.
-- `text`, `table`, and `markdown` are intended for humans and documentation.
-
-## Common Options
-
-Commonly used options across command groups:
+Common options include:
 
 - `--config <path>`
 - `--profile <path>`
@@ -174,108 +157,55 @@ Commonly used options across command groups:
 - `--format <text|table|markdown|json>`
 - `--output <path>`
 
-Command-specific filters:
+Supported output formats are:
 
-- `agov inspect`: `--project`, `--domain`, `--layer`, `--type`
-- `agov metrics`: `--family`, `--metric`, `--weakest`
-- `agov violations`: `--severity`, `--rule`, `--category`, `--project`, `--source-plugin`
-- `agov recommendations`: `--priority`
-- `agov signals`: `--source`, `--type`, `--severity`
-- `agov dependencies`: `--source`, `--target`, `--project`, `--type`
+- `text`
+- `table`
+- `markdown`
+- `json`
 
-For command-specific help:
+Use `json` for automation and the other formats for human-readable output.
 
-- `agov assess --help`
-- `agov check --help`
-- `agov inspect --help`
-- `agov metrics --help`
-- `agov violations --help`
-- `agov recommendations --help`
-- `agov signals --help`
-- `agov dependencies --help`
-- `agov profile validate --help`
-- `agov workspace validate --help`
+## Extension Points
 
-## Examples
-
-Run an assessment from explicit workspace/profile documents:
-
-```bash
-agov assess --workspace ./governance.workspace.json --profile ./governance.profile.json
-```
-
-Run a CI gate:
-
-```bash
-agov check --workspace ./governance.workspace.json --profile ./governance.profile.json
-```
-
-Inspect normalized workspace inventory:
-
-```bash
-agov inspect --workspace ./governance.workspace.json --format table
-```
-
-Emit metrics as JSON for automation:
-
-```bash
-agov metrics --workspace ./governance.workspace.json --profile ./governance.profile.json --format json
-```
-
-Filter violations by severity:
-
-```bash
-agov violations --workspace ./governance.workspace.json --profile ./governance.profile.json --severity error
-```
-
-Filter recommendations by priority:
-
-```bash
-agov recommendations --workspace ./governance.workspace.json --profile ./governance.profile.json --priority high
-```
-
-List dependency data:
-
-```bash
-agov dependencies --workspace ./governance.workspace.json --format json
-```
-
-Validate a profile:
-
-```bash
-agov profile validate --profile ./governance.profile.json --format table
-```
-
-Validate a workspace:
-
-```bash
-agov workspace validate --workspace ./governance.workspace.json --format markdown
-```
-
-Use explicit adapter mode (adapter package installed by consumer):
-
-```bash
-agov assess --adapter @your-org/governance-adapter --root . --profile ./governance.profile.json
-```
-
-Use config discovery:
-
-```bash
-agov check --config ./agov.config.json
-```
-
-## Adapter and Boundary Notes
-
-- The CLI depends on Governance Core.
-- The CLI is adapter-agnostic.
-- Concrete adapters are installed separately by consumers.
-- Adapter packages are dynamically loaded by name at runtime.
-- Future adapters should not require CLI dependency changes.
-- Detailed boundary rules are defined in ADR 0001.
-
-This README intentionally focuses on CLI behavior and avoids duplicating canonical Core model semantics.
+The CLI can load adapter packages and register extension packages through
+Core-owned contracts. Adapter packages provide workspace facts. Extension
+packages provide optional technology-specific interpretation. The CLI composes
+them at runtime but does not own their semantics.
 
 ## Related Packages
 
-- `@anarchitects/governance-core` owns canonical Governance contracts and deterministic evaluation logic.
-- Concrete `@anarchitects/governance-adapter-*` packages implement Core-owned adapter contracts.
+- `@anarchitects/governance-core` owns canonical contracts, diagnostics,
+  normalization, and deterministic assessment helpers.
+- `@anarchitects/governance-adapter-typescript` is a concrete adapter for
+  TypeScript-oriented workspaces.
+- `@anarchitects/governance-extension-typescript` is the TypeScript extension
+  package.
+
+## Compatibility
+
+The CLI accepts canonical graph data through `nodes` and `relations` and also
+supports project/dependency compatibility fields where adapters provide them.
+Focused report commands can apply filters to human-readable output without
+changing assessment or gate semantics.
+
+## FAQ
+
+### Does the CLI include a TypeScript adapter?
+
+No. Install the adapter package separately and pass it with `--adapter`, or use
+a workspace document.
+
+### Should libraries import CLI internals?
+
+No. Programmatic consumers should import from `@anarchitects/governance-cli` or
+use `@anarchitects/governance-core` directly.
+
+### Does `agov check` differ from `agov assess`?
+
+Yes. `agov check` is intended for governance gate behavior and CI exit codes.
+`agov assess` is intended for assessment output.
+
+## License
+
+MIT
