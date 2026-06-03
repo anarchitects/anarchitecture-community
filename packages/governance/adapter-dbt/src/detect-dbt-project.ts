@@ -69,7 +69,7 @@ function resolveProjectDir(
   }
 
   if (paths.projectDir) {
-    diagnostics.push(missingProjectDirectoryDiagnostic());
+    diagnostics.push(missingProjectDirectoryDiagnostic(paths.projectDir));
     return undefined;
   }
 

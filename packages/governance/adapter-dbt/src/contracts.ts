@@ -42,6 +42,7 @@ export interface DbtGovernanceAdapterInput {
 export interface DbtAdapterDiagnostic extends GovernanceDiagnostic {
   path?: string;
   inputField?: DbtAdapterInputField;
+  dbtUniqueId?: string;
 }
 
 export interface ResolvedDbtArtifactPaths {

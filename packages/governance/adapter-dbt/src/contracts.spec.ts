@@ -49,6 +49,8 @@ describe('dbt adapter contracts', () => {
         category: 'configuration',
         inputField: 'paths.manifestPath',
         path: '/repo/analytics/target/manifest.json',
+        dbtUniqueId: 'model.analytics.orders',
+        recommendation: 'Provide a valid manifest path.',
       },
     ] satisfies DbtAdapterDiagnostic[];
 
@@ -75,6 +77,7 @@ describe('dbt adapter contracts', () => {
 
     expect(coreCompatible.workspaceId).toBe('analytics');
     expect(result.diagnostics?.[0]?.inputField).toBe('paths.manifestPath');
+    expect(result.diagnostics?.[0]?.dbtUniqueId).toBe('model.analytics.orders');
     expect(result.metadata?.dbt).toEqual({ manifestVersion: 12 });
   });
 

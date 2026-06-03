@@ -323,6 +323,29 @@ const result: DbtAdapterResult = {
 - `path` for the concrete file or directory involved
 - `inputField` for the explicit input member, such as
   `paths.projectDir`, `paths.dbtProjectPath`, or `options.validationMode`
+- `dbtUniqueId` when a diagnostic relates to a normalized dbt resource or
+  dependency source
+
+Adapter diagnostics are:
+
+- deterministic
+- machine-readable
+- factual rather than judgmental
+- included in detection results, artifact load results, and adapter output
+
+Stable diagnostic fields used by this package:
+
+- `code`
+- `severity`
+- `kind`
+- `category`
+- `message`
+- `source`
+- `path` where available
+- `inputField` where available
+- `dbtUniqueId` where available
+- `details`
+- `recommendation` when a remediation hint is useful
 
 Validation mode is constrained to:
 
@@ -343,11 +366,52 @@ Artifact loading emits structured diagnostics for:
 - skipped resource types
 - unsupported resource shapes
 - missing required resource identity fields
+- incomplete extension-relevant metadata
 - partial normalization
 - unresolved dependency targets
 - dependency targets present in manifest but not normalized as governance nodes
 - unsupported dependency metadata shape
 - partial dependency mapping
+
+Severity conventions in this package:
+
+- `error`: hard adapter-domain failures such as missing files or malformed
+  artifacts
+- `warning`: recoverable partial-analysis issues such as skipped resources or
+  unresolved dependencies
+- `info`: descriptive notices such as incomplete optional metadata that a
+  downstream dbt extension may care about
+
+Example adapter diagnostic:
+
+```ts
+{
+  code: 'governance.dbt_adapter.unresolved_dependency_target',
+  severity: 'warning',
+  kind: 'warning',
+  category: 'adapter',
+  source: 'governance.dbt_adapter',
+  dbtUniqueId: 'model.valid_project.unresolved_consumer',
+  message:
+    'dbt dependency target "model.valid_project.missing_upstream" could not be resolved from manifest artifacts.',
+  details: {
+    sourceUniqueId: 'model.valid_project.unresolved_consumer',
+    targetUniqueId: 'model.valid_project.missing_upstream',
+  },
+  recommendation:
+    'Ensure the manifest includes the referenced upstream resource or use matching artifact versions.',
+}
+```
+
+Diagnostic ownership boundaries:
+
+- Adapter owns artifact shape, missing/unsupported metadata, normalization
+  issues, and unresolved artifact-derived dependencies.
+- Host owns Node/npm/Python setup and dbt invocation problems.
+- Runtime and host own package wiring and compatibility concerns outside the
+  adapter contract.
+- Extension and Core own governance meaning, rule violations, scores,
+  recommendations, and compliance interpretation.
 
 ## Runtime And Host Boundary
 

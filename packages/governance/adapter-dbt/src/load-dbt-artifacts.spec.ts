@@ -58,7 +58,9 @@ describe('dbt artifact loading', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.missing_artifact_file',
+          severity: 'error',
           inputField: 'paths.manifestPath',
+          recommendation: expect.stringContaining('manifest.json'),
         }),
       ]),
     );
@@ -74,7 +76,9 @@ describe('dbt artifact loading', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.malformed_manifest_json',
+          severity: 'error',
           inputField: 'paths.manifestPath',
+          recommendation: expect.stringContaining('manifest'),
         }),
       ]),
     );
@@ -90,7 +94,9 @@ describe('dbt artifact loading', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.missing_artifact_file',
+          severity: 'error',
           inputField: 'paths.dbtProjectPath',
+          recommendation: expect.stringContaining('dbt_project.yml'),
         }),
       ]),
     );
@@ -106,7 +112,9 @@ describe('dbt artifact loading', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.malformed_dbt_project_yaml',
+          severity: 'error',
           inputField: 'paths.dbtProjectPath',
+          recommendation: expect.stringContaining('YAML'),
         }),
       ]),
     );
@@ -127,6 +135,8 @@ describe('dbt artifact loading', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.unsupported_manifest_shape',
+          severity: 'error',
+          recommendation: expect.stringContaining('supported'),
         }),
       ]),
     );
@@ -142,6 +152,8 @@ describe('dbt artifact loading', () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: 'governance.dbt_adapter.incomplete_manifest_field',
+          severity: 'error',
+          recommendation: expect.stringContaining('manifest'),
         }),
       ]),
     );
