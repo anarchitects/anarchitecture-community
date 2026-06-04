@@ -7,6 +7,7 @@ import type {
   GovernanceExtensionRulePack,
   GovernanceMetricProvider,
   GovernanceMetricProviderInput,
+  GovernanceSignal,
   GovernanceSignalProvider,
   GovernanceSignalProviderInput,
   Measurement,
@@ -26,7 +27,11 @@ export type DbtGovernanceExtensionInput = GovernanceExtensionExecutionInput;
 
 export type DbtGovernanceRulePackInput = DbtGovernanceExtensionInput;
 
-export type DbtGovernanceSignalProviderInput = GovernanceSignalProviderInput;
+export interface DbtGovernanceSignalProviderInput
+  extends GovernanceSignalProviderInput {
+  diagnostics?: readonly GovernanceDiagnostic[];
+  metadataResolutions?: readonly DbtGovernanceMetadataResolution[];
+}
 
 export type DbtGovernanceMetricProviderInput = GovernanceMetricProviderInput;
 
@@ -46,6 +51,13 @@ export interface DbtGovernanceDiagnosticProvider {
   provideDiagnostics(
     input: DbtGovernanceDiagnosticProviderInput,
   ): GovernanceDiagnostic[] | Promise<GovernanceDiagnostic[]>;
+}
+
+export interface DbtGovernanceSignalProvider {
+  id?: string;
+  provideSignals(
+    input: DbtGovernanceSignalProviderInput,
+  ): GovernanceSignal[] | Promise<GovernanceSignal[]>;
 }
 
 export interface DbtGovernanceRecommendationProvider {
@@ -68,7 +80,7 @@ export interface DbtGovernanceProviderCapabilityData<TProvider> {
 
 export interface DbtGovernanceExtensionContributions {
   rulePacks?: readonly GovernanceExtensionRulePack[];
-  signalProviders?: readonly GovernanceSignalProvider[];
+  signalProviders?: readonly DbtGovernanceSignalProvider[];
   metricProviders?: readonly GovernanceMetricProvider[];
   diagnosticProviders?: readonly DbtGovernanceDiagnosticProvider[];
   recommendationProviders?: readonly DbtGovernanceRecommendationProvider[];
@@ -166,6 +178,15 @@ export function collectDbtGovernanceDiagnostics(
   ).then((results) => results.flat());
 }
 
+export function collectDbtGovernanceSignals(
+  providers: readonly DbtGovernanceSignalProvider[],
+  input: DbtGovernanceSignalProviderInput,
+): Promise<GovernanceSignal[]> {
+  return Promise.all(
+    providers.map((provider) => provider.provideSignals(input)),
+  ).then((results) => results.flat());
+}
+
 export function collectDbtGovernanceRecommendations(
   providers: readonly DbtGovernanceRecommendationProvider[],
   input: DbtGovernanceRecommendationProviderInput,
@@ -222,6 +243,7 @@ export type {
   GovernanceExtensionDefinition,
   GovernanceExtensionRulePack,
   GovernanceMetricProvider,
+  GovernanceSignal,
   GovernanceSignalProvider,
   Measurement,
   Recommendation,

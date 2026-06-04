@@ -16,6 +16,7 @@ import {
   DBT_GOVERNANCE_RECOMMENDATION_PROVIDER_CAPABILITY_PREFIX,
   createDbtGovernanceExtension,
   dbtGovernanceDiagnosticsProvider,
+  dbtGovernanceSignalProvider,
   getDbtGovernanceDiagnosticProviders,
   getDbtGovernanceRecommendationProviders,
 } from './index.js';
@@ -70,10 +71,13 @@ describe('dbt Governance extension contracts', () => {
 
     expect(result.diagnostics).toEqual([]);
     expect(result.registry.rulePacks).toHaveLength(1);
-    expect(result.registry.signalProviders).toHaveLength(1);
+    expect(result.registry.signalProviders).toHaveLength(2);
     expect(result.registry.metricProviders).toHaveLength(1);
     expect(result.registry.rulePacks[0]?.contribution).toBe(rulePack);
     expect(result.registry.signalProviders[0]?.contribution).toBe(
+      dbtGovernanceSignalProvider,
+    );
+    expect(result.registry.signalProviders[1]?.contribution).toBe(
       signalProvider,
     );
     expect(result.registry.metricProviders[0]?.contribution).toBe(

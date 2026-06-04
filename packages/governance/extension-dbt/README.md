@@ -74,9 +74,10 @@ providers are exposed through Core capability registration so a future
 package to depend on the runtime package.
 
 The default extension registration includes a built-in dbt diagnostics
-provider. Runtime packages should execute registered dbt diagnostic providers
-against normalized workspace data, dbt metadata resolver outputs, and the
-active governance profile.
+provider and a built-in dbt signal provider. Runtime packages should execute
+registered dbt diagnostic providers and signal providers against normalized
+workspace data, dbt metadata resolver outputs, and the active governance
+profile.
 
 ## Input Expectations
 
@@ -147,6 +148,58 @@ Extension diagnostics do not own:
 - Node, npm, Python, dbt invocation, or environment setup failures
 - runtime package compatibility problems
 - governance rule violations
+
+## Signals
+
+This package also owns dbt extension signals for small, composable
+architectural observations over normalized adapter output. These signals are
+factual and traceable. They do not decide pass/fail, do not implement
+recommendations, and do not replace governance rules.
+
+Current MVP signal codes:
+
+- `DBT_LAYER_RESOLVED`
+- `DBT_LAYER_DEPENDENCY_DETECTED`
+- `DBT_LAYER_DIRECTION_CANDIDATE`
+- `DBT_LAYER_BYPASS_CANDIDATE`
+- `DBT_DOMAIN_RESOLVED`
+- `DBT_CROSS_DOMAIN_DEPENDENCY_DETECTED`
+- `DBT_SHARED_MODEL_DEPENDENCY_CANDIDATE`
+- `DBT_OWNER_RESOLVED`
+- `DBT_OWNER_MISSING`
+- `DBT_OWNER_INCONSISTENT_CANDIDATE`
+- `DBT_DESCRIPTION_PRESENT`
+- `DBT_DESCRIPTION_MISSING`
+- `DBT_PUBLIC_MODEL_UNDOCUMENTED_CANDIDATE`
+- `DBT_TESTS_PRESENT`
+- `DBT_TESTS_MISSING`
+- `DBT_CRITICAL_MODEL_WITHOUT_TESTS_CANDIDATE`
+- `DBT_CONTRACT_ENABLED`
+- `DBT_CONTRACT_MISSING_FOR_PUBLIC_MODEL_CANDIDATE`
+- `DBT_HIGH_FAN_IN`
+- `DBT_HIGH_FAN_OUT`
+- `DBT_ARCHITECTURAL_HOTSPOT_CANDIDATE`
+
+Signal categories cover:
+
+- layering observations over resolved dbt layers
+- cross-domain dependency and shared-model candidates
+- ownership presence and same-domain ownership inconsistency candidates
+- documentation, tests, and contract presence observations
+- DAG fan-in, fan-out, and hotspot candidates
+
+Semantic distinction:
+
+- A signal says: `we observed this architectural condition`
+- A rule says: `this condition is allowed or forbidden under this profile`
+- A recommendation says: `take this action`
+
+The built-in signal provider uses these default thresholds:
+
+- high fan-in threshold: `3`
+- high fan-out threshold: `3`
+- architectural hotspot combined threshold: `5`
+- criticality values requiring tests: `high`, `critical`
 
 ## Resolver Concepts
 
@@ -221,7 +274,6 @@ issues.
 - Python host behavior
 - Running dbt commands
 - npm runtime setup
-- Concrete signals
 - Concrete rule packs
 - Concrete metrics
 - Concrete recommendations
