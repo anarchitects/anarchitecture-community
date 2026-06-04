@@ -8,6 +8,7 @@ import {
   DBT_GOVERNANCE_EXTENSION_ID,
   createDbtGovernanceExtension,
   dbtGovernanceExtension,
+  getDbtGovernanceDiagnosticProviders,
   dbtGovernanceExtensionMetadata,
   governanceDbtExtension,
 } from './index.js';
@@ -58,7 +59,7 @@ describe('dbt Governance extension', () => {
     });
   });
 
-  it('registers as an empty core-compatible extension by default', async () => {
+  it('registers the built-in dbt diagnostics provider by default', async () => {
     const result = await registerLoadedGovernanceExtensionsWithDiagnostics(
       context,
       [
@@ -74,6 +75,15 @@ describe('dbt Governance extension', () => {
     expect(result.registry.rulePacks).toEqual([]);
     expect(result.registry.signalProviders).toEqual([]);
     expect(result.registry.metricProviders).toEqual([]);
+    expect(
+      getDbtGovernanceDiagnosticProviders({
+        context,
+        registerRulePack: () => undefined,
+        registerSignalProvider: () => undefined,
+        registerMetricProvider: () => undefined,
+        registerEnricher: () => undefined,
+      }),
+    ).toHaveLength(1);
   });
 
   it('creates independent extension definitions for future hosts', () => {

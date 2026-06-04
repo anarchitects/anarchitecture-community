@@ -30,6 +30,17 @@ export {
   type DbtGovernanceSignalProviderInput,
 } from './contracts.js';
 export {
+  DBT_GOVERNANCE_DIAGNOSTIC_CODES,
+  DBT_GOVERNANCE_DIAGNOSTIC_SOURCE,
+  buildDbtGovernanceDiagnostics,
+  createDbtGovernanceDiagnosticsProvider,
+  dbtGovernanceDiagnosticsProvider,
+  type DbtGovernanceDiagnosticCode,
+  type DbtGovernanceDiagnosticDetails,
+  type DbtGovernanceExtensionDiagnostic,
+  type DbtGovernanceDiagnosticsProviderOptions,
+} from './diagnostics.js';
+export {
   DBT_METADATA_RESOLUTION_STATUSES,
   resolveDbtContractPresence,
   resolveDbtCriticality,

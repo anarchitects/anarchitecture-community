@@ -14,6 +14,8 @@ import type {
   Violation,
 } from '@anarchitects/governance-core';
 
+import type { DbtGovernanceMetadataResolution } from './resolvers.js';
+
 export const DBT_GOVERNANCE_DIAGNOSTIC_PROVIDER_CAPABILITY_PREFIX =
   'capability:governance:extension:dbt:diagnostic-provider:';
 
@@ -31,6 +33,7 @@ export type DbtGovernanceMetricProviderInput = GovernanceMetricProviderInput;
 export interface DbtGovernanceDiagnosticProviderInput
   extends DbtGovernanceMetricProviderInput {
   diagnostics: GovernanceDiagnostic[];
+  metadataResolutions?: readonly DbtGovernanceMetadataResolution[];
 }
 
 export interface DbtGovernanceRecommendationProviderInput

@@ -4,6 +4,7 @@ import type {
 } from '@anarchitects/governance-core';
 
 import type { DbtGovernanceExtensionContributions } from './contracts.js';
+import { dbtGovernanceDiagnosticsProvider } from './diagnostics.js';
 import {
   registerDbtGovernanceExtensionContributions,
   type DbtGovernanceExtensionOptions,
@@ -66,7 +67,13 @@ export function registerDbtGovernanceExtension(
   host: GovernanceExtensionHost,
   contributions: DbtGovernanceExtensionContributions = {},
 ): void {
-  registerDbtGovernanceExtensionContributions(host, contributions);
+  registerDbtGovernanceExtensionContributions(host, {
+    ...contributions,
+    diagnosticProviders: [
+      dbtGovernanceDiagnosticsProvider,
+      ...(contributions.diagnosticProviders ?? []),
+    ],
+  });
 }
 
 export default dbtGovernanceExtension;
