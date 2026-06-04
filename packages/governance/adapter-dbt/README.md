@@ -26,6 +26,10 @@ yarn nx test governance-adapter-dbt
 yarn nx lint governance-adapter-dbt
 ```
 
+Adapter-level end-to-end coverage runs inside the normal Vitest target through
+fixture-backed `*.spec.ts` tests, so no separate dbt E2E service or Nx target
+is required.
+
 ## Input Contract
 
 Hosts and runtimes must pass explicit local paths. Detection and contract
