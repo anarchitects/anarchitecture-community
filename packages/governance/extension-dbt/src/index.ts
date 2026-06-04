@@ -29,4 +29,23 @@ export {
   type DbtGovernanceRulePackInput,
   type DbtGovernanceSignalProviderInput,
 } from './contracts.js';
+export {
+  DBT_METADATA_RESOLUTION_STATUSES,
+  resolveDbtContractPresence,
+  resolveDbtCriticality,
+  resolveDbtDocumentationPresence,
+  resolveDbtDomain,
+  resolveDbtGovernanceMetadata,
+  resolveDbtLayer,
+  resolveDbtMaterializationCategory,
+  resolveDbtOwner,
+  resolveDbtPublicInterface,
+  resolveDbtTestPresence,
+  type DbtGovernanceMetadataResolution,
+  type DbtGovernanceMetadataResolverInput,
+  type DbtGovernanceMetadataResolverOptions,
+  type DbtMetadataResolution,
+  type DbtMetadataResolutionStatus,
+  type DbtResolvedGovernanceMetadata,
+} from './resolvers.js';
 export { default } from './extension.js';
