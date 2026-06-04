@@ -43,6 +43,20 @@ export {
   type DbtGovernanceDiagnosticsProviderOptions,
 } from './diagnostics.js';
 export {
+  DBT_BASIC_ARCHITECTURE_RULE_PACK_ID,
+  DBT_BASIC_ARCHITECTURE_RULE_IDS,
+  createDbtArchitectureBasicRulePack,
+  dbtArchitectureBasicRulePack,
+  evaluateDbtArchitectureViolations,
+  type DbtArchitectureRuleId,
+  type DbtArchitectureRulePack,
+  type DbtArchitectureRulePackOptions,
+  type DbtCriticalModelRuleOptions,
+  type DbtCrossDomainApprovalRuleOptions,
+  type DbtLayerDependencyRuleOptions,
+  type DbtMartDependencyRuleOptions,
+} from './rule-pack.js';
+export {
   DBT_GOVERNANCE_SIGNAL_CODES,
   DBT_GOVERNANCE_SIGNAL_SOURCE,
   buildDbtGovernanceSignals,

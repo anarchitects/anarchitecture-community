@@ -25,7 +25,12 @@ export const DBT_GOVERNANCE_RECOMMENDATION_PROVIDER_CAPABILITY_PREFIX =
 
 export type DbtGovernanceExtensionInput = GovernanceExtensionExecutionInput;
 
-export type DbtGovernanceRulePackInput = DbtGovernanceExtensionInput;
+export interface DbtGovernanceRulePackInput
+  extends DbtGovernanceExtensionInput {
+  diagnostics?: readonly GovernanceDiagnostic[];
+  signals?: readonly GovernanceSignal[];
+  metadataResolutions?: readonly DbtGovernanceMetadataResolution[];
+}
 
 export interface DbtGovernanceSignalProviderInput
   extends GovernanceSignalProviderInput {
