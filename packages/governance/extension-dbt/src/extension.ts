@@ -5,6 +5,7 @@ import type {
 
 import type { DbtGovernanceExtensionContributions } from './contracts.js';
 import { dbtGovernanceDiagnosticsProvider } from './diagnostics.js';
+import { dbtArchitectureBasicRulePack } from './rule-pack.js';
 import { dbtGovernanceSignalProvider } from './signals.js';
 import {
   registerDbtGovernanceExtensionContributions,
@@ -70,6 +71,10 @@ export function registerDbtGovernanceExtension(
 ): void {
   registerDbtGovernanceExtensionContributions(host, {
     ...contributions,
+    rulePacks: [
+      dbtArchitectureBasicRulePack,
+      ...(contributions.rulePacks ?? []),
+    ],
     signalProviders: [
       dbtGovernanceSignalProvider,
       ...(contributions.signalProviders ?? []),

@@ -74,10 +74,10 @@ providers are exposed through Core capability registration so a future
 package to depend on the runtime package.
 
 The default extension registration includes a built-in dbt diagnostics
-provider and a built-in dbt signal provider. Runtime packages should execute
-registered dbt diagnostic providers and signal providers against normalized
-workspace data, dbt metadata resolver outputs, and the active governance
-profile.
+provider, a built-in dbt signal provider, and a built-in dbt architecture rule
+pack. Runtime packages should execute registered dbt diagnostic providers,
+signal providers, and rule packs against normalized workspace data, dbt
+metadata resolver outputs, and the active governance profile.
 
 ## Input Expectations
 
@@ -201,6 +201,72 @@ The built-in signal provider uses these default thresholds:
 - architectural hotspot combined threshold: `5`
 - criticality values requiring tests: `high`, `critical`
 
+## Rule Pack
+
+This package now also exports the built-in dbt architecture rule pack:
+
+- rule pack id: `dbt-architecture-basic`
+- export: `dbtArchitectureBasicRulePack`
+- factory: `createDbtArchitectureBasicRulePack(...)`
+
+Current MVP rule IDs:
+
+- `dbt/no-disallowed-layer-dependency`
+- `dbt/no-mart-to-mart-dependency`
+- `dbt/critical-models-require-owner`
+- `dbt/public-models-require-description`
+- `dbt/critical-models-require-tests`
+- `dbt/public-models-require-contract`
+- `dbt/cross-domain-dependencies-require-approval`
+
+These rules consume normalized workspace data plus dbt resolver output,
+extension diagnostics, and dbt signals. The extension contract returns only
+violations, so pass means `no violation emitted` and metadata-driven skips are
+explained through diagnostics instead of a separate skip result object.
+
+Minimal profile-driven config uses `profile.rules[ruleId].options`. Current
+options are:
+
+```ts
+{
+  'dbt/no-disallowed-layer-dependency': {
+    options: {
+      allowedUpstreamByLayer: {
+        staging: ['staging'],
+        intermediate: ['staging', 'intermediate'],
+        marts: ['intermediate', 'marts'],
+      },
+    },
+  },
+  'dbt/no-mart-to-mart-dependency': {
+    options: {
+      martLayers: ['marts'],
+    },
+  },
+  'dbt/critical-models-require-owner': {
+    options: {
+      criticalityLevels: ['high', 'critical'],
+      requireExplicitCriticality: false,
+    },
+  },
+  'dbt/critical-models-require-tests': {
+    options: {
+      criticalityLevels: ['high', 'critical'],
+      requireExplicitCriticality: false,
+    },
+  },
+  'dbt/cross-domain-dependencies-require-approval': {
+    options: {
+      approvalMetadataPaths: [
+        'dbt.governance.crossDomainApproved',
+        'dbt.lineage.crossDomainApproved',
+        'dbt.lineage.approved',
+      ],
+    },
+  },
+}
+```
+
 ## Resolver Concepts
 
 This package also exports pure metadata resolvers that interpret normalized
@@ -274,7 +340,6 @@ issues.
 - Python host behavior
 - Running dbt commands
 - npm runtime setup
-- Concrete rule packs
 - Concrete metrics
 - Concrete recommendations
 - Depending on `@anarchitects/governance-adapter-dbt`
