@@ -68,7 +68,6 @@ export interface GovernanceDependency {
   target: string;
   type: 'static' | 'dynamic' | 'implicit' | 'unknown';
   sourceFile?: string;
-  metadata?: Record<string, unknown>;
 }
 
 export interface Ownership {
