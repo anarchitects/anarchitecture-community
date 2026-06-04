@@ -2,14 +2,29 @@
 
 ## Purpose
 
-`@anarchitects/governance-adapter-dbt` defines the TypeScript contract boundary
-for a dbt Governance adapter. It owns explicit input paths, adapter options,
-Core-compatible output types, project detection, artifact loading, and dbt
-adapter metadata contracts for discovery, loading, validation, normalization,
-dependency mapping, and metadata preservation workflows.
+`@anarchitects/governance-adapter-dbt` translates dbt project and artifact
+metadata into Core-compatible Governance workspace inputs.
 
-This package does not implement runtime composition, dbt governance meaning,
-or Python host behavior.
+It owns:
+
+- discovery
+- loading
+- validation
+- normalization
+- metadata preservation
+
+It does not decide whether the architecture is good or bad. It does not
+evaluate governance rules, compute scores, generate recommendations, run dbt
+commands, parse SQL/Jinja lineage, manage Node/npm runtime setup, or implement
+Python host behavior.
+
+Parent epic: `#143`
+
+Related epics:
+
+- `#144` `governance-extension-dbt`
+- `#251` `governance-runtime-dbt`
+- `#252` `governance-host-dbt`
 
 ## Location
 
@@ -17,32 +32,99 @@ or Python host behavior.
 - Nx project name: `governance-adapter-dbt`
 - npm package name: `@anarchitects/governance-adapter-dbt`
 
-## Nx Commands
+## Local Commands
+
+Expected Nx commands:
+
+- `nx build governance-adapter-dbt`
+- `nx test governance-adapter-dbt`
+- `nx lint governance-adapter-dbt`
+
+In this workspace, run them via the package manager:
 
 ```bash
-yarn nx show project governance-adapter-dbt
 yarn nx build governance-adapter-dbt
 yarn nx test governance-adapter-dbt
 yarn nx lint governance-adapter-dbt
 ```
 
-Adapter-level end-to-end coverage runs inside the normal Vitest target through
-fixture-backed `*.spec.ts` tests, so no separate dbt E2E service or Nx target
-is required.
+Adapter-level end-to-end coverage runs inside the normal Vitest target. There
+is no separate `governance-adapter-dbt:e2e` target.
 
-## Input Contract
+## Boundary
 
-Hosts and runtimes must pass explicit local paths. Detection and contract
-resolution do not read implicit shell state and do not assume `process.cwd()`
-unless that directory is passed in explicitly as `projectDir`.
+```text
+Adapter = discovery, loading, validation, normalization, metadata preservation.
+Extension = dbt-specific governance meaning.
+Runtime = TypeScript composition boundary.
+Host = dbt-native Python developer experience.
+```
+
+This package owns only the `Adapter` line.
+
+## Non-Goals
+
+- Evaluating governance rules
+- Computing governance scores
+- Generating recommendations
+- Interpreting metadata as governance compliance
+- Deciding whether the architecture is good or bad
+- Running dbt commands
+- Parsing SQL or Jinja lineage
+- Managing Node/npm runtime setup
+- Implementing Python host behavior
+- Depending on `@anarchitects/governance-extension-dbt`
+- Depending on `@anarchitects/governance-runtime-dbt`
+- Depending on `@anarchitects/governance-host-dbt`
+
+## Public API
+
+Public exports used in the current implementation:
+
+- `detectDbtProject`
+- `resolveDbtProjectContext`
+- `loadDbtArtifacts`
+- `loadDbtManifest`
+- `loadDbtProjectConfig`
+- `validateDbtManifest`
+- `normalizeDbtArtifacts`
+- `DBT_ADAPTER_VALIDATION_MODES`
+- `isDbtAdapterValidationMode`
+- `DBT_GOVERNANCE_ADAPTER_ID`
+- `dbtGovernanceAdapterMetadata`
+
+Relevant public types:
+
+- `DbtGovernanceAdapterInput`
+- `DbtArtifactPaths`
+- `DbtAdapterOptions`
+- `DbtAdapterResult`
+- `DbtAdapterDiagnostic`
+- `DbtProjectDetectionResult`
+- `DbtArtifactLoadResult`
+- `DbtArtifacts`
+- `DbtManifest`
+- `DbtProjectConfig`
+- `ResolvedDbtArtifactPaths`
+
+## Usage
+
+Minimal TypeScript example using the actual exported API:
 
 ```ts
-import type { DbtGovernanceAdapterInput } from '@anarchitects/governance-adapter-dbt';
+import {
+  detectDbtProject,
+  loadDbtArtifacts,
+  normalizeDbtArtifacts,
+  type DbtAdapterResult,
+  type DbtGovernanceAdapterInput,
+} from '@anarchitects/governance-adapter-dbt';
 
 const input: DbtGovernanceAdapterInput = {
   paths: {
     projectDir: '/repo/analytics',
     dbtProjectPath: '/repo/analytics/dbt_project.yml',
+    manifestPath: '/repo/analytics/target/manifest.json',
     catalogPath: '/repo/analytics/target/catalog.json',
     runResultsPath: '/repo/analytics/target/run_results.json',
     sourcesPath: '/repo/analytics/target/sources.json',
@@ -50,23 +132,38 @@ const input: DbtGovernanceAdapterInput = {
   options: {
     validationMode: 'strict',
   },
-  metadata: {
-    dbt: {
-      projectId: 'analytics',
-    },
-  },
 };
+
+const detected = detectDbtProject(input);
+
+if (!detected.context) {
+  throw new Error('dbt project could not be resolved');
+}
+
+const loaded = loadDbtArtifacts(detected.context);
+
+if (!loaded.artifacts) {
+  throw new Error('dbt artifacts could not be loaded');
+}
+
+const result: DbtAdapterResult = normalizeDbtArtifacts(
+  detected.context,
+  loaded.artifacts,
+);
+
+console.log(result.workspaceName);
+console.log(result.nodes?.map((node) => node.id));
+console.log(result.dependencies?.map((edge) => edge.sourceProjectId));
+console.log(result.diagnostics);
 ```
 
-`DbtArtifactPaths` requires:
+## Input Contract
 
-- either `projectDir` or `dbtProjectPath`
+Hosts and runtimes must pass explicit local paths. The adapter does not depend
+on implicit shell state or `process.cwd()` unless that directory is explicitly
+provided as input.
 
-When `manifestPath` is omitted, detection resolves the default local path:
-
-- `projectDir/target/manifest.json`
-
-Optional artifact paths:
+Supported path inputs:
 
 - `projectDir`
 - `dbtProjectPath`
@@ -75,124 +172,97 @@ Optional artifact paths:
 - `runResultsPath`
 - `sourcesPath`
 
-## Detection Behavior
+Options:
 
-Use `detectDbtProject(...)` or `resolveDbtProjectContext(...)` to identify a
-local dbt project from explicit inputs only.
+- `validationMode: 'strict' | 'lenient'`
 
-- If `paths.dbtProjectPath` is provided, it must point to a file named
-  `dbt_project.yml`.
-- If `paths.projectDir` is provided without `paths.dbtProjectPath`, detection
-  checks `projectDir/dbt_project.yml`.
-- If both are provided, they must resolve to the same project directory.
-- No dbt command is invoked.
+Rules:
 
-```ts
-import { detectDbtProject } from '@anarchitects/governance-adapter-dbt';
+- either `projectDir` or `dbtProjectPath` must be provided
+- if `manifestPath` is omitted, the adapter resolves
+  `projectDir/target/manifest.json`
+- `catalog.json`, `run_results.json`, and `sources.json` are optional future
+  artifacts and are not currently loaded into the adapter result
 
-const detected = detectDbtProject({
-  paths: {
-    projectDir: '/repo/analytics',
-  },
-});
+## Artifact Requirements
 
-if (detected.supported) {
-  console.log(detected.context.artifactPaths.manifestPath);
-}
-```
-
-## Artifact Loading
-
-Use `loadDbtArtifacts(...)` after detection to load:
+Required artifacts:
 
 - `dbt_project.yml`
 - `manifest.json`
 
-```ts
-import {
-  detectDbtProject,
-  loadDbtArtifacts,
-} from '@anarchitects/governance-adapter-dbt';
-
-const detected = detectDbtProject({
-  paths: {
-    projectDir: '/repo/analytics',
-  },
-});
-
-if (detected.context) {
-  const loaded = loadDbtArtifacts(detected.context);
-
-  if (loaded.artifacts) {
-    console.log(loaded.artifacts.projectConfig.name);
-    console.log(loaded.artifacts.manifest.metadata.project_name);
-  }
-}
-```
-
-Loading is:
-
-- local-file based
-- deterministic
-- driven only by explicit paths or resolved project context
-- non-throwing for expected user/configuration errors
-- minimal by design so later normalization can safely consume the artifacts
-
-Current validation includes:
-
-- `manifest.json` presence and JSON parseability
-- `dbt_project.yml` presence and YAML parseability
-- minimum manifest requirements:
-  - top-level object
-  - `metadata`
-  - `metadata.dbt_schema_version`
-  - `metadata.project_name`
-  - `nodes`
-- useful dbt project config requirements:
-  - top-level object
-  - non-empty `name`
-  - optional path arrays must be arrays of non-empty strings
-
-Prepared but not implemented yet:
+Optional future artifacts:
 
 - `catalog.json`
 - `run_results.json`
 - `sources.json`
 
+Current artifact expectations:
+
+- artifacts must be local files
+- artifacts must be deterministic test inputs
+- artifacts must not require warehouse access
+- artifacts must not require dbt Cloud
+- artifacts must not require running dbt commands
+
+## Project Detection
+
+Use `detectDbtProject(...)` or `resolveDbtProjectContext(...)` to identify a
+local dbt project from explicit inputs only.
+
+Behavior:
+
+- explicit `paths.dbtProjectPath` must point to a file named `dbt_project.yml`
+- `paths.projectDir` without `paths.dbtProjectPath` resolves
+  `projectDir/dbt_project.yml`
+- `projectDir` and `dbtProjectPath` must resolve to the same project
+- detection resolves default manifest path when needed
+- detection returns structured diagnostics for expected project-path problems
+
+## Artifact Loading And Validation
+
+Use `loadDbtArtifacts(...)` after detection.
+
+Current loading scope:
+
+- `dbt_project.yml`
+- `manifest.json`
+
+Current validation scope:
+
+- file presence
+- JSON parseability
+- YAML parseability
+- minimum supported `manifest.json` object structure
+- minimum useful `dbt_project.yml` structure
+
+The adapter does not load or normalize `catalog.json`, `run_results.json`, or
+`sources.json` yet.
+
+## Output Contract
+
+`DbtAdapterResult` extends
+`GovernanceWorkspaceAdapterResult` from
+`@anarchitects/governance-core`.
+
+Current result shape may include:
+
+- workspace identity
+- compatibility `projects`
+- compatibility `dependencies`
+- canonical `nodes`
+- canonical `relations`
+- namespaced dbt metadata
+- structured diagnostics
+
+The adapter returns Core-compatible workspace/project/asset/resource inputs. It
+does not produce rules, scores, recommendations, or extension semantics.
+
 ## Resource Normalization
 
-Use `normalizeDbtArtifacts(...)` to convert loaded dbt resources into
-Core-compatible governance workspace, project, and node inputs.
+`normalizeDbtArtifacts(...)` maps dbt resources into Governance inputs.
 
-```ts
-import {
-  detectDbtProject,
-  loadDbtArtifacts,
-  normalizeDbtArtifacts,
-} from '@anarchitects/governance-adapter-dbt';
-
-const detected = detectDbtProject({
-  paths: {
-    projectDir: '/repo/analytics',
-  },
-});
-
-if (detected.context) {
-  const loaded = loadDbtArtifacts(detected.context);
-
-  if (loaded.artifacts) {
-    const normalized = normalizeDbtArtifacts(
-      detected.context,
-      loaded.artifacts,
-    );
-
-    console.log(normalized.workspaceName);
-    console.log(normalized.nodes?.map((node) => node.id));
-  }
-}
-```
-
-Current resource support:
+Current supported dbt resource types:
 
 - `model`
 - `source`
@@ -202,32 +272,47 @@ Current resource support:
 
 Current mapping:
 
-- dbt project -> governance workspace result
-- dbt model/seed/snapshot -> governance compatibility project input plus
-  governance `asset` node
-- dbt source/exposure -> governance compatibility project input plus
-  governance `resource` node
+- dbt project -> Governance workspace result
+- dbt model/seed/snapshot -> compatibility project plus canonical `asset` node
+- dbt source/exposure -> compatibility project plus canonical `resource` node
 
-Preserved dbt metadata includes:
+Normalization properties:
 
-- `unique_id`
-- `package_name`
-- resource name and fully qualified identifier when present
-- `resource_type`
-- `materialization`
-- `tags`
-- `meta`
-- `group`
-- `owner`
-- `path`
-- `original_file_path`
-- `database` / `schema` / `alias`
-- `relation_name`
-- `tests`
-- `contract`
-- description/docs presence hints
+- deterministic
+- artifact-driven
+- factual
+- non-judgmental
 
-Preserved metadata is namespaced under `metadata.dbt` and structured as:
+Unsupported resource types are skipped with diagnostics rather than normalized
+silently.
+
+## Dependency Mapping
+
+The adapter also maps dbt DAG edges into Core-compatible dependency and
+relation inputs.
+
+Current dependency sources:
+
+- `depends_on.nodes`
+- target manifest metadata for `ref()`-style lineage hints
+- target manifest metadata for `source()`-style lineage hints
+
+Current supported patterns:
+
+- model-to-model
+- model-to-source
+- fan-in and fan-out DAG shapes
+- seed dependencies represented in `depends_on.nodes`
+- snapshot dependencies represented in `depends_on.nodes`
+- exposure dependencies represented in `depends_on.nodes`
+
+The adapter does not parse SQL or Jinja and does not infer generic lineage.
+
+## Preserved dbt Metadata
+
+dbt-specific metadata is namespaced under `metadata.dbt`.
+
+Resource/node/project metadata structure:
 
 - `metadata.dbt.identity`
 - `metadata.dbt.resource`
@@ -235,107 +320,44 @@ Preserved metadata is namespaced under `metadata.dbt` and structured as:
 - `metadata.dbt.validation`
 - `metadata.dbt.documentation`
 
-Unsupported resource types are skipped with diagnostics. Invalid resource
-shapes emit diagnostics instead of being silently dropped.
+Dependency metadata structure:
 
-Normalization is:
+- `metadata.dbt.source`
+- `metadata.dbt.target`
+- `metadata.dbt.lineage`
 
-- deterministic
-- artifact-driven
-- limited to identity, classification hints, ownership hints, and factual dbt
-  metadata preservation
+Current preserved fields include:
 
-## Dependency Mapping
+- resource type
+- materialization
+- tags
+- meta
+- group
+- owner
+- package name
+- path
+- original file path
+- database
+- schema
+- alias
+- tests
+- contracts
+- docs and description status
+- dbt unique ID
+- fully qualified identifier metadata
+- relation naming metadata
 
-`normalizeDbtArtifacts(...)` also maps manifest DAG edges into Core-compatible
-governance dependency and relation inputs.
+Missing metadata is not fabricated. The adapter preserves what is present in
+the artifacts and emits informational diagnostics when extension-relevant facts
+are incomplete.
 
-Dependency mapping uses only:
+## Diagnostics
 
-- `depends_on.nodes`
-- target manifest metadata for `ref()`-style lineage
-- target manifest metadata for `source()`-style lineage
+`DbtAdapterDiagnostic` reuses `GovernanceDiagnostic` and adds:
 
-Current dependency support:
-
-- model-to-model
-- model-to-source
-- seed dependencies represented in `depends_on.nodes`
-- snapshot dependencies represented in `depends_on.nodes`
-- exposure dependencies represented in `depends_on.nodes`
-
-Dependency metadata preserves:
-
-- source endpoint metadata under `metadata.dbt.source`
-- target endpoint metadata under `metadata.dbt.target`
-- dependency lineage metadata under `metadata.dbt.lineage`
-- source and target dbt `unique_id`
-- dbt dependency kind: `ref` or `source`
-- artifact-derived dependency kind: `depends_on.nodes`
-- `ref` target hints when the target is a dbt node
-- `source` target hints when the target is a dbt source
-
-Dependency mapping is:
-
-- deterministic
-- artifact-driven
-- limited to dbt manifest lineage facts
-- non-inferential: no SQL parsing, no Jinja parsing, no generic lineage
-- descriptive only: semantic interpretation belongs to
-  `@anarchitects/governance-extension-dbt`
-
-## Output Contract
-
-`DbtAdapterResult` extends the existing
-`GovernanceWorkspaceAdapterResult` contract from
-`@anarchitects/governance-core`.
-
-- Use `DbtAdapterResult` when you need a dbt-specific metadata envelope.
-- Use `GovernanceWorkspaceAdapterResult` when you only need the shared Core
-  adapter output shape.
-
-The result metadata reserves space for dbt-specific values needed later by
-runtime or extension layers:
-
-```ts
-import type { DbtAdapterResult } from '@anarchitects/governance-adapter-dbt';
-
-const result: DbtAdapterResult = {
-  workspaceId: 'analytics',
-  workspaceName: 'analytics',
-  workspaceRoot: '/repo/analytics',
-  metadata: {
-    adapter: 'dbt',
-    validationMode: 'lenient',
-    paths: {
-      projectDir: '/repo/analytics',
-      dbtProjectPath: '/repo/analytics/dbt_project.yml',
-      manifestPath: '/repo/analytics/target/manifest.json',
-    },
-    dbt: {
-      manifestVersion: 12,
-    },
-  },
-};
-```
-
-## Diagnostics Strategy
-
-`DbtAdapterDiagnostic` reuses `GovernanceDiagnostic` from
-`@anarchitects/governance-core` and adds:
-
-- `path` for the concrete file or directory involved
-- `inputField` for the explicit input member, such as
-  `paths.projectDir`, `paths.dbtProjectPath`, or `options.validationMode`
-- `dbtUniqueId` when a diagnostic relates to a normalized dbt resource or
-  dependency source
-
-Adapter diagnostics are:
-
-- deterministic
-- machine-readable
-- factual rather than judgmental
-- included in detection results, artifact load results, and adapter output
+- `path`
+- `inputField`
+- `dbtUniqueId`
 
 Stable diagnostic fields used by this package:
 
@@ -345,118 +367,116 @@ Stable diagnostic fields used by this package:
 - `category`
 - `message`
 - `source`
-- `path` where available
-- `inputField` where available
-- `dbtUniqueId` where available
+- `path`
+- `inputField`
+- `dbtUniqueId`
 - `details`
-- `recommendation` when a remediation hint is useful
+- `recommendation`
 
-Validation mode is constrained to:
+Severity conventions:
 
-- `strict`
-- `lenient`
+- `error` = hard adapter-domain failures such as missing files or malformed
+  artifacts
+- `warning` = partial analysis issues such as skipped resources or unresolved
+  dependencies
+- `info` = factual notices such as incomplete extension-relevant metadata
 
-Use `isDbtAdapterValidationMode(...)` when a runtime or host needs to validate
-external configuration before constructing adapter input.
+Adapter diagnostics cover:
 
-Artifact loading emits structured diagnostics for:
+- artifact shape
+- missing or unsupported metadata
+- normalization issues
+- unresolved artifact-derived dependencies
 
-- missing artifact path
-- missing artifact file
-- malformed manifest JSON
-- malformed dbt project YAML
-- unsupported manifest shape
-- incomplete required manifest fields
+Not adapter diagnostics:
+
+- setup, Node/npm, Python, and dbt invocation problems: host
+- governance metadata interpretation: extension
+- runtime package compatibility: runtime/host
+- governance rule violations: extension/core
+
+Representative adapter diagnostics:
+
+- missing `dbt_project.yml`
+- missing `manifest.json`
+- malformed JSON
+- malformed YAML
+- unsupported manifest structure
+- incomplete manifest structure
 - skipped resource types
-- unsupported resource shapes
-- missing required resource identity fields
+- missing resource identity
 - incomplete extension-relevant metadata
-- partial normalization
 - unresolved dependency targets
-- dependency targets present in manifest but not normalized as governance nodes
-- unsupported dependency metadata shape
+- dependency targets present in the manifest but not normalized
+- partial normalization
 - partial dependency mapping
 
-Severity conventions in this package:
+## Fixtures And Tests
 
-- `error`: hard adapter-domain failures such as missing files or malformed
-  artifacts
-- `warning`: recoverable partial-analysis issues such as skipped resources or
-  unresolved dependencies
-- `info`: descriptive notices such as incomplete optional metadata that a
-  downstream dbt extension may care about
+Fixture documentation lives at
+[tests/fixtures/README.md](/Users/johanvrolix/Anarchitects/anarchitecture-community/packages/governance/adapter-dbt/tests/fixtures/README.md:1).
 
-Example adapter diagnostic:
+Current fixture-backed coverage includes:
 
-```ts
-{
-  code: 'governance.dbt_adapter.unresolved_dependency_target',
-  severity: 'warning',
-  kind: 'warning',
-  category: 'adapter',
-  source: 'governance.dbt_adapter',
-  dbtUniqueId: 'model.valid_project.unresolved_consumer',
-  message:
-    'dbt dependency target "model.valid_project.missing_upstream" could not be resolved from manifest artifacts.',
-  details: {
-    sourceUniqueId: 'model.valid_project.unresolved_consumer',
-    targetUniqueId: 'model.valid_project.missing_upstream',
-  },
-  recommendation:
-    'Ensure the manifest includes the referenced upstream resource or use matching artifact versions.',
-}
+- project detection
+- artifact loading and validation
+- resource normalization
+- dependency mapping
+- metadata preservation
+- diagnostics
+- adapter-flow end-to-end tests
+
+Tests run through the normal package target:
+
+```bash
+yarn nx test governance-adapter-dbt
 ```
 
-Diagnostic ownership boundaries:
+## Handoff To governance-extension-dbt
 
-- Adapter owns artifact shape, missing/unsupported metadata, normalization
-  issues, and unresolved artifact-derived dependencies.
-- Host owns Node/npm/Python setup and dbt invocation problems.
-- Runtime and host own package wiring and compatibility concerns outside the
-  adapter contract.
-- Extension and Core own governance meaning, rule violations, scores,
-  recommendations, and compliance interpretation.
+`@anarchitects/governance-extension-dbt` should consume the adapter result as
+factual dbt inventory and lineage input.
 
-## Runtime And Host Boundary
+Expected handoff:
 
-- Runtime is responsible for TypeScript composition and for passing a fully
-  explicit `DbtGovernanceAdapterInput`.
-- Host is responsible for the dbt-native developer experience and for
-  resolving concrete filesystem paths before invoking the adapter contract.
-- This package detects the dbt project from explicit local inputs only.
-- This package loads only local artifact files passed through those explicit
-  paths.
-- This package normalizes dbt resources into Core-owned workspace/project/node
-  inputs without evaluating architecture quality.
-- This package maps dbt DAG edges into Core-owned dependency/relation inputs
-  using manifest facts only.
-- This package preserves dbt-specific facts so downstream extensions can
-  compute dbt-aware signals, metrics, rules, diagnostics, and recommendations
-  without rereading dbt artifacts.
-- This package does not invoke dbt commands.
+- normalized workspace/project/node/dependency inputs
+- namespaced `metadata.dbt`
+- structured adapter diagnostics
 
-## Architectural Boundary
+The extension is where dbt-specific governance meaning belongs:
 
-```text
-Adapter = discovery, loading, validation, normalization, metadata preservation.
-Extension = dbt-specific governance meaning.
-Runtime = TypeScript composition boundary.
-Host = dbt-native Python developer experience.
-```
+- rule evaluation
+- metrics
+- scores
+- recommendations
+- semantic interpretation of dbt metadata
 
-This package owns only the Adapter line. It must not depend on dbt extension,
-runtime, or host packages.
+## Handoff To governance-runtime-dbt
 
-## Non-Goals
+`@anarchitects/governance-runtime-dbt` should treat this adapter as the
+TypeScript composition boundary input source.
 
-- Implementing dbt rules, metrics, scores, or recommendations
-- Evaluating whether a dbt architecture is good or bad
-- Deciding governance meaning that belongs in an extension layer
-- Computing dbt-aware governance semantics inside the adapter
-- Inferring lineage from SQL or Jinja outside dbt manifest artifacts
-- Adding dependencies on `@anarchitects/governance-extension-dbt`
-- Adding dependencies on `@anarchitects/governance-runtime-dbt`
-- Adding dependencies on `@anarchitects/governance-host-dbt`
-- Implementing Python code
-- Invoking dbt commands
-- Adding npm runtime setup logic
+Expected runtime responsibilities:
+
+- construct explicit adapter input
+- call detection/loading/normalization in the right order
+- combine adapter output with extension behavior
+- coordinate reporting or workflow orchestration
+
+The runtime should not reinterpret raw artifact shapes that the adapter already
+translated into Core-compatible inputs.
+
+## Relationship To governance-host-dbt
+
+`@anarchitects/governance-host-dbt` is the dbt-native Python developer
+experience layer.
+
+Expected host responsibilities:
+
+- dbt command invocation when needed by the broader system
+- environment setup
+- credential and profile handling
+- local developer ergonomics
+- cross-language integration concerns
+
+This adapter does not own those concerns.
