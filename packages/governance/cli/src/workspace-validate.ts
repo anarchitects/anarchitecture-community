@@ -134,8 +134,9 @@ export async function runAgovWorkspaceValidate<TInput = unknown>(
     options.workspaceAdapter.id,
     adapterResult,
   );
+  const summary = buildAdapterSummary(workspace, diagnostics);
 
-  if (diagnostics.length > 0) {
+  if (summary.errorCount > 0) {
     return {
       command: 'workspace validate',
       success: false,
@@ -144,15 +145,7 @@ export async function runAgovWorkspaceValidate<TInput = unknown>(
         : {}),
       adapter: adapterMetadata,
       diagnostics,
-      summary: {
-        status: 'invalid',
-        workspaceName: workspace.name,
-        projectCount: workspace.projects.length,
-        dependencyCount: workspace.dependencies.length,
-        errorCount: 0,
-        diagnosticCount: diagnostics.length,
-        warningCount: countWarningDiagnostics(diagnostics),
-      },
+      summary,
     };
   }
 
@@ -164,7 +157,8 @@ export async function runAgovWorkspaceValidate<TInput = unknown>(
       : {}),
     adapter: adapterMetadata,
     workspace,
-    summary: buildValidSummary(workspace),
+    ...(diagnostics.length > 0 ? { diagnostics } : {}),
+    summary,
   };
 }
 
@@ -194,14 +188,49 @@ function buildValidSummary(
   };
 }
 
-function countWarningDiagnostics(diagnostics: GovernanceDiagnostic[]): number {
-  return diagnostics.filter((diagnostic) => {
-    const details = diagnostic.details as
-      | {
-          severity?: unknown;
-        }
-      | undefined;
+function buildAdapterSummary(
+  workspace: GovernanceWorkspace,
+  diagnostics: GovernanceDiagnostic[],
+): AgovWorkspaceValidateSummary {
+  const errorCount = countErrorDiagnostics(diagnostics);
 
-    return details?.severity === 'warning';
-  }).length;
+  return {
+    status: errorCount > 0 ? 'invalid' : 'valid',
+    workspaceName: workspace.name,
+    projectCount: workspace.projects.length,
+    dependencyCount: workspace.dependencies.length,
+    errorCount,
+    diagnosticCount: diagnostics.length,
+    warningCount: countWarningDiagnostics(diagnostics),
+  };
+}
+
+function getDiagnosticSeverity(
+  diagnostic: GovernanceDiagnostic,
+): GovernanceDiagnostic['severity'] | undefined {
+  if (typeof diagnostic.severity === 'string') {
+    return diagnostic.severity;
+  }
+
+  const details = diagnostic.details as
+    | {
+        severity?: unknown;
+      }
+    | undefined;
+
+  return typeof details?.severity === 'string' ? details.severity : undefined;
+}
+
+function isErrorDiagnostic(diagnostic: GovernanceDiagnostic): boolean {
+  return getDiagnosticSeverity(diagnostic) === 'error';
+}
+
+function countErrorDiagnostics(diagnostics: GovernanceDiagnostic[]): number {
+  return diagnostics.filter(isErrorDiagnostic).length;
+}
+
+function countWarningDiagnostics(diagnostics: GovernanceDiagnostic[]): number {
+  return diagnostics.filter(
+    (diagnostic) => getDiagnosticSeverity(diagnostic) === 'warning',
+  ).length;
 }
