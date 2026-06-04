@@ -58,6 +58,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@anarchitects/governance-extension-dbt@workspace:packages/governance/extension-dbt":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/governance-extension-dbt@workspace:packages/governance/extension-dbt"
+  dependencies:
+    "@anarchitects/governance-core": "npm:^0.1.1"
+  languageName: unknown
+  linkType: soft
+
 "@anarchitects/governance-extension-typescript@workspace:packages/governance/extension-typescript":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-extension-typescript@workspace:packages/governance/extension-typescript"

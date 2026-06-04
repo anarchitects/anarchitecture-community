@@ -1,0 +1,67 @@
+{
+  "name": "@anarchitects/governance-extension-dbt",
+  "version": "0.0.1",
+  "description": "dbt Governance extension package boundary for future governance interpretation over normalized adapter output.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/governance/extension-dbt"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/governance/extension-dbt#readme",
+  "keywords": [
+    "governance",
+    "dbt",
+    "extension"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@anarchitecture-community/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "nx": {
+    "name": "governance-extension-dbt",
+    "tags": [
+      "npm:public",
+      "npm:governance",
+      "npm:dbt",
+      "npm:extension",
+      "scope:governance",
+      "type:extension",
+      "platform:node",
+      "integration:dbt"
+    ],
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/governance/extension-dbt"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@anarchitects/governance-core": "^0.1.1"
+  }
+}

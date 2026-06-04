@@ -23,6 +23,9 @@
     },
     {
       "path": "./packages/governance/adapter-dbt"
+    },
+    {
+      "path": "./packages/governance/extension-dbt"
     }
   ]
 }
