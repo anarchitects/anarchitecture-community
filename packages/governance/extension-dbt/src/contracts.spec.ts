@@ -15,6 +15,7 @@ import {
   DBT_GOVERNANCE_DIAGNOSTIC_PROVIDER_CAPABILITY_PREFIX,
   DBT_GOVERNANCE_RECOMMENDATION_PROVIDER_CAPABILITY_PREFIX,
   createDbtGovernanceExtension,
+  dbtGovernanceDiagnosticsProvider,
   getDbtGovernanceDiagnosticProviders,
   getDbtGovernanceRecommendationProviders,
 } from './index.js';
@@ -171,6 +172,7 @@ describe('dbt Governance extension contracts', () => {
     };
 
     expect(getDbtGovernanceDiagnosticProviders(discoveryHost)).toEqual([
+      dbtGovernanceDiagnosticsProvider,
       diagnosticProvider,
     ]);
     expect(getDbtGovernanceRecommendationProviders(discoveryHost)).toEqual([

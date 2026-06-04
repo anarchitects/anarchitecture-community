@@ -73,6 +73,11 @@ providers are exposed through Core capability registration so a future
 `governance-runtime-dbt` can discover and execute them without requiring this
 package to depend on the runtime package.
 
+The default extension registration includes a built-in dbt diagnostics
+provider. Runtime packages should execute registered dbt diagnostic providers
+against normalized workspace data, dbt metadata resolver outputs, and the
+active governance profile.
+
 ## Input Expectations
 
 All dbt extension contracts consume normalized Governance workspace data from
@@ -108,6 +113,40 @@ governance-adapter-dbt
 This package defines registration and contracts only. It does not compose the
 runtime package, does not load adapter packages, and does not implement Python
 host behavior.
+
+## Diagnostics
+
+This package owns dbt extension diagnostics for governance interpretation
+quality over normalized adapter output. These diagnostics remain factual and
+traceable. They describe incomplete or invalid governance metadata, not
+architectural rule violations.
+
+Current MVP diagnostic codes:
+
+- `DBT_LAYER_UNRESOLVED`
+- `DBT_DOMAIN_UNRESOLVED`
+- `DBT_OWNER_MISSING`
+- `DBT_OWNER_INVALID`
+- `DBT_CRITICALITY_INVALID`
+- `DBT_PUBLIC_MARKER_INVALID`
+- `DBT_RULE_SKIPPED_MISSING_METADATA`
+- `DBT_GOVERNANCE_PROFILE_INVALID`
+
+Extension diagnostics own:
+
+- insufficient governance metadata
+- unsupported governance interpretation patterns
+- ambiguous domain or layer interpretation
+- invalid governance profile interpretation
+- skipped or partial governance analysis
+
+Extension diagnostics do not own:
+
+- missing or malformed dbt artifacts
+- unresolved artifact-derived dependencies
+- Node, npm, Python, dbt invocation, or environment setup failures
+- runtime package compatibility problems
+- governance rule violations
 
 ## Resolver Concepts
 
@@ -169,8 +208,9 @@ Current MVP resolver conventions:
 - contract presence from `metadata.dbt.validation.contract`
 
 These resolvers stay descriptive only. Missing metadata is not treated as a
-rule violation here, and invalid or ambiguous metadata is surfaced for later
-diagnostic, signal, rule, metric, and recommendation issues.
+rule violation here, and invalid or ambiguous metadata is surfaced for
+extension diagnostics and later signal, rule, metric, and recommendation
+issues.
 
 ## Non-Goals
 
@@ -181,7 +221,6 @@ diagnostic, signal, rule, metric, and recommendation issues.
 - Python host behavior
 - Running dbt commands
 - npm runtime setup
-- Concrete diagnostics
 - Concrete signals
 - Concrete rule packs
 - Concrete metrics
