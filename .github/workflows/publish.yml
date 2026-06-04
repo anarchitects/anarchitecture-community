@@ -1,12 +1,9 @@
 name: Publish
 
 on:
-  workflow_call:
-    inputs:
-      tag:
-        description: Release tag to publish, for example governance-core@1.2.3
-        required: true
-        type: string
+  release:
+    types:
+      - published
   workflow_dispatch:
     inputs:
       tag:
@@ -22,7 +19,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: publish-${{ inputs.tag }}
+  group: publish-${{ inputs.tag || github.event.release.tag_name }}
   cancel-in-progress: false
 
 jobs:
@@ -34,7 +31,7 @@ jobs:
         id: ref
         shell: bash
         run: |
-          ref_name='${{ inputs.tag }}'
+          ref_name='${{ inputs.tag || github.event.release.tag_name }}'
 
           if [ -z "$ref_name" ]; then
             echo "Unable to resolve a release tag from the event payload"
