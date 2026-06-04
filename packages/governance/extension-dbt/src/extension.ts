@@ -3,6 +3,12 @@ import type {
   GovernanceExtensionHost,
 } from '@anarchitects/governance-core';
 
+import type { DbtGovernanceExtensionContributions } from './contracts.js';
+import {
+  registerDbtGovernanceExtensionContributions,
+  type DbtGovernanceExtensionOptions,
+} from './contracts.js';
+
 export const DBT_GOVERNANCE_EXTENSION_ID = 'governance-extension:dbt';
 
 export interface DbtGovernanceExtensionMetadata {
@@ -36,18 +42,31 @@ export const dbtGovernanceExtension: GovernanceExtensionDefinition = {
   register: registerDbtGovernanceExtension,
 };
 
-export function createDbtGovernanceExtension(): GovernanceExtensionDefinition {
+export const governanceDbtExtension = dbtGovernanceExtension;
+
+export function createDbtGovernanceExtension(
+  options: DbtGovernanceExtensionOptions = {},
+): GovernanceExtensionDefinition {
+  if (!options.contributions && !options.version) {
+    return {
+      ...dbtGovernanceExtension,
+    };
+  }
+
   return {
-    ...dbtGovernanceExtension,
+    id: dbtGovernanceExtension.id,
+    name: dbtGovernanceExtension.name,
+    ...(options.version ? { version: options.version } : {}),
+    register: (host) =>
+      registerDbtGovernanceExtension(host, options.contributions),
   };
 }
 
 export function registerDbtGovernanceExtension(
   host: GovernanceExtensionHost,
+  contributions: DbtGovernanceExtensionContributions = {},
 ): void {
-  void host;
-  // #275 establishes the package boundary only. No dbt-specific contributions
-  // are registered until normalized adapter output interpretation is defined.
+  registerDbtGovernanceExtensionContributions(host, contributions);
 }
 
 export default dbtGovernanceExtension;
