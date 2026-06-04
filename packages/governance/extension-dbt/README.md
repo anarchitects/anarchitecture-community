@@ -109,6 +109,69 @@ This package defines registration and contracts only. It does not compose the
 runtime package, does not load adapter packages, and does not implement Python
 host behavior.
 
+## Resolver Concepts
+
+This package also exports pure metadata resolvers that interpret normalized
+Governance inventory metadata into dbt-specific extension concepts.
+
+Resolvers consume normalized governance inputs plus preserved `metadata.dbt`
+fields. They do not load dbt artifacts, parse manifests, run dbt commands, or
+evaluate rules.
+
+Resolver entrypoints:
+
+```ts
+import {
+  resolveDbtGovernanceMetadata,
+  resolveDbtLayer,
+  resolveDbtDomain,
+  resolveDbtOwner,
+  resolveDbtCriticality,
+  resolveDbtPublicInterface,
+} from '@anarchitects/governance-extension-dbt';
+```
+
+Resolver outputs distinguish:
+
+- `resolved`
+- `unresolved`
+- `invalid`
+- `ambiguous`
+
+Each resolution preserves traceability through the Governance node ID, dbt
+unique ID when available, and source metadata field paths.
+
+## Supported Conventions
+
+Current MVP resolver conventions:
+
+- layer from `project.layer`
+- layer from `metadata.dbt.resource.meta.layer`
+- layer from tags such as `layer:marts`
+- layer from path segments such as `models/staging`, `models/intermediate`,
+  `models/marts`
+- domain from `project.domain`
+- domain from `metadata.dbt.resource.meta.domain`
+- domain from path when explicitly enabled
+- owner from `project.ownership.team`
+- owner from `metadata.dbt.resource.owner`
+- owner from `metadata.dbt.resource.group`
+- owner from `metadata.dbt.resource.meta.owner`
+- criticality from `metadata.dbt.resource.meta.criticality`
+- public/governed interface markers from `metadata.dbt.resource.meta.public`
+  and `metadata.dbt.resource.meta.governed`
+- public/governed interface markers from tags such as `public`, `published`,
+  and `governed`
+- materialization category from `metadata.dbt.resource.materialization`
+- documentation presence from `metadata.dbt.documentation.description`,
+  `hasDescription`, and `hasDocs`
+- test presence from `metadata.dbt.validation.tests`
+- contract presence from `metadata.dbt.validation.contract`
+
+These resolvers stay descriptive only. Missing metadata is not treated as a
+rule violation here, and invalid or ambiguous metadata is surfaced for later
+diagnostic, signal, rule, metric, and recommendation issues.
+
 ## Non-Goals
 
 - Loading raw dbt artifacts
