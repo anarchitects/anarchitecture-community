@@ -11,6 +11,7 @@ export {
   DBT_GOVERNANCE_DIAGNOSTIC_PROVIDER_CAPABILITY_PREFIX,
   DBT_GOVERNANCE_RECOMMENDATION_PROVIDER_CAPABILITY_PREFIX,
   collectDbtGovernanceDiagnostics,
+  collectDbtGovernanceSignals,
   collectDbtGovernanceRecommendations,
   getDbtGovernanceDiagnosticProviders,
   getDbtGovernanceRecommendationProviders,
@@ -27,6 +28,7 @@ export {
   type DbtGovernanceRecommendationProvider,
   type DbtGovernanceRecommendationProviderInput,
   type DbtGovernanceRulePackInput,
+  type DbtGovernanceSignalProvider,
   type DbtGovernanceSignalProviderInput,
 } from './contracts.js';
 export {
@@ -40,6 +42,17 @@ export {
   type DbtGovernanceExtensionDiagnostic,
   type DbtGovernanceDiagnosticsProviderOptions,
 } from './diagnostics.js';
+export {
+  DBT_GOVERNANCE_SIGNAL_CODES,
+  DBT_GOVERNANCE_SIGNAL_SOURCE,
+  buildDbtGovernanceSignals,
+  createDbtGovernanceSignalProvider,
+  dbtGovernanceSignalProvider,
+  type DbtGovernanceExtensionSignal,
+  type DbtGovernanceSignalCode,
+  type DbtGovernanceSignalMetadata,
+  type DbtGovernanceSignalProviderOptions,
+} from './signals.js';
 export {
   DBT_METADATA_RESOLUTION_STATUSES,
   resolveDbtContractPresence,

@@ -9,6 +9,7 @@ import {
   createDbtGovernanceExtension,
   dbtGovernanceExtension,
   getDbtGovernanceDiagnosticProviders,
+  dbtGovernanceSignalProvider,
   dbtGovernanceExtensionMetadata,
   governanceDbtExtension,
 } from './index.js';
@@ -59,7 +60,7 @@ describe('dbt Governance extension', () => {
     });
   });
 
-  it('registers the built-in dbt diagnostics provider by default', async () => {
+  it('registers the built-in dbt diagnostics and signal providers by default', async () => {
     const result = await registerLoadedGovernanceExtensionsWithDiagnostics(
       context,
       [
@@ -73,7 +74,10 @@ describe('dbt Governance extension', () => {
 
     expect(result.diagnostics).toEqual([]);
     expect(result.registry.rulePacks).toEqual([]);
-    expect(result.registry.signalProviders).toEqual([]);
+    expect(result.registry.signalProviders).toHaveLength(1);
+    expect(result.registry.signalProviders[0]?.contribution).toBe(
+      dbtGovernanceSignalProvider,
+    );
     expect(result.registry.metricProviders).toEqual([]);
     expect(
       getDbtGovernanceDiagnosticProviders({
