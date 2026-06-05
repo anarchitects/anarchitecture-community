@@ -1,7 +1,7 @@
 {
   "name": "@anarchitecture-community/source",
   "version": "0.0.0",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "private": true,
   "scripts": {
     "validate:governance-packages": "yarn nx run @anarchitecture-community/source:validate-governance-release-gate"
