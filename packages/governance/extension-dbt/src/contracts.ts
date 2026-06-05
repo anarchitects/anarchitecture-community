@@ -38,7 +38,11 @@ export interface DbtGovernanceSignalProviderInput
   metadataResolutions?: readonly DbtGovernanceMetadataResolution[];
 }
 
-export type DbtGovernanceMetricProviderInput = GovernanceMetricProviderInput;
+export interface DbtGovernanceMetricProviderInput
+  extends GovernanceMetricProviderInput {
+  diagnostics?: readonly GovernanceDiagnostic[];
+  metadataResolutions?: readonly DbtGovernanceMetadataResolution[];
+}
 
 export interface DbtGovernanceDiagnosticProviderInput
   extends DbtGovernanceMetricProviderInput {
@@ -65,6 +69,13 @@ export interface DbtGovernanceSignalProvider {
   ): GovernanceSignal[] | Promise<GovernanceSignal[]>;
 }
 
+export interface DbtGovernanceMetricProvider {
+  id?: string;
+  provideMetrics(
+    input: DbtGovernanceMetricProviderInput,
+  ): Measurement[] | Promise<Measurement[]>;
+}
+
 export interface DbtGovernanceRecommendationProvider {
   id?: string;
   provideRecommendations(
@@ -86,7 +97,7 @@ export interface DbtGovernanceProviderCapabilityData<TProvider> {
 export interface DbtGovernanceExtensionContributions {
   rulePacks?: readonly GovernanceExtensionRulePack[];
   signalProviders?: readonly DbtGovernanceSignalProvider[];
-  metricProviders?: readonly GovernanceMetricProvider[];
+  metricProviders?: readonly DbtGovernanceMetricProvider[];
   diagnosticProviders?: readonly DbtGovernanceDiagnosticProvider[];
   recommendationProviders?: readonly DbtGovernanceRecommendationProvider[];
 }
@@ -192,6 +203,15 @@ export function collectDbtGovernanceSignals(
   ).then((results) => results.flat());
 }
 
+export function collectDbtGovernanceMeasurements(
+  providers: readonly DbtGovernanceMetricProvider[],
+  input: DbtGovernanceMetricProviderInput,
+): Promise<Measurement[]> {
+  return Promise.all(
+    providers.map((provider) => provider.provideMetrics(input)),
+  ).then((results) => results.flat());
+}
+
 export function collectDbtGovernanceRecommendations(
   providers: readonly DbtGovernanceRecommendationProvider[],
   input: DbtGovernanceRecommendationProviderInput,
@@ -248,6 +268,7 @@ export type {
   GovernanceExtensionDefinition,
   GovernanceExtensionRulePack,
   GovernanceMetricProvider,
+  GovernanceMetricProviderInput,
   GovernanceSignal,
   GovernanceSignalProvider,
   Measurement,

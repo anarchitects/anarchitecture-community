@@ -11,6 +11,7 @@ export {
   DBT_GOVERNANCE_DIAGNOSTIC_PROVIDER_CAPABILITY_PREFIX,
   DBT_GOVERNANCE_RECOMMENDATION_PROVIDER_CAPABILITY_PREFIX,
   collectDbtGovernanceDiagnostics,
+  collectDbtGovernanceMeasurements,
   collectDbtGovernanceSignals,
   collectDbtGovernanceRecommendations,
   getDbtGovernanceDiagnosticProviders,
@@ -23,6 +24,7 @@ export {
   type DbtGovernanceExtensionContributions,
   type DbtGovernanceExtensionInput,
   type DbtGovernanceExtensionOptions,
+  type DbtGovernanceMetricProvider,
   type DbtGovernanceMetricProviderInput,
   type DbtGovernanceProviderCapabilityData,
   type DbtGovernanceRecommendationProvider,
@@ -42,6 +44,15 @@ export {
   type DbtGovernanceExtensionDiagnostic,
   type DbtGovernanceDiagnosticsProviderOptions,
 } from './diagnostics.js';
+export {
+  DBT_GOVERNANCE_METRIC_IDS,
+  buildDbtGovernanceMetrics,
+  createDbtGovernanceMetricProvider,
+  dbtGovernanceMetricProvider,
+  type DbtGovernanceMeasurement,
+  type DbtGovernanceMetricId,
+  type DbtGovernanceMetricMetadata,
+} from './metrics.js';
 export {
   DBT_BASIC_ARCHITECTURE_RULE_PACK_ID,
   DBT_BASIC_ARCHITECTURE_RULE_IDS,

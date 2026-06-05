@@ -17,6 +17,7 @@ import {
   createDbtGovernanceExtension,
   dbtArchitectureBasicRulePack,
   dbtGovernanceDiagnosticsProvider,
+  dbtGovernanceMetricProvider,
   dbtGovernanceSignalProvider,
   getDbtGovernanceDiagnosticProviders,
   getDbtGovernanceRecommendationProviders,
@@ -73,7 +74,7 @@ describe('dbt Governance extension contracts', () => {
     expect(result.diagnostics).toEqual([]);
     expect(result.registry.rulePacks).toHaveLength(2);
     expect(result.registry.signalProviders).toHaveLength(2);
-    expect(result.registry.metricProviders).toHaveLength(1);
+    expect(result.registry.metricProviders).toHaveLength(2);
     expect(result.registry.rulePacks[0]?.contribution).toBe(
       dbtArchitectureBasicRulePack,
     );
@@ -85,6 +86,9 @@ describe('dbt Governance extension contracts', () => {
       signalProvider,
     );
     expect(result.registry.metricProviders[0]?.contribution).toBe(
+      dbtGovernanceMetricProvider,
+    );
+    expect(result.registry.metricProviders[1]?.contribution).toBe(
       metricProvider,
     );
   });

@@ -2,6 +2,7 @@ import {
   DefaultGovernanceCapabilityRegistry,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
+  type Ownership,
   type GovernanceWorkspace,
 } from '@anarchitects/governance-core';
 
@@ -12,6 +13,26 @@ import {
 } from './index.js';
 
 describe('dbt governance signals', () => {
+  type TestWorkspaceProject = {
+    id: string;
+    name: string;
+    root: string;
+    type: 'application' | 'library' | 'tool' | 'unknown';
+    tags: string[];
+    domain?: string;
+    layer?: string;
+    ownership?: Ownership;
+    metadata: Record<string, unknown>;
+  };
+
+  type TestWorkspaceDependency = {
+    source: string;
+    target: string;
+    type: 'static' | 'dynamic' | 'implicit' | 'unknown';
+    sourceFile?: string;
+    metadata?: Record<string, unknown>;
+  };
+
   function createProfile(
     overrides: Partial<GovernanceProfile> = {},
   ): GovernanceProfile {
@@ -52,8 +73,8 @@ describe('dbt governance signals', () => {
   }
 
   function createWorkspace(
-    projects: GovernanceWorkspace['projects'],
-    dependencies: GovernanceWorkspace['dependencies'] = [],
+    projects: TestWorkspaceProject[],
+    dependencies: TestWorkspaceDependency[] = [],
   ): GovernanceWorkspace {
     return {
       id: 'workspace',
@@ -91,7 +112,7 @@ describe('dbt governance signals', () => {
     description?: boolean;
     tests?: boolean;
     contract?: boolean;
-  }): GovernanceWorkspace['projects'][number] {
+  }): TestWorkspaceProject {
     return {
       id: options.id,
       name: options.id.split('.').at(-1) ?? options.id,

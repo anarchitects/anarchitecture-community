@@ -16,6 +16,22 @@ import {
 } from './index.js';
 
 describe('dbt governance diagnostics', () => {
+  type TestWorkspaceProject = {
+    id: string;
+    name: string;
+    root: string;
+    type: 'application' | 'library' | 'tool' | 'unknown';
+    tags: string[];
+    domain?: string;
+    layer?: string;
+    ownership?: {
+      team?: string;
+      contacts?: string[];
+      source: 'project-metadata' | 'codeowners' | 'merged' | 'none';
+    };
+    metadata: Record<string, unknown>;
+  };
+
   function createProfile(
     overrides: Partial<GovernanceProfile> = {},
   ): GovernanceProfile {
@@ -42,7 +58,7 @@ describe('dbt governance diagnostics', () => {
   }
 
   function createWorkspace(
-    projects: GovernanceWorkspace['projects'] = [],
+    projects: TestWorkspaceProject[] = [],
   ): GovernanceWorkspace {
     return {
       id: 'workspace',
