@@ -18,6 +18,7 @@ import {
   dbtArchitectureBasicRulePack,
   dbtGovernanceDiagnosticsProvider,
   dbtGovernanceMetricProvider,
+  dbtGovernanceRecommendationProvider,
   dbtGovernanceSignalProvider,
   getDbtGovernanceDiagnosticProviders,
   getDbtGovernanceRecommendationProviders,
@@ -188,6 +189,7 @@ describe('dbt Governance extension contracts', () => {
       diagnosticProvider,
     ]);
     expect(getDbtGovernanceRecommendationProviders(discoveryHost)).toEqual([
+      dbtGovernanceRecommendationProvider,
       recommendationProvider,
     ]);
   });

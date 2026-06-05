@@ -10,7 +10,9 @@ import {
   dbtArchitectureBasicRulePack,
   dbtGovernanceExtension,
   getDbtGovernanceDiagnosticProviders,
+  getDbtGovernanceRecommendationProviders,
   dbtGovernanceMetricProvider,
+  dbtGovernanceRecommendationProvider,
   dbtGovernanceSignalProvider,
   dbtGovernanceExtensionMetadata,
   governanceDbtExtension,
@@ -62,7 +64,7 @@ describe('dbt Governance extension', () => {
     });
   });
 
-  it('registers the built-in dbt rule pack, diagnostics, signal, and metric providers by default', async () => {
+  it('registers the built-in dbt rule pack, diagnostics, signal, metric, and recommendation providers by default', async () => {
     const result = await registerLoadedGovernanceExtensionsWithDiagnostics(
       context,
       [
@@ -96,6 +98,15 @@ describe('dbt Governance extension', () => {
         registerEnricher: () => undefined,
       }),
     ).toHaveLength(1);
+    expect(
+      getDbtGovernanceRecommendationProviders({
+        context,
+        registerRulePack: () => undefined,
+        registerSignalProvider: () => undefined,
+        registerMetricProvider: () => undefined,
+        registerEnricher: () => undefined,
+      }),
+    ).toEqual([dbtGovernanceRecommendationProvider]);
   });
 
   it('creates independent extension definitions for future hosts', () => {
