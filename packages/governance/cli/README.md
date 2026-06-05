@@ -208,4 +208,6 @@ Yes. `agov check` is intended for governance gate behavior and CI exit codes.
 
 ## License
 
-MIT
+Copyright © 2026 Optimalist BV and Anarchitects contributors.
+
+Licensed under the Apache License, Version 2.0. See the repository [LICENSE](../../../LICENSE) and [NOTICE](../../../NOTICE) files.

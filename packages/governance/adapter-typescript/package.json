@@ -2,7 +2,7 @@
   "name": "@anarchitects/governance-adapter-typescript",
   "version": "0.2.0",
   "description": "Platform-independent Governance TypeScript workspace adapter that normalizes discovery into Governance Core contracts.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

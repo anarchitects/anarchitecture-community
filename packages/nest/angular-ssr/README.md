@@ -261,3 +261,9 @@ v1 intentionally does not do the following:
 - recreate legacy Universal APIs exactly
 
 This package is intentionally scoped to modern Angular SSR on Nest + Fastify.
+
+## License
+
+Copyright © 2026 Optimalist BV and Anarchitects contributors.
+
+Licensed under the Apache License, Version 2.0. See the repository [LICENSE](../../../LICENSE) and [NOTICE](../../../NOTICE) files.

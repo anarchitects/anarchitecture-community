@@ -2,7 +2,7 @@
   "name": "@anarchitects/governance-adapter-dbt",
   "version": "0.0.1",
   "description": "dbt Governance adapter package boundary for future discovery, loading, validation, normalization, and metadata preservation.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

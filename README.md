@@ -188,7 +188,7 @@ This repo complements, but does not replace, the main Bricks monorepo.
 General split:
 
 - core domain bricks and app-facing contracts:
-  -live in the main Bricks repo
+  - live in the main Bricks repo
 - community integrations and extracted adapters:
   - live here
 
@@ -202,4 +202,6 @@ APIs are expected to evolve quickly until the first stable package contracts are
 
 ## License
 
-MIT
+Copyright © 2026 Optimalist BV and Anarchitects contributors.
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

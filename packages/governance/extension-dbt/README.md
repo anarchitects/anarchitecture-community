@@ -682,3 +682,9 @@ Responsibilities by package family:
 
 The runtime should load this package through its public exports. The host
 should call the runtime, not this package’s provider helpers directly.
+
+## License
+
+Copyright © 2026 Optimalist BV and Anarchitects contributors.
+
+Licensed under the Apache License, Version 2.0. See the repository [LICENSE](../../../LICENSE) and [NOTICE](../../../NOTICE) files.
