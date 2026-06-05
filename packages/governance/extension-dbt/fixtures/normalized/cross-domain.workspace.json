@@ -1,0 +1,111 @@
+{
+  "id": "dbt-fixture-cross-domain",
+  "name": "dbt Fixture Cross Domain",
+  "root": "/virtual/dbt/cross-domain",
+  "projects": [
+    {
+      "id": "model.cross_domain.finance_intermediate_orders",
+      "name": "finance_intermediate_orders",
+      "root": "models/intermediate/finance_intermediate_orders.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "finance",
+      "layer": "intermediate",
+      "ownership": {
+        "team": "finance-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.cross_domain.finance_intermediate_orders",
+            "resourceType": "model",
+            "packageName": "cross_domain",
+            "resourceName": "finance_intermediate_orders"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "finance",
+              "layer": "intermediate"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/intermediate/finance_intermediate_orders.sql"
+          },
+          "validation": {
+            "tests": ["not_null:order_id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Finance orders intermediate.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.cross_domain.sales_orders_mart",
+      "name": "sales_orders_mart",
+      "root": "models/marts/sales_orders_mart.sql",
+      "type": "library",
+      "tags": ["public"],
+      "domain": "sales",
+      "layer": "marts",
+      "ownership": {
+        "team": "sales-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.cross_domain.sales_orders_mart",
+            "resourceType": "model",
+            "packageName": "cross_domain",
+            "resourceName": "sales_orders_mart"
+          },
+          "resource": {
+            "tags": ["public"],
+            "owner": {
+              "name": "sales-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "sales",
+              "layer": "marts",
+              "public": true
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/sales_orders_mart.sql"
+          },
+          "validation": {
+            "tests": ["not_null:order_id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Sales orders mart.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "model.cross_domain.sales_orders_mart",
+      "target": "model.cross_domain.finance_intermediate_orders",
+      "type": "static"
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "id": "dbt-fixture-simple-valid",
+  "name": "dbt Fixture Simple Valid",
+  "root": "/virtual/dbt/simple-valid",
+  "projects": [
+    {
+      "id": "source.simple_valid.raw.orders",
+      "name": "raw_orders",
+      "root": "models/sources/raw_orders.yml",
+      "type": "tool",
+      "tags": ["layer:staging"],
+      "domain": "finance",
+      "layer": "staging",
+      "ownership": {
+        "team": "finance-analytics",
+        "contacts": ["@finance-analytics"],
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "source.simple_valid.raw.orders",
+            "resourceType": "source",
+            "packageName": "simple_valid",
+            "resourceName": "orders"
+          },
+          "resource": {
+            "tags": ["layer:staging"],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "finance",
+              "layer": "staging"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/sources/raw_orders.yml"
+          },
+          "validation": {
+            "tests": ["freshness:loaded_at_field"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Raw orders source.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.simple_valid.stg_orders",
+      "name": "stg_orders",
+      "root": "models/staging/stg_orders.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "finance",
+      "layer": "staging",
+      "ownership": {
+        "team": "finance-analytics",
+        "contacts": ["@finance-analytics"],
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.simple_valid.stg_orders",
+            "resourceType": "model",
+            "packageName": "simple_valid",
+            "resourceName": "stg_orders"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "finance",
+              "layer": "staging"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/staging/stg_orders.sql"
+          },
+          "validation": {
+            "tests": ["not_null:order_id", "unique:order_id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Staging orders model.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.simple_valid.orders_mart",
+      "name": "orders_mart",
+      "root": "models/marts/orders_mart.sql",
+      "type": "library",
+      "tags": ["public"],
+      "domain": "finance",
+      "layer": "marts",
+      "ownership": {
+        "team": "finance-analytics",
+        "contacts": ["@finance-analytics"],
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.simple_valid.orders_mart",
+            "resourceType": "model",
+            "packageName": "simple_valid",
+            "resourceName": "orders_mart"
+          },
+          "resource": {
+            "tags": ["public"],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "finance",
+              "layer": "marts",
+              "criticality": "high",
+              "public": true
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/orders_mart.sql"
+          },
+          "validation": {
+            "tests": ["not_null:order_id", "relationships:stg_orders"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Public orders mart.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "model.simple_valid.stg_orders",
+      "target": "source.simple_valid.raw.orders",
+      "type": "static"
+    }
+  ]
+}

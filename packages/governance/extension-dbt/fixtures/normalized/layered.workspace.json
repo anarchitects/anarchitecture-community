@@ -1,0 +1,220 @@
+{
+  "id": "dbt-fixture-layered",
+  "name": "dbt Fixture Layered",
+  "root": "/virtual/dbt/layered",
+  "projects": [
+    {
+      "id": "source.layered.raw.customers",
+      "name": "raw_customers",
+      "root": "models/sources/raw_customers.yml",
+      "type": "tool",
+      "tags": ["layer:staging"],
+      "domain": "customer",
+      "layer": "staging",
+      "ownership": {
+        "team": "customer-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "source.layered.raw.customers",
+            "resourceType": "source",
+            "packageName": "layered",
+            "resourceName": "customers"
+          },
+          "resource": {
+            "tags": ["layer:staging"],
+            "owner": {
+              "name": "customer-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "customer",
+              "layer": "staging"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/sources/raw_customers.yml"
+          },
+          "validation": {
+            "tests": ["freshness:loaded_at_field"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Raw customers source.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.layered.stg_customers",
+      "name": "stg_customers",
+      "root": "models/staging/stg_customers.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "customer",
+      "layer": "staging",
+      "ownership": {
+        "team": "customer-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.layered.stg_customers",
+            "resourceType": "model",
+            "packageName": "layered",
+            "resourceName": "stg_customers"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "customer-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "customer",
+              "layer": "staging"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/staging/stg_customers.sql"
+          },
+          "validation": {
+            "tests": ["not_null:customer_id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Staging customers.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.layered.int_customer_orders",
+      "name": "int_customer_orders",
+      "root": "models/intermediate/int_customer_orders.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "customer",
+      "layer": "intermediate",
+      "ownership": {
+        "team": "customer-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.layered.int_customer_orders",
+            "resourceType": "model",
+            "packageName": "layered",
+            "resourceName": "int_customer_orders"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "customer-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "customer",
+              "layer": "intermediate"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/intermediate/int_customer_orders.sql"
+          },
+          "validation": {
+            "tests": ["not_null:customer_id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Intermediate customer orders.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.layered.customer_orders_mart",
+      "name": "customer_orders_mart",
+      "root": "models/marts/customer_orders_mart.sql",
+      "type": "library",
+      "tags": ["public"],
+      "domain": "customer",
+      "layer": "marts",
+      "ownership": {
+        "team": "customer-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.layered.customer_orders_mart",
+            "resourceType": "model",
+            "packageName": "layered",
+            "resourceName": "customer_orders_mart"
+          },
+          "resource": {
+            "tags": ["public"],
+            "owner": {
+              "name": "customer-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "customer",
+              "layer": "marts",
+              "public": true
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/customer_orders_mart.sql"
+          },
+          "validation": {
+            "tests": [
+              "not_null:customer_id",
+              "relationships:int_customer_orders"
+            ],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Customer orders mart.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "model.layered.stg_customers",
+      "target": "source.layered.raw.customers",
+      "type": "static"
+    },
+    {
+      "source": "model.layered.int_customer_orders",
+      "target": "model.layered.stg_customers",
+      "type": "static"
+    },
+    {
+      "source": "model.layered.customer_orders_mart",
+      "target": "model.layered.int_customer_orders",
+      "type": "static"
+    }
+  ]
+}

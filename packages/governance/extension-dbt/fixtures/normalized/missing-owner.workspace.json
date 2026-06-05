@@ -1,0 +1,51 @@
+{
+  "id": "dbt-fixture-missing-owner",
+  "name": "dbt Fixture Missing Owner",
+  "root": "/virtual/dbt/missing-owner",
+  "projects": [
+    {
+      "id": "model.missing_owner.customer_mart",
+      "name": "customer_mart",
+      "root": "models/marts/customer_mart.sql",
+      "type": "library",
+      "tags": ["public"],
+      "domain": "customer",
+      "layer": "marts",
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.missing_owner.customer_mart",
+            "resourceType": "model",
+            "packageName": "missing_owner",
+            "resourceName": "customer_mart"
+          },
+          "resource": {
+            "tags": ["public"],
+            "materialization": "table",
+            "meta": {
+              "domain": "customer",
+              "layer": "marts",
+              "criticality": "high",
+              "public": true
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/customer_mart.sql"
+          },
+          "validation": {
+            "tests": ["not_null:customer_id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Customer mart without owner.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    }
+  ],
+  "dependencies": []
+}

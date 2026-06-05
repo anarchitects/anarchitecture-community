@@ -1,0 +1,56 @@
+{
+  "id": "dbt-fixture-missing-docs-tests-contracts",
+  "name": "dbt Fixture Missing Docs Tests Contracts",
+  "root": "/virtual/dbt/missing-docs-tests-contracts",
+  "projects": [
+    {
+      "id": "model.missing_quality.customer_mart",
+      "name": "customer_mart",
+      "root": "models/marts/customer_mart.sql",
+      "type": "library",
+      "tags": ["public"],
+      "domain": "customer",
+      "layer": "marts",
+      "ownership": {
+        "team": "customer-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.missing_quality.customer_mart",
+            "resourceType": "model",
+            "packageName": "missing_quality",
+            "resourceName": "customer_mart"
+          },
+          "resource": {
+            "tags": ["public"],
+            "owner": {
+              "name": "customer-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "customer",
+              "layer": "marts",
+              "criticality": "high",
+              "public": true
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/customer_mart.sql"
+          },
+          "validation": {
+            "tests": [],
+            "contract": false
+          },
+          "documentation": {
+            "description": "",
+            "hasDescription": false,
+            "hasDocs": false
+          }
+        }
+      }
+    }
+  ],
+  "dependencies": []
+}

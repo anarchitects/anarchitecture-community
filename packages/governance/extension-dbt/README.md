@@ -20,6 +20,7 @@ Parent epic: `#144`
 - Package root: `packages/governance/extension-dbt`
 - Nx project name: `governance-extension-dbt`
 - npm package name: `@anarchitects/governance-extension-dbt`
+- normalized fixtures: `packages/governance/extension-dbt/fixtures/normalized`
 
 ## Local Commands
 
@@ -36,6 +37,11 @@ yarn nx build governance-extension-dbt
 yarn nx test governance-extension-dbt
 yarn nx lint governance-extension-dbt
 ```
+
+Curated normalized dbt workspace fixtures live under
+`packages/governance/extension-dbt/fixtures/normalized`. They are deterministic
+`GovernanceWorkspace` JSON fixtures with preserved `metadata.dbt` and do not
+require dbt, adapter execution, runtime composition, or host behavior.
 
 ## Boundary
 
