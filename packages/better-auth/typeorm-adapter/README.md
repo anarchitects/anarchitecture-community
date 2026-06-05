@@ -363,3 +363,9 @@ The current v1 boundary is intentionally narrow:
 - framework wrappers remain host-repo concerns
 
 The package is intended to be externally usable without private repo knowledge, but it is still intentionally strict about ownership boundaries.
+
+## License
+
+Copyright © 2026 Optimalist BV and Anarchitects contributors.
+
+Licensed under the Apache License, Version 2.0. See the repository [LICENSE](../../../LICENSE) and [NOTICE](../../../NOTICE) files.

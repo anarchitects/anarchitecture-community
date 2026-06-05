@@ -2,7 +2,7 @@
   "name": "@anarchitects/governance-extension-typescript",
   "version": "0.0.2",
   "description": "TypeScript-specific Governance extension package boundary for future rules, metrics, recommendations, and enrichers.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

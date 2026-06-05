@@ -2,7 +2,7 @@
   "name": "@anarchitects/better-auth-typeorm-adapter",
   "version": "0.1.0",
   "description": "Framework-neutral Better Auth database adapter infrastructure for TypeORM.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

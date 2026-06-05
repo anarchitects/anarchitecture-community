@@ -2,7 +2,7 @@
   "name": "@anarchitects/governance-extension-dbt",
   "version": "0.0.1",
   "description": "dbt Governance extension package boundary for future governance interpretation over normalized adapter output.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
