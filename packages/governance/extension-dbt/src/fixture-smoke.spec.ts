@@ -86,9 +86,9 @@ describe('dbt extension fixture smoke coverage', () => {
       capabilities: {
         register: () => undefined,
         add: () => undefined,
+        get: () => undefined,
         list: () => [],
         has: () => false,
-        require: () => undefined,
       },
     };
   }
