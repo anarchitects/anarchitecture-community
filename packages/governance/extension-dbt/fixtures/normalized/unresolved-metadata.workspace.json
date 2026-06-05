@@ -1,0 +1,51 @@
+{
+  "id": "dbt-fixture-unresolved-metadata",
+  "name": "dbt Fixture Unresolved Metadata",
+  "root": "/virtual/dbt/unresolved-metadata",
+  "projects": [
+    {
+      "id": "model.unresolved_metadata.orphan_model",
+      "name": "orphan_model",
+      "root": "models/unknown/orphan_model.sql",
+      "type": "library",
+      "tags": [],
+      "ownership": {
+        "team": "platform-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.unresolved_metadata.orphan_model",
+            "resourceType": "model",
+            "packageName": "unresolved_metadata",
+            "resourceName": "orphan_model"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "platform-analytics"
+            },
+            "materialization": "view",
+            "meta": {}
+          },
+          "relation": {
+            "originalFilePath": "models/unknown/orphan_model.sql"
+          },
+          "validation": {
+            "tests": ["not_null:id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Model with unresolved layer and domain.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    }
+  ],
+  "dependencies": []
+}

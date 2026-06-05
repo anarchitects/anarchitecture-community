@@ -1,0 +1,375 @@
+{
+  "id": "dbt-fixture-hotspot",
+  "name": "dbt Fixture Hotspot",
+  "root": "/virtual/dbt/hotspot",
+  "projects": [
+    {
+      "id": "model.hotspot.feed_a",
+      "name": "feed_a",
+      "root": "models/staging/feed_a.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "finance",
+      "layer": "staging",
+      "ownership": {
+        "team": "finance-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.hotspot.feed_a",
+            "resourceType": "model",
+            "packageName": "hotspot",
+            "resourceName": "feed_a"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "finance",
+              "layer": "staging"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/staging/feed_a.sql"
+          },
+          "validation": {
+            "tests": ["not_null:id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Hotspot feeder A.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.hotspot.feed_b",
+      "name": "feed_b",
+      "root": "models/staging/feed_b.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "finance",
+      "layer": "staging",
+      "ownership": {
+        "team": "finance-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.hotspot.feed_b",
+            "resourceType": "model",
+            "packageName": "hotspot",
+            "resourceName": "feed_b"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "finance",
+              "layer": "staging"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/staging/feed_b.sql"
+          },
+          "validation": {
+            "tests": ["not_null:id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Hotspot feeder B.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.hotspot.feed_c",
+      "name": "feed_c",
+      "root": "models/staging/feed_c.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "finance",
+      "layer": "staging",
+      "ownership": {
+        "team": "finance-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.hotspot.feed_c",
+            "resourceType": "model",
+            "packageName": "hotspot",
+            "resourceName": "feed_c"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "finance",
+              "layer": "staging"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/staging/feed_c.sql"
+          },
+          "validation": {
+            "tests": ["not_null:id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Hotspot feeder C.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.hotspot.shared_hub",
+      "name": "shared_hub",
+      "root": "models/intermediate/shared_hub.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "finance",
+      "layer": "intermediate",
+      "ownership": {
+        "team": "finance-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.hotspot.shared_hub",
+            "resourceType": "model",
+            "packageName": "hotspot",
+            "resourceName": "shared_hub"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "finance",
+              "layer": "intermediate"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/intermediate/shared_hub.sql"
+          },
+          "validation": {
+            "tests": ["not_null:id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Shared hotspot hub.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.hotspot.consumer_a",
+      "name": "consumer_a",
+      "root": "models/marts/consumer_a.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "finance",
+      "layer": "marts",
+      "ownership": {
+        "team": "finance-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.hotspot.consumer_a",
+            "resourceType": "model",
+            "packageName": "hotspot",
+            "resourceName": "consumer_a"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "finance",
+              "layer": "marts"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/consumer_a.sql"
+          },
+          "validation": {
+            "tests": ["not_null:id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Hotspot consumer A.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.hotspot.consumer_b",
+      "name": "consumer_b",
+      "root": "models/marts/consumer_b.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "finance",
+      "layer": "marts",
+      "ownership": {
+        "team": "finance-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.hotspot.consumer_b",
+            "resourceType": "model",
+            "packageName": "hotspot",
+            "resourceName": "consumer_b"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "finance",
+              "layer": "marts"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/consumer_b.sql"
+          },
+          "validation": {
+            "tests": ["not_null:id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Hotspot consumer B.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.hotspot.consumer_c",
+      "name": "consumer_c",
+      "root": "models/marts/consumer_c.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "finance",
+      "layer": "marts",
+      "ownership": {
+        "team": "finance-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.hotspot.consumer_c",
+            "resourceType": "model",
+            "packageName": "hotspot",
+            "resourceName": "consumer_c"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "finance-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "finance",
+              "layer": "marts"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/consumer_c.sql"
+          },
+          "validation": {
+            "tests": ["not_null:id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Hotspot consumer C.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "model.hotspot.feed_a",
+      "target": "model.hotspot.shared_hub",
+      "type": "static"
+    },
+    {
+      "source": "model.hotspot.feed_b",
+      "target": "model.hotspot.shared_hub",
+      "type": "static"
+    },
+    {
+      "source": "model.hotspot.feed_c",
+      "target": "model.hotspot.shared_hub",
+      "type": "static"
+    },
+    {
+      "source": "model.hotspot.shared_hub",
+      "target": "model.hotspot.consumer_a",
+      "type": "static"
+    },
+    {
+      "source": "model.hotspot.shared_hub",
+      "target": "model.hotspot.consumer_b",
+      "type": "static"
+    },
+    {
+      "source": "model.hotspot.shared_hub",
+      "target": "model.hotspot.consumer_c",
+      "type": "static"
+    }
+  ]
+}

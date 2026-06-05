@@ -1,0 +1,161 @@
+{
+  "id": "dbt-fixture-public-critical",
+  "name": "dbt Fixture Public Critical",
+  "root": "/virtual/dbt/public-critical",
+  "projects": [
+    {
+      "id": "model.public_critical.customer_public_mart",
+      "name": "customer_public_mart",
+      "root": "models/marts/customer_public_mart.sql",
+      "type": "library",
+      "tags": ["public"],
+      "domain": "customer",
+      "layer": "marts",
+      "ownership": {
+        "team": "customer-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.public_critical.customer_public_mart",
+            "resourceType": "model",
+            "packageName": "public_critical",
+            "resourceName": "customer_public_mart"
+          },
+          "resource": {
+            "tags": ["public"],
+            "owner": {
+              "name": "customer-analytics"
+            },
+            "materialization": "table",
+            "meta": {
+              "domain": "customer",
+              "layer": "marts",
+              "criticality": "high",
+              "public": true
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/customer_public_mart.sql"
+          },
+          "validation": {
+            "tests": ["not_null:customer_id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Public critical customer mart.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.public_critical.customer_critical_missing_tests",
+      "name": "customer_critical_missing_tests",
+      "root": "models/intermediate/customer_critical_missing_tests.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "customer",
+      "layer": "intermediate",
+      "ownership": {
+        "team": "customer-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.public_critical.customer_critical_missing_tests",
+            "resourceType": "model",
+            "packageName": "public_critical",
+            "resourceName": "customer_critical_missing_tests"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "customer-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "customer",
+              "layer": "intermediate",
+              "criticality": "high"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/intermediate/customer_critical_missing_tests.sql"
+          },
+          "validation": {
+            "tests": [],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Critical model missing tests.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    },
+    {
+      "id": "model.public_critical.customer_staging_bad",
+      "name": "customer_staging_bad",
+      "root": "models/staging/customer_staging_bad.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "customer",
+      "layer": "staging",
+      "ownership": {
+        "team": "customer-analytics",
+        "source": "project-metadata"
+      },
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.public_critical.customer_staging_bad",
+            "resourceType": "model",
+            "packageName": "public_critical",
+            "resourceName": "customer_staging_bad"
+          },
+          "resource": {
+            "tags": [],
+            "owner": {
+              "name": "customer-analytics"
+            },
+            "materialization": "view",
+            "meta": {
+              "domain": "customer",
+              "layer": "staging"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/staging/customer_staging_bad.sql"
+          },
+          "validation": {
+            "tests": ["not_null:customer_id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Staging model with a bad layer dependency.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "model.public_critical.customer_staging_bad",
+      "target": "model.public_critical.customer_public_mart",
+      "type": "static"
+    }
+  ]
+}

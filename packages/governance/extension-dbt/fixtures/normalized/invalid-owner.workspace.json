@@ -1,0 +1,50 @@
+{
+  "id": "dbt-fixture-invalid-owner",
+  "name": "dbt Fixture Invalid Owner",
+  "root": "/virtual/dbt/invalid-owner",
+  "projects": [
+    {
+      "id": "model.invalid_owner.customer_mart",
+      "name": "customer_mart",
+      "root": "models/marts/customer_mart.sql",
+      "type": "library",
+      "tags": [],
+      "domain": "customer",
+      "layer": "marts",
+      "metadata": {
+        "dbt": {
+          "identity": {
+            "uniqueId": "model.invalid_owner.customer_mart",
+            "resourceType": "model",
+            "packageName": "invalid_owner",
+            "resourceName": "customer_mart"
+          },
+          "resource": {
+            "tags": [],
+            "owner": 42,
+            "materialization": "table",
+            "meta": {
+              "domain": "customer",
+              "layer": "marts"
+            }
+          },
+          "relation": {
+            "originalFilePath": "models/marts/customer_mart.sql"
+          },
+          "validation": {
+            "tests": ["not_null:customer_id"],
+            "contract": {
+              "enforced": true
+            }
+          },
+          "documentation": {
+            "description": "Customer mart with invalid owner shape.",
+            "hasDescription": true,
+            "hasDocs": true
+          }
+        }
+      }
+    }
+  ],
+  "dependencies": []
+}
