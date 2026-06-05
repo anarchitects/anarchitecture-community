@@ -74,11 +74,12 @@ providers are exposed through Core capability registration so a future
 package to depend on the runtime package.
 
 The default extension registration includes a built-in dbt diagnostics
-provider, a built-in dbt signal provider, a built-in dbt metric provider, and
-a built-in dbt architecture rule pack. Runtime packages should execute
-registered dbt diagnostic providers, signal providers, metric providers, and
-rule packs against normalized workspace data, dbt metadata resolver outputs,
-and the active governance profile.
+provider, a built-in dbt signal provider, a built-in dbt metric provider, a
+built-in dbt recommendation provider, and a built-in dbt architecture rule
+pack. Runtime packages should execute registered dbt diagnostic providers,
+signal providers, metric providers, recommendation providers, and rule packs
+against normalized workspace data, dbt metadata resolver outputs, and the
+active governance profile.
 
 ## Input Expectations
 
@@ -301,6 +302,71 @@ Example raw count metric:
 }
 ```
 
+## Recommendations
+
+This package also exports the built-in dbt recommendation provider:
+
+- export: `dbtGovernanceRecommendationProvider`
+- factory: `createDbtGovernanceRecommendationProvider(...)`
+- builder: `buildDbtGovernanceRecommendations(...)`
+
+The recommendation provider is deterministic and template-based. It consumes
+existing extension diagnostics, signals, rule violations, and metrics. It does
+not implement AI generation, artifact loading, or new governance inference.
+
+Current MVP recommendation codes:
+
+- `ADD_OWNER`
+- `ADD_DESCRIPTION`
+- `ADD_TESTS`
+- `ENABLE_CONTRACT`
+- `REVIEW_CROSS_DOMAIN_DEPENDENCY`
+- `REDUCE_HIGH_FAN_IN`
+- `FIX_LAYER_DEPENDENCY`
+
+Trigger mapping:
+
+- `ADD_OWNER` from owner-missing diagnostics, owner-missing signals, or
+  `dbt/critical-models-require-owner` violations
+- `ADD_DESCRIPTION` from description-missing signals or
+  `dbt/public-models-require-description` violations
+- `ADD_TESTS` from missing-tests signals or
+  `dbt/critical-models-require-tests` violations
+- `ENABLE_CONTRACT` from missing-contract signals or
+  `dbt/public-models-require-contract` violations
+- `REVIEW_CROSS_DOMAIN_DEPENDENCY` from cross-domain dependency signals or
+  `dbt/cross-domain-dependencies-require-approval` violations
+- `REDUCE_HIGH_FAN_IN` from high fan-in or hotspot signals, with hotspot
+  metric linkage when available
+- `FIX_LAYER_DEPENDENCY` from layer-bypass signals or
+  `dbt/no-disallowed-layer-dependency` violations
+
+Recommendations are deduplicated by recommendation code plus target identity,
+then merged so related diagnostic ids, signal ids, violation ids, and
+measurement ids stay attached to a single output.
+
+Example recommendation shape:
+
+```json
+{
+  "id": "dbt-recommendation-2f77f2a4f5cbdab7",
+  "title": "Enable dbt contract",
+  "priority": "high",
+  "reason": "A public/governed dbt model is missing an enforced contract.",
+  "description": "Enable and define a dbt contract for the public/governed model so downstream interfaces stay explicit.",
+  "reference": {
+    "nodeId": "model.analytics.orders",
+    "projectId": "model.analytics.orders",
+    "relatedProjectIds": ["model.analytics.orders"]
+  },
+  "metadata": {
+    "code": "ENABLE_CONTRACT",
+    "dbtUniqueId": "model.analytics.orders",
+    "triggerSignalCodes": ["DBT_CONTRACT_MISSING_FOR_PUBLIC_MODEL_CANDIDATE"]
+  }
+}
+```
+
 Minimal profile-driven config uses `profile.rules[ruleId].options`. Current
 options are:
 
@@ -417,8 +483,6 @@ issues.
 - Python host behavior
 - Running dbt commands
 - npm runtime setup
-- Concrete metrics
-- Concrete recommendations
 - Depending on `@anarchitects/governance-adapter-dbt`
 - Depending on `@anarchitects/governance-runtime-dbt`
 - Depending on `@anarchitects/governance-host-dbt`

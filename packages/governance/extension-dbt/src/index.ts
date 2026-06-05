@@ -54,6 +54,15 @@ export {
   type DbtGovernanceMetricMetadata,
 } from './metrics.js';
 export {
+  DBT_GOVERNANCE_RECOMMENDATION_CODES,
+  buildDbtGovernanceRecommendations,
+  createDbtGovernanceRecommendationProvider,
+  dbtGovernanceRecommendationProvider,
+  type DbtGovernanceExtensionRecommendation,
+  type DbtGovernanceRecommendationCode,
+  type DbtGovernanceRecommendationMetadata,
+} from './recommendations.js';
+export {
   DBT_BASIC_ARCHITECTURE_RULE_PACK_ID,
   DBT_BASIC_ARCHITECTURE_RULE_IDS,
   createDbtArchitectureBasicRulePack,
