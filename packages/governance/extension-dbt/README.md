@@ -74,10 +74,11 @@ providers are exposed through Core capability registration so a future
 package to depend on the runtime package.
 
 The default extension registration includes a built-in dbt diagnostics
-provider, a built-in dbt signal provider, and a built-in dbt architecture rule
-pack. Runtime packages should execute registered dbt diagnostic providers,
-signal providers, and rule packs against normalized workspace data, dbt
-metadata resolver outputs, and the active governance profile.
+provider, a built-in dbt signal provider, a built-in dbt metric provider, and
+a built-in dbt architecture rule pack. Runtime packages should execute
+registered dbt diagnostic providers, signal providers, metric providers, and
+rule packs against normalized workspace data, dbt metadata resolver outputs,
+and the active governance profile.
 
 ## Input Expectations
 
@@ -223,6 +224,82 @@ These rules consume normalized workspace data plus dbt resolver output,
 extension diagnostics, and dbt signals. The extension contract returns only
 violations, so pass means `no violation emitted` and metadata-driven skips are
 explained through diagnostics instead of a separate skip result object.
+
+## Metrics
+
+This package also exports the built-in dbt raw metric provider:
+
+- export: `dbtGovernanceMetricProvider`
+- factory: `createDbtGovernanceMetricProvider(...)`
+- builder: `buildDbtGovernanceMetrics(...)`
+
+The metric provider consumes normalized workspace input, dbt resolver output,
+extension diagnostics, dbt signals, and rule results. It prefers raw counts
+and ratios over calibrated scores in the MVP.
+
+Current MVP metric IDs:
+
+- `dbt-model-count`
+- `dbt-dependency-count`
+- `dbt-cross-domain-dependency-count`
+- `dbt-layer-violation-count`
+- `dbt-ownership-completeness-ratio`
+- `dbt-documentation-coverage-ratio`
+- `dbt-test-coverage-ratio`
+- `dbt-contract-adoption-ratio`
+- `dbt-hotspot-count`
+- `dbt-unresolved-layer-count`
+- `dbt-unresolved-domain-count`
+
+Metric behavior:
+
+- `dbt-model-count` counts normalized dbt model resources and excludes sources,
+  seeds, and snapshots.
+- `dbt-dependency-count` counts normalized model-to-model dependencies relevant
+  to dbt governance.
+- `dbt-cross-domain-dependency-count` prefers cross-domain dependency signals
+  and otherwise derives the count from resolved domain metadata.
+- `dbt-layer-violation-count` prefers rule results and counts
+  `dbt/no-disallowed-layer-dependency` violations.
+- coverage/adoption ratios count resources with resolved metadata over the
+  total eligible model resource set.
+- `dbt-hotspot-count` counts unique resources flagged by high fan-in, high
+  fan-out, or hotspot candidate signals.
+- unresolved counts come from resolver output and remain traceable to matching
+  extension diagnostics.
+
+Ratio metrics handle denominator `0` explicitly and consistently:
+
+```json
+{
+  "id": "dbt-documentation-coverage-ratio",
+  "value": 0,
+  "unit": "ratio",
+  "metadata": {
+    "numerator": 0,
+    "denominator": 0,
+    "ratio": 0,
+    "zeroDenominator": true
+  }
+}
+```
+
+Example raw count metric:
+
+```json
+{
+  "id": "dbt-cross-domain-dependency-count",
+  "value": 2,
+  "unit": "count",
+  "metadata": {
+    "count": 2,
+    "countedDependencyKeys": [
+      "model.analytics.orders->model.finance.customers",
+      "model.analytics.revenue->model.sales.accounts"
+    ]
+  }
+}
+```
 
 Minimal profile-driven config uses `profile.rules[ruleId].options`. Current
 options are:
