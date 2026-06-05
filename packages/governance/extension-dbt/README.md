@@ -43,6 +43,14 @@ Curated normalized dbt workspace fixtures live under
 `GovernanceWorkspace` JSON fixtures with preserved `metadata.dbt` and do not
 require dbt, adapter execution, runtime composition, or host behavior.
 
+Extension end-to-end coverage runs through the normal package test target. The
+registration-driven flow test lives in `src/extension.e2e.spec.ts` and uses
+the normalized fixtures plus public Core/extension APIs:
+
+```bash
+yarn nx test governance-extension-dbt
+```
+
 ## Boundary
 
 ```text
