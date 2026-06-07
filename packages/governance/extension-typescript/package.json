@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/governance-extension-typescript",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "TypeScript-specific Governance extension package boundary for future rules, metrics, recommendations, and enrichers.",
   "license": "Apache-2.0",
   "type": "module",
