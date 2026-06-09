@@ -36,13 +36,10 @@ void relation;
 type RemovedGovernanceProject = import('../src/index.js').GovernanceProject;
 
 // @ts-expect-error GovernanceDependency is no longer part of the public Core API.
-type RemovedGovernanceDependency =
-  import('../src/index.js').GovernanceDependency;
+type RemovedGovernanceDependency = import('../src/index.js').GovernanceDependency;
 
 // @ts-expect-error GovernanceProjectInput is no longer part of the public Core API.
-type RemovedGovernanceProjectInput =
-  import('../src/index.js').GovernanceProjectInput;
+type RemovedGovernanceProjectInput = import('../src/index.js').GovernanceProjectInput;
 
 // @ts-expect-error GovernanceDependencyInput is no longer part of the public Core API.
-type RemovedGovernanceDependencyInput =
-  import('../src/index.js').GovernanceDependencyInput;
+type RemovedGovernanceDependencyInput = import('../src/index.js').GovernanceDependencyInput;
