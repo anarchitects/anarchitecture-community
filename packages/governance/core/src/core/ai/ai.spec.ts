@@ -58,7 +58,7 @@ describe('core ai handoff payload builders', () => {
       generatedAt: '2026-05-13T10:00:00.000Z',
       profile: assessment.profile,
       inputs: {
-        dependencies: assessment.workspace.dependencies,
+        dependencies: coreTestWorkspace.dependencies,
         topViolations: [],
       },
     };

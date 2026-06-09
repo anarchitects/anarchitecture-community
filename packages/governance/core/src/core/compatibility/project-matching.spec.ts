@@ -1,7 +1,5 @@
-import {
-  resolveAffectedGovernanceProjects,
-  type GovernanceProject,
-} from '../index.js';
+import { resolveAffectedGovernanceProjects } from '../index.js';
+import type { GovernanceProject } from '../model/models.js';
 
 describe('resolveAffectedGovernanceProjects', () => {
   const projects: GovernanceProject[] = [

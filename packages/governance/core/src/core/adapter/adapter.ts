@@ -1,9 +1,15 @@
 import type {
+  GovernanceCompatibilityWorkspace,
   GovernanceRuntimeReference,
   Ownership,
   GovernanceWorkspace,
 } from '../model/models.js';
+import { buildGovernanceNormalizedGraph } from '../graph/internal-normalization.js';
 import type { ProfileOverrides } from '../evaluation/profile.js';
+import {
+  governanceNodesToProjects,
+  governanceRelationsToDependencies,
+} from '../compatibility/internal-workspace.js';
 
 export interface GovernanceWorkspaceAdapterResult {
   workspace?: GovernanceWorkspace;
@@ -272,14 +278,26 @@ export function buildGovernanceWorkspace(
 ): GovernanceWorkspace {
   const projectsInput = resolveProjects(adapterResult);
   const dependenciesInput = resolveDependencies(adapterResult);
+  const graph = buildGovernanceNormalizedGraph(adapterResult);
+  const root = adapterResult.workspaceRoot ?? adapterResult.workspace?.root;
+  const capabilities =
+    adapterResult.capabilities ?? adapterResult.workspace?.capabilities;
+  const diagnostics =
+    adapterResult.diagnostics ?? adapterResult.workspace?.diagnostics;
+  const metadata = adapterResult.metadata ?? adapterResult.workspace?.metadata;
 
-  return {
+  const workspace: GovernanceCompatibilityWorkspace = {
     id: adapterResult.workspaceId ?? adapterResult.workspace?.id ?? 'workspace',
     name:
       adapterResult.workspaceName ??
       adapterResult.workspace?.name ??
       'workspace',
-    root: adapterResult.workspaceRoot ?? adapterResult.workspace?.root ?? '',
+    ...(root !== undefined ? { root } : {}),
+    nodes: graph.nodes,
+    relations: graph.relations,
+    ...(capabilities !== undefined ? { capabilities } : {}),
+    ...(diagnostics !== undefined ? { diagnostics } : {}),
+    ...(metadata !== undefined ? { metadata } : {}),
     projects: projectsInput.map((project) => {
       const projectName = normalizeProjectName(project);
       const projectTags = project.tags ?? [];
@@ -323,6 +341,8 @@ export function buildGovernanceWorkspace(
       sourceFile: dependency.sourceFile,
     })),
   };
+
+  return workspace;
 }
 
 export const buildGovernanceInventory = buildGovernanceWorkspace;
@@ -340,17 +360,19 @@ function resolveProjects(
   }
 
   if (adapterResult.workspace) {
-    return adapterResult.workspace.projects.map((project) => ({
-      id: project.id,
-      name: project.name,
-      root: project.root,
-      type: project.type,
-      domain: project.domain,
-      layer: project.layer,
-      tags: project.tags,
-      ownership: project.ownership,
-      metadata: project.metadata,
-    }));
+    return governanceNodesToProjects(adapterResult.workspace.nodes).map(
+      (project) => ({
+        id: project.id,
+        name: project.name,
+        root: project.root,
+        type: project.type,
+        domain: project.domain,
+        layer: project.layer,
+        tags: project.tags,
+        ownership: project.ownership,
+        metadata: project.metadata,
+      }),
+    );
   }
 
   return [];
@@ -364,7 +386,9 @@ function resolveDependencies(
   }
 
   if (adapterResult.workspace) {
-    return adapterResult.workspace.dependencies.map((dependency) => ({
+    return governanceRelationsToDependencies(
+      adapterResult.workspace.relations,
+    ).map((dependency) => ({
       sourceProjectId: dependency.source,
       targetProjectId: dependency.target,
       type: dependency.type,

@@ -24,8 +24,8 @@ describe('governance extension runtime', () => {
       id: 'workspace',
       name: 'workspace',
       root: '/repo',
-      projects: [],
-      dependencies: [],
+      nodes: [],
+      relations: [],
     },
     capabilities: new DefaultGovernanceCapabilityRegistry([
       {

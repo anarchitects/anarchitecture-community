@@ -4,6 +4,7 @@ import type {
   GovernanceWorkspaceAdapterResult,
 } from '../adapter/adapter.js';
 import { buildGovernanceWorkspace } from '../adapter/adapter.js';
+import { toGovernanceCompatibilityWorkspace } from '../compatibility/internal-workspace.js';
 import { buildGovernanceAssessment, buildTopIssues } from './assessment.js';
 import {
   applyGovernanceExceptions,
@@ -228,13 +229,15 @@ function resolveWorkspace(
 function buildGraphSnapshotFromWorkspace(
   workspace: GovernanceWorkspace,
 ): GovernanceGraphSnapshot {
+  const compatibilityWorkspace = toGovernanceCompatibilityWorkspace(workspace);
+
   return {
     extractedAt: new Date().toISOString(),
-    projects: workspace.projects.map((project) => ({
+    projects: compatibilityWorkspace.projects.map((project) => ({
       id: project.id,
       domain: project.domain,
     })),
-    dependencies: workspace.dependencies.map((dependency) => ({
+    dependencies: compatibilityWorkspace.dependencies.map((dependency) => ({
       sourceProjectId: dependency.source,
       targetProjectId: dependency.target,
       type: dependency.type,

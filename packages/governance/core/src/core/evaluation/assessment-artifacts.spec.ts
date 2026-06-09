@@ -45,7 +45,7 @@ describe('assessment artifact assembly', () => {
       asOf: new Date('2026-05-23'),
     });
 
-    expect(artifacts.workspace.projects).toHaveLength(3);
+    expect(artifacts.workspace.nodes).toHaveLength(3);
     expect(artifacts.assessment.profile).toBe('frontend-layered');
     expect(artifacts.signals.length).toBeGreaterThan(0);
     expect(artifacts.measurements.length).toBeGreaterThan(0);

@@ -45,15 +45,12 @@ describe('Phase 2 compatibility contracts', () => {
     const workspace = buildGovernanceWorkspace(adapterResult);
     const graph = normalizeGovernanceGraph(adapterResult);
 
-    expect(workspace.projects.map((project) => project.id)).toEqual([
-      'app',
-      'shared',
-    ]);
-    expect(workspace.dependencies).toEqual([
+    expect(workspace.nodes.map((node) => node.id)).toEqual(['app', 'shared']);
+    expect(workspace.relations).toEqual([
       expect.objectContaining({
-        source: 'app',
-        target: 'shared',
-        type: 'static',
+        sourceNodeId: 'app',
+        targetNodeId: 'shared',
+        kind: 'dependency',
       }),
     ]);
     expect(graph.nodes).toEqual(

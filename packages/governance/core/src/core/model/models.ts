@@ -7,33 +7,61 @@ import type {
 } from '../evaluation/signals.js';
 import type {
   GovernanceAuthority,
+  GovernanceCapability,
+  GovernanceDiagnostic,
   GovernanceConfidence,
   GovernanceEvidence,
+  GovernanceNodeInput,
   GovernancePerspective,
+  GovernanceRelationInput,
   GovernanceSource,
 } from '../adapter/adapter.js';
 
 export interface GovernanceWorkspace {
   id: string;
   name: string;
-  root: string;
-  /**
-   * Compatibility inventory view used by existing rules, metrics, and
-   * assessment consumers.
-   *
-   * @deprecated New graph-aware consumers should prefer canonical nodes from
-   * adapter results or `normalizeGovernanceGraph(...)`. Keep this view for
-   * project/dependency compatibility.
-   */
+  root?: string;
+  nodes: GovernanceNode[];
+  relations: GovernanceRelation[];
+  capabilities?: GovernanceCapability[];
+  diagnostics?: GovernanceDiagnostic[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface GovernanceNode {
+  id: string;
+  name?: string;
+  kind: string;
+  technology?: string;
+  sourceSystem?: string;
+  root?: string;
+  path?: string;
+  tags: string[];
+  classification?: GovernanceNodeInput['classification'];
+  ownership?: GovernanceNodeInput['ownership'];
+  perspective?: GovernanceNodeInput['perspective'];
+  source?: GovernanceNodeInput['source'];
+  evidence?: GovernanceNodeInput['evidence'];
+  authority?: GovernanceNodeInput['authority'];
+  confidence?: GovernanceNodeInput['confidence'];
+  metadata: Record<string, unknown>;
+}
+
+export interface GovernanceRelation {
+  id: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  kind: string;
+  perspective?: GovernanceRelationInput['perspective'];
+  source?: GovernanceRelationInput['source'];
+  evidence?: GovernanceRelationInput['evidence'];
+  authority?: GovernanceRelationInput['authority'];
+  confidence?: GovernanceRelationInput['confidence'];
+  metadata: Record<string, unknown>;
+}
+
+export interface GovernanceCompatibilityWorkspace extends GovernanceWorkspace {
   projects: GovernanceProject[];
-  /**
-   * Compatibility relation view used by existing rules, metrics, and
-   * assessment consumers.
-   *
-   * @deprecated New graph-aware consumers should prefer canonical relations
-   * from adapter results or `normalizeGovernanceGraph(...)`. Keep this view for
-   * project/dependency compatibility.
-   */
   dependencies: GovernanceDependency[];
 }
 
