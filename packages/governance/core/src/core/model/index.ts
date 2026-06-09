@@ -27,7 +27,7 @@ export type {
   GovernanceWorkspace,
   HealthExplainability,
   HealthMetricHotspot,
-  HealthProjectHotspot,
+  HealthSubjectHotspot,
   HealthScore,
   HealthStatus,
   HealthStatusThresholds,

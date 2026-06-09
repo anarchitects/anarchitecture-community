@@ -42,7 +42,7 @@ describe('core ai handoff payload builders', () => {
         grade: 'A',
         hotspots: [],
         metricHotspots: [],
-        projectHotspots: [],
+        subjectHotspots: [],
         explainability: {
           summary: 'Healthy.',
           statusReason: 'Score meets good threshold.',

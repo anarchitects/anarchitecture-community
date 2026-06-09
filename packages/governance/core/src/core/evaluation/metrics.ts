@@ -1,5 +1,9 @@
-import type { Measurement, GovernanceWorkspace } from '../model/models.js';
-import { toGovernanceCompatibilityWorkspace } from '../compatibility/internal-workspace.js';
+import type {
+  GovernanceNode,
+  GovernanceRelation,
+  GovernanceWorkspace,
+  Measurement,
+} from '../model/models.js';
 import type { GovernanceSignal } from './signals.js';
 
 interface SignalAggregate {
@@ -16,17 +20,12 @@ export interface CalculateGovernanceMetricsInput {
 export function calculateGovernanceMetrics(
   input: CalculateGovernanceMetricsInput,
 ): Measurement[] {
-  const { signals } = input;
-  const workspace = toGovernanceCompatibilityWorkspace(input.workspace);
-  const dependencyCount = workspace.dependencies.length;
-  const projectCount = workspace.projects.length || 1;
+  const { workspace, signals } = input;
+  const nodes = getApplicableNodes(workspace);
+  const dependencyRelations = getDependencyRelations(workspace);
+  const nodeCount = nodes.length || 1;
+  const dependencyRelationCount = dependencyRelations.length;
   const signalAggregates = aggregateSignals(signals);
-  const structuralDependencyCount = sumSignalAggregateCounts(
-    signalAggregates,
-    (aggregate) => aggregate.type === 'structural-dependency',
-  );
-  const canonicalDependencyCount =
-    structuralDependencyCount > 0 ? structuralDependencyCount : dependencyCount;
   const entropyPenaltyWeight = sumSignalAggregateWeights(
     signalAggregates,
     isEntropyPenaltyAggregate,
@@ -39,60 +38,116 @@ export function calculateGovernanceMetrics(
     signalAggregates,
     (aggregate) => aggregate.type === 'domain-boundary-violation',
   );
-  const ownedProjects = workspace.projects.filter(
-    (project) =>
-      Boolean(project.ownership?.team) ||
-      (project.ownership?.contacts?.length ?? 0) > 0,
-  ).length;
-
-  const documentedProjects = workspace.projects.filter((project) => {
-    const doc = project.metadata.documentation;
-    return doc === true || doc === 'true';
-  }).length;
+  const ownedNodes = nodes.filter(hasNodeOwnership).length;
+  const documentedNodes = nodes.filter(hasNodeDocumentation).length;
 
   return [
     makeScore(
       'architectural-entropy',
       'Architectural Entropy',
       'architecture',
-      entropyPenaltyWeight / Math.max(canonicalDependencyCount, 1),
+      entropyPenaltyWeight / Math.max(dependencyRelationCount, 1),
+      false,
+      {
+        nodeCount,
+        dependencyRelationCount,
+        crossDomainPenaltyWeight: Number(entropyPenaltyWeight.toFixed(4)),
+      },
     ),
     makeScore(
       'dependency-complexity',
       'Dependency Complexity',
       'architecture',
-      canonicalDependencyCount / projectCount / 4,
+      dependencyRelationCount / nodeCount / 4,
+      false,
+      {
+        nodeCount,
+        dependencyRelationCount,
+      },
     ),
     makeScore(
       'domain-integrity',
       'Domain Integrity',
       'boundaries',
-      domainViolationWeight / Math.max(canonicalDependencyCount, 1),
+      domainViolationWeight / Math.max(dependencyRelationCount, 1),
+      false,
+      {
+        dependencyRelationCount,
+        violatingRelationWeight: Number(domainViolationWeight.toFixed(4)),
+      },
     ),
     makeScore(
       'ownership-coverage',
       'Ownership Coverage',
       'ownership',
-      ownedProjects / projectCount,
+      ownedNodes / nodeCount,
       true,
+      {
+        nodeCount,
+        ownedNodeCount: ownedNodes,
+      },
     ),
     makeScore(
       'documentation-completeness',
       'Documentation Completeness',
       'documentation',
-      documentedProjects / projectCount,
+      documentedNodes / nodeCount,
       true,
+      {
+        nodeCount,
+        documentedNodeCount: documentedNodes,
+      },
     ),
     makeScore(
       'layer-integrity',
       'Layer Integrity',
       'boundaries',
-      layerViolationWeight / Math.max(canonicalDependencyCount, 1),
+      layerViolationWeight / Math.max(dependencyRelationCount, 1),
+      false,
+      {
+        dependencyRelationCount,
+        violatingRelationWeight: Number(layerViolationWeight.toFixed(4)),
+      },
     ),
   ];
 }
 
 export const calculateMetrics = calculateGovernanceMetrics;
+
+function getApplicableNodes(workspace: GovernanceWorkspace): GovernanceNode[] {
+  return [...workspace.nodes].sort((left, right) =>
+    left.id.localeCompare(right.id),
+  );
+}
+
+function getDependencyRelations(
+  workspace: GovernanceWorkspace,
+): GovernanceRelation[] {
+  return [...workspace.relations]
+    .filter((relation) => relation.kind === 'dependency')
+    .sort(
+      (left, right) =>
+        left.id.localeCompare(right.id) ||
+        left.sourceNodeId.localeCompare(right.sourceNodeId) ||
+        left.targetNodeId.localeCompare(right.targetNodeId),
+    );
+}
+
+function hasNodeOwnership(node: GovernanceNode): boolean {
+  return Boolean(
+    node.ownership?.team ||
+      (node.ownership?.contacts?.length ?? 0) > 0 ||
+      (node.ownership?.stewards?.length ?? 0) > 0 ||
+      node.ownership?.productOwner ||
+      node.ownership?.technicalOwner ||
+      node.ownership?.businessOwner,
+  );
+}
+
+function hasNodeDocumentation(node: GovernanceNode): boolean {
+  const documentation = node.metadata.documentation;
+  return documentation === true || documentation === 'true';
+}
 
 function makeScore(
   id: string,
@@ -100,6 +155,7 @@ function makeScore(
   family: Measurement['family'],
   ratio: number,
   ratioIsPositive = false,
+  metadata: Record<string, unknown> = {},
 ): Measurement {
   const bounded = Math.max(0, Math.min(1, ratio));
   const value = Number(bounded.toFixed(4));
@@ -115,6 +171,7 @@ function makeScore(
     score,
     maxScore: 100,
     unit: 'ratio',
+    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
   };
 }
 
@@ -133,15 +190,6 @@ function aggregateSignals(signals: GovernanceSignal[]): SignalAggregate[] {
   }
 
   return [...aggregates.values()];
-}
-
-function sumSignalAggregateCounts(
-  aggregates: SignalAggregate[],
-  predicate: (aggregate: SignalAggregate) => boolean,
-): number {
-  return aggregates
-    .filter(predicate)
-    .reduce((sum, aggregate) => sum + aggregate.count, 0);
 }
 
 function sumSignalAggregateWeights(

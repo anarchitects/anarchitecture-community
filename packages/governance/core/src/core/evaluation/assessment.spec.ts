@@ -120,7 +120,7 @@ describe('buildGovernanceAssessment', () => {
         score: 66,
       },
     ],
-    projectHotspots: [],
+    subjectHotspots: [],
     explainability: {
       summary: 'Warning due to ownership and boundary pressure.',
       statusReason: 'Score 74 is above warning threshold.',

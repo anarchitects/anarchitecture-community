@@ -32,9 +32,14 @@ export interface GovernanceAssessmentInput {
   exceptions: GovernanceExceptionReport;
   violations: Violation[];
   signals: GovernanceSignal[];
+  findings?: GovernanceAssessment['findings'];
   measurements: Measurement[];
+  scores?: GovernanceAssessment['scores'];
   health: HealthScore;
   recommendations?: Recommendation[];
+  scope?: GovernanceAssessment['scope'];
+  perspectives?: GovernanceAssessment['perspectives'];
+  metadata?: GovernanceAssessment['metadata'];
   reportType?: GovernanceAssessmentReportType;
 }
 
@@ -119,12 +124,18 @@ export function buildGovernanceAssessment(
     warnings: [...(input.warnings ?? [])],
     exceptions: input.exceptions,
     violations: filteredViolations,
+    ...(input.findings ? { findings: [...input.findings] } : {}),
+    signals: filteredSignals,
     measurements: filteredMeasurements,
+    ...(input.scores ? { scores: [...input.scores] } : {}),
+    ...(input.scope ? { scope: input.scope } : {}),
+    ...(input.perspectives ? { perspectives: [...input.perspectives] } : {}),
     signalBreakdown: buildSignalBreakdown(filteredSignals),
     metricBreakdown: buildMetricBreakdown(filteredMeasurements),
     topIssues: buildTopIssues(filteredSignals),
     health: input.health,
     recommendations: [...(input.recommendations ?? [])],
+    ...(input.metadata ? { metadata: { ...input.metadata } } : {}),
   };
 }
 

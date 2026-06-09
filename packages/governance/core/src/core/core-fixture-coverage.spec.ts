@@ -230,7 +230,7 @@ describe('Core signal contracts', () => {
         grade: 'B',
         hotspots: [],
         metricHotspots: [],
-        projectHotspots: [],
+        subjectHotspots: [],
         explainability: {
           summary: 'Architecture traceability is mostly complete.',
           statusReason: 'Score is above threshold.',
