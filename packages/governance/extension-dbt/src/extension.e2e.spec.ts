@@ -27,6 +27,7 @@ import {
   type DbtGovernanceSignalProviderInput,
   type DbtGovernanceMetadataResolverInput,
 } from './index.js';
+import { createCompatibilityWorkspace } from './test-workspace.js';
 
 type FixtureWorkspaceProject = {
   id: string;
@@ -88,7 +89,7 @@ describe('dbt Governance extension end-to-end flow', () => {
   }
 
   function createContext(
-    workspace: FixtureWorkspace,
+    workspace: ReturnType<typeof createCompatibilityWorkspace>,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -110,7 +111,9 @@ describe('dbt Governance extension end-to-end flow', () => {
     workspace?: FixtureWorkspace;
     profile?: GovernanceProfile;
   }) {
-    const workspace = options.workspace ?? loadFixture(options.fixtureName);
+    const workspace = createCompatibilityWorkspace(
+      options.workspace ?? loadFixture(options.fixtureName),
+    );
     const profile = options.profile ?? createProfile();
     const context = createContext(workspace);
     const metadataResolutions = workspace.projects

@@ -1,5 +1,6 @@
 import {
   DefaultGovernanceCapabilityRegistry,
+  type GovernanceCompatibilityWorkspace,
   type GovernanceDiagnostic,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
@@ -15,6 +16,7 @@ import {
   resolveDbtGovernanceMetadata,
   type DbtGovernanceRecommendationProviderInput,
 } from './index.js';
+import { createCompatibilityWorkspace } from './test-workspace.js';
 
 describe('dbt governance recommendations', () => {
   type TestWorkspaceProject = {
@@ -34,14 +36,6 @@ describe('dbt governance recommendations', () => {
     target: string;
     type: 'static' | 'dynamic' | 'implicit' | 'unknown';
     sourceFile?: string;
-  };
-
-  type TestWorkspace = {
-    id: string;
-    name: string;
-    root: string;
-    projects: TestWorkspaceProject[];
-    dependencies: TestWorkspaceDependency[];
   };
 
   function createProfile(
@@ -73,18 +67,18 @@ describe('dbt governance recommendations', () => {
   function createWorkspace(
     projects: TestWorkspaceProject[],
     dependencies: TestWorkspaceDependency[] = [],
-  ): TestWorkspace {
-    return {
+  ): GovernanceCompatibilityWorkspace {
+    return createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',
       root: '/repo',
       projects,
       dependencies,
-    };
+    });
   }
 
   function createContext(
-    workspace: TestWorkspace,
+    workspace: GovernanceCompatibilityWorkspace,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -96,7 +90,7 @@ describe('dbt governance recommendations', () => {
   }
 
   function createRecommendationInput(
-    workspace: TestWorkspace,
+    workspace: GovernanceCompatibilityWorkspace,
     overrides: Partial<DbtGovernanceRecommendationProviderInput> = {},
   ): DbtGovernanceRecommendationProviderInput {
     return {

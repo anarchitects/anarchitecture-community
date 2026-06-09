@@ -6,9 +6,9 @@ import type {
   GovernanceRelation,
   GovernanceWorkspace,
   Ownership,
-} from '../model/models.js';
+} from '@anarchitects/governance-core';
 
-export function toGovernanceCompatibilityWorkspace(
+export function toCompatibilityWorkspace(
   workspace: GovernanceWorkspace,
 ): GovernanceCompatibilityWorkspace {
   const compatibilityWorkspace =
@@ -25,7 +25,7 @@ export function toGovernanceCompatibilityWorkspace(
   };
 }
 
-export function governanceNodesToProjects(
+function governanceNodesToProjects(
   nodes: readonly GovernanceNode[],
 ): GovernanceProject[] {
   return nodes.map((node) => ({
@@ -41,7 +41,7 @@ export function governanceNodesToProjects(
   }));
 }
 
-export function governanceRelationsToDependencies(
+function governanceRelationsToDependencies(
   relations: readonly GovernanceRelation[],
 ): GovernanceDependency[] {
   return relations

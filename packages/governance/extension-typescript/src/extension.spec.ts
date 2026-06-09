@@ -20,8 +20,8 @@ describe('TypeScript Governance extension', () => {
       id: 'workspace',
       name: 'workspace',
       root: '/repo',
-      projects: [],
-      dependencies: [],
+      nodes: [],
+      relations: [],
     },
     capabilities: new DefaultGovernanceCapabilityRegistry(),
   };

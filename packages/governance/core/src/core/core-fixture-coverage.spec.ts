@@ -577,8 +577,8 @@ describe('Core adapter contract coverage', () => {
       ],
     };
 
-    expect(adapterResult.projects).toHaveLength(3);
-    expect(adapterResult.dependencies).toHaveLength(2);
+    expect(adapterResult.nodes).toHaveLength(1);
+    expect(adapterResult.relations).toHaveLength(1);
     expect(adapterResult.nodes?.[0]?.id).toBe('asset-a');
     expect(adapterResult.relations?.[0]?.kind).toBe('traceability');
     expect(adapterResult.capabilities?.[0]?.id).toBe('capability:test-fixture');
@@ -588,8 +588,8 @@ describe('Core adapter contract coverage', () => {
 
   it('keeps adapter result capabilities optional', () => {
     const adapterResult: GovernanceWorkspaceAdapterResult = {
-      projects: [],
-      dependencies: [],
+      nodes: [],
+      relations: [],
     };
 
     expect(adapterResult.capabilities).toBeUndefined();

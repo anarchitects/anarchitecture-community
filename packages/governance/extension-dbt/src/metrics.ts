@@ -20,6 +20,7 @@ import {
   type DbtGovernanceMetadataResolution,
   type DbtGovernanceMetadataResolverInput,
 } from './resolvers.js';
+import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_GOVERNANCE_METRIC_IDS = [
   'dbt-model-count',
@@ -103,8 +104,9 @@ export function createDbtGovernanceMetricProvider(): DbtGovernanceMetricProvider
 export function buildDbtGovernanceMetrics(
   input: DbtGovernanceMetricProviderInput,
 ): DbtGovernanceMeasurement[] {
+  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
   const context = resolveDbtMetricContext(input);
-  const modelDependencies = input.workspace.dependencies.filter(
+  const modelDependencies = compatibilityWorkspace.dependencies.filter(
     (dependency) =>
       context.modelIds.has(dependency.source) &&
       context.modelIds.has(dependency.target),
@@ -291,16 +293,17 @@ export function buildDbtGovernanceMetrics(
 function resolveDbtMetricContext(
   input: DbtGovernanceMetricProviderInput,
 ): ResolvedDbtMetricContext {
+  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
   const metadataResolutions =
     input.metadataResolutions && input.metadataResolutions.length > 0
       ? input.metadataResolutions
-      : input.workspace.projects
+      : compatibilityWorkspace.projects
           .filter((project) => hasDbtMetadata(project.metadata))
           .map((project) =>
             resolveDbtGovernanceMetadata(toResolverInput(project)),
           );
   const modelIds = new Set(
-    input.workspace.projects
+    compatibilityWorkspace.projects
       .filter((project) => isDbtModelProject(project))
       .map((project) => project.id),
   );

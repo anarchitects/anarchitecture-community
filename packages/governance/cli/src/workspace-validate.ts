@@ -13,6 +13,7 @@ import {
   loadGenericWorkspace,
   type GenericWorkspaceValidationIssue,
 } from './internal/manual-workspace/load-workspace.js';
+import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export interface AgovWorkspaceValidateSummary {
   status: 'valid' | 'invalid';
@@ -177,11 +178,12 @@ function toAdapterMetadata(
 function buildValidSummary(
   workspace: GovernanceWorkspace,
 ): AgovWorkspaceValidateSummary {
+  const compatibilityWorkspace = toCompatibilityWorkspace(workspace);
   return {
     status: 'valid',
     workspaceName: workspace.name,
-    projectCount: workspace.projects.length,
-    dependencyCount: workspace.dependencies.length,
+    projectCount: compatibilityWorkspace.projects.length,
+    dependencyCount: compatibilityWorkspace.dependencies.length,
     errorCount: 0,
     diagnosticCount: 0,
     warningCount: 0,
@@ -192,13 +194,14 @@ function buildAdapterSummary(
   workspace: GovernanceWorkspace,
   diagnostics: GovernanceDiagnostic[],
 ): AgovWorkspaceValidateSummary {
+  const compatibilityWorkspace = toCompatibilityWorkspace(workspace);
   const errorCount = countErrorDiagnostics(diagnostics);
 
   return {
     status: errorCount > 0 ? 'invalid' : 'valid',
     workspaceName: workspace.name,
-    projectCount: workspace.projects.length,
-    dependencyCount: workspace.dependencies.length,
+    projectCount: compatibilityWorkspace.projects.length,
+    dependencyCount: compatibilityWorkspace.dependencies.length,
     errorCount,
     diagnosticCount: diagnostics.length,
     warningCount: countWarningDiagnostics(diagnostics),

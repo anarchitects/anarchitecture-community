@@ -1,75 +1,92 @@
-import type { GovernanceWorkspaceAdapterResult } from '../adapter/adapter.js';
+import {
+  buildGovernanceWorkspace,
+  type GovernanceWorkspaceAdapterResult,
+} from '../adapter/adapter.js';
 import { normalizeGovernanceGraph } from './graph-normalization.js';
 
 describe('Governance graph normalization', () => {
-  it('normalizes legacy project and dependency adapter results', () => {
+  it('builds a canonical workspace with nodes and relations only', () => {
     const adapterResult = {
-      projects: [
+      workspaceId: 'workspace-id',
+      workspaceName: 'Workspace Name',
+      workspaceRoot: '/repo',
+      nodes: [
         {
-          id: 'project-a',
-          name: 'Project A',
-          root: 'packages/project-a',
-          type: 'library',
-          tags: ['domain:customer'],
+          id: 'service-a',
+          name: 'Service A',
+          kind: 'service',
+          tags: ['customer-facing'],
           metadata: {
-            projectKind: 'example',
-          },
-        },
-        {
-          id: 'project-b',
-          name: 'Project B',
-          root: 'packages/project-b',
-        },
-      ],
-      dependencies: [
-        {
-          sourceProjectId: 'project-a',
-          targetProjectId: 'project-b',
-          type: 'static',
-          metadata: {
-            dependencyKind: 'example',
+            area: 'checkout',
           },
         },
       ],
+      relations: [
+        {
+          sourceNodeId: 'service-a',
+          targetNodeId: 'service-a',
+          kind: 'traceability',
+          metadata: {
+            source: 'fixture',
+          },
+        },
+      ],
+      capabilities: [{ id: 'capability:graph' }],
+      diagnostics: [
+        {
+          code: 'node-relation-ready',
+          message: 'canonical graph',
+        },
+      ],
+      metadata: {
+        owner: 'governance-core',
+      },
     } satisfies GovernanceWorkspaceAdapterResult;
 
-    const graph = normalizeGovernanceGraph(adapterResult);
+    const workspace = buildGovernanceWorkspace(adapterResult);
 
-    expect(graph.nodes).toEqual([
-      {
-        id: 'project-a',
-        name: 'Project A',
-        kind: 'library',
-        root: 'packages/project-a',
-        tags: ['domain:customer'],
-        metadata: {
-          projectKind: 'example',
+    expect(workspace).toEqual({
+      id: 'workspace-id',
+      name: 'Workspace Name',
+      root: '/repo',
+      nodes: [
+        {
+          id: 'service-a',
+          name: 'Service A',
+          kind: 'service',
+          tags: ['customer-facing'],
+          metadata: {
+            area: 'checkout',
+          },
         },
-      },
-      {
-        id: 'project-b',
-        name: 'Project B',
-        kind: 'project',
-        root: 'packages/project-b',
-        tags: [],
-        metadata: {},
-      },
-    ]);
-    expect(graph.relations).toEqual([
-      {
-        id: 'legacy:project-a->project-b:static:0',
-        sourceNodeId: 'project-a',
-        targetNodeId: 'project-b',
-        kind: 'dependency',
-        metadata: {
-          dependencyKind: 'example',
-          dependencyType: 'static',
+      ],
+      relations: [
+        {
+          id: 'canonical:service-a->service-a:traceability:0',
+          sourceNodeId: 'service-a',
+          targetNodeId: 'service-a',
+          kind: 'traceability',
+          metadata: {
+            source: 'fixture',
+          },
         },
+      ],
+      capabilities: [{ id: 'capability:graph' }],
+      diagnostics: [
+        {
+          code: 'node-relation-ready',
+          message: 'canonical graph',
+        },
+      ],
+      metadata: {
+        owner: 'governance-core',
       },
-    ]);
+    });
+    expect('projects' in workspace).toBe(false);
+    expect('dependencies' in workspace).toBe(false);
   });
 
-  it('normalizes canonical node and relation adapter results', () => {
+  it('normalizes canonical node defaults and preserves canonical fields', () => {
     const adapterResult = {
       nodes: [
         {
@@ -107,19 +124,6 @@ describe('Governance graph normalization', () => {
         },
         {
           id: 'asset-b',
-          kind: 'resource',
-        },
-      ],
-      relations: [
-        {
-          sourceNodeId: 'asset-a',
-          targetNodeId: 'asset-b',
-          kind: 'lineage',
-          authority: 'inferred',
-          confidence: 0.7,
-          metadata: {
-            relationKind: 'example',
-          },
         },
       ],
     } satisfies GovernanceWorkspaceAdapterResult;
@@ -162,19 +166,91 @@ describe('Governance graph normalization', () => {
       },
       {
         id: 'asset-b',
-        kind: 'resource',
+        kind: 'unknown',
         tags: [],
         metadata: {},
       },
     ]);
+    expect(graph.relations).toEqual([]);
+  });
+
+  it('normalizes relation defaults, preserves canonical fields, and generates deterministic ids', () => {
+    const adapterResult = {
+      relations: [
+        {
+          sourceNodeId: 'asset-a',
+          targetNodeId: 'asset-b',
+          perspective: {
+            id: 'implemented-reality',
+            name: 'Implemented Reality',
+          },
+          source: {
+            id: 'source:inventory',
+            name: 'Inventory',
+            type: 'catalog',
+          },
+          evidence: [
+            {
+              id: 'evidence:asset-a',
+              type: 'catalog-entry',
+              source: 'source:inventory',
+              reference: 'assets/a',
+              authority: 'authoritative',
+              confidence: 1,
+            },
+          ],
+          authority: 'inferred',
+          confidence: 0.7,
+        },
+        {
+          id: 'relation-b',
+          sourceNodeId: 'asset-b',
+          targetNodeId: 'asset-c',
+          kind: 'lineage',
+          metadata: {
+            relationKind: 'example',
+          },
+        },
+      ],
+    } satisfies GovernanceWorkspaceAdapterResult;
+
+    const graph = normalizeGovernanceGraph(adapterResult);
+
+    expect(graph.nodes).toEqual([]);
     expect(graph.relations).toEqual([
       {
-        id: 'canonical:asset-a->asset-b:lineage:0',
+        id: 'canonical:asset-a->asset-b:unknown:0',
         sourceNodeId: 'asset-a',
         targetNodeId: 'asset-b',
-        kind: 'lineage',
+        kind: 'unknown',
+        perspective: {
+          id: 'implemented-reality',
+          name: 'Implemented Reality',
+        },
+        source: {
+          id: 'source:inventory',
+          name: 'Inventory',
+          type: 'catalog',
+        },
+        evidence: [
+          {
+            id: 'evidence:asset-a',
+            type: 'catalog-entry',
+            source: 'source:inventory',
+            reference: 'assets/a',
+            authority: 'authoritative',
+            confidence: 1,
+          },
+        ],
         authority: 'inferred',
         confidence: 0.7,
+        metadata: {},
+      },
+      {
+        id: 'relation-b',
+        sourceNodeId: 'asset-b',
+        targetNodeId: 'asset-c',
+        kind: 'lineage',
         metadata: {
           relationKind: 'example',
         },
@@ -182,80 +258,113 @@ describe('Governance graph normalization', () => {
     ]);
   });
 
-  it('normalizes mixed legacy and canonical adapter results deterministically', () => {
-    const adapterResult = {
-      projects: [
-        {
-          id: 'shared-id',
-          name: 'Legacy Shared',
-          root: 'legacy/shared',
-        },
-        {
-          id: 'legacy-only',
-          name: 'Legacy Only',
-        },
-      ],
-      dependencies: [
-        {
-          sourceProjectId: 'legacy-only',
-          targetProjectId: 'shared-id',
-          type: 'implicit',
-        },
-      ],
+  it('deduplicates canonical nodes and relations by id using the last definition', () => {
+    const graph = normalizeGovernanceGraph({
       nodes: [
         {
           id: 'shared-id',
-          name: 'Canonical Shared',
           kind: 'asset',
-          path: 'canonical/shared',
+          metadata: {
+            source: 'first',
+          },
+        },
+        {
+          id: 'shared-id',
+          kind: 'resource',
+          tags: ['final'],
+          metadata: {
+            source: 'last',
+          },
         },
       ],
       relations: [
         {
-          id: 'canonical-relation',
-          sourceNodeId: 'shared-id',
-          targetNodeId: 'legacy-only',
+          id: 'relation-id',
+          sourceNodeId: 'a',
+          targetNodeId: 'b',
           kind: 'traceability',
+          metadata: {
+            source: 'first',
+          },
+        },
+        {
+          id: 'relation-id',
+          sourceNodeId: 'a',
+          targetNodeId: 'c',
+          kind: 'lineage',
+          metadata: {
+            source: 'last',
+          },
         },
       ],
-    } satisfies GovernanceWorkspaceAdapterResult;
-
-    const graph = normalizeGovernanceGraph(adapterResult);
+    });
 
     expect(graph.nodes).toEqual([
       {
         id: 'shared-id',
-        name: 'Canonical Shared',
-        kind: 'asset',
-        path: 'canonical/shared',
-        tags: [],
-        metadata: {},
-      },
-      {
-        id: 'legacy-only',
-        name: 'Legacy Only',
-        kind: 'project',
-        tags: [],
-        metadata: {},
+        kind: 'resource',
+        tags: ['final'],
+        metadata: {
+          source: 'last',
+        },
       },
     ]);
     expect(graph.relations).toEqual([
       {
-        id: 'legacy:legacy-only->shared-id:implicit:0',
-        sourceNodeId: 'legacy-only',
-        targetNodeId: 'shared-id',
-        kind: 'dependency',
+        id: 'relation-id',
+        sourceNodeId: 'a',
+        targetNodeId: 'c',
+        kind: 'lineage',
         metadata: {
-          dependencyType: 'implicit',
+          source: 'last',
         },
       },
-      {
-        id: 'canonical-relation',
-        sourceNodeId: 'shared-id',
-        targetNodeId: 'legacy-only',
-        kind: 'traceability',
-        metadata: {},
-      },
     ]);
+  });
+
+  it('does not fall back to legacy project and dependency inputs', () => {
+    const workspace = buildGovernanceWorkspace({
+      projects: [
+        {
+          id: 'legacy-project',
+          name: 'Legacy Project',
+          root: 'packages/legacy',
+        },
+      ],
+      dependencies: [
+        {
+          sourceProjectId: 'legacy-project',
+          targetProjectId: 'legacy-project',
+          type: 'static',
+        },
+      ],
+      workspace: {
+        id: 'nested',
+        name: 'Nested',
+        root: '/nested',
+        nodes: [],
+        relations: [],
+        projects: [
+          {
+            id: 'nested-legacy-project',
+            name: 'Nested Legacy Project',
+            root: 'packages/nested-legacy',
+            type: 'library',
+            tags: [],
+            metadata: {},
+          },
+        ],
+        dependencies: [
+          {
+            source: 'nested-legacy-project',
+            target: 'nested-legacy-project',
+            type: 'static',
+          },
+        ],
+      } as unknown as GovernanceWorkspaceAdapterResult['workspace'],
+    });
+
+    expect(workspace.nodes).toEqual([]);
+    expect(workspace.relations).toEqual([]);
   });
 });

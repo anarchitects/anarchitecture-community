@@ -19,6 +19,7 @@ import {
   type DbtGovernanceMetadataResolution,
   type DbtGovernanceMetadataResolverInput,
 } from './resolvers.js';
+import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_BASIC_ARCHITECTURE_RULE_PACK_ID = 'dbt-architecture-basic';
 
@@ -136,6 +137,7 @@ export function evaluateDbtArchitectureViolations(
   input: DbtGovernanceRulePackInput,
   options: DbtArchitectureRulePackOptions = {},
 ): Violation[] {
+  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
   const context = resolveDbtArchitectureContext(input, options);
   const resolutionById = new Map(
     context.metadataResolutions.map((resolution) => [
@@ -145,7 +147,7 @@ export function evaluateDbtArchitectureViolations(
   );
   const violations: Violation[] = [];
 
-  for (const dependency of input.workspace.dependencies) {
+  for (const dependency of compatibilityWorkspace.dependencies) {
     const source = resolutionById.get(dependency.source);
     const target = resolutionById.get(dependency.target);
 
@@ -184,10 +186,11 @@ function resolveDbtArchitectureContext(
   input: DbtGovernanceRulePackInput,
   options: DbtArchitectureRulePackOptions,
 ): ResolvedDbtArchitectureContext {
+  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
   const metadataResolutions =
     input.metadataResolutions && input.metadataResolutions.length > 0
       ? input.metadataResolutions
-      : input.workspace.projects
+      : compatibilityWorkspace.projects
           .filter((project) => hasDbtMetadata(project.metadata))
           .map((project) =>
             resolveDbtGovernanceMetadata(toResolverInput(project)),

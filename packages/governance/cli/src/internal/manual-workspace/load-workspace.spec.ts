@@ -23,6 +23,43 @@ describe('manual workspace loader', () => {
       workspaceId: 'demo',
       workspaceName: 'demo',
       workspaceRoot: '.',
+      nodes: [
+        {
+          id: 'customer-domain',
+          name: 'customer-domain',
+          kind: 'unknown',
+          root: 'src/customer/domain',
+          tags: ['layer:domain', 'scope:customer', 'type:domain'],
+          classification: {
+            layer: 'domain',
+            scope: 'customer',
+          },
+          metadata: {},
+        },
+        {
+          id: 'order-domain',
+          name: 'order-domain',
+          kind: 'library',
+          root: 'src/order/domain',
+          tags: ['layer:domain', 'scope:order', 'type:domain'],
+          classification: {
+            layer: 'domain',
+            scope: 'order',
+          },
+          metadata: {},
+        },
+      ],
+      relations: [
+        {
+          id: 'legacy:customer-domain->order-domain:static:0',
+          sourceNodeId: 'customer-domain',
+          targetNodeId: 'order-domain',
+          kind: 'dependency',
+          metadata: {
+            dependencyType: 'static',
+          },
+        },
+      ],
       projects: [
         {
           id: 'customer-domain',
@@ -78,6 +115,10 @@ describe('manual workspace loader', () => {
           name: 'customer-domain',
           root: 'src/customer/domain',
           tags: ['layer:domain', 'scope:customer', 'type:domain'],
+          classification: {
+            layer: 'domain',
+            scope: 'customer',
+          },
           metadata: {},
         },
         {
@@ -86,6 +127,10 @@ describe('manual workspace loader', () => {
           name: 'order-domain',
           root: 'src/order/domain',
           tags: ['layer:domain', 'scope:order', 'type:domain'],
+          classification: {
+            layer: 'domain',
+            scope: 'order',
+          },
           metadata: {},
         },
       ],
@@ -98,42 +143,6 @@ describe('manual workspace loader', () => {
           },
           sourceNodeId: 'customer-domain',
           targetNodeId: 'order-domain',
-        },
-      ],
-      projects: [
-        {
-          id: 'customer-domain',
-          name: 'customer-domain',
-          root: 'src/customer/domain',
-          type: 'unknown',
-          tags: ['layer:domain', 'scope:customer', 'type:domain'],
-          domain: 'customer',
-          layer: 'domain',
-          ownership: {
-            source: 'none',
-          },
-          metadata: {},
-        },
-        {
-          id: 'order-domain',
-          name: 'order-domain',
-          root: 'src/order/domain',
-          type: 'library',
-          tags: ['layer:domain', 'scope:order', 'type:domain'],
-          domain: 'order',
-          layer: 'domain',
-          ownership: {
-            source: 'none',
-          },
-          metadata: {},
-        },
-      ],
-      dependencies: [
-        {
-          source: 'customer-domain',
-          sourceFile: undefined,
-          target: 'order-domain',
-          type: 'static',
         },
       ],
     });

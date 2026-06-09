@@ -4,13 +4,11 @@ import type {
   Ownership,
 } from '../src/core/index.js';
 import type {
-  GovernanceDependencyInput,
-  GovernanceProjectInput,
-} from '../src/core/adapter/adapter.js';
-import type {
   GovernanceCompatibilityWorkspace,
   GovernanceDependency,
+  GovernanceNode,
   GovernanceProject,
+  GovernanceRelation,
   GovernanceWorkspace,
 } from '../src/core/model/models.js';
 
@@ -78,22 +76,38 @@ export const coreTestDependencies = [
   },
 ] satisfies GovernanceDependency[];
 
-export const coreTestAdapterProjects = [
+export const coreTestNodes = [
   {
     id: 'booking-ui',
+    name: 'booking-ui',
+    kind: 'library',
     root: 'libs/booking/ui',
-    type: 'library',
+    classification: {
+      domain: 'booking',
+      layer: 'ui',
+    },
     tags: ['scope:booking', 'layer:ui', 'type:ui'],
+    ownership: {
+      team: 'booking-team',
+      contacts: ['@booking-team'],
+      source: 'project-metadata',
+    },
     metadata: {
       documentation: true,
     },
   },
   {
     id: 'booking-domain',
+    name: 'booking-domain',
+    kind: 'library',
     root: 'libs/booking/domain',
-    type: 'library',
+    classification: {
+      domain: 'booking',
+      layer: 'domain',
+    },
     tags: ['scope:booking', 'layer:domain', 'type:domain'],
     ownership: {
+      team: 'booking-team',
       contacts: ['@booking-team'],
       source: 'codeowners',
     },
@@ -105,35 +119,49 @@ export const coreTestAdapterProjects = [
   },
   {
     id: 'platform-shell',
+    name: 'platform-shell',
+    kind: 'application',
     root: 'apps/platform-shell',
-    type: 'application',
+    classification: {
+      domain: 'platform',
+      layer: 'app',
+    },
     tags: ['scope:platform', 'layer:app', 'type:app'],
     ownership: {
+      team: 'platform-team',
       contacts: ['@platform-team'],
       source: 'codeowners',
     },
     metadata: {},
   },
-] satisfies GovernanceProjectInput[];
+] satisfies GovernanceNode[];
 
-export const coreTestAdapterDependencies = [
+export const coreTestRelations = [
   {
-    sourceProjectId: 'booking-ui',
-    targetProjectId: 'booking-domain',
-    type: 'static',
+    id: 'canonical:booking-ui->booking-domain:dependency:0',
+    sourceNodeId: 'booking-ui',
+    targetNodeId: 'booking-domain',
+    kind: 'dependency',
+    metadata: {
+      dependencyType: 'static',
+    },
   },
   {
-    sourceProjectId: 'platform-shell',
-    targetProjectId: 'booking-ui',
-    type: 'static',
-    sourceFile: 'apps/platform-shell/src/main.ts',
+    id: 'canonical:platform-shell->booking-ui:dependency:1',
+    sourceNodeId: 'platform-shell',
+    targetNodeId: 'booking-ui',
+    kind: 'dependency',
+    metadata: {
+      dependencyType: 'static',
+      sourceFile: 'apps/platform-shell/src/main.ts',
+    },
   },
-] satisfies GovernanceDependencyInput[];
+] satisfies GovernanceRelation[];
 
 export const coreTestAdapterResult = {
   workspaceRoot: '/virtual/workspace',
-  projects: coreTestAdapterProjects,
-  dependencies: coreTestAdapterDependencies,
+  nodes: coreTestNodes,
+  relations: coreTestRelations,
 } satisfies GovernanceWorkspaceAdapterResult;
 
 const coreTestGraph = normalizeGovernanceGraph(coreTestAdapterResult);

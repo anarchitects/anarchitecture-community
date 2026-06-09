@@ -17,19 +17,20 @@ import {
   dbtGovernanceExtensionMetadata,
   governanceDbtExtension,
 } from './index.js';
+import { createCompatibilityWorkspace } from './test-workspace.js';
 
 describe('dbt Governance extension', () => {
   const context: GovernanceExtensionHostContext = {
     workspaceRoot: '/repo',
     profileName: 'dbt',
     options: {},
-    inventory: {
+    inventory: createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',
       root: '/repo',
       projects: [],
       dependencies: [],
-    },
+    }),
     capabilities: new DefaultGovernanceCapabilityRegistry(),
   };
 

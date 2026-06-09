@@ -2,12 +2,12 @@ import {
   buildGovernanceWorkspace,
   type GovernanceDependency,
   type GovernanceProject,
-  type GovernanceWorkspace,
   type GovernanceWorkspaceAdapter,
   type GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
 
 import { loadGenericWorkspaceAdapterResult } from './internal/manual-workspace/load-workspace.js';
+import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export type AgovDependencyType = GovernanceDependency['type'];
 
@@ -86,7 +86,9 @@ export async function runAgovDependencies<TInput = unknown>(
   options: AgovDependenciesOptions<TInput>,
 ): Promise<AgovDependenciesResult> {
   const workspaceAdapterResult = resolveWorkspaceAdapterResult(options);
-  const workspace = buildGovernanceWorkspace(workspaceAdapterResult);
+  const workspace = toCompatibilityWorkspace(
+    buildGovernanceWorkspace(workspaceAdapterResult),
+  );
   const filteredDependencies = applyDependencyFilters(
     workspace,
     options.filters,
@@ -122,7 +124,7 @@ function resolveWorkspaceAdapterResult<TInput>(
 }
 
 function applyDependencyFilters(
-  workspace: GovernanceWorkspace,
+  workspace: ReturnType<typeof toCompatibilityWorkspace>,
   filters: AgovDependenciesFilters | undefined,
 ): GovernanceDependency[] {
   if (!filters) {

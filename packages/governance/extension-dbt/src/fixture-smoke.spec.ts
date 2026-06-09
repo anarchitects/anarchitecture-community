@@ -15,6 +15,7 @@ import {
   buildDbtGovernanceSignals,
   evaluateDbtArchitectureViolations,
 } from './index.js';
+import { createCompatibilityWorkspace } from './test-workspace.js';
 
 type FixtureWorkspaceProject = {
   id: string;
@@ -76,7 +77,7 @@ describe('dbt extension fixture smoke coverage', () => {
   }
 
   function createContext(
-    workspace: FixtureWorkspace,
+    workspace: ReturnType<typeof createCompatibilityWorkspace>,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -100,7 +101,7 @@ describe('dbt extension fixture smoke coverage', () => {
   }
 
   function analyzeFixture(fileName: string) {
-    const workspace = loadFixture(fileName);
+    const workspace = createCompatibilityWorkspace(loadFixture(fileName));
     const profile = createProfile();
     const context = createContext(workspace);
     const diagnostics = buildDbtGovernanceDiagnostics({

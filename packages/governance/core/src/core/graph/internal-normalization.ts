@@ -3,48 +3,27 @@ import type {
   GovernanceRelationInput,
   GovernanceWorkspaceAdapterResult,
 } from '../adapter/adapter.js';
-import {
-  governanceDependenciesToRelations,
-  governanceProjectsToNodes,
-} from '../compatibility/compatibility.js';
 import type { GovernanceNode, GovernanceRelation } from '../model/models.js';
 
-export interface GovernanceNormalizedGraph {
+interface CanonicalGovernanceGraph {
   nodes: GovernanceNode[];
   relations: GovernanceRelation[];
 }
 
 export function buildGovernanceNormalizedGraph(
   adapterResult: GovernanceWorkspaceAdapterResult,
-): GovernanceNormalizedGraph {
+): CanonicalGovernanceGraph {
   const nodesById = new Map<string, GovernanceNode>();
   const relationsById = new Map<string, GovernanceRelation>();
+  const nodes = adapterResult.nodes ?? adapterResult.workspace?.nodes ?? [];
+  const relations =
+    adapterResult.relations ?? adapterResult.workspace?.relations ?? [];
 
-  for (const node of adapterResult.workspace?.nodes ?? []) {
+  for (const node of nodes) {
     nodesById.set(node.id, normalizeGovernanceNode(node));
   }
 
-  for (const node of governanceProjectsToNodes(adapterResult.projects ?? [])) {
-    nodesById.set(node.id, normalizeGovernanceNode(node));
-  }
-
-  for (const node of adapterResult.nodes ?? []) {
-    nodesById.set(node.id, normalizeGovernanceNode(node));
-  }
-
-  (adapterResult.workspace?.relations ?? []).forEach((relation, index) => {
-    const normalized = normalizeGovernanceRelation(relation, index);
-    relationsById.set(normalized.id, normalized);
-  });
-
-  for (const relation of governanceDependenciesToRelations(
-    adapterResult.dependencies ?? [],
-  )) {
-    const normalized = normalizeGovernanceRelation(relation, 0);
-    relationsById.set(normalized.id, normalized);
-  }
-
-  (adapterResult.relations ?? []).forEach((relation, index) => {
+  relations.forEach((relation, index) => {
     const normalized = normalizeGovernanceRelation(relation, index);
     relationsById.set(normalized.id, normalized);
   });
