@@ -1,4 +1,8 @@
 import type {
+  GovernanceDependencyInput,
+  GovernanceProjectInput,
+} from '../adapter/adapter.js';
+import type {
   GovernanceCompatibilityWorkspace,
   GovernanceDependency,
   GovernanceNode,
@@ -7,21 +11,36 @@ import type {
   GovernanceWorkspace,
   Ownership,
 } from '../model/models.js';
+import { buildGovernanceNormalizedGraph } from '../graph/internal-normalization.js';
 
 export function toGovernanceCompatibilityWorkspace(
   workspace: GovernanceWorkspace,
 ): GovernanceCompatibilityWorkspace {
   const compatibilityWorkspace =
     workspace as Partial<GovernanceCompatibilityWorkspace>;
+  const graph =
+    compatibilityWorkspace.nodes && compatibilityWorkspace.relations
+      ? {
+          nodes: compatibilityWorkspace.nodes,
+          relations: compatibilityWorkspace.relations,
+        }
+      : buildGovernanceNormalizedGraph({
+          workspaceId: workspace.id,
+          workspaceName: workspace.name,
+          workspaceRoot: workspace.root,
+          projects: workspace.projects.map(toProjectInput),
+          dependencies: workspace.dependencies.map(toDependencyInput),
+        });
 
   return {
     ...workspace,
+    nodes: graph.nodes,
+    relations: graph.relations,
     projects:
-      compatibilityWorkspace.projects ??
-      governanceNodesToProjects(workspace.nodes),
+      compatibilityWorkspace.projects ?? governanceNodesToProjects(graph.nodes),
     dependencies:
       compatibilityWorkspace.dependencies ??
-      governanceRelationsToDependencies(workspace.relations),
+      governanceRelationsToDependencies(graph.relations),
   };
 }
 
@@ -128,4 +147,29 @@ function readStringMetadata(
 ): string | undefined {
   const value = relation.metadata[key];
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function toProjectInput(project: GovernanceProject): GovernanceProjectInput {
+  return {
+    id: project.id,
+    name: project.name,
+    root: project.root,
+    type: project.type,
+    domain: project.domain,
+    layer: project.layer,
+    tags: project.tags,
+    ownership: project.ownership,
+    metadata: project.metadata,
+  };
+}
+
+function toDependencyInput(
+  dependency: GovernanceDependency,
+): GovernanceDependencyInput {
+  return {
+    sourceProjectId: dependency.source,
+    targetProjectId: dependency.target,
+    type: dependency.type,
+    sourceFile: dependency.sourceFile,
+  };
 }

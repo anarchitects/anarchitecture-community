@@ -5,6 +5,7 @@ import {
   type GovernanceNormalizedGraph,
 } from './internal-normalization.js';
 
+export type { GovernanceNormalizedGraph } from './internal-normalization.js';
 export type GovernanceNormalizedNode = GovernanceNode;
 export type GovernanceNormalizedRelation = GovernanceRelation;
 

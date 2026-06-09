@@ -20,9 +20,27 @@ import type {
 export interface GovernanceWorkspace {
   id: string;
   name: string;
-  root?: string;
-  nodes: GovernanceNode[];
-  relations: GovernanceRelation[];
+  root: string;
+  /**
+   * Compatibility inventory view used by existing rules, metrics, and
+   * assessment consumers.
+   *
+   * @deprecated New graph-aware consumers should prefer canonical nodes from
+   * `workspace.nodes` or `normalizeGovernanceGraph(...)`. Keep this view for
+   * project/dependency compatibility.
+   */
+  projects: GovernanceProject[];
+  /**
+   * Compatibility relation view used by existing rules, metrics, and
+   * assessment consumers.
+   *
+   * @deprecated New graph-aware consumers should prefer canonical relations
+   * from `workspace.relations` or `normalizeGovernanceGraph(...)`. Keep this
+   * view for project/dependency compatibility.
+   */
+  dependencies: GovernanceDependency[];
+  nodes?: GovernanceNode[];
+  relations?: GovernanceRelation[];
   capabilities?: GovernanceCapability[];
   diagnostics?: GovernanceDiagnostic[];
   metadata?: Record<string, unknown>;
@@ -61,8 +79,8 @@ export interface GovernanceRelation {
 }
 
 export interface GovernanceCompatibilityWorkspace extends GovernanceWorkspace {
-  projects: GovernanceProject[];
-  dependencies: GovernanceDependency[];
+  nodes: GovernanceNode[];
+  relations: GovernanceRelation[];
 }
 
 /**

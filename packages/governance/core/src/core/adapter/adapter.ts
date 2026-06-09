@@ -279,7 +279,7 @@ export function buildGovernanceWorkspace(
   const projectsInput = resolveProjects(adapterResult);
   const dependenciesInput = resolveDependencies(adapterResult);
   const graph = buildGovernanceNormalizedGraph(adapterResult);
-  const root = adapterResult.workspaceRoot ?? adapterResult.workspace?.root;
+  const root = adapterResult.workspaceRoot ?? adapterResult.workspace?.root ?? '';
   const capabilities =
     adapterResult.capabilities ?? adapterResult.workspace?.capabilities;
   const diagnostics =
@@ -292,7 +292,7 @@ export function buildGovernanceWorkspace(
       adapterResult.workspaceName ??
       adapterResult.workspace?.name ??
       'workspace',
-    ...(root !== undefined ? { root } : {}),
+    root,
     nodes: graph.nodes,
     relations: graph.relations,
     ...(capabilities !== undefined ? { capabilities } : {}),
@@ -360,6 +360,24 @@ function resolveProjects(
   }
 
   if (adapterResult.workspace) {
+    if (adapterResult.workspace.projects) {
+      return adapterResult.workspace.projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        root: project.root,
+        type: project.type,
+        domain: project.domain,
+        layer: project.layer,
+        tags: project.tags,
+        ownership: project.ownership,
+        metadata: project.metadata,
+      }));
+    }
+
+    if (!adapterResult.workspace.nodes) {
+      return [];
+    }
+
     return governanceNodesToProjects(adapterResult.workspace.nodes).map(
       (project) => ({
         id: project.id,
@@ -386,6 +404,19 @@ function resolveDependencies(
   }
 
   if (adapterResult.workspace) {
+    if (adapterResult.workspace.dependencies) {
+      return adapterResult.workspace.dependencies.map((dependency) => ({
+        sourceProjectId: dependency.source,
+        targetProjectId: dependency.target,
+        type: dependency.type,
+        sourceFile: dependency.sourceFile,
+      }));
+    }
+
+    if (!adapterResult.workspace.relations) {
+      return [];
+    }
+
     return governanceRelationsToDependencies(
       adapterResult.workspace.relations,
     ).map((dependency) => ({
