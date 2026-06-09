@@ -1,9 +1,9 @@
 import type {
-  GovernanceDependency,
-  GovernanceProject,
+  GovernanceNode,
+  GovernanceRelation,
+  GovernanceWorkspace,
   Violation,
 } from '../model/models.js';
-import { toGovernanceCompatibilityWorkspace } from '../compatibility/internal-workspace.js';
 import {
   deriveAllowedLayerDependenciesFromLayerOrder,
   normalizeGovernanceProfile,
@@ -17,6 +17,7 @@ import {
 } from './profile.js';
 import type {
   GovernanceRule,
+  GovernanceRuleApplicability,
   GovernanceRuleContext,
   GovernanceRuleResult,
 } from './rules.js';
@@ -26,17 +27,19 @@ type SynchronousGovernanceRule<TOptions = unknown> =
     evaluate(context: GovernanceRuleContext<TOptions>): GovernanceRuleResult;
   };
 
+const DEPENDENCY_RELATION_APPLICABILITY = {
+  relationKinds: ['dependency'],
+} satisfies GovernanceRuleApplicability;
+
 export const domainBoundaryRule: SynchronousGovernanceRule = {
   id: 'domain-boundary',
   name: 'Domain Boundary',
   description:
-    'Enforces allowed dependencies between projects in different domains.',
+    'Enforces allowed dependencies between nodes in different domains.',
   category: 'boundary',
   defaultSeverity: 'error',
+  applicability: DEPENDENCY_RELATION_APPLICABILITY,
   evaluate({ workspace, profile }) {
-    const compatibilityWorkspace =
-      toGovernanceCompatibilityWorkspace(workspace);
-
     if (!profile) {
       return {};
     }
@@ -46,29 +49,21 @@ export const domainBoundaryRule: SynchronousGovernanceRule = {
     if (ruleConfig?.enabled === false) {
       return {};
     }
-    const options = ruleConfig?.options as
+
+    const options = (ruleConfig?.options as
       | GovernanceDomainBoundaryRuleOptions
-      | undefined;
+      | undefined) ?? {
+      allowedDependencies: profile.allowedDomainDependencies,
+    };
     const severity = ruleConfig?.severity ?? domainBoundaryRule.defaultSeverity;
-    const projectByName = projectByNameMap(compatibilityWorkspace.projects);
-    const violations = compatibilityWorkspace.dependencies.flatMap(
-      (dependency) => {
-        const source = projectByName.get(dependency.source);
-        const target = projectByName.get(dependency.target);
 
-        return evaluateDomainBoundaryDependency(
-          source,
-          target,
-          dependency,
-          options ?? {
-            allowedDependencies: profile.allowedDomainDependencies,
-          },
-          severity,
-        );
-      },
-    );
-
-    return { violations };
+    return {
+      violations: evaluateDomainBoundaryViolations(
+        workspace,
+        options,
+        severity,
+      ),
+    };
   },
 };
 
@@ -79,10 +74,8 @@ export const layerBoundaryRule: SynchronousGovernanceRule = {
     'Enforces allowed dependencies between declared architectural layers.',
   category: 'boundary',
   defaultSeverity: 'warning',
+  applicability: DEPENDENCY_RELATION_APPLICABILITY,
   evaluate({ workspace, profile }) {
-    const compatibilityWorkspace =
-      toGovernanceCompatibilityWorkspace(workspace);
-
     if (!profile) {
       return {};
     }
@@ -92,10 +85,10 @@ export const layerBoundaryRule: SynchronousGovernanceRule = {
     if (ruleConfig?.enabled === false) {
       return {};
     }
-    const options = ruleConfig?.options as
+
+    const options = (ruleConfig?.options as
       | GovernanceLayerBoundaryRuleOptions
-      | undefined;
-    const normalizedOptions = options ?? {
+      | undefined) ?? {
       allowedDependencies:
         profile.allowedLayerDependencies ??
         deriveAllowedLayerDependenciesFromLayerOrder(profile.layers),
@@ -103,26 +96,10 @@ export const layerBoundaryRule: SynchronousGovernanceRule = {
       usesExplicitDependencies: profile.allowedLayerDependencies !== undefined,
     };
     const severity = ruleConfig?.severity ?? layerBoundaryRule.defaultSeverity;
-    const projectByName = projectByNameMap(compatibilityWorkspace.projects);
-    const declaredLayers = new Set(normalizedOptions.layers);
 
-    const violations = compatibilityWorkspace.dependencies.flatMap(
-      (dependency) => {
-        const source = projectByName.get(dependency.source);
-        const target = projectByName.get(dependency.target);
-
-        return evaluateLayerBoundaryDependency(
-          source,
-          target,
-          dependency,
-          declaredLayers,
-          normalizedOptions,
-          severity,
-        );
-      },
-    );
-
-    return { violations };
+    return {
+      violations: evaluateLayerBoundaryViolations(workspace, options, severity),
+    };
   },
 };
 
@@ -134,9 +111,6 @@ export const ownershipPresenceRule: SynchronousGovernanceRule = {
   category: 'ownership',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
-    const compatibilityWorkspace =
-      toGovernanceCompatibilityWorkspace(workspace);
-
     if (!profile) {
       return {};
     }
@@ -146,39 +120,38 @@ export const ownershipPresenceRule: SynchronousGovernanceRule = {
     if (ruleConfig?.enabled === false) {
       return {};
     }
-    const options = ruleConfig?.options as
+
+    const options = (ruleConfig?.options as
       | GovernanceOwnershipPresenceRuleOptions
-      | undefined;
-    const normalizedOptions = options ?? {
+      | undefined) ?? {
       required: profile.ownership.required,
       metadataField: profile.ownership.metadataField,
     };
     const severity =
       ruleConfig?.severity ?? ownershipPresenceRule.defaultSeverity;
 
-    if (!normalizedOptions.required) {
+    if (!options.required) {
       return {};
     }
 
-    const violations = compatibilityWorkspace.projects.flatMap((project) =>
-      evaluateOwnershipPresence(project, severity),
-    );
-
-    return { violations };
+    return {
+      violations: getApplicableNodes(workspace, ownershipPresenceRule).flatMap(
+        (node) => evaluateOwnershipPresence(node, severity),
+      ),
+    };
   },
 };
 
 export const projectNameConventionRule: SynchronousGovernanceRule = {
+  // Keep the legacy rule id stable for profile compatibility while
+  // evaluating canonical nodes directly.
   id: 'project-name-convention',
-  name: 'Project Name Convention',
+  name: 'Node Name Convention',
   description:
-    'Validates project names against an explicitly configured regular expression.',
+    'Validates node names against an explicitly configured regular expression.',
   category: 'convention',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
-    const compatibilityWorkspace =
-      toGovernanceCompatibilityWorkspace(workspace);
-
     if (!profile) {
       return {};
     }
@@ -198,8 +171,11 @@ export const projectNameConventionRule: SynchronousGovernanceRule = {
       ruleConfig.severity ?? projectNameConventionRule.defaultSeverity;
 
     return {
-      violations: compatibilityWorkspace.projects.flatMap((project) =>
-        evaluateProjectNameConvention(project, options, pattern, severity),
+      violations: getApplicableNodes(
+        workspace,
+        projectNameConventionRule,
+      ).flatMap((node) =>
+        evaluateNodeNameConvention(node, options, pattern, severity),
       ),
     };
   },
@@ -213,9 +189,6 @@ export const tagConventionRule: SynchronousGovernanceRule = {
   category: 'metadata',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
-    const compatibilityWorkspace =
-      toGovernanceCompatibilityWorkspace(workspace);
-
     if (!profile) {
       return {};
     }
@@ -238,8 +211,8 @@ export const tagConventionRule: SynchronousGovernanceRule = {
       : undefined;
 
     return {
-      violations: compatibilityWorkspace.projects.flatMap((project) =>
-        evaluateTagConvention(project, options, valuePattern, severity),
+      violations: getApplicableNodes(workspace, tagConventionRule).flatMap(
+        (node) => evaluateTagConvention(node, options, valuePattern, severity),
       ),
     };
   },
@@ -248,13 +221,10 @@ export const tagConventionRule: SynchronousGovernanceRule = {
 export const missingDomainRule: SynchronousGovernanceRule = {
   id: 'missing-domain',
   name: 'Missing Domain',
-  description: 'Requires a domain on projects when explicitly configured.',
+  description: 'Requires a domain on nodes when explicitly configured.',
   category: 'metadata',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
-    const compatibilityWorkspace =
-      toGovernanceCompatibilityWorkspace(workspace);
-
     if (!profile) {
       return {};
     }
@@ -270,8 +240,8 @@ export const missingDomainRule: SynchronousGovernanceRule = {
     const severity = ruleConfig.severity ?? missingDomainRule.defaultSeverity;
 
     return {
-      violations: compatibilityWorkspace.projects.flatMap((project) =>
-        evaluateMissingDomain(project, severity),
+      violations: getApplicableNodes(workspace, missingDomainRule).flatMap(
+        (node) => evaluateMissingDomain(node, severity),
       ),
     };
   },
@@ -280,13 +250,10 @@ export const missingDomainRule: SynchronousGovernanceRule = {
 export const missingLayerRule: SynchronousGovernanceRule = {
   id: 'missing-layer',
   name: 'Missing Layer',
-  description: 'Requires a layer on projects when explicitly configured.',
+  description: 'Requires a layer on nodes when explicitly configured.',
   category: 'metadata',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
-    const compatibilityWorkspace =
-      toGovernanceCompatibilityWorkspace(workspace);
-
     if (!profile) {
       return {};
     }
@@ -302,8 +269,8 @@ export const missingLayerRule: SynchronousGovernanceRule = {
     const severity = ruleConfig.severity ?? missingLayerRule.defaultSeverity;
 
     return {
-      violations: compatibilityWorkspace.projects.flatMap((project) =>
-        evaluateMissingLayer(project, severity),
+      violations: getApplicableNodes(workspace, missingLayerRule).flatMap(
+        (node) => evaluateMissingLayer(node, severity),
       ),
     };
   },
@@ -326,8 +293,7 @@ export function evaluateCoreBuiltInPolicyViolations(
     return [];
   }
 
-  const { profile } = context;
-  const workspace = toGovernanceCompatibilityWorkspace(context.workspace);
+  const { profile, workspace } = context;
   const normalizedProfile = normalizeGovernanceProfile(profile);
   const domainRuleConfig = normalizedProfile.rules[domainBoundaryRule.id];
   const domainEnabled = domainRuleConfig?.enabled !== false;
@@ -361,42 +327,29 @@ export function evaluateCoreBuiltInPolicyViolations(
   };
   const ownershipSeverity =
     ownershipRuleConfig?.severity ?? ownershipPresenceRule.defaultSeverity;
-  const projectByName = projectByNameMap(workspace.projects);
-  const declaredLayers = new Set(layerOptions.layers);
   const violations: Violation[] = [];
 
-  for (const dependency of workspace.dependencies) {
-    const source = projectByName.get(dependency.source);
-    const target = projectByName.get(dependency.target);
-
-    if (domainEnabled) {
-      violations.push(
-        ...evaluateDomainBoundaryDependency(
-          source,
-          target,
-          dependency,
-          domainOptions,
-          domainSeverity,
-        ),
-      );
-    }
-    if (layerEnabled) {
-      violations.push(
-        ...evaluateLayerBoundaryDependency(
-          source,
-          target,
-          dependency,
-          declaredLayers,
-          layerOptions,
-          layerSeverity,
-        ),
-      );
-    }
+  if (domainEnabled) {
+    violations.push(
+      ...evaluateDomainBoundaryViolations(
+        workspace,
+        domainOptions,
+        domainSeverity,
+      ),
+    );
   }
-
+  if (layerEnabled) {
+    violations.push(
+      ...evaluateLayerBoundaryViolations(
+        workspace,
+        layerOptions,
+        layerSeverity,
+      ),
+    );
+  }
   if (ownershipEnabled && ownershipOptions.required) {
-    for (const project of workspace.projects) {
-      violations.push(...evaluateOwnershipPresence(project, ownershipSeverity));
+    for (const node of getApplicableNodes(workspace, ownershipPresenceRule)) {
+      violations.push(...evaluateOwnershipPresence(node, ownershipSeverity));
     }
   }
 
@@ -443,10 +396,58 @@ function isGovernanceRuleContext(
   return 'workspace' in value;
 }
 
-function evaluateDomainBoundaryDependency(
-  source: GovernanceProject | undefined,
-  target: GovernanceProject | undefined,
-  dependency: GovernanceDependency,
+function evaluateDomainBoundaryViolations(
+  workspace: GovernanceWorkspace,
+  options: GovernanceDomainBoundaryRuleOptions,
+  severity: Violation['severity'],
+): Violation[] {
+  const nodeById = nodeByIdMap(workspace.nodes);
+
+  return getApplicableRelations(workspace, domainBoundaryRule).flatMap(
+    (relation) => {
+      const source = nodeById.get(relation.sourceNodeId);
+      const target = nodeById.get(relation.targetNodeId);
+
+      return evaluateDomainBoundaryRelation(
+        source,
+        target,
+        relation,
+        options,
+        severity,
+      );
+    },
+  );
+}
+
+function evaluateLayerBoundaryViolations(
+  workspace: GovernanceWorkspace,
+  options: GovernanceLayerBoundaryRuleOptions,
+  severity: Violation['severity'],
+): Violation[] {
+  const nodeById = nodeByIdMap(workspace.nodes);
+  const declaredLayers = new Set(options.layers);
+
+  return getApplicableRelations(workspace, layerBoundaryRule).flatMap(
+    (relation) => {
+      const source = nodeById.get(relation.sourceNodeId);
+      const target = nodeById.get(relation.targetNodeId);
+
+      return evaluateLayerBoundaryRelation(
+        source,
+        target,
+        relation,
+        declaredLayers,
+        options,
+        severity,
+      );
+    },
+  );
+}
+
+function evaluateDomainBoundaryRelation(
+  source: GovernanceNode | undefined,
+  target: GovernanceNode | undefined,
+  relation: GovernanceRelation,
   options: GovernanceDomainBoundaryRuleOptions,
   severity: Violation['severity'],
 ): Violation[] {
@@ -454,14 +455,16 @@ function evaluateDomainBoundaryDependency(
     return [];
   }
 
+  const sourceDomain = getNodeDomain(source);
+  const targetDomain = getNodeDomain(target);
   if (
-    !source.domain ||
-    !target.domain ||
-    source.domain === target.domain ||
+    !sourceDomain ||
+    !targetDomain ||
+    sourceDomain === targetDomain ||
     isDomainDependencyAllowed(
       options.allowedDependencies,
-      source.domain,
-      target.domain,
+      sourceDomain,
+      targetDomain,
     )
   ) {
     return [];
@@ -469,23 +472,22 @@ function evaluateDomainBoundaryDependency(
 
   return [
     {
-      id: `${source.name}-${target.name}-domain`,
-      ruleId: 'domain-boundary',
-      subjectId: source.name,
+      id: `${relation.id}:domain-boundary`,
+      ruleId: domainBoundaryRule.id,
+      subjectId: source.id,
       severity,
       category: 'boundary',
-      message: `Project ${source.name} in domain ${source.domain} depends on ${target.name} in domain ${target.domain}.`,
+      message: `Node ${getNodeName(source)} in domain ${sourceDomain} depends on ${getNodeName(target)} in domain ${targetDomain}.`,
       reference: {
-        nodeId: source.id,
-        relatedNodeIds: [source.id, target.id].sort((a, b) =>
-          a.localeCompare(b),
-        ),
+        relationId: relation.id,
+        relatedNodeIds: [relation.sourceNodeId, relation.targetNodeId],
       },
       details: {
-        targetSubject: target.name,
-        sourceDomain: source.domain,
-        targetDomain: target.domain,
-        dependencyType: dependency.type,
+        sourceSubject: source.id,
+        targetSubject: target.id,
+        sourceDomain,
+        targetDomain,
+        dependencyType: getRelationDependencyType(relation),
       },
       recommendation:
         'Move the dependency behind an API or adjust domain boundaries in the governance profile.',
@@ -493,10 +495,10 @@ function evaluateDomainBoundaryDependency(
   ];
 }
 
-function evaluateLayerBoundaryDependency(
-  source: GovernanceProject | undefined,
-  target: GovernanceProject | undefined,
-  _dependency: GovernanceDependency,
+function evaluateLayerBoundaryRelation(
+  source: GovernanceNode | undefined,
+  target: GovernanceNode | undefined,
+  relation: GovernanceRelation,
   declaredLayers: Set<string>,
   options: GovernanceLayerBoundaryRuleOptions,
   severity: Violation['severity'],
@@ -505,15 +507,17 @@ function evaluateLayerBoundaryDependency(
     return [];
   }
 
+  const sourceLayer = getNodeLayer(source);
+  const targetLayer = getNodeLayer(target);
   if (
-    !source.layer ||
-    !target.layer ||
-    !declaredLayers.has(source.layer) ||
-    !declaredLayers.has(target.layer) ||
+    !sourceLayer ||
+    !targetLayer ||
+    !declaredLayers.has(sourceLayer) ||
+    !declaredLayers.has(targetLayer) ||
     isLayerDependencyAllowed(
       options.allowedDependencies,
-      source.layer,
-      target.layer,
+      sourceLayer,
+      targetLayer,
     )
   ) {
     return [];
@@ -521,25 +525,25 @@ function evaluateLayerBoundaryDependency(
 
   return [
     {
-      id: `${source.name}-${target.name}-layer`,
-      ruleId: 'layer-boundary',
-      subjectId: source.name,
+      id: `${relation.id}:layer-boundary`,
+      ruleId: layerBoundaryRule.id,
+      subjectId: source.id,
       severity,
       category: 'boundary',
-      message: `Layer violation: ${source.name} (${source.layer}) depends on ${target.name} (${target.layer}).`,
+      message: `Layer violation: ${getNodeName(source)} (${sourceLayer}) depends on ${getNodeName(target)} (${targetLayer}).`,
       reference: {
-        nodeId: source.id,
-        relatedNodeIds: [source.id, target.id].sort((a, b) =>
-          a.localeCompare(b),
-        ),
+        relationId: relation.id,
+        relatedNodeIds: [relation.sourceNodeId, relation.targetNodeId],
       },
       details: {
-        targetSubject: target.name,
-        sourceLayer: source.layer,
-        targetLayer: target.layer,
+        sourceSubject: source.id,
+        targetSubject: target.id,
+        sourceLayer,
+        targetLayer,
+        dependencyType: getRelationDependencyType(relation),
         ...(options.usesExplicitDependencies
           ? {
-              allowedTargets: options.allowedDependencies[source.layer] ?? [],
+              allowedTargets: options.allowedDependencies[sourceLayer] ?? [],
             }
           : {
               order: options.layers,
@@ -553,94 +557,94 @@ function evaluateLayerBoundaryDependency(
 }
 
 function evaluateOwnershipPresence(
-  project: GovernanceProject,
+  node: GovernanceNode,
   severity: Violation['severity'],
 ): Violation[] {
-  if (
-    project.ownership?.team ||
-    (project.ownership?.contacts?.length ?? 0) > 0
-  ) {
+  if (node.ownership?.team || (node.ownership?.contacts?.length ?? 0) > 0) {
     return [];
   }
 
   return [
     {
-      id: `${project.name}-ownership`,
-      ruleId: 'ownership-presence',
-      subjectId: project.name,
+      id: `${node.id}:ownership-presence`,
+      ruleId: ownershipPresenceRule.id,
+      subjectId: node.id,
       severity,
       category: 'ownership',
-      message: `Project ${project.name} has no ownership metadata or CODEOWNERS mapping.`,
+      message: `Node ${getNodeName(node)} has no ownership metadata or CODEOWNERS mapping.`,
       reference: {
-        nodeId: project.id,
+        nodeId: node.id,
       },
       recommendation:
-        'Add ownership metadata in project configuration or ensure CODEOWNERS covers the project root.',
+        'Add ownership metadata in node configuration or ensure CODEOWNERS covers the node root.',
     },
   ];
 }
 
-function evaluateProjectNameConvention(
-  project: GovernanceProject,
+function evaluateNodeNameConvention(
+  node: GovernanceNode,
   options: ProjectNameConventionOptions,
   pattern: RegExp,
   severity: Violation['severity'],
 ): Violation[] {
-  if (pattern.test(project.name)) {
+  const nodeName = getNodeName(node);
+  if (pattern.test(nodeName)) {
     return [];
   }
 
   return [
     {
-      id: `${project.name}-project-name-convention`,
-      ruleId: 'project-name-convention',
-      subjectId: project.name,
+      id: `${node.id}:node-name-convention`,
+      ruleId: projectNameConventionRule.id,
+      subjectId: node.id,
       severity,
       category: 'convention',
       message:
         options.message ??
-        `Project ${project.name} does not match the configured naming convention.`,
+        `Node ${nodeName} does not match the configured naming convention.`,
       reference: {
-        nodeId: project.id,
+        nodeId: node.id,
       },
       details: {
-        projectName: project.name,
+        nodeName,
         pattern: options.pattern,
       },
       recommendation:
-        'Rename the project or update the configured name pattern when the convention is intentional.',
+        'Rename the node or update the configured name pattern when the convention is intentional.',
     },
   ];
 }
 
 function evaluateTagConvention(
-  project: GovernanceProject,
+  node: GovernanceNode,
   options: TagConventionOptions,
   valuePattern: RegExp | undefined,
   severity: Violation['severity'],
 ): Violation[] {
   const violations: Violation[] = [];
   const prefixSeparator = options.prefixSeparator ?? ':';
+  const nodeTags = getNodeTags(node);
+  const nodeName = getNodeName(node);
 
   for (const requiredPrefix of options.requiredPrefixes ?? []) {
     if (
-      !project.tags.some((tag) =>
+      !nodeTags.some((tag) =>
         tag.startsWith(`${requiredPrefix}${prefixSeparator}`),
       )
     ) {
       violations.push({
-        id: `${project.name}-tag-convention-required-${requiredPrefix}`,
-        ruleId: 'tag-convention',
-        subjectId: project.name,
+        id: `${node.id}:tag-convention-required:${requiredPrefix}`,
+        ruleId: tagConventionRule.id,
+        subjectId: node.id,
         severity,
         category: 'metadata',
-        message: `Project ${project.name} is missing a tag with required prefix ${requiredPrefix}.`,
+        message: `Node ${nodeName} is missing a tag with required prefix ${requiredPrefix}.`,
         reference: {
-          nodeId: project.id,
+          nodeId: node.id,
         },
         details: {
           requiredPrefix,
-          tags: project.tags,
+          tags: nodeTags,
         },
         recommendation:
           'Add a tag with the required prefix or relax the configured requiredPrefixes list.',
@@ -648,7 +652,7 @@ function evaluateTagConvention(
     }
   }
 
-  for (const tag of project.tags) {
+  for (const tag of nodeTags) {
     const { prefix, value } = splitGovernanceTag(tag, prefixSeparator);
 
     if (
@@ -657,14 +661,14 @@ function evaluateTagConvention(
       !options.allowedPrefixes.includes(prefix)
     ) {
       violations.push({
-        id: `${project.name}-tag-convention-allowed-${tag}`,
-        ruleId: 'tag-convention',
-        subjectId: project.name,
+        id: `${node.id}:tag-convention-allowed:${tag}`,
+        ruleId: tagConventionRule.id,
+        subjectId: node.id,
         severity,
         category: 'metadata',
-        message: `Project ${project.name} uses tag ${tag} with disallowed prefix ${prefix}.`,
+        message: `Node ${nodeName} uses tag ${tag} with disallowed prefix ${prefix}.`,
         reference: {
-          nodeId: project.id,
+          nodeId: node.id,
         },
         details: {
           tag,
@@ -678,14 +682,14 @@ function evaluateTagConvention(
 
     if (valuePattern && !valuePattern.test(value)) {
       violations.push({
-        id: `${project.name}-tag-convention-value-${tag}`,
-        ruleId: 'tag-convention',
-        subjectId: project.name,
+        id: `${node.id}:tag-convention-value:${tag}`,
+        ruleId: tagConventionRule.id,
+        subjectId: node.id,
         severity,
         category: 'metadata',
-        message: `Project ${project.name} has tag ${tag} with a value that does not match the configured pattern.`,
+        message: `Node ${nodeName} has tag ${tag} with a value that does not match the configured pattern.`,
         reference: {
-          nodeId: project.id,
+          nodeId: node.id,
         },
         details: {
           tag,
@@ -702,51 +706,51 @@ function evaluateTagConvention(
 }
 
 function evaluateMissingDomain(
-  project: GovernanceProject,
+  node: GovernanceNode,
   severity: Violation['severity'],
 ): Violation[] {
-  if (project.domain) {
+  if (node.classification?.domain) {
     return [];
   }
 
   return [
     {
-      id: `${project.name}-missing-domain`,
-      ruleId: 'missing-domain',
-      subjectId: project.name,
+      id: `${node.id}:missing-domain`,
+      ruleId: missingDomainRule.id,
+      subjectId: node.id,
       severity,
       category: 'metadata',
-      message: `Project ${project.name} is missing domain metadata.`,
+      message: `Node ${getNodeName(node)} is missing domain metadata.`,
       reference: {
-        nodeId: project.id,
+        nodeId: node.id,
       },
       recommendation:
-        'Populate the project domain through adapter normalization, metadata, or project overrides.',
+        'Populate the node domain through adapter normalization, metadata, or canonical classification.',
     },
   ];
 }
 
 function evaluateMissingLayer(
-  project: GovernanceProject,
+  node: GovernanceNode,
   severity: Violation['severity'],
 ): Violation[] {
-  if (project.layer) {
+  if (node.classification?.layer) {
     return [];
   }
 
   return [
     {
-      id: `${project.name}-missing-layer`,
-      ruleId: 'missing-layer',
-      subjectId: project.name,
+      id: `${node.id}:missing-layer`,
+      ruleId: missingLayerRule.id,
+      subjectId: node.id,
       severity,
       category: 'metadata',
-      message: `Project ${project.name} is missing layer metadata.`,
+      message: `Node ${getNodeName(node)} is missing layer metadata.`,
       reference: {
-        nodeId: project.id,
+        nodeId: node.id,
       },
       recommendation:
-        'Populate the project layer through adapter normalization, metadata, or project overrides.',
+        'Populate the node layer through adapter normalization, metadata, or canonical classification.',
     },
   ];
 }
@@ -760,10 +764,212 @@ function evaluateSynchronousRuleViolations(
   return result.violations ?? [];
 }
 
-function projectByNameMap(
-  projects: GovernanceProject[],
-): Map<string, GovernanceProject> {
-  return new Map(projects.map((project) => [project.name, project]));
+function getApplicableNodes(
+  workspace: GovernanceWorkspace,
+  rule: GovernanceRule,
+): GovernanceNode[] {
+  return [...workspace.nodes]
+    .filter((node) =>
+      matchesNodeApplicability(node, workspace, rule.applicability),
+    )
+    .sort(compareNodes);
+}
+
+function getApplicableRelations(
+  workspace: GovernanceWorkspace,
+  rule: GovernanceRule,
+): GovernanceRelation[] {
+  const nodeById = nodeByIdMap(workspace.nodes);
+
+  return [...workspace.relations]
+    .filter((relation) =>
+      matchesRelationApplicability(
+        relation,
+        workspace,
+        nodeById,
+        rule.applicability,
+      ),
+    )
+    .sort(compareRelations);
+}
+
+function matchesNodeApplicability(
+  node: GovernanceNode,
+  workspace: GovernanceWorkspace,
+  applicability: GovernanceRuleApplicability | undefined,
+): boolean {
+  if (!applicability) {
+    return true;
+  }
+
+  if (!matchesCapabilityApplicability(workspace, applicability)) {
+    return false;
+  }
+  if (
+    applicability.nodeKinds &&
+    applicability.nodeKinds.length > 0 &&
+    !applicability.nodeKinds.includes(node.kind)
+  ) {
+    return false;
+  }
+  if (
+    applicability.technologies &&
+    applicability.technologies.length > 0 &&
+    !applicability.technologies.includes(node.technology ?? '')
+  ) {
+    return false;
+  }
+  if (
+    applicability.perspectiveIds &&
+    applicability.perspectiveIds.length > 0 &&
+    !applicability.perspectiveIds.includes(node.perspective?.id ?? '')
+  ) {
+    return false;
+  }
+  if (
+    applicability.classification &&
+    !matchesPartialRecord(applicability.classification, node.classification)
+  ) {
+    return false;
+  }
+  if (
+    applicability.ownership &&
+    !matchesPartialRecord(applicability.ownership, node.ownership)
+  ) {
+    return false;
+  }
+  if (
+    applicability.metadata &&
+    !matchesPartialRecord(applicability.metadata, node.metadata)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function matchesRelationApplicability(
+  relation: GovernanceRelation,
+  workspace: GovernanceWorkspace,
+  nodeById: Map<string, GovernanceNode>,
+  applicability: GovernanceRuleApplicability | undefined,
+): boolean {
+  if (!applicability) {
+    return true;
+  }
+
+  if (!matchesCapabilityApplicability(workspace, applicability)) {
+    return false;
+  }
+  if (
+    applicability.relationKinds &&
+    applicability.relationKinds.length > 0 &&
+    !applicability.relationKinds.includes(relation.kind)
+  ) {
+    return false;
+  }
+  if (
+    applicability.perspectiveIds &&
+    applicability.perspectiveIds.length > 0 &&
+    !applicability.perspectiveIds.includes(relation.perspective?.id ?? '')
+  ) {
+    return false;
+  }
+  if (
+    applicability.metadata &&
+    !matchesPartialRecord(applicability.metadata, relation.metadata)
+  ) {
+    return false;
+  }
+  if (applicability.technologies && applicability.technologies.length > 0) {
+    const sourceTechnology = nodeById.get(relation.sourceNodeId)?.technology;
+    const targetTechnology = nodeById.get(relation.targetNodeId)?.technology;
+    if (
+      !applicability.technologies.includes(sourceTechnology ?? '') &&
+      !applicability.technologies.includes(targetTechnology ?? '')
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function matchesCapabilityApplicability(
+  workspace: GovernanceWorkspace,
+  applicability: GovernanceRuleApplicability,
+): boolean {
+  if (
+    !applicability.capabilityIds ||
+    applicability.capabilityIds.length === 0
+  ) {
+    return true;
+  }
+
+  const capabilityIds = new Set(
+    (workspace.capabilities ?? []).map((capability) => capability.id),
+  );
+
+  return applicability.capabilityIds.every((capabilityId) =>
+    capabilityIds.has(capabilityId),
+  );
+}
+
+function matchesPartialRecord(
+  expected: object,
+  actual: object | undefined,
+): boolean {
+  return Object.entries(expected).every(
+    ([key, value]) => readObjectValue(actual, key) === value,
+  );
+}
+
+function getNodeDomain(node: GovernanceNode): string | undefined {
+  return node.classification?.domain ?? node.classification?.scope;
+}
+
+function getNodeLayer(node: GovernanceNode): string | undefined {
+  return node.classification?.layer;
+}
+
+function getNodeName(node: GovernanceNode): string {
+  return node.name ?? node.id;
+}
+
+function getNodeTags(node: GovernanceNode): string[] {
+  return [
+    ...new Set([...(node.tags ?? []), ...(node.classification?.tags ?? [])]),
+  ].sort((left, right) => left.localeCompare(right));
+}
+
+function getRelationDependencyType(relation: GovernanceRelation): string {
+  const metadataType = relation.metadata['dependencyType'];
+  return typeof metadataType === 'string' && metadataType.length > 0
+    ? metadataType
+    : relation.kind;
+}
+
+function nodeByIdMap(nodes: GovernanceNode[]): Map<string, GovernanceNode> {
+  return new Map(nodes.map((node) => [node.id, node]));
+}
+
+function readObjectValue(record: object | undefined, key: string): unknown {
+  return record ? (record as Record<string, unknown>)[key] : undefined;
+}
+
+function compareNodes(left: GovernanceNode, right: GovernanceNode): number {
+  return left.id.localeCompare(right.id);
+}
+
+function compareRelations(
+  left: GovernanceRelation,
+  right: GovernanceRelation,
+): number {
+  return (
+    left.id.localeCompare(right.id) ||
+    left.sourceNodeId.localeCompare(right.sourceNodeId) ||
+    left.targetNodeId.localeCompare(right.targetNodeId)
+  );
 }
 
 function isDomainDependencyAllowed(

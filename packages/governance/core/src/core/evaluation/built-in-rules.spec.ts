@@ -8,15 +8,12 @@ import {
   ownershipPresenceRule,
   projectNameConventionRule,
   tagConventionRule,
+  type GovernanceNode,
   type GovernanceProfile,
+  type GovernanceRelation,
   type GovernanceRuleResult,
+  type GovernanceWorkspace,
 } from '../index.js';
-import type {
-  GovernanceCompatibilityWorkspace,
-  GovernanceDependency,
-  GovernanceProject,
-} from '../model/models.js';
-import { normalizeGovernanceGraph } from '../graph/graph-normalization.js';
 
 describe('Core built-in policy rules', () => {
   const baseProfile: GovernanceProfile = {
@@ -39,15 +36,17 @@ describe('Core built-in policy rules', () => {
     metrics: {} as GovernanceProfile['metrics'],
   };
 
-  const baseWorkspaceProjects: GovernanceProject[] = [
+  const baseNodes: GovernanceNode[] = [
     {
       id: 'booking-feature',
       name: 'booking-feature',
+      kind: 'library',
       root: 'libs/booking/feature',
-      type: 'library',
+      classification: {
+        domain: 'booking',
+        layer: 'feature',
+      },
       tags: ['domain:booking', 'layer:feature'],
-      domain: 'booking',
-      layer: 'feature',
       ownership: {
         team: 'booking-team',
         source: 'project-metadata',
@@ -57,11 +56,13 @@ describe('Core built-in policy rules', () => {
     {
       id: 'payments-ui',
       name: 'payments-ui',
+      kind: 'library',
       root: 'libs/payments/ui',
-      type: 'library',
+      classification: {
+        domain: 'payments',
+        layer: 'ui',
+      },
       tags: ['domain:payments', 'layer:ui'],
-      domain: 'payments',
-      layer: 'ui',
       ownership: {
         team: 'payments-team',
         source: 'project-metadata',
@@ -71,53 +72,35 @@ describe('Core built-in policy rules', () => {
     {
       id: 'shared-data',
       name: 'shared-data',
+      kind: 'library',
       root: 'libs/shared/data',
-      type: 'library',
-      tags: ['domain:shared', 'layer:data-access'],
-      domain: 'shared',
-      layer: 'data-access',
+      classification: {
+        domain: 'shared',
+        layer: 'data-access',
+      },
+      tags: ['scope:shared'],
       ownership: {
         source: 'none',
       },
       metadata: {},
     },
   ];
-  const baseWorkspaceDependencies: GovernanceDependency[] = [
+
+  const baseRelations: GovernanceRelation[] = [
     {
-      source: 'booking-feature',
-      target: 'payments-ui',
-      type: 'static',
+      id: 'relation:booking-feature->payments-ui',
+      sourceNodeId: 'booking-feature',
+      targetNodeId: 'payments-ui',
+      kind: 'dependency',
+      metadata: {
+        dependencyType: 'static',
+      },
     },
   ];
-  const baseWorkspaceGraph = normalizeGovernanceGraph({
-    projects: baseWorkspaceProjects.map((project) => ({
-      id: project.id,
-      name: project.name,
-      root: project.root,
-      type: project.type,
-      domain: project.domain,
-      layer: project.layer,
-      tags: project.tags,
-      ownership: project.ownership,
-      metadata: project.metadata,
-    })),
-    dependencies: baseWorkspaceDependencies.map((dependency) => ({
-      sourceProjectId: dependency.source,
-      targetProjectId: dependency.target,
-      type: dependency.type,
-    })),
-  });
-  const baseWorkspace: GovernanceCompatibilityWorkspace = {
-    id: 'workspace',
-    name: 'workspace',
-    root: '.',
-    nodes: baseWorkspaceGraph.nodes,
-    relations: baseWorkspaceGraph.relations,
-    projects: baseWorkspaceProjects,
-    dependencies: baseWorkspaceDependencies,
-  };
 
-  it('reports a domain violation for disallowed domain dependencies', () => {
+  const baseWorkspace = createWorkspace(baseNodes, baseRelations);
+
+  it('reports a domain violation for disallowed domain dependencies over canonical relations', () => {
     const result = evaluateSync(domainBoundaryRule, {
       workspace: baseWorkspace,
       profile: baseProfile,
@@ -129,11 +112,12 @@ describe('Core built-in policy rules', () => {
         subjectId: 'booking-feature',
         severity: 'error',
         category: 'boundary',
-        reference: expect.objectContaining({
-          nodeId: 'booking-feature',
+        reference: {
+          relationId: 'relation:booking-feature->payments-ui',
           relatedNodeIds: ['booking-feature', 'payments-ui'],
-        }),
+        },
         details: {
+          sourceSubject: 'booking-feature',
           targetSubject: 'payments-ui',
           sourceDomain: 'booking',
           targetDomain: 'payments',
@@ -143,17 +127,18 @@ describe('Core built-in policy rules', () => {
     ]);
   });
 
-  it('reports a layer violation for disallowed layer dependencies', () => {
-    const workspace: GovernanceCompatibilityWorkspace = {
-      ...baseWorkspace,
-      dependencies: [
-        {
-          source: 'shared-data',
-          target: 'booking-feature',
-          type: 'static',
+  it('reports a layer violation for disallowed layer dependencies over canonical relations', () => {
+    const workspace = createWorkspace(baseNodes, [
+      {
+        id: 'relation:shared-data->booking-feature',
+        sourceNodeId: 'shared-data',
+        targetNodeId: 'booking-feature',
+        kind: 'dependency',
+        metadata: {
+          dependencyType: 'static',
         },
-      ],
-    };
+      },
+    ]);
 
     const result = evaluateSync(layerBoundaryRule, {
       workspace,
@@ -171,15 +156,20 @@ describe('Core built-in policy rules', () => {
         subjectId: 'shared-data',
         severity: 'warning',
         category: 'boundary',
-        reference: expect.objectContaining({
-          nodeId: 'shared-data',
-          relatedNodeIds: ['booking-feature', 'shared-data'],
+        reference: {
+          relationId: 'relation:shared-data->booking-feature',
+          relatedNodeIds: ['shared-data', 'booking-feature'],
+        },
+        details: expect.objectContaining({
+          sourceLayer: 'data-access',
+          targetLayer: 'feature',
+          dependencyType: 'static',
         }),
       }),
     ]);
   });
 
-  it('reports missing ownership when required', () => {
+  it('reports missing ownership on canonical nodes', () => {
     const result = evaluateSync(ownershipPresenceRule, {
       workspace: baseWorkspace,
       profile: baseProfile,
@@ -190,27 +180,32 @@ describe('Core built-in policy rules', () => {
         ruleId: 'ownership-presence',
         subjectId: 'shared-data',
         category: 'ownership',
-        reference: expect.objectContaining({
+        reference: {
           nodeId: 'shared-data',
-        }),
+        },
       }),
     ]);
   });
 
-  it('supports opt-in project naming and tag conventions', async () => {
-    const workspace: GovernanceCompatibilityWorkspace = {
-      ...baseWorkspace,
-      projects: [
+  it('evaluates name, tag, missing-domain, and missing-layer rules from canonical node data', async () => {
+    const workspace = createWorkspace(
+      [
         {
-          ...baseWorkspace.projects[0],
+          ...baseNodes[0],
           name: 'BookingFeature',
-          tags: ['scope-booking', 'bad:Value'],
-          domain: undefined,
-          layer: undefined,
+          tags: ['scope:booking'],
+          classification: {
+            tags: ['domain:booking', 'bad:Value'],
+          },
         },
-        ...baseWorkspace.projects.slice(1),
+        {
+          ...baseNodes[1],
+          classification: {},
+        },
+        baseNodes[2],
       ],
-    };
+      baseRelations,
+    );
 
     const result = await evaluateRulePack(coreBuiltInRulePack, {
       workspace,
@@ -251,59 +246,111 @@ describe('Core built-in policy rules', () => {
       expect.arrayContaining([
         expect.objectContaining({
           ruleId: projectNameConventionRule.id,
+          reference: { nodeId: 'booking-feature' },
         }),
         expect.objectContaining({
           ruleId: tagConventionRule.id,
+          reference: { nodeId: 'booking-feature' },
         }),
         expect.objectContaining({
           ruleId: missingDomainRule.id,
+          reference: { nodeId: 'payments-ui' },
         }),
         expect.objectContaining({
           ruleId: missingLayerRule.id,
+          reference: { nodeId: 'payments-ui' },
         }),
       ]),
     );
   });
 
-  it('does not report domain or layer violations when the migrated rules are disabled', async () => {
-    const workspace: GovernanceCompatibilityWorkspace = {
-      ...baseWorkspace,
-      dependencies: [
-        {
-          source: 'shared-data',
-          target: 'booking-feature',
-          type: 'static',
-        },
-      ],
-    };
+  it('does not require workspace.projects or workspace.dependencies', async () => {
+    const workspace = createWorkspace(baseNodes, baseRelations);
 
     const result = await evaluateRulePack(coreBuiltInRulePack, {
       workspace,
       profile: {
         ...baseProfile,
-        allowedDomainDependencies: {
-          shared: ['booking'],
-        },
         rules: {
-          'domain-boundary': {
-            enabled: false,
-          },
-          'layer-boundary': {
-            enabled: false,
+          'missing-domain': {
+            enabled: true,
+            options: {
+              required: true,
+            },
           },
         },
       },
     });
 
-    expect(
-      result.violations.filter(
-        (violation) =>
-          violation.ruleId === 'domain-boundary' ||
-          violation.ruleId === 'layer-boundary',
-      ),
-    ).toEqual([]);
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: 'domain-boundary',
+          reference: {
+            relationId: 'relation:booking-feature->payments-ui',
+            relatedNodeIds: ['booking-feature', 'payments-ui'],
+          },
+        }),
+      ]),
+    );
+  });
+
+  it('evaluates canonical dependency relations deterministically for equivalent input order', async () => {
+    const left = createWorkspace([...baseNodes], [...baseRelations]);
+    const right = createWorkspace(
+      [...baseNodes].reverse(),
+      [...baseRelations].reverse(),
+    );
+
+    const leftResult = await evaluateRulePack(coreBuiltInRulePack, {
+      workspace: left,
+      profile: baseProfile,
+    });
+    const rightResult = await evaluateRulePack(coreBuiltInRulePack, {
+      workspace: right,
+      profile: baseProfile,
+    });
+
+    expect(leftResult.violations).toEqual(rightResult.violations);
+  });
+
+  it('does not report dependency-boundary violations for non-dependency relations', () => {
+    const workspace = createWorkspace(baseNodes, [
+      {
+        id: 'relation:booking-feature->payments-ui:traceability',
+        sourceNodeId: 'booking-feature',
+        targetNodeId: 'payments-ui',
+        kind: 'traceability',
+        metadata: {},
+      },
+    ]);
+
+    const domainResult = evaluateSync(domainBoundaryRule, {
+      workspace,
+      profile: baseProfile,
+    });
+    const layerResult = evaluateSync(layerBoundaryRule, {
+      workspace,
+      profile: baseProfile,
+    });
+
+    expect(domainResult.violations).toEqual([]);
+    expect(layerResult.violations).toEqual([]);
   });
 });
+
+function createWorkspace(
+  nodes: GovernanceNode[],
+  relations: GovernanceRelation[],
+): GovernanceWorkspace {
+  return {
+    id: 'workspace',
+    name: 'workspace',
+    root: '.',
+    nodes,
+    relations,
+  };
+}
 
 function evaluateSync(
   rule: typeof domainBoundaryRule,
