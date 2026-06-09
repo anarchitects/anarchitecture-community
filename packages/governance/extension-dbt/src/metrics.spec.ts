@@ -1,5 +1,6 @@
 import {
   DefaultGovernanceCapabilityRegistry,
+  type GovernanceCompatibilityWorkspace,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
   type Ownership,
@@ -10,6 +11,7 @@ import {
   dbtGovernanceMetricProvider,
   type DbtGovernanceMetricProviderInput,
 } from './index.js';
+import { createCompatibilityWorkspace } from './test-workspace.js';
 
 describe('dbt governance metrics', () => {
   type TestWorkspaceProject = {
@@ -29,14 +31,6 @@ describe('dbt governance metrics', () => {
     target: string;
     type: 'static' | 'dynamic' | 'implicit' | 'unknown';
     sourceFile?: string;
-  };
-
-  type TestWorkspace = {
-    id: string;
-    name: string;
-    root: string;
-    projects: TestWorkspaceProject[];
-    dependencies: TestWorkspaceDependency[];
   };
 
   function createProfile(
@@ -68,18 +62,18 @@ describe('dbt governance metrics', () => {
   function createWorkspace(
     projects: TestWorkspaceProject[],
     dependencies: TestWorkspaceDependency[] = [],
-  ): TestWorkspace {
-    return {
+  ): GovernanceCompatibilityWorkspace {
+    return createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',
       root: '/repo',
       projects,
       dependencies,
-    };
+    });
   }
 
   function createContext(
-    workspace: TestWorkspace,
+    workspace: GovernanceCompatibilityWorkspace,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -91,7 +85,7 @@ describe('dbt governance metrics', () => {
   }
 
   function createMetricInput(
-    workspace: TestWorkspace,
+    workspace: GovernanceCompatibilityWorkspace,
     overrides: Partial<DbtGovernanceMetricProviderInput> = {},
   ): DbtGovernanceMetricProviderInput {
     return {

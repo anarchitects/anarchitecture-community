@@ -1,9 +1,9 @@
 import {
   DefaultGovernanceCapabilityRegistry,
+  type GovernanceCompatibilityWorkspace,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
   type Ownership,
-  type GovernanceWorkspace,
 } from '@anarchitects/governance-core';
 
 import {
@@ -11,6 +11,7 @@ import {
   dbtGovernanceSignalProvider,
   type DbtGovernanceSignalProviderInput,
 } from './index.js';
+import { createCompatibilityWorkspace } from './test-workspace.js';
 
 describe('dbt governance signals', () => {
   type TestWorkspaceProject = {
@@ -61,7 +62,7 @@ describe('dbt governance signals', () => {
   }
 
   function createContext(
-    workspace: GovernanceWorkspace,
+    workspace: GovernanceCompatibilityWorkspace,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -75,18 +76,18 @@ describe('dbt governance signals', () => {
   function createWorkspace(
     projects: TestWorkspaceProject[],
     dependencies: TestWorkspaceDependency[] = [],
-  ): GovernanceWorkspace {
-    return {
+  ): GovernanceCompatibilityWorkspace {
+    return createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',
       root: '/repo',
       projects,
       dependencies,
-    };
+    });
   }
 
   function createSignalInput(
-    workspace: GovernanceWorkspace,
+    workspace: GovernanceCompatibilityWorkspace,
     overrides: Partial<DbtGovernanceSignalProviderInput> = {},
   ): DbtGovernanceSignalProviderInput {
     return {

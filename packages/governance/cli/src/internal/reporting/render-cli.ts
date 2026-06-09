@@ -1,8 +1,10 @@
 import type { GovernanceAssessment } from '@anarchitects/governance-core';
+import { toCompatibilityWorkspace } from '../../workspace-compat.js';
 
 const TOP_ISSUES_LIMIT = 10;
 
 export function renderCliReport(assessment: GovernanceAssessment): string {
+  const compatibilityWorkspace = toCompatibilityWorkspace(assessment.workspace);
   const lines: string[] = [];
 
   lines.push(`Nx Governance - ${assessment.profile}`);
@@ -12,8 +14,8 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
       assessment.health.status,
     )}, ${assessment.health.grade})`,
   );
-  lines.push(`Projects: ${assessment.workspace.projects.length}`);
-  lines.push(`Dependencies: ${assessment.workspace.dependencies.length}`);
+  lines.push(`Projects: ${compatibilityWorkspace.projects.length}`);
+  lines.push(`Dependencies: ${compatibilityWorkspace.dependencies.length}`);
   lines.push(`Violations: ${assessment.violations.length}`);
 
   lines.push('');

@@ -23,6 +23,7 @@ import {
   getDbtGovernanceDiagnosticProviders,
   getDbtGovernanceRecommendationProviders,
 } from './index.js';
+import { createCompatibilityWorkspace } from './test-workspace.js';
 
 describe('dbt Governance extension contracts', () => {
   function createContext(): GovernanceExtensionHostContext {
@@ -30,13 +31,13 @@ describe('dbt Governance extension contracts', () => {
       workspaceRoot: '/repo',
       profileName: 'dbt',
       options: {},
-      inventory: {
+      inventory: createCompatibilityWorkspace({
         id: 'workspace',
         name: 'workspace',
         root: '/repo',
         projects: [],
         dependencies: [],
-      },
+      }),
       capabilities: new DefaultGovernanceCapabilityRegistry(),
     };
   }

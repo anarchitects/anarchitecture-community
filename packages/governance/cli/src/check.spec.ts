@@ -7,6 +7,7 @@ import type {
 } from '@anarchitects/governance-core';
 
 import { runAgovAssess, runAgovCheck } from './check.js';
+import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 describe('agov check/assess assessment pipeline', () => {
   afterEach(() => {
@@ -124,10 +125,14 @@ describe('agov check/assess assessment pipeline', () => {
         }),
       ]),
     );
-    expect(
-      result.assessment.workspace.projects.map((project) => project.id),
-    ).toEqual(['app', 'shared']);
-    expect(result.assessment.workspace.dependencies).toEqual([
+    const compatibilityWorkspace = toCompatibilityWorkspace(
+      result.assessment.workspace,
+    );
+    expect(compatibilityWorkspace.projects.map((project) => project.id)).toEqual([
+      'app',
+      'shared',
+    ]);
+    expect(compatibilityWorkspace.dependencies).toEqual([
       expect.objectContaining({
         source: 'app',
         target: 'shared',
@@ -311,11 +316,12 @@ function createTestExtension(): GovernanceLoadedExtension {
       register(host) {
         host.registerRulePack({
           evaluate({ workspace }) {
+            const compatibilityWorkspace = toCompatibilityWorkspace(workspace);
             return [
               {
                 id: 'test-extension:app',
                 ruleId: 'test.extension.project-present',
-                project: workspace.projects[0]?.id ?? 'workspace',
+                project: compatibilityWorkspace.projects[0]?.id ?? 'workspace',
                 severity: 'warning',
                 category: 'architecture',
                 message: 'Extension rule executed.',

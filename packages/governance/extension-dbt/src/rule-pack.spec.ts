@@ -1,9 +1,9 @@
 import {
   DefaultGovernanceCapabilityRegistry,
+  type GovernanceCompatibilityWorkspace,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
   type Ownership,
-  type GovernanceWorkspace,
 } from '@anarchitects/governance-core';
 
 import {
@@ -12,6 +12,7 @@ import {
   evaluateDbtArchitectureViolations,
   type DbtGovernanceRulePackInput,
 } from './index.js';
+import { createCompatibilityWorkspace } from './test-workspace.js';
 
 describe('dbt architecture basic rule pack', () => {
   type TestWorkspaceProject = {
@@ -63,18 +64,18 @@ describe('dbt architecture basic rule pack', () => {
   function createWorkspace(
     projects: TestWorkspaceProject[],
     dependencies: TestWorkspaceDependency[] = [],
-  ): GovernanceWorkspace {
-    return {
+  ): GovernanceCompatibilityWorkspace {
+    return createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',
       root: '/repo',
       projects,
       dependencies,
-    };
+    });
   }
 
   function createContext(
-    workspace: GovernanceWorkspace,
+    workspace: GovernanceCompatibilityWorkspace,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -86,7 +87,7 @@ describe('dbt architecture basic rule pack', () => {
   }
 
   function createInput(
-    workspace: GovernanceWorkspace,
+    workspace: GovernanceCompatibilityWorkspace,
     overrides: Partial<DbtGovernanceRulePackInput> = {},
   ): DbtGovernanceRulePackInput {
     return {

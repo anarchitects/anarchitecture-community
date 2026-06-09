@@ -3,13 +3,14 @@ import type {
   GovernanceAssessmentArtifacts,
   GovernanceExtensionDiagnostic,
   GovernanceLoadedExtension,
-  GovernanceNormalizedGraph,
   GovernanceWorkspaceAdapter,
   GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
 import * as governanceCore from '@anarchitects/governance-core';
 import { loadGenericWorkspaceAdapterResult } from './internal/manual-workspace/load-workspace.js';
 import { loadStandaloneGovernanceProfile } from './internal/profile/load-standalone-profile.js';
+
+type GovernanceGraph = ReturnType<typeof governanceCore.normalizeGovernanceGraph>;
 
 export interface AgovCheckWithWorkspacePathOptions {
   profilePath: string;
@@ -40,7 +41,7 @@ export interface AgovCheckResult {
   success: boolean;
   assessment: GovernanceAssessment;
   artifacts: GovernanceAssessmentArtifacts;
-  graph: GovernanceNormalizedGraph;
+  graph: GovernanceGraph;
 }
 
 export interface AgovAssessResult {
@@ -48,7 +49,7 @@ export interface AgovAssessResult {
   success: boolean;
   assessment: GovernanceAssessment;
   artifacts: GovernanceAssessmentArtifacts;
-  graph: GovernanceNormalizedGraph;
+  graph: GovernanceGraph;
 }
 
 const MANUAL_WORKSPACE_ADAPTER: GovernanceWorkspaceAdapter<string> = {

@@ -4,10 +4,9 @@ import {
   type GovernanceCapability,
   type GovernanceDependency,
   type GovernanceDiagnostic,
-  type GovernanceNormalizedGraph,
-  type GovernanceNormalizedNode,
-  type GovernanceNormalizedRelation,
+  type GovernanceNode,
   type GovernanceProject,
+  type GovernanceRelation,
   type GovernanceWorkspace,
   type GovernanceWorkspaceAdapter,
   type GovernanceWorkspaceAdapterResult,
@@ -15,6 +14,9 @@ import {
 } from '@anarchitects/governance-core';
 
 import { loadGenericWorkspaceAdapterResult } from './internal/manual-workspace/load-workspace.js';
+import { toCompatibilityWorkspace } from './workspace-compat.js';
+
+type GovernanceGraph = ReturnType<typeof normalizeGovernanceGraph>;
 
 export interface AgovInspectFilters {
   project?: string;
@@ -76,8 +78,8 @@ export interface AgovInspectSummary {
 export interface AgovInspectResult {
   command: 'inspect';
   workspace: AgovInspectWorkspace;
-  nodes: GovernanceNormalizedNode[];
-  relations: GovernanceNormalizedRelation[];
+  nodes: GovernanceNode[];
+  relations: GovernanceRelation[];
   projects: AgovInspectProject[];
   dependencies: AgovInspectDependency[];
   summary?: AgovInspectSummary;
@@ -109,7 +111,10 @@ export async function runAgovInspect<TInput = unknown>(
 ): Promise<AgovInspectResult> {
   const workspaceAdapterResult = resolveWorkspaceAdapterResult(options);
   const workspace = buildGovernanceWorkspace(workspaceAdapterResult);
-  const filteredWorkspace = applyInspectFilters(workspace, options.filters);
+  const filteredWorkspace = applyInspectFilters(
+    toCompatibilityWorkspace(workspace),
+    options.filters,
+  );
   const graph = normalizeGovernanceGraph(workspaceAdapterResult);
   const filteredGraph = applyInspectGraphFilters(
     graph,
@@ -218,9 +223,9 @@ function normalizeDependency(
 }
 
 function applyInspectFilters(
-  workspace: GovernanceWorkspace,
+  workspace: ReturnType<typeof toCompatibilityWorkspace>,
   filters: AgovInspectFilters | undefined,
-): GovernanceWorkspace {
+): ReturnType<typeof toCompatibilityWorkspace> {
   if (!filters) {
     return workspace;
   }
@@ -263,10 +268,10 @@ function applyInspectFilters(
 }
 
 function applyInspectGraphFilters(
-  graph: GovernanceNormalizedGraph,
-  workspace: GovernanceWorkspace,
+  graph: GovernanceGraph,
+  workspace: ReturnType<typeof toCompatibilityWorkspace>,
   filters: AgovInspectFilters | undefined,
-): GovernanceNormalizedGraph {
+): GovernanceGraph {
   if (!filters) {
     return graph;
   }
@@ -285,8 +290,8 @@ function applyInspectGraphFilters(
 }
 
 function sortNodes(
-  nodes: readonly GovernanceNormalizedNode[],
-): GovernanceNormalizedNode[] {
+  nodes: readonly GovernanceNode[],
+): GovernanceNode[] {
   return [...nodes].sort((left, right) => {
     const byKind = left.kind.localeCompare(right.kind);
     if (byKind !== 0) {
@@ -298,8 +303,8 @@ function sortNodes(
 }
 
 function sortRelations(
-  relations: readonly GovernanceNormalizedRelation[],
-): GovernanceNormalizedRelation[] {
+  relations: readonly GovernanceRelation[],
+): GovernanceRelation[] {
   return [...relations].sort((left, right) => {
     const byKind = left.kind.localeCompare(right.kind);
     if (byKind !== 0) {
@@ -351,8 +356,8 @@ function sortDependencies(
 
 function buildSummary(
   workspaceName: string,
-  nodes: GovernanceNormalizedNode[],
-  relations: GovernanceNormalizedRelation[],
+  nodes: GovernanceNode[],
+  relations: GovernanceRelation[],
   projects: AgovInspectProject[],
   dependencies: AgovInspectDependency[],
 ): AgovInspectSummary {

@@ -1,5 +1,6 @@
 import {
   DefaultGovernanceCapabilityRegistry,
+  type GovernanceCompatibilityWorkspace,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
   type GovernanceWorkspace,
@@ -14,6 +15,7 @@ import {
   type DbtGovernanceMetadataResolution,
   type DbtGovernanceMetadataResolverInput,
 } from './index.js';
+import { createCompatibilityWorkspace } from './test-workspace.js';
 
 describe('dbt governance diagnostics', () => {
   type TestWorkspaceProject = {
@@ -59,14 +61,14 @@ describe('dbt governance diagnostics', () => {
 
   function createWorkspace(
     projects: TestWorkspaceProject[] = [],
-  ): GovernanceWorkspace {
-    return {
+  ): GovernanceCompatibilityWorkspace {
+    return createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',
       root: '/repo',
       projects,
       dependencies: [],
-    };
+    });
   }
 
   function createContext(

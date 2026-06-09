@@ -16,6 +16,7 @@ import {
   type DbtGovernanceMetadataResolverInput,
   type DbtMetadataResolution,
 } from './resolvers.js';
+import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_GOVERNANCE_DIAGNOSTIC_SOURCE = 'governance.dbt_extension';
 
@@ -124,7 +125,7 @@ function resolveMetadataResolutions(
     return input.metadataResolutions;
   }
 
-  return input.workspace.projects
+  return toCompatibilityWorkspace(input.workspace).projects
     .filter((project) => hasDbtMetadata(project.metadata))
     .map((project) => resolveDbtGovernanceMetadata(toResolverInput(project)));
 }

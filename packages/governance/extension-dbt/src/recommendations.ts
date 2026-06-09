@@ -21,6 +21,7 @@ import {
   type DbtGovernanceMetadataResolution,
   type DbtGovernanceMetadataResolverInput,
 } from './resolvers.js';
+import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_GOVERNANCE_RECOMMENDATION_CODES = [
   'ADD_OWNER',
@@ -134,10 +135,11 @@ export function buildDbtGovernanceRecommendations(
 function resolveRecommendationContext(
   input: DbtGovernanceRecommendationProviderInput,
 ): RecommendationContext {
+  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
   const metadataResolutions =
     input.metadataResolutions && input.metadataResolutions.length > 0
       ? input.metadataResolutions
-      : input.workspace.projects
+      : compatibilityWorkspace.projects
           .filter((project) => hasDbtMetadata(project.metadata))
           .map((project) =>
             resolveDbtGovernanceMetadata(toResolverInput(project)),

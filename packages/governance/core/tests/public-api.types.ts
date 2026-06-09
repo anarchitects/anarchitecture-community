@@ -32,7 +32,3 @@ const relation: GovernanceRelation = workspace.relations[0];
 
 void node;
 void relation;
-
-// @ts-expect-error GovernanceNormalizedGraph is no longer part of the public Core API.
-type RemovedGovernanceNormalizedGraph =
-  import('../src/index.js').GovernanceNormalizedGraph;

@@ -6,7 +6,9 @@ import { parseDocument } from 'yaml';
 import type {
   GovernanceDependencyInput,
   GovernanceDiagnostic,
+  GovernanceNodeInput,
   GovernanceProjectInput,
+  GovernanceRelationInput,
   GovernanceWorkspace,
   GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
@@ -730,6 +732,30 @@ function toGenericWorkspaceAdapterResult(
   schema: GenericWorkspaceSchema,
   format: GenericWorkspaceFormat,
 ): GovernanceWorkspaceAdapterResult {
+  const nodes: GovernanceNodeInput[] = [...schema.projects]
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((project) => ({
+      id: project.name,
+      name: project.name,
+      kind: project.type,
+      root: project.root,
+      tags: [...project.tags].sort((left, right) => left.localeCompare(right)),
+      classification: deriveClassification(project.tags),
+      metadata: { ...project.metadata },
+    }));
+
+  const relations: GovernanceRelationInput[] = [...schema.dependencies]
+    .sort(compareDependencies)
+    .map((dependency, index) => ({
+      id: `legacy:${dependency.source}->${dependency.target}:${dependency.type}:${index}`,
+      sourceNodeId: dependency.source,
+      targetNodeId: dependency.target,
+      kind: 'dependency',
+      metadata: {
+        dependencyType: dependency.type,
+      },
+    }));
+
   const projects: GovernanceProjectInput[] = [...schema.projects]
     .sort((left, right) => left.name.localeCompare(right.name))
     .map((project) => ({
@@ -753,6 +779,8 @@ function toGenericWorkspaceAdapterResult(
     workspaceId: schema.workspace.name,
     workspaceName: schema.workspace.name,
     workspaceRoot: schema.workspace.root,
+    nodes,
+    relations,
     projects,
     dependencies,
     capabilities: [
@@ -773,6 +801,40 @@ function compareDependencies(
     left.target.localeCompare(right.target) ||
     left.type.localeCompare(right.type)
   );
+}
+
+function deriveClassification(
+  tags: readonly string[],
+): GovernanceNodeInput['classification'] | undefined {
+  const classification: NonNullable<GovernanceNodeInput['classification']> = {};
+
+  for (const tag of tags) {
+    const prefix = classificationTagPrefix(tag);
+    if (!prefix) {
+      continue;
+    }
+
+    const value = tag.slice(prefix.length + 1);
+    if (value.length === 0) {
+      continue;
+    }
+
+    if (prefix === 'domain') {
+      classification.domain ??= value;
+      continue;
+    }
+
+    if (prefix === 'scope') {
+      classification.scope ??= value;
+      continue;
+    }
+
+    if (prefix === 'layer') {
+      classification.layer ??= value;
+    }
+  }
+
+  return Object.keys(classification).length > 0 ? classification : undefined;
 }
 
 function validateUnknownFields(

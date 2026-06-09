@@ -3164,25 +3164,47 @@ describe('agov executable command surface', () => {
                       workspaceId: 'demo',
                       workspaceName: 'demo',
                       workspaceRoot: '.',
-                      projects: [
+                      nodes: [
                         {
+                          id: 'a',
                           name: 'a',
                           root: 'a',
-                          type: 'library',
+                          kind: 'library',
                           tags: [],
                         },
                         {
+                          id: 'b',
                           name: 'b',
                           root: 'b',
-                          type: 'library',
+                          kind: 'library',
                           tags: [],
                         },
                       ],
-                      dependencies: [
-                        { source: 'a', target: 'b', type: 'static' },
-                        { source: 'b', target: 'a', type: 'dynamic' },
-                        { source: 'a', target: 'a', type: 'implicit' },
-                        { source: 'b', target: 'b', type: 'transitive' },
+                      relations: [
+                        {
+                          sourceNodeId: 'a',
+                          targetNodeId: 'b',
+                          kind: 'dependency',
+                          metadata: { dependencyType: 'static' },
+                        },
+                        {
+                          sourceNodeId: 'b',
+                          targetNodeId: 'a',
+                          kind: 'dependency',
+                          metadata: { dependencyType: 'dynamic' },
+                        },
+                        {
+                          sourceNodeId: 'a',
+                          targetNodeId: 'a',
+                          kind: 'dependency',
+                          metadata: { dependencyType: 'implicit' },
+                        },
+                        {
+                          sourceNodeId: 'b',
+                          targetNodeId: 'b',
+                          kind: 'dependency',
+                          metadata: { dependencyType: 'unknown' },
+                        },
                       ],
                       diagnostics: [],
                     };

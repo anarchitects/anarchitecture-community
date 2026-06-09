@@ -20,6 +20,7 @@ import {
   type DbtGovernanceMetadataResolverInput,
   type DbtMetadataResolution,
 } from './resolvers.js';
+import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_GOVERNANCE_SIGNAL_SOURCE = 'governance.dbt_extension';
 
@@ -156,6 +157,7 @@ export function buildDbtGovernanceSignals(
   input: DbtGovernanceSignalProviderInput,
   options: DbtGovernanceSignalProviderOptions = {},
 ): DbtGovernanceExtensionSignal[] {
+  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
   const resolvedOptions = resolveSignalOptions(input.profile, options);
   const metadataResolutions = resolveMetadataResolutions(input);
   const diagnostics = resolveDiagnostics(input, metadataResolutions);
@@ -165,14 +167,14 @@ export function buildDbtGovernanceSignals(
       (resolution) => [resolution.governanceNodeId, resolution] as const,
     ),
   );
-  const dependencyContexts = input.workspace.dependencies.map((dependency) => ({
+  const dependencyContexts = compatibilityWorkspace.dependencies.map((dependency) => ({
     dependency,
     source: resolutionByNodeId.get(dependency.source),
     target: resolutionByNodeId.get(dependency.target),
   }));
-  const inboundCounts = countInboundDependencies(input.workspace.dependencies);
+  const inboundCounts = countInboundDependencies(compatibilityWorkspace.dependencies);
   const outboundCounts = countOutboundDependencies(
-    input.workspace.dependencies,
+    compatibilityWorkspace.dependencies,
   );
   const inboundDomains = collectInboundDomains(dependencyContexts);
   const signals: DbtGovernanceExtensionSignal[] = [];
@@ -891,7 +893,7 @@ function resolveMetadataResolutions(
     return input.metadataResolutions;
   }
 
-  return input.workspace.projects
+  return toCompatibilityWorkspace(input.workspace).projects
     .filter((project) => hasDbtMetadata(project.metadata))
     .map((project) => resolveDbtGovernanceMetadata(toResolverInput(project)));
 }
