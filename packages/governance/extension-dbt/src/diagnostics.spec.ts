@@ -167,7 +167,6 @@ describe('dbt governance diagnostics', () => {
     expect(diagnostics[0]).toMatchObject({
       reference: {
         nodeId: 'model.analytics.orders',
-        projectId: 'model.analytics.orders',
       },
       details: {
         dbtUniqueId: 'model.analytics.orders',

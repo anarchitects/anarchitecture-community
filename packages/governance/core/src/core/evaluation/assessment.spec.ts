@@ -14,18 +14,25 @@ describe('buildGovernanceAssessment', () => {
     {
       id: 'booking-ui-domain',
       ruleId: 'domain-boundary',
-      project: 'booking-ui',
+      subjectId: 'booking-ui',
       severity: 'error',
       category: 'boundary',
       message: 'Cross-domain dependency.',
+      reference: {
+        nodeId: 'booking-ui',
+        relatedNodeIds: ['booking-ui', 'platform-shell'],
+      },
     },
     {
       id: 'booking-domain-ownership',
       ruleId: 'ownership-presence',
-      project: 'booking-domain',
+      subjectId: 'booking-domain',
       severity: 'warning',
       category: 'ownership',
       message: 'Ownership missing.',
+      reference: {
+        nodeId: 'booking-domain',
+      },
     },
   ];
 
@@ -33,9 +40,8 @@ describe('buildGovernanceAssessment', () => {
     {
       id: 'booking-ui-domain-signal',
       type: 'domain-boundary-violation',
-      sourceProjectId: 'booking-ui',
-      targetProjectId: 'platform-shell',
-      relatedProjectIds: ['booking-ui', 'platform-shell'],
+      nodeId: 'booking-ui',
+      relatedNodeIds: ['booking-ui', 'platform-shell'],
       severity: 'error',
       category: 'boundary',
       message: 'Cross-domain dependency.',
@@ -48,8 +54,8 @@ describe('buildGovernanceAssessment', () => {
     {
       id: 'booking-domain-ownership-signal',
       type: 'ownership-gap',
-      sourceProjectId: 'booking-domain',
-      relatedProjectIds: ['booking-domain'],
+      nodeId: 'booking-domain',
+      relatedNodeIds: ['booking-domain'],
       severity: 'warning',
       category: 'ownership',
       message: 'Ownership missing.',
@@ -62,9 +68,8 @@ describe('buildGovernanceAssessment', () => {
     {
       id: 'platform-shell-graph-signal',
       type: 'structural-dependency',
-      sourceProjectId: 'platform-shell',
-      targetProjectId: 'booking-ui',
-      relatedProjectIds: ['platform-shell', 'booking-ui'],
+      nodeId: 'platform-shell',
+      relatedNodeIds: ['platform-shell', 'booking-ui'],
       severity: 'info',
       category: 'dependency',
       message: 'Structural dependency.',

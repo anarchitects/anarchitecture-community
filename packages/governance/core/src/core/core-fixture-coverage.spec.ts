@@ -64,9 +64,8 @@ describe('Core signal contracts', () => {
     const signal: GovernanceSignal = {
       id: 'signal-domain-boundary',
       type,
-      sourceProjectId: 'platform-shell',
-      targetProjectId: 'booking-ui',
-      relatedProjectIds: ['platform-shell', 'booking-ui'],
+      nodeId: 'platform-shell',
+      relatedNodeIds: ['platform-shell', 'booking-ui'],
       severity,
       category,
       message: 'Platform shell should not depend on booking UI directly.',
@@ -121,10 +120,10 @@ describe('Core signal contracts', () => {
     const signal = {
       id: 'signal:traceability-gap',
       type: 'traceability-gap',
-      relatedProjectIds: [],
       nodeId: 'node:booking-api',
       relationId: 'relation:booking-api->shared-domain',
       relatedNodeIds: ['node:shared-domain'],
+      relatedRelationIds: [],
       findingIds: [finding.id],
       severity: 'warning',
       category: 'architecture',
@@ -249,7 +248,7 @@ describe('Core signal contracts', () => {
     const violation = {
       id: 'violation:traceability-gap',
       ruleId: 'traceability-presence',
-      project: 'booking-api',
+      subjectId: 'booking-api',
       severity: 'warning',
       category: 'architecture',
       message: 'Traceability is missing.',

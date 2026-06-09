@@ -2,7 +2,7 @@ import type {
   AiAnalysisRequest,
   DriftSignal,
   DriftSummary,
-  GovernanceDependency,
+  GovernanceRelation,
   MetricSnapshot,
   SnapshotComparison,
   SnapshotMetricDelta,
@@ -22,8 +22,8 @@ export interface GovernancePayloadSliceResult<T> {
 }
 
 export interface RootCausePayloadScope {
-  projectScopeCount: number;
-  dependencies: GovernancePayloadTruncationMetadata;
+  nodeScopeCount: number;
+  relations: GovernancePayloadTruncationMetadata;
   violations: GovernancePayloadTruncationMetadata;
 }
 
@@ -48,10 +48,10 @@ export interface ScopedGovernanceAiRequestResult<TScope> {
 
 export interface BuildScopedRootCauseRequestInput {
   request: AiAnalysisRequest;
-  dependencies?: GovernanceDependency[];
+  relations?: GovernanceRelation[];
   topViolations?: SnapshotViolation[];
-  projectScope?: Iterable<string>;
-  dependencyLimit?: number;
+  nodeScope?: Iterable<string>;
+  relationLimit?: number;
   topViolationsLimit?: number;
 }
 
@@ -105,22 +105,22 @@ export function sliceGovernancePayloadItems<T>(
   };
 }
 
-export function scopeGovernanceDependencies(
-  dependencies: readonly GovernanceDependency[],
-  projectScope: Iterable<string>,
+export function scopeGovernanceRelations(
+  relations: readonly GovernanceRelation[],
+  nodeScope: Iterable<string>,
   limit?: number,
-): GovernancePayloadSliceResult<GovernanceDependency> {
-  const scopedProjects = new Set(projectScope);
-  const filtered = dependencies.filter(
-    (dependency) =>
-      scopedProjects.has(dependency.source) ||
-      scopedProjects.has(dependency.target),
+): GovernancePayloadSliceResult<GovernanceRelation> {
+  const scopedNodes = new Set(nodeScope);
+  const filtered = relations.filter(
+    (relation) =>
+      scopedNodes.has(relation.sourceNodeId) ||
+      scopedNodes.has(relation.targetNodeId),
   );
 
   return sliceGovernancePayloadItems(
     filtered,
     limit,
-    compareGovernanceDependenciesForPayload,
+    compareGovernanceRelationsForPayload,
   );
 }
 
@@ -142,17 +142,16 @@ export function buildScopedRootCauseRequest(
 ): ScopedGovernanceAiRequestResult<RootCausePayloadScope> {
   assertRequestKind(input.request, 'root-cause');
 
-  const dependencies =
-    input.dependencies ?? input.request.inputs.dependencies ?? [];
+  const relations = input.relations ?? input.request.inputs.relations ?? [];
   const topViolations =
     input.topViolations ?? input.request.inputs.topViolations ?? [];
-  const projectScope = input.projectScope
-    ? new Set(input.projectScope)
-    : deriveProjectScopeFromViolations(topViolations);
-  const dependencySlice = scopeGovernanceDependencies(
-    dependencies,
-    projectScope,
-    input.dependencyLimit,
+  const nodeScope = input.nodeScope
+    ? new Set(input.nodeScope)
+    : deriveNodeScopeFromViolations(topViolations);
+  const relationSlice = scopeGovernanceRelations(
+    relations,
+    nodeScope,
+    input.relationLimit,
   );
   const totalViolationsCount =
     input.request.inputs.snapshot?.violations.length ?? topViolations.length;
@@ -161,8 +160,8 @@ export function buildScopedRootCauseRequest(
     topViolations.length,
   );
   const payloadScope: RootCausePayloadScope = {
-    projectScopeCount: projectScope.size,
-    dependencies: dependencySlice.truncation,
+    nodeScopeCount: nodeScope.size,
+    relations: relationSlice.truncation,
     violations: buildGovernancePayloadTruncationMetadata(
       totalViolationsCount,
       topViolations.length,
@@ -176,7 +175,7 @@ export function buildScopedRootCauseRequest(
       inputs: {
         ...input.request.inputs,
         topViolations,
-        dependencies: dependencySlice.items,
+        relations: relationSlice.items,
         metadata: mergePayloadScopeMetadata(
           input.request.inputs.metadata,
           payloadScope,
@@ -325,15 +324,15 @@ export function buildScopedScorecardRequest(
   };
 }
 
-function compareGovernanceDependenciesForPayload(
-  left: GovernanceDependency,
-  right: GovernanceDependency,
+function compareGovernanceRelationsForPayload(
+  left: GovernanceRelation,
+  right: GovernanceRelation,
 ): number {
   return (
-    left.source.localeCompare(right.source) ||
-    left.target.localeCompare(right.target) ||
-    left.type.localeCompare(right.type) ||
-    (left.sourceFile ?? '').localeCompare(right.sourceFile ?? '')
+    left.sourceNodeId.localeCompare(right.sourceNodeId) ||
+    left.targetNodeId.localeCompare(right.targetNodeId) ||
+    left.kind.localeCompare(right.kind) ||
+    left.id.localeCompare(right.id)
   );
 }
 
@@ -372,19 +371,19 @@ function rankViolationSeverity(
   return 0;
 }
 
-function deriveProjectScopeFromViolations(
+function deriveNodeScopeFromViolations(
   violations: readonly SnapshotViolation[],
 ): Set<string> {
-  const projectScope = new Set<string>();
+  const nodeScope = new Set<string>();
 
   for (const violation of violations) {
-    projectScope.add(violation.source);
+    nodeScope.add(violation.source);
     if (violation.target) {
-      projectScope.add(violation.target);
+      nodeScope.add(violation.target);
     }
   }
 
-  return projectScope;
+  return nodeScope;
 }
 
 function assertRequestKind(

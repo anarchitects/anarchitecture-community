@@ -7,7 +7,7 @@ import {
   buildScopedScorecardRequest,
   buildGovernancePayloadTruncationMetadata,
   compareGovernanceViolationsForPriority,
-  scopeGovernanceDependencies,
+  scopeGovernanceRelations,
   sliceGovernancePayloadItems,
   type AiAnalysisRequest,
   type DriftSignal,
@@ -68,18 +68,22 @@ describe('core AI payload helpers', () => {
     });
   });
 
-  it('scopes dependencies and prioritizes violations deterministically', () => {
-    const dependencySlice = scopeGovernanceDependencies(
-      coreTestWorkspace.dependencies,
+  it('scopes relations and prioritizes violations deterministically', () => {
+    const dependencySlice = scopeGovernanceRelations(
+      coreTestWorkspace.relations,
       new Set(['platform-shell', 'booking-ui']),
       1,
     );
 
     expect(dependencySlice.items).toEqual([
       {
-        source: 'booking-ui',
-        target: 'booking-domain',
-        type: 'static',
+        id: 'canonical:booking-ui->booking-domain:dependency:0',
+        sourceNodeId: 'booking-ui',
+        targetNodeId: 'booking-domain',
+        kind: 'dependency',
+        metadata: {
+          dependencyType: 'static',
+        },
       },
     ]);
     expect(dependencySlice.truncation.truncated).toBe(true);
@@ -125,7 +129,7 @@ describe('core AI payload helpers', () => {
     ]);
   });
 
-  it('builds a scoped root-cause request with dependency truncation metadata', () => {
+  it('builds a scoped root-cause request with relation truncation metadata', () => {
     const snapshot = makeSnapshot({
       violations: [
         {
@@ -150,7 +154,7 @@ describe('core AI payload helpers', () => {
     const request = buildRootCauseRequest({
       profile: 'frontend-layered',
       snapshot,
-      dependencies: coreTestWorkspace.dependencies,
+      relations: coreTestWorkspace.relations,
       topViolations: prioritizedViolations,
       metadata: {
         snapshotPath: 'snapshots/latest.json',
@@ -159,14 +163,14 @@ describe('core AI payload helpers', () => {
 
     const scoped = buildScopedRootCauseRequest({
       request,
-      dependencyLimit: 1,
+      relationLimit: 1,
       topViolationsLimit: 2,
     });
 
-    expect(scoped.request.inputs.dependencies).toHaveLength(1);
+    expect(scoped.request.inputs.relations).toHaveLength(1);
     expect(scoped.payloadScope).toEqual({
-      projectScopeCount: 2,
-      dependencies: {
+      nodeScopeCount: 2,
+      relations: {
         totalCount: 2,
         selectedCount: 1,
         limit: 1,

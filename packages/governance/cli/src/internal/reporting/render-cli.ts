@@ -1,4 +1,7 @@
-import type { GovernanceAssessment } from '@anarchitects/governance-core';
+import type {
+  GovernanceAssessment,
+  GovernanceExceptionFinding,
+} from '@anarchitects/governance-core';
 import { toCompatibilityWorkspace } from '../../workspace-compat.js';
 
 const TOP_ISSUES_LIMIT = 10;
@@ -71,21 +74,13 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
     lines.push('Suppressed Findings:');
     for (const finding of assessment.exceptions.suppressedFindings) {
       const ruleIdSuffix = finding.ruleId ? ` :: ${finding.ruleId}` : '';
-      const projectScope = [
-        finding.projectId,
-        finding.targetProjectId,
-        finding.relatedProjectIds.length > 0
-          ? `related=${finding.relatedProjectIds.join(',')}`
-          : undefined,
-      ]
-        .filter((value): value is string => !!value)
-        .join(' -> ');
-      const projectScopeSuffix = projectScope
-        ? ` :: scope=${projectScope}`
+      const referenceScope = formatExceptionFindingScope(finding);
+      const scopeSuffix = referenceScope
+        ? ` :: scope=${referenceScope}`
         : '';
 
       lines.push(
-        `- ${finding.exceptionId} :: ${finding.status} :: ${finding.source}/${finding.kind} :: [${finding.severity}]${ruleIdSuffix}${projectScopeSuffix} :: ${finding.message}`,
+        `- ${finding.exceptionId} :: ${finding.status} :: ${finding.source}/${finding.kind} :: [${finding.severity}]${ruleIdSuffix}${scopeSuffix} :: ${finding.message}`,
       );
     }
   }
@@ -94,21 +89,13 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
     lines.push('Reactivated Findings:');
     for (const finding of assessment.exceptions.reactivatedFindings) {
       const ruleIdSuffix = finding.ruleId ? ` :: ${finding.ruleId}` : '';
-      const projectScope = [
-        finding.projectId,
-        finding.targetProjectId,
-        finding.relatedProjectIds.length > 0
-          ? `related=${finding.relatedProjectIds.join(',')}`
-          : undefined,
-      ]
-        .filter((value): value is string => !!value)
-        .join(' -> ');
-      const projectScopeSuffix = projectScope
-        ? ` :: scope=${projectScope}`
+      const referenceScope = formatExceptionFindingScope(finding);
+      const scopeSuffix = referenceScope
+        ? ` :: scope=${referenceScope}`
         : '';
 
       lines.push(
-        `- ${finding.exceptionId} :: ${finding.status} :: ${finding.source}/${finding.kind} :: [${finding.severity}]${ruleIdSuffix}${projectScopeSuffix} :: ${finding.message}`,
+        `- ${finding.exceptionId} :: ${finding.status} :: ${finding.source}/${finding.kind} :: [${finding.severity}]${ruleIdSuffix}${scopeSuffix} :: ${finding.message}`,
       );
     }
   }
@@ -180,8 +167,8 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
     for (const issue of assessment.topIssues.slice(0, TOP_ISSUES_LIMIT)) {
       const ruleIdSuffix = issue.ruleId ? ` :: ${issue.ruleId}` : '';
       const projectsSuffix =
-        issue.projects.length > 0
-          ? ` :: projects=${issue.projects.join(',')}`
+        issue.subjects.length > 0
+          ? ` :: projects=${issue.subjects.join(',')}`
           : '';
       lines.push(
         `- [${issue.severity}] ${issue.type} (${issue.source}) x${issue.count}${ruleIdSuffix}${projectsSuffix} :: ${issue.message}`,
@@ -204,4 +191,21 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
 
 function formatHealthStatus(status: GovernanceAssessment['health']['status']) {
   return `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+}
+
+function formatExceptionFindingScope(
+  finding: GovernanceExceptionFinding,
+): string | undefined {
+  const parts = [
+    finding.nodeId,
+    finding.relationId ? `relation=${finding.relationId}` : undefined,
+    finding.relatedNodeIds.length > 0
+      ? `related=${finding.relatedNodeIds.join(',')}`
+      : undefined,
+    finding.relatedRelationIds.length > 0
+      ? `relatedRelations=${finding.relatedRelationIds.join(',')}`
+      : undefined,
+  ].filter((value): value is string => Boolean(value));
+
+  return parts.length > 0 ? parts.join(' :: ') : undefined;
 }

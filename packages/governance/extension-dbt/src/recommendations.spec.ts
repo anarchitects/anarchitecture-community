@@ -210,7 +210,6 @@ describe('dbt governance recommendations', () => {
       source: 'governance.dbt_extension',
       reference: {
         nodeId: options.nodeId,
-        projectId: options.nodeId,
       },
     };
   }
@@ -228,20 +227,18 @@ describe('dbt governance recommendations', () => {
     return {
       id: options.id,
       type: options.code,
-      ...(options.sourceProjectId
-        ? { sourceProjectId: options.sourceProjectId }
-        : {}),
-      ...(options.targetProjectId
-        ? { targetProjectId: options.targetProjectId }
-        : {}),
-      relatedProjectIds:
+      ...(options.nodeId
+        ? { nodeId: options.nodeId }
+        : options.sourceProjectId
+          ? { nodeId: options.sourceProjectId }
+          : {}),
+      relatedNodeIds:
         options.relatedProjectIds ??
         [
           options.nodeId,
           options.sourceProjectId,
           options.targetProjectId,
         ].filter((value): value is string => Boolean(value)),
-      ...(options.nodeId ? { nodeId: options.nodeId } : {}),
       severity: 'warning',
       category: 'boundary',
       message: options.code,
@@ -266,18 +263,16 @@ describe('dbt governance recommendations', () => {
     return {
       id: options.id,
       ruleId: options.ruleId,
-      project: options.project,
+      subjectId: options.project,
       severity: 'error',
       category: 'boundary',
       message: options.ruleId,
-      ...(options.targetProjectId
-        ? {
-            reference: {
-              projectId: options.project,
-              targetProjectId: options.targetProjectId,
-            },
-          }
-        : {}),
+      reference: {
+        nodeId: options.project,
+        ...(options.targetProjectId
+          ? { relatedNodeIds: [options.project, options.targetProjectId] }
+          : {}),
+      },
     };
   }
 
@@ -352,7 +347,6 @@ describe('dbt governance recommendations', () => {
       priority: 'high',
       reference: {
         nodeId: project.id,
-        projectId: project.id,
       },
       metadata: {
         code: 'ADD_OWNER',
@@ -498,8 +492,8 @@ describe('dbt governance recommendations', () => {
       priority: 'high',
       reference: expect.objectContaining({
         relationId: `${source.id}->${target.id}`,
-        projectId: source.id,
-        targetProjectId: target.id,
+        nodeId: source.id,
+        relatedNodeIds: expect.arrayContaining([source.id, target.id]),
       }),
       metadata: expect.objectContaining({
         code: 'REVIEW_CROSS_DOMAIN_DEPENDENCY',

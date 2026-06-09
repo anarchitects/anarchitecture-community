@@ -13,9 +13,8 @@ describe('metrics and health', () => {
       {
         id: 'signal-domain',
         type: 'domain-boundary-violation',
-        sourceProjectId: 'platform-shell',
-        targetProjectId: 'booking-ui',
-        relatedProjectIds: ['platform-shell', 'booking-ui'],
+        nodeId: 'platform-shell',
+        relatedNodeIds: ['platform-shell', 'booking-ui'],
         severity: 'error',
         category: 'boundary',
         message: 'Cross-domain dependency.',
@@ -25,8 +24,8 @@ describe('metrics and health', () => {
       {
         id: 'signal-ownership',
         type: 'ownership-gap',
-        sourceProjectId: 'platform-shell',
-        relatedProjectIds: ['platform-shell'],
+        nodeId: 'platform-shell',
+        relatedNodeIds: ['platform-shell'],
         severity: 'warning',
         category: 'ownership',
         message: 'Ownership missing.',
@@ -46,10 +45,14 @@ describe('metrics and health', () => {
         {
           id: 'violation-domain',
           ruleId: 'domain-boundary',
-          project: 'platform-shell',
+          subjectId: 'platform-shell',
           severity: 'error',
           category: 'boundary',
           message: 'Cross-domain dependency.',
+          reference: {
+            nodeId: 'platform-shell',
+            relatedNodeIds: ['booking-ui', 'platform-shell'],
+          },
         } satisfies Violation,
       ],
       metrics,

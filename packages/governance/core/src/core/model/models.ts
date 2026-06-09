@@ -109,16 +109,12 @@ export interface GovernanceRuntimeReference {
   relationId?: string;
   relatedNodeIds?: string[];
   relatedRelationIds?: string[];
-  projectId?: string;
-  targetProjectId?: string;
-  relatedProjectIds?: string[];
 }
 
 export interface GovernanceAssessmentScope {
   workspaceId?: string;
   nodeIds?: string[];
   relationIds?: string[];
-  projectIds?: string[];
   perspectives?: GovernancePerspective[];
   metadata?: Record<string, unknown>;
 }
@@ -144,7 +140,7 @@ export interface GovernanceFinding {
 export interface Violation {
   id: string;
   ruleId: string;
-  project: string;
+  subjectId?: string;
   severity: 'error' | 'warning' | 'info';
   category:
     | GovernanceSignalCategory
@@ -313,7 +309,7 @@ export interface GovernanceTopIssue {
   source: GovernanceSignalSource;
   severity: GovernanceSignalSeverity;
   count: number;
-  projects: string[];
+  subjects: string[];
   ruleId?: string;
   message: string;
   sourcePluginId?: string;
@@ -357,9 +353,10 @@ export interface GovernanceExceptionFinding {
     | 'convention'
     | 'metadata';
   severity: GovernanceSignalSeverity;
-  projectId?: string;
-  targetProjectId?: string;
-  relatedProjectIds: string[];
+  nodeId?: string;
+  relationId?: string;
+  relatedNodeIds: string[];
+  relatedRelationIds: string[];
   message: string;
   sourcePluginId?: string;
 }
@@ -504,7 +501,7 @@ export interface SnapshotTopIssueDelta {
   baselineCount: number;
   currentCount: number;
   delta: number;
-  projects: string[];
+  subjects: string[];
 }
 
 export interface SnapshotDeliveryImpactIndexDelta {
@@ -596,8 +593,9 @@ export interface AiAnalysisRequest {
     snapshot?: MetricSnapshot;
     comparison?: SnapshotComparison;
     topViolations?: SnapshotViolation[];
-    dependencies?: GovernanceDependency[];
-    affectedProjects?: string[];
+    relations?: GovernanceRelation[];
+    affectedNodeIds?: string[];
+    affectedRelationIds?: string[];
     metadata?: Record<string, unknown>;
   };
 }

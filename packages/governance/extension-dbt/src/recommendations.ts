@@ -272,9 +272,14 @@ function buildAddOwnerRecommendations(
       continue;
     }
 
+    const nodeId = readViolationNodeId(violation);
+    if (!nodeId) {
+      continue;
+    }
+
     upsertDraft(
       byNodeId,
-      violation.project,
+      nodeId,
       createNodeRecommendationDraft({
         code: 'ADD_OWNER',
         title: 'Add dbt owner metadata',
@@ -284,8 +289,8 @@ function buildAddOwnerRecommendations(
         description:
           'Add explicit owner metadata so the critical model has a clear accountable team.',
         category: 'ownership',
-        governanceNodeId: violation.project,
-        dbtUniqueId: resolutionByNodeId.get(violation.project)?.dbtUniqueId,
+        governanceNodeId: nodeId,
+        dbtUniqueId: resolutionByNodeId.get(nodeId)?.dbtUniqueId,
         violation,
       }),
     );
@@ -343,9 +348,14 @@ function buildAddDescriptionRecommendations(
       continue;
     }
 
+    const nodeId = readViolationNodeId(violation);
+    if (!nodeId) {
+      continue;
+    }
+
     upsertDraft(
       byNodeId,
-      violation.project,
+      nodeId,
       createNodeRecommendationDraft({
         code: 'ADD_DESCRIPTION',
         title: 'Add dbt model description',
@@ -355,8 +365,8 @@ function buildAddDescriptionRecommendations(
         description:
           'Add dbt description/docs metadata for the public/governed model.',
         category: 'documentation',
-        governanceNodeId: violation.project,
-        dbtUniqueId: resolutionByNodeId.get(violation.project)?.dbtUniqueId,
+        governanceNodeId: nodeId,
+        dbtUniqueId: resolutionByNodeId.get(nodeId)?.dbtUniqueId,
         violation,
       }),
     );
@@ -414,9 +424,14 @@ function buildAddTestsRecommendations(
       continue;
     }
 
+    const nodeId = readViolationNodeId(violation);
+    if (!nodeId) {
+      continue;
+    }
+
     upsertDraft(
       byNodeId,
-      violation.project,
+      nodeId,
       createNodeRecommendationDraft({
         code: 'ADD_TESTS',
         title: 'Add dbt tests',
@@ -426,8 +441,8 @@ function buildAddTestsRecommendations(
         description:
           'Add appropriate dbt tests for the critical model before treating it as governed output.',
         category: 'documentation',
-        governanceNodeId: violation.project,
-        dbtUniqueId: resolutionByNodeId.get(violation.project)?.dbtUniqueId,
+        governanceNodeId: nodeId,
+        dbtUniqueId: resolutionByNodeId.get(nodeId)?.dbtUniqueId,
         violation,
       }),
     );
@@ -479,9 +494,14 @@ function buildEnableContractRecommendations(
       continue;
     }
 
+    const nodeId = readViolationNodeId(violation);
+    if (!nodeId) {
+      continue;
+    }
+
     upsertDraft(
       byNodeId,
-      violation.project,
+      nodeId,
       createNodeRecommendationDraft({
         code: 'ENABLE_CONTRACT',
         title: 'Enable dbt contract',
@@ -491,8 +511,8 @@ function buildEnableContractRecommendations(
         description:
           'Enable and define the dbt contract for this public/governed model.',
         category: 'documentation',
-        governanceNodeId: violation.project,
-        dbtUniqueId: resolutionByNodeId.get(violation.project)?.dbtUniqueId,
+        governanceNodeId: nodeId,
+        dbtUniqueId: resolutionByNodeId.get(nodeId)?.dbtUniqueId,
         violation,
       }),
     );
@@ -517,6 +537,8 @@ function buildReviewCrossDomainDependencyRecommendations(
       continue;
     }
 
+    const sourceSignalNodeId = readSignalSourceProjectId(signal);
+
     upsertDraft(
       byDependencyKey,
       dependencyKey,
@@ -530,11 +552,11 @@ function buildReviewCrossDomainDependencyRecommendations(
           'Review whether the cross-domain dependency is intentional, approved, and still aligned with the domain policy.',
         category: 'dependency',
         dependencyKey,
-        sourceProjectId: signal.sourceProjectId,
-        targetProjectId: signal.targetProjectId,
-        relatedProjectIds: signal.relatedProjectIds,
-        dbtUniqueId: signal.sourceProjectId
-          ? resolutionByNodeId.get(signal.sourceProjectId)?.dbtUniqueId
+        sourceProjectId: readSignalSourceProjectId(signal),
+        targetProjectId: readSignalTargetProjectId(signal),
+        relatedProjectIds: signal.relatedNodeIds ?? [],
+        dbtUniqueId: sourceSignalNodeId
+          ? resolutionByNodeId.get(sourceSignalNodeId)?.dbtUniqueId
           : undefined,
         signal,
       }),
@@ -546,13 +568,17 @@ function buildReviewCrossDomainDependencyRecommendations(
       continue;
     }
 
-    const sourceProjectId = violation.project;
-    const targetProjectId = violation.reference?.targetProjectId;
+    const sourceProjectId = readViolationNodeId(violation);
+    const targetProjectId = readViolationTargetNodeId(violation);
     const dependencyKey =
       sourceProjectId && targetProjectId
         ? `${sourceProjectId}->${targetProjectId}`
         : undefined;
     if (!dependencyKey) {
+      continue;
+    }
+
+    if (!sourceProjectId) {
       continue;
     }
 
@@ -680,6 +706,8 @@ function buildFixLayerDependencyRecommendations(
       continue;
     }
 
+    const sourceSignalNodeId = readSignalSourceProjectId(signal);
+
     upsertDraft(
       byDependencyKey,
       dependencyKey,
@@ -693,11 +721,11 @@ function buildFixLayerDependencyRecommendations(
           'Align the dependency with the configured layer policy or refactor through the expected intermediate layer.',
         category: 'boundary',
         dependencyKey,
-        sourceProjectId: signal.sourceProjectId,
-        targetProjectId: signal.targetProjectId,
-        relatedProjectIds: signal.relatedProjectIds,
-        dbtUniqueId: signal.sourceProjectId
-          ? resolutionByNodeId.get(signal.sourceProjectId)?.dbtUniqueId
+        sourceProjectId: readSignalSourceProjectId(signal),
+        targetProjectId: readSignalTargetProjectId(signal),
+        relatedProjectIds: signal.relatedNodeIds ?? [],
+        dbtUniqueId: sourceSignalNodeId
+          ? resolutionByNodeId.get(sourceSignalNodeId)?.dbtUniqueId
           : undefined,
         signal,
       }),
@@ -709,13 +737,17 @@ function buildFixLayerDependencyRecommendations(
       continue;
     }
 
-    const sourceProjectId = violation.project;
-    const targetProjectId = violation.reference?.targetProjectId;
+    const sourceProjectId = readViolationNodeId(violation);
+    const targetProjectId = readViolationTargetNodeId(violation);
     const dependencyKey =
       sourceProjectId && targetProjectId
         ? `${sourceProjectId}->${targetProjectId}`
         : undefined;
     if (!dependencyKey) {
+      continue;
+    }
+
+    if (!sourceProjectId) {
       continue;
     }
 
@@ -913,19 +945,13 @@ function createRecommendation(
     description: draft.description,
     category: draft.category,
     reference: {
-      ...(draft.governanceNodeId
-        ? {
-            nodeId: draft.governanceNodeId,
-            projectId: draft.governanceNodeId,
-          }
-        : {}),
+      ...(draft.governanceNodeId ? { nodeId: draft.governanceNodeId } : {}),
       ...(draft.dependencyKey ? { relationId: draft.dependencyKey } : {}),
-      ...(draft.sourceProjectId ? { projectId: draft.sourceProjectId } : {}),
-      ...(draft.targetProjectId
-        ? { targetProjectId: draft.targetProjectId }
+      ...(draft.sourceProjectId
+        ? { nodeId: draft.sourceProjectId }
         : {}),
       ...(draft.relatedProjectIds.length > 0
-        ? { relatedProjectIds: draft.relatedProjectIds }
+        ? { relatedNodeIds: draft.relatedProjectIds }
         : {}),
     },
     ...(draft.triggerSignalIds.length > 0
@@ -984,11 +1010,11 @@ function recommendationIdentityKey(
   const nodeId =
     'governanceNodeId' in draft
       ? draft.governanceNodeId
-      : (reference?.nodeId ?? reference?.projectId);
+      : reference?.nodeId;
   const targetProjectId =
     'targetProjectId' in draft
       ? draft.targetProjectId
-      : reference?.targetProjectId;
+      : readTargetNodeIdFromReference(reference);
 
   return [
     code,
@@ -1014,11 +1040,11 @@ function compareRecommendations(
   return (
     priorityRank(left.priority) - priorityRank(right.priority) ||
     left.title.localeCompare(right.title) ||
-    (left.reference?.projectId ?? '').localeCompare(
-      right.reference?.projectId ?? '',
+    (left.reference?.nodeId ?? '').localeCompare(
+      right.reference?.nodeId ?? '',
     ) ||
-    (left.reference?.targetProjectId ?? '').localeCompare(
-      right.reference?.targetProjectId ?? '',
+    readTargetNodeIdFromReference(left.reference).localeCompare(
+      readTargetNodeIdFromReference(right.reference),
     ) ||
     left.id.localeCompare(right.id)
   );
@@ -1055,7 +1081,6 @@ function readDiagnosticNodeId(
 ): string | undefined {
   return (
     diagnostic.reference?.nodeId ??
-    diagnostic.reference?.projectId ??
     asString(asRecord(diagnostic.details)?.governanceNodeId)
   );
 }
@@ -1068,8 +1093,10 @@ function readDependencyKeyFromSignal(
     return explicitKey;
   }
 
-  if (signal.sourceProjectId && signal.targetProjectId) {
-    return `${signal.sourceProjectId}->${signal.targetProjectId}`;
+  const sourceNodeId = readSignalSourceProjectId(signal);
+  const targetNodeId = readSignalTargetProjectId(signal);
+  if (sourceNodeId && targetNodeId) {
+    return `${sourceNodeId}->${targetNodeId}`;
   }
 
   return undefined;
@@ -1080,6 +1107,39 @@ function readStringArray(value: unknown, key: string): string[] {
   return Array.isArray(array)
     ? array.filter((entry): entry is string => typeof entry === 'string')
     : [];
+}
+
+function readViolationNodeId(violation: Violation): string | undefined {
+  return violation.subjectId ?? violation.reference?.nodeId;
+}
+
+function readViolationTargetNodeId(violation: Violation): string | undefined {
+  const sourceNodeId = readViolationNodeId(violation);
+  return violation.reference?.relatedNodeIds?.find(
+    (nodeId) => nodeId !== sourceNodeId,
+  );
+}
+
+function readSignalSourceProjectId(signal: GovernanceSignal): string | undefined {
+  return signal.nodeId;
+}
+
+function readSignalTargetProjectId(signal: GovernanceSignal): string | undefined {
+  const sourceNodeId = signal.nodeId;
+  return signal.relatedNodeIds?.find((nodeId) => nodeId !== sourceNodeId);
+}
+
+function readTargetNodeIdFromReference(
+  reference: Recommendation['reference'] | undefined,
+): string {
+  if (!reference) {
+    return '';
+  }
+
+  return (
+    reference.relatedNodeIds?.find((nodeId) => nodeId !== reference.nodeId) ??
+    ''
+  );
 }
 
 function normalizeRelatedProjectIds(

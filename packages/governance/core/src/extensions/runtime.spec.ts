@@ -228,7 +228,7 @@ describe('governance extension runtime', () => {
               severity: 'warning',
               category: 'ownership',
               message: 'Ownership gap',
-              relatedProjectIds: ['project-a'],
+              relatedNodeIds: ['project-a'],
               createdAt: '2026-05-21T00:00:00.000Z',
             },
           ],

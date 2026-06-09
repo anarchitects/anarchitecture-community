@@ -14,8 +14,8 @@ describe('exception runtime', () => {
       scope: {
         source: 'policy',
         ruleId: 'domain-boundary',
-        projectId: 'platform-shell',
-        targetProjectId: 'booking-ui',
+        nodeId: 'platform-shell',
+        relatedNodeIds: ['booking-ui', 'platform-shell'],
       },
       reason: 'Temporary integration seam.',
       owner: 'platform-team',
@@ -29,7 +29,7 @@ describe('exception runtime', () => {
       scope: {
         source: 'policy',
         ruleId: 'ownership-presence',
-        projectId: 'platform-shell',
+        nodeId: 'platform-shell',
       },
       reason: 'Migration in progress.',
       owner: 'platform-team',
@@ -41,21 +41,25 @@ describe('exception runtime', () => {
       {
         id: 'domain-violation',
         ruleId: 'domain-boundary',
-        project: 'platform-shell',
+        subjectId: 'platform-shell',
         severity: 'error',
         category: 'boundary',
         message: 'Cross-domain dependency.',
-        details: {
-          targetProject: 'booking-ui',
+        reference: {
+          nodeId: 'platform-shell',
+          relatedNodeIds: ['booking-ui', 'platform-shell'],
         },
       },
       {
         id: 'ownership-violation',
         ruleId: 'ownership-presence',
-        project: 'platform-shell',
+        subjectId: 'platform-shell',
         severity: 'warning',
         category: 'ownership',
         message: 'Ownership missing.',
+        reference: {
+          nodeId: 'platform-shell',
+        },
       },
     ];
 

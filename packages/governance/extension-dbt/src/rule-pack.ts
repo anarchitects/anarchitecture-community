@@ -101,7 +101,7 @@ interface RuleConfig<TOptions> {
 
 interface CreateViolationOptions {
   ruleId: DbtArchitectureRuleId;
-  project: string;
+  subjectId: string;
   severity: Violation['severity'];
   category: Violation['category'];
   message: string;
@@ -308,7 +308,7 @@ function evaluateNoDisallowedLayerDependency(
   return [
     createViolation({
       ruleId: 'dbt/no-disallowed-layer-dependency',
-      project: source.governanceNodeId,
+      subjectId: source.governanceNodeId,
       severity: config.severity,
       category: 'boundary',
       message: `dbt layer dependency violation: ${source.governanceNodeId} (${sourceLayer}) depends on ${target.governanceNodeId} (${targetLayer}).`,
@@ -326,8 +326,8 @@ function evaluateNoDisallowedLayerDependency(
       recommendation:
         'Refactor the dependency so the source layer only depends on configured upstream layers, or update the dbt rule configuration when intentional.',
       reference: {
-        projectId: source.governanceNodeId,
-        targetProjectId: target.governanceNodeId,
+        nodeId: source.governanceNodeId,
+        relatedNodeIds: [source.governanceNodeId, target.governanceNodeId],
       },
       identityParts: [
         'no-disallowed-layer-dependency',
@@ -378,7 +378,7 @@ function evaluateNoMartToMartDependency(
   return [
     createViolation({
       ruleId: 'dbt/no-mart-to-mart-dependency',
-      project: source.governanceNodeId,
+      subjectId: source.governanceNodeId,
       severity: config.severity,
       category: 'boundary',
       message: `dbt mart-to-mart dependency detected: ${source.governanceNodeId} depends on ${target.governanceNodeId}.`,
@@ -396,8 +396,8 @@ function evaluateNoMartToMartDependency(
       recommendation:
         'Refactor shared marts behind an intermediate or staging layer, or reconfigure mart layers when the architecture intentionally treats them differently.',
       reference: {
-        projectId: source.governanceNodeId,
-        targetProjectId: target.governanceNodeId,
+        nodeId: source.governanceNodeId,
+        relatedNodeIds: [source.governanceNodeId, target.governanceNodeId],
       },
       identityParts: [
         'no-mart-to-mart-dependency',
@@ -453,7 +453,7 @@ function evaluateCriticalModelsRequireOwner(
   return [
     createViolation({
       ruleId: 'dbt/critical-models-require-owner',
-      project: resolution.governanceNodeId,
+      subjectId: resolution.governanceNodeId,
       severity: config.severity,
       category: 'ownership',
       message: `Critical dbt model ${resolution.governanceNodeId} has no valid owner metadata.`,
@@ -471,7 +471,7 @@ function evaluateCriticalModelsRequireOwner(
       recommendation:
         'Add valid owner metadata for critical dbt models before relying on them as governed resources.',
       reference: {
-        projectId: resolution.governanceNodeId,
+        nodeId: resolution.governanceNodeId,
       },
       identityParts: [
         'critical-models-require-owner',
@@ -505,7 +505,7 @@ function evaluatePublicModelsRequireDescription(
   return [
     createViolation({
       ruleId: 'dbt/public-models-require-description',
-      project: resolution.governanceNodeId,
+      subjectId: resolution.governanceNodeId,
       severity: config.severity,
       category: 'documentation',
       message: `Public or governed dbt model ${resolution.governanceNodeId} does not have a description.`,
@@ -520,7 +520,7 @@ function evaluatePublicModelsRequireDescription(
       recommendation:
         'Add a description so public or governed dbt models remain interpretable to downstream consumers.',
       reference: {
-        projectId: resolution.governanceNodeId,
+        nodeId: resolution.governanceNodeId,
       },
       identityParts: [
         'public-models-require-description',
@@ -578,7 +578,7 @@ function evaluateCriticalModelsRequireTests(
   return [
     createViolation({
       ruleId: 'dbt/critical-models-require-tests',
-      project: resolution.governanceNodeId,
+      subjectId: resolution.governanceNodeId,
       severity: config.severity,
       category: 'metadata',
       message: `Critical dbt model ${resolution.governanceNodeId} does not have tests.`,
@@ -593,7 +593,7 @@ function evaluateCriticalModelsRequireTests(
       recommendation:
         'Add dbt tests to critical models so governance can treat them as dependable assets.',
       reference: {
-        projectId: resolution.governanceNodeId,
+        nodeId: resolution.governanceNodeId,
       },
       identityParts: [
         'critical-models-require-tests',
@@ -627,7 +627,7 @@ function evaluatePublicModelsRequireContract(
   return [
     createViolation({
       ruleId: 'dbt/public-models-require-contract',
-      project: resolution.governanceNodeId,
+      subjectId: resolution.governanceNodeId,
       severity: config.severity,
       category: 'metadata',
       message: `Public or governed dbt model ${resolution.governanceNodeId} does not expose contract metadata.`,
@@ -641,7 +641,7 @@ function evaluatePublicModelsRequireContract(
       recommendation:
         'Enable or preserve contract metadata for public or governed dbt models so downstream usage remains explicit.',
       reference: {
-        projectId: resolution.governanceNodeId,
+        nodeId: resolution.governanceNodeId,
       },
       identityParts: [
         'public-models-require-contract',
@@ -699,7 +699,7 @@ function evaluateCrossDomainDependenciesRequireApproval(
   return [
     createViolation({
       ruleId: 'dbt/cross-domain-dependencies-require-approval',
-      project: source.governanceNodeId,
+      subjectId: source.governanceNodeId,
       severity: config.severity,
       category: 'boundary',
       message: `Cross-domain dbt dependency ${source.governanceNodeId} (${sourceDomain}) -> ${target.governanceNodeId} (${targetDomain}) has no approval metadata.`,
@@ -716,8 +716,8 @@ function evaluateCrossDomainDependenciesRequireApproval(
       recommendation:
         'Add explicit approval metadata for intentional cross-domain dbt dependencies or refactor the dependency to remain within the domain boundary.',
       reference: {
-        projectId: source.governanceNodeId,
-        targetProjectId: target.governanceNodeId,
+        nodeId: source.governanceNodeId,
+        relatedNodeIds: [source.governanceNodeId, target.governanceNodeId],
       },
       identityParts: [
         'cross-domain-dependencies-require-approval',
@@ -754,7 +754,7 @@ function resolveRuleConfig<TOptions extends Record<string, unknown>>(
 
 function createViolation({
   ruleId,
-  project,
+  subjectId,
   severity,
   category,
   message,
@@ -766,7 +766,7 @@ function createViolation({
   return {
     id: createViolationId(identityParts),
     ruleId,
-    project,
+    subjectId,
     severity,
     category,
     message,
@@ -861,7 +861,7 @@ function getNodeDiagnosticCodes(
 ): string[] {
   return diagnostics
     .filter((diagnostic) => {
-      if (diagnostic.reference?.projectId === governanceNodeId) {
+      if (diagnostic.reference?.nodeId === governanceNodeId) {
         return true;
       }
 

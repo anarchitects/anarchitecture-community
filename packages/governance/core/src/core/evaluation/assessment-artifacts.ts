@@ -4,7 +4,6 @@ import type {
   GovernanceWorkspaceAdapterResult,
 } from '../adapter/adapter.js';
 import { buildGovernanceWorkspace } from '../adapter/adapter.js';
-import { toGovernanceCompatibilityWorkspace } from '../compatibility/internal-workspace.js';
 import { buildGovernanceAssessment, buildTopIssues } from './assessment.js';
 import {
   applyGovernanceExceptions,
@@ -28,6 +27,7 @@ import {
 import { calculateGovernanceMetrics } from './metrics.js';
 import type {
   GovernanceAssessment,
+  GovernanceNode,
   GovernanceWorkspace,
   Measurement,
   Recommendation,
@@ -229,18 +229,23 @@ function resolveWorkspace(
 function buildGraphSnapshotFromWorkspace(
   workspace: GovernanceWorkspace,
 ): GovernanceGraphSnapshot {
-  const compatibilityWorkspace = toGovernanceCompatibilityWorkspace(workspace);
-
   return {
     extractedAt: new Date().toISOString(),
-    projects: compatibilityWorkspace.projects.map((project) => ({
-      id: project.id,
-      domain: project.domain,
+    nodes: workspace.nodes.map((node) => ({
+      id: node.id,
+      domain: resolveNodeDomain(node),
     })),
-    dependencies: compatibilityWorkspace.dependencies.map((dependency) => ({
-      sourceProjectId: dependency.source,
-      targetProjectId: dependency.target,
-      type: dependency.type,
+    relations: workspace.relations.map((relation) => ({
+      id: relation.id,
+      sourceNodeId: relation.sourceNodeId,
+      targetNodeId: relation.targetNodeId,
+      kind: relation.kind,
+      metadata: relation.metadata,
     })),
   };
+}
+
+function resolveNodeDomain(node: GovernanceNode): string | undefined {
+  const domain = node.classification?.domain ?? node.classification?.scope;
+  return typeof domain === 'string' && domain.length > 0 ? domain : undefined;
 }

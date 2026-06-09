@@ -90,10 +90,8 @@ export interface GovernanceRuleFinding {
   message: string;
   nodeId?: string;
   relationId?: string;
-  projectId?: string;
   relatedNodeIds?: string[];
   relatedRelationIds?: string[];
-  relatedProjectIds?: string[];
   recommendation?: string;
   perspective?: GovernancePerspective;
   source?: GovernanceSource;

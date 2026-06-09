@@ -99,7 +99,10 @@ function applyViolationFilters(
       return false;
     }
 
-    if (filters?.project && violation.project !== filters.project) {
+    if (
+      filters?.project &&
+      readViolationProjectKey(violation) !== filters.project
+    ) {
       return false;
     }
 
@@ -127,7 +130,7 @@ function buildSummary(violations: Violation[]): AgovViolationsSummary {
     byRule: countBy(violations, (violation) => violation.ruleId).map(
       ([rule, count]) => ({ rule, count }),
     ),
-    byProject: countBy(violations, (violation) => violation.project).map(
+    byProject: countBy(violations, readViolationProjectKey).map(
       ([project, count]) => ({ project, count }),
     ),
     bySourcePlugin: countBy(
@@ -169,7 +172,9 @@ function compareViolations(left: Violation, right: Violation): number {
     return byCategory;
   }
 
-  const byProject = left.project.localeCompare(right.project);
+  const byProject = readViolationProjectKey(left).localeCompare(
+    readViolationProjectKey(right),
+  );
   if (byProject !== 0) {
     return byProject;
   }
@@ -193,4 +198,8 @@ function severityRank(severity: Violation['severity']): number {
     default:
       return 0;
   }
+}
+
+function readViolationProjectKey(violation: Violation): string {
+  return violation.subjectId ?? violation.reference?.nodeId ?? 'unknown';
 }

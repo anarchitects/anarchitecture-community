@@ -112,8 +112,8 @@ describe('normalizeGovernanceProfile', () => {
         scope: {
           source: 'policy',
           ruleId: 'domain-boundary',
-          projectId: 'booking-feature',
-          targetProjectId: 'payments-ui',
+          nodeId: 'booking-feature',
+          relatedNodeIds: ['booking-feature', 'payments-ui'],
         },
         reason: 'Known transition.',
         owner: '@org/architecture',

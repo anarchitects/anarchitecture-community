@@ -2,7 +2,7 @@ import type {
   AiAnalysisRequest,
   AiAnalysisResult,
   GovernanceAssessment,
-  GovernanceDependency,
+  GovernanceRelation,
   MetricSnapshot,
   Recommendation,
   SnapshotComparison,
@@ -22,7 +22,7 @@ export interface BuildManagementInsightsAiRequestInput {
 export function buildRootCauseRequest(params: {
   profile: string;
   snapshot: MetricSnapshot;
-  dependencies: GovernanceDependency[];
+  relations: GovernanceRelation[];
   topViolations?: SnapshotViolation[];
   metadata?: Record<string, unknown>;
 }): AiAnalysisRequest {
@@ -32,7 +32,7 @@ export function buildRootCauseRequest(params: {
     profile: params.profile,
     inputs: {
       snapshot: params.snapshot,
-      dependencies: params.dependencies,
+      relations: params.relations,
       topViolations: params.topViolations,
       metadata: params.metadata,
     },
@@ -41,8 +41,9 @@ export function buildRootCauseRequest(params: {
 
 export function buildPrImpactRequest(params: {
   profile: string;
-  affectedProjects: string[];
-  dependencies: GovernanceDependency[];
+  affectedNodeIds: string[];
+  affectedRelationIds?: string[];
+  relations: GovernanceRelation[];
   metadata?: Record<string, unknown>;
 }): AiAnalysisRequest {
   return {
@@ -50,8 +51,11 @@ export function buildPrImpactRequest(params: {
     generatedAt: new Date().toISOString(),
     profile: params.profile,
     inputs: {
-      affectedProjects: params.affectedProjects,
-      dependencies: params.dependencies,
+      affectedNodeIds: params.affectedNodeIds,
+      ...(params.affectedRelationIds
+        ? { affectedRelationIds: params.affectedRelationIds }
+        : {}),
+      relations: params.relations,
       metadata: params.metadata,
     },
   };
@@ -77,7 +81,7 @@ export function buildScorecardRequest(params: {
 
 export function buildOnboardingRequest(params: {
   profile: string;
-  dependencies: GovernanceDependency[];
+  relations: GovernanceRelation[];
   topViolations?: SnapshotViolation[];
   metadata?: Record<string, unknown>;
 }): AiAnalysisRequest {
@@ -86,7 +90,7 @@ export function buildOnboardingRequest(params: {
     generatedAt: new Date().toISOString(),
     profile: params.profile,
     inputs: {
-      dependencies: params.dependencies,
+      relations: params.relations,
       topViolations: params.topViolations,
       metadata: params.metadata,
     },
@@ -95,8 +99,9 @@ export function buildOnboardingRequest(params: {
 
 export function buildCognitiveLoadRequest(params: {
   profile: string;
-  affectedProjects: string[];
-  dependencies: GovernanceDependency[];
+  affectedNodeIds: string[];
+  affectedRelationIds?: string[];
+  relations: GovernanceRelation[];
   metadata?: Record<string, unknown>;
 }): AiAnalysisRequest {
   return {
@@ -104,8 +109,11 @@ export function buildCognitiveLoadRequest(params: {
     generatedAt: new Date().toISOString(),
     profile: params.profile,
     inputs: {
-      affectedProjects: params.affectedProjects,
-      dependencies: params.dependencies,
+      affectedNodeIds: params.affectedNodeIds,
+      ...(params.affectedRelationIds
+        ? { affectedRelationIds: params.affectedRelationIds }
+        : {}),
+      relations: params.relations,
       metadata: params.metadata,
     },
   };
@@ -113,7 +121,7 @@ export function buildCognitiveLoadRequest(params: {
 
 export function buildArchitectureRecommendationsRequest(params: {
   profile: string;
-  dependencies: GovernanceDependency[];
+  relations: GovernanceRelation[];
   topViolations?: SnapshotViolation[];
   comparison?: SnapshotComparison;
   metadata?: Record<string, unknown>;
@@ -123,7 +131,7 @@ export function buildArchitectureRecommendationsRequest(params: {
     generatedAt: new Date().toISOString(),
     profile: params.profile,
     inputs: {
-      dependencies: params.dependencies,
+      relations: params.relations,
       topViolations: params.topViolations,
       comparison: params.comparison,
       metadata: params.metadata,
@@ -133,7 +141,7 @@ export function buildArchitectureRecommendationsRequest(params: {
 
 export function buildSmellClustersRequest(params: {
   profile: string;
-  dependencies: GovernanceDependency[];
+  relations: GovernanceRelation[];
   topViolations?: SnapshotViolation[];
   comparison?: SnapshotComparison;
   metadata?: Record<string, unknown>;
@@ -143,7 +151,7 @@ export function buildSmellClustersRequest(params: {
     generatedAt: new Date().toISOString(),
     profile: params.profile,
     inputs: {
-      dependencies: params.dependencies,
+      relations: params.relations,
       topViolations: params.topViolations,
       comparison: params.comparison,
       metadata: params.metadata,
@@ -153,7 +161,7 @@ export function buildSmellClustersRequest(params: {
 
 export function buildRefactoringSuggestionsRequest(params: {
   profile: string;
-  dependencies: GovernanceDependency[];
+  relations: GovernanceRelation[];
   topViolations?: SnapshotViolation[];
   comparison?: SnapshotComparison;
   metadata?: Record<string, unknown>;
@@ -163,7 +171,7 @@ export function buildRefactoringSuggestionsRequest(params: {
     generatedAt: new Date().toISOString(),
     profile: params.profile,
     inputs: {
-      dependencies: params.dependencies,
+      relations: params.relations,
       topViolations: params.topViolations,
       comparison: params.comparison,
       metadata: params.metadata,
@@ -263,7 +271,7 @@ export function summarizeRootCause(
     summary:
       violations.length === 0
         ? 'No prioritized governance violations found for root-cause analysis.'
-        : `Analyzed ${violations.length} prioritized violations across ${topSources.length} hotspot projects.`,
+        : `Analyzed ${violations.length} prioritized violations across ${topSources.length} hotspot subjects.`,
     findings,
     recommendations: buildRuleRecommendations(typeCounts),
     metadata: {
@@ -278,23 +286,23 @@ export function summarizePrImpact(
 ): AiAnalysisResult {
   const metadata = request.inputs.metadata ?? {};
   const changedFilesCount = numberFromMetadata(metadata, 'changedFilesCount');
-  const affectedProjectsCount =
-    request.inputs.affectedProjects?.length ??
-    numberFromMetadata(metadata, 'affectedProjectsCount');
+  const affectedNodeCount =
+    request.inputs.affectedNodeIds?.length ??
+    numberFromMetadata(metadata, 'affectedNodeCount');
   const affectedDomainCount = numberFromMetadata(
     metadata,
     'affectedDomainCount',
   );
-  const crossDomainDependencyEdges = numberFromMetadata(
+  const crossDomainRelationEdges = numberFromMetadata(
     metadata,
-    'crossDomainDependencyEdges',
+    'crossDomainRelationEdges',
   );
 
   const riskScore = [
     changedFilesCount * 5,
-    affectedProjectsCount * 15,
+    affectedNodeCount * 15,
     affectedDomainCount * 20,
-    crossDomainDependencyEdges * 10,
+    crossDomainRelationEdges * 10,
   ].reduce((sum, value) => sum + value, 0);
   const clampedRiskScore = Math.max(0, Math.min(100, riskScore));
   const risk =
@@ -302,22 +310,22 @@ export function summarizePrImpact(
 
   return {
     kind: 'pr-impact',
-    summary: `PR impact is ${risk} risk at ${clampedRiskScore}/100 across ${affectedProjectsCount} affected project(s).`,
+    summary: `PR impact is ${risk} risk at ${clampedRiskScore}/100 across ${affectedNodeCount} affected node(s).`,
     findings: [
       {
-        id: 'affected-projects',
-        title: 'Affected project spread',
-        detail: `${affectedProjectsCount} project(s), ${affectedDomainCount} domain(s), and ${crossDomainDependencyEdges} cross-domain dependency edge(s) are implicated.`,
-        signals: ['affected-projects', 'cross-domain-impact'],
+        id: 'affected-nodes',
+        title: 'Affected node spread',
+        detail: `${affectedNodeCount} node(s), ${affectedDomainCount} domain(s), and ${crossDomainRelationEdges} cross-domain relation edge(s) are implicated.`,
+        signals: ['affected-nodes', 'cross-domain-impact'],
         confidence: 1,
       },
     ],
     recommendations: buildPriorityRecommendations(risk),
     metadata: {
       changedFilesCount,
-      affectedProjectsCount,
+      affectedNodeCount,
       affectedDomainCount,
-      crossDomainDependencyEdges,
+      crossDomainRelationEdges,
       risk: clampedRiskScore,
     },
   };
@@ -367,21 +375,21 @@ export function summarizeScorecard(
 export function summarizeOnboarding(
   request: AiAnalysisRequest,
 ): AiAnalysisResult {
-  const dependencyCount = request.inputs.dependencies?.length ?? 0;
+  const relationCount = request.inputs.relations?.length ?? 0;
   const topViolationCount = request.inputs.topViolations?.length ?? 0;
 
   return {
     kind: 'onboarding',
     summary:
-      dependencyCount === 0
-        ? 'No dependency graph details were available for onboarding analysis.'
-        : `Prepared onboarding analysis from ${dependencyCount} dependency edge(s) and ${topViolationCount} prioritized violation(s).`,
+      relationCount === 0
+        ? 'No relation graph details were available for onboarding analysis.'
+        : `Prepared onboarding analysis from ${relationCount} relation edge(s) and ${topViolationCount} prioritized violation(s).`,
     findings: [
       {
-        id: 'dependency-surface',
-        title: 'Dependency surface',
-        detail: `${dependencyCount} dependency edge(s) were included for the onboarding brief.`,
-        signals: ['dependency-surface'],
+        id: 'relation-surface',
+        title: 'Relation surface',
+        detail: `${relationCount} relation edge(s) were included for the onboarding brief.`,
+        signals: ['relation-surface'],
         confidence: 1,
       },
     ],
@@ -398,7 +406,7 @@ export function summarizeOnboarding(
           ]
         : [],
     metadata: {
-      dependencyCount,
+      relationCount,
       topViolationCount,
     },
   };
@@ -495,11 +503,11 @@ export function summarizeArchitectureRecommendations(
 export function summarizeCognitiveLoad(
   request: AiAnalysisRequest,
 ): AiAnalysisResult {
-  const affectedProjects = request.inputs.affectedProjects ?? [];
-  const dependencies = request.inputs.dependencies ?? [];
+  const affectedNodeIds = request.inputs.affectedNodeIds ?? [];
+  const relations = request.inputs.relations ?? [];
   const score = Math.max(
     0,
-    Math.min(100, affectedProjects.length * 15 + dependencies.length * 2),
+    Math.min(100, affectedNodeIds.length * 15 + relations.length * 2),
   );
   const risk = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low';
 
@@ -510,16 +518,16 @@ export function summarizeCognitiveLoad(
       {
         id: 'cognitive-load-surface',
         title: 'Cognitive load surface',
-        detail: `${affectedProjects.length} affected project(s) and ${dependencies.length} dependency edge(s) contribute to the current change context.`,
-        signals: ['affected-projects', 'dependency-count'],
+        detail: `${affectedNodeIds.length} affected node(s) and ${relations.length} relation edge(s) contribute to the current change context.`,
+        signals: ['affected-nodes', 'relation-count'],
         confidence: 0.8,
       },
     ],
     recommendations: buildPriorityRecommendations(risk),
     metadata: {
       score,
-      affectedProjectsCount: affectedProjects.length,
-      dependencyCount: dependencies.length,
+      affectedNodeCount: affectedNodeIds.length,
+      relationCount: relations.length,
     },
   };
 }

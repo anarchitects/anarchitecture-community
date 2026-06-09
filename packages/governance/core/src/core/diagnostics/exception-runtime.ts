@@ -368,18 +368,37 @@ function matchPolicyException(
     return null;
   }
 
-  const targetProjectId = normalizeText(
-    violation.details?.targetProject ?? violation.details?.target,
-  );
+  const reference = violation.reference;
+
+  if (scope.ruleId !== violation.ruleId) {
+    return null;
+  }
+
+  if (scope.nodeId && scope.nodeId !== normalizeText(reference?.nodeId)) {
+    return null;
+  }
 
   if (
-    scope.ruleId !== violation.ruleId ||
-    scope.projectId !== normalizeText(violation.project)
+    scope.relationId &&
+    scope.relationId !== normalizeText(reference?.relationId)
   ) {
     return null;
   }
 
-  if (scope.targetProjectId && scope.targetProjectId !== targetProjectId) {
+  if (
+    scope.relatedNodeIds &&
+    !areEqualRelatedIds(scope.relatedNodeIds, reference?.relatedNodeIds ?? [])
+  ) {
+    return null;
+  }
+
+  if (
+    scope.relatedRelationIds &&
+    !areEqualRelatedIds(
+      scope.relatedRelationIds,
+      reference?.relatedRelationIds ?? [],
+    )
+  ) {
     return null;
   }
 
@@ -405,16 +424,24 @@ function matchConformanceException(
     return null;
   }
 
-  if (scope.projectId && scope.projectId !== finding.projectId) {
+  if (scope.nodeId && scope.nodeId !== finding.nodeId) {
+    return null;
+  }
+
+  if (scope.relationId && scope.relationId !== finding.relationId) {
     return null;
   }
 
   if (
-    scope.relatedProjectIds &&
-    !areEqualRelatedProjectIds(
-      scope.relatedProjectIds,
-      finding.relatedProjectIds,
-    )
+    scope.relatedNodeIds &&
+    !areEqualRelatedIds(scope.relatedNodeIds, finding.relatedNodeIds)
+  ) {
+    return null;
+  }
+
+  if (
+    scope.relatedRelationIds &&
+    !areEqualRelatedIds(scope.relatedRelationIds, finding.relatedRelationIds)
   ) {
     return null;
   }
@@ -458,7 +485,12 @@ function compareExceptionMatches(
 }
 
 function getPolicySpecificity(scope: GovernancePolicyExceptionScope): number {
-  return scope.targetProjectId ? 2 : 1;
+  return [
+    scope.nodeId,
+    scope.relationId,
+    scope.relatedNodeIds?.length ? 'relatedNodeIds' : undefined,
+    scope.relatedRelationIds?.length ? 'relatedRelationIds' : undefined,
+  ].filter(Boolean).length;
 }
 
 function getConformanceSpecificity(
@@ -467,26 +499,26 @@ function getConformanceSpecificity(
   return [
     scope.ruleId,
     scope.category,
-    scope.projectId,
-    scope.relatedProjectIds?.length ? 'relatedProjectIds' : undefined,
+    scope.nodeId,
+    scope.relationId,
+    scope.relatedNodeIds?.length ? 'relatedNodeIds' : undefined,
+    scope.relatedRelationIds?.length ? 'relatedRelationIds' : undefined,
   ].filter(Boolean).length;
 }
 
-function areEqualRelatedProjectIds(left: string[], right: string[]): boolean {
-  const normalizedLeft = normalizeRelatedProjectIds(left);
-  const normalizedRight = normalizeRelatedProjectIds(right);
+function areEqualRelatedIds(left: string[], right: string[]): boolean {
+  const normalizedLeft = normalizeRelatedIds(left);
+  const normalizedRight = normalizeRelatedIds(right);
 
   if (normalizedLeft.length !== normalizedRight.length) {
     return false;
   }
 
-  return normalizedLeft.every(
-    (projectId, index) => projectId === normalizedRight[index],
-  );
+  return normalizedLeft.every((id, index) => id === normalizedRight[index]);
 }
 
-function normalizeRelatedProjectIds(projectIds: string[]): string[] {
-  return [...new Set(projectIds.map(normalizeText).filter(isPresent))].sort(
+function normalizeRelatedIds(ids: (string | undefined)[]): string[] {
+  return [...new Set(ids.map(normalizeText).filter(isPresent))].sort(
     (left, right) => left.localeCompare(right),
   );
 }
@@ -520,10 +552,17 @@ function countMatchesByExceptionId(
 function mapSuppressedPolicyViolation(
   entry: GovernanceSuppressedFinding<Violation>,
 ): GovernanceExceptionFinding {
-  const targetProjectId = normalizeText(
-    entry.finding.details?.targetProject ?? entry.finding.details?.target,
-  );
-  const projectId = normalizeText(entry.finding.project);
+  const reference = entry.finding.reference;
+  const nodeId = normalizeText(reference?.nodeId);
+  const relationId = normalizeText(reference?.relationId);
+  const relatedNodeIds = normalizeRelatedIds([
+    nodeId,
+    ...(reference?.relatedNodeIds ?? []),
+  ]);
+  const relatedRelationIds = normalizeRelatedIds([
+    relationId,
+    ...(reference?.relatedRelationIds ?? []),
+  ]);
 
   return {
     kind: 'policy-violation',
@@ -533,9 +572,10 @@ function mapSuppressedPolicyViolation(
     category: entry.finding.category,
     severity: entry.finding.severity,
     status: 'active',
-    ...(projectId ? { projectId } : {}),
-    ...(targetProjectId ? { targetProjectId } : {}),
-    relatedProjectIds: [projectId, targetProjectId].filter(isPresent),
+    ...(nodeId ? { nodeId } : {}),
+    ...(relationId ? { relationId } : {}),
+    relatedNodeIds,
+    relatedRelationIds,
     message: entry.finding.message,
     ...(entry.finding.sourcePluginId
       ? { sourcePluginId: entry.finding.sourcePluginId }
@@ -554,8 +594,14 @@ function mapSuppressedConformanceFinding(
     category: entry.finding.category,
     severity: entry.finding.severity,
     status: 'active',
-    ...(entry.finding.projectId ? { projectId: entry.finding.projectId } : {}),
-    relatedProjectIds: [...entry.finding.relatedProjectIds].sort((a, b) =>
+    ...(entry.finding.nodeId ? { nodeId: entry.finding.nodeId } : {}),
+    ...(entry.finding.relationId
+      ? { relationId: entry.finding.relationId }
+      : {}),
+    relatedNodeIds: [...entry.finding.relatedNodeIds].sort((a, b) =>
+      a.localeCompare(b),
+    ),
+    relatedRelationIds: [...entry.finding.relatedRelationIds].sort((a, b) =>
       a.localeCompare(b),
     ),
     message: entry.finding.message,
@@ -570,10 +616,17 @@ function mapSuppressedConformanceFinding(
 function mapReactivatedPolicyViolation(
   entry: GovernanceExceptionApplicationResult['reactivatedPolicyViolations'][number],
 ): GovernanceExceptionFinding {
-  const targetProjectId = normalizeText(
-    entry.finding.details?.targetProject ?? entry.finding.details?.target,
-  );
-  const projectId = normalizeText(entry.finding.project);
+  const reference = entry.finding.reference;
+  const nodeId = normalizeText(reference?.nodeId);
+  const relationId = normalizeText(reference?.relationId);
+  const relatedNodeIds = normalizeRelatedIds([
+    nodeId,
+    ...(reference?.relatedNodeIds ?? []),
+  ]);
+  const relatedRelationIds = normalizeRelatedIds([
+    relationId,
+    ...(reference?.relatedRelationIds ?? []),
+  ]);
 
   return {
     kind: 'policy-violation',
@@ -583,9 +636,10 @@ function mapReactivatedPolicyViolation(
     ruleId: entry.finding.ruleId,
     category: entry.finding.category,
     severity: entry.finding.severity,
-    ...(projectId ? { projectId } : {}),
-    ...(targetProjectId ? { targetProjectId } : {}),
-    relatedProjectIds: [projectId, targetProjectId].filter(isPresent),
+    ...(nodeId ? { nodeId } : {}),
+    ...(relationId ? { relationId } : {}),
+    relatedNodeIds,
+    relatedRelationIds,
     message: entry.finding.message,
     ...(entry.finding.sourcePluginId
       ? { sourcePluginId: entry.finding.sourcePluginId }
@@ -604,8 +658,14 @@ function mapReactivatedConformanceFinding(
     ...(entry.finding.ruleId ? { ruleId: entry.finding.ruleId } : {}),
     category: entry.finding.category,
     severity: entry.finding.severity,
-    ...(entry.finding.projectId ? { projectId: entry.finding.projectId } : {}),
-    relatedProjectIds: [...entry.finding.relatedProjectIds].sort((a, b) =>
+    ...(entry.finding.nodeId ? { nodeId: entry.finding.nodeId } : {}),
+    ...(entry.finding.relationId
+      ? { relationId: entry.finding.relationId }
+      : {}),
+    relatedNodeIds: [...entry.finding.relatedNodeIds].sort((a, b) =>
+      a.localeCompare(b),
+    ),
+    relatedRelationIds: [...entry.finding.relatedRelationIds].sort((a, b) =>
       a.localeCompare(b),
     ),
     message: entry.finding.message,
@@ -637,21 +697,23 @@ function compareSuppressedFindings(
     return ruleComparison;
   }
 
-  const projectScopeComparison = [
-    left.projectId ?? '',
-    left.targetProjectId ?? '',
-    left.relatedProjectIds.join(','),
+  const referenceScopeComparison = [
+    left.nodeId ?? '',
+    left.relationId ?? '',
+    left.relatedNodeIds.join(','),
+    left.relatedRelationIds.join(','),
   ]
     .join('|')
     .localeCompare(
       [
-        right.projectId ?? '',
-        right.targetProjectId ?? '',
-        right.relatedProjectIds.join(','),
+        right.nodeId ?? '',
+        right.relationId ?? '',
+        right.relatedNodeIds.join(','),
+        right.relatedRelationIds.join(','),
       ].join('|'),
     );
-  if (projectScopeComparison !== 0) {
-    return projectScopeComparison;
+  if (referenceScopeComparison !== 0) {
+    return referenceScopeComparison;
   }
 
   return left.message.localeCompare(right.message);

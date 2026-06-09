@@ -10,6 +10,7 @@ import {
   appendReportScopeMarkdown,
   appendReportScopeText,
 } from './internal/reporting/render-report-scope.js';
+import type { GovernanceSignal, Violation } from '@anarchitects/governance-core';
 
 import type { AgovAssessResult, AgovCheckResult } from './check.js';
 import type { AgovDependenciesResult } from './dependencies.js';
@@ -1164,7 +1165,7 @@ function renderAgovViolationsTable(result: AgovViolationsResult): string {
     ...reportingPrimitives.renderTwoColumnTextTable({
       headers: ['Violation', 'Details'],
       rows: result.violations.map((violation) => [
-        `${violation.ruleId} @ ${violation.project}`,
+        `${violation.ruleId} @ ${readViolationProjectKey(violation)}`,
         [
           `severity=${violation.severity}`,
           `category=${violation.category}`,
@@ -1262,11 +1263,11 @@ function renderAgovSignalsTable(result: AgovSignalsResult): string {
           `severity=${signal.severity}`,
           `source=${signal.source}`,
           `type=${signal.type}`,
-          signal.sourceProjectId
-            ? `sourceProject=${signal.sourceProjectId}`
+          readSignalSourceProjectId(signal)
+            ? `sourceProject=${readSignalSourceProjectId(signal)}`
             : undefined,
-          signal.targetProjectId
-            ? `targetProject=${signal.targetProjectId}`
+          readSignalTargetProjectId(signal)
+            ? `targetProject=${readSignalTargetProjectId(signal)}`
             : undefined,
           signal.sourcePluginId
             ? `sourcePlugin=${signal.sourcePluginId}`
@@ -1350,7 +1351,7 @@ function renderAgovViolationsMarkdown(result: AgovViolationsResult): string {
         violation.severity,
         violation.ruleId,
         violation.category,
-        violation.project,
+        readViolationProjectKey(violation),
         violation.message,
         violation.sourcePluginId ?? 'none',
       ]),
@@ -1450,8 +1451,8 @@ function renderAgovSignalsMarkdown(result: AgovSignalsResult): string {
         signal.severity,
         signal.source,
         signal.type,
-        signal.sourceProjectId ?? 'none',
-        signal.targetProjectId ?? 'none',
+        readSignalSourceProjectId(signal) || 'none',
+        readSignalTargetProjectId(signal) || 'none',
         signal.sourcePluginId ?? 'none',
         signal.message,
       ]),
@@ -1562,6 +1563,21 @@ function formatProjectCountSummary(
   return entries
     .map((entry) => `${entry.projectName}(${entry.projectId}):${entry.count}`)
     .join(', ');
+}
+
+function readViolationProjectKey(violation: Violation): string {
+  return violation.subjectId ?? violation.reference?.nodeId ?? 'unknown';
+}
+
+function readSignalSourceProjectId(signal: GovernanceSignal): string {
+  return signal.nodeId ?? '';
+}
+
+function readSignalTargetProjectId(signal: GovernanceSignal): string {
+  const sourceNodeId = signal.nodeId;
+  return (
+    signal.relatedNodeIds?.find((nodeId) => nodeId !== sourceNodeId) ?? ''
+  );
 }
 
 function compactJson(value: unknown): string {

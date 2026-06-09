@@ -173,7 +173,7 @@ export function summarizeDrift(
           source: delta.source,
           severity: delta.severity,
           ruleId: delta.ruleId,
-          projects: delta.projects,
+          subjects: delta.subjects,
         },
       ),
     );
@@ -376,8 +376,8 @@ function diffTopIssues(
         throw new Error(`Unable to resolve top issue delta for key "${key}".`);
       }
 
-      const projects = [
-        ...new Set([...(before?.projects ?? []), ...(after?.projects ?? [])]),
+      const subjects = [
+        ...new Set([...(before?.subjects ?? []), ...(after?.subjects ?? [])]),
       ].sort((a, b) => a.localeCompare(b));
 
       return {
@@ -389,7 +389,7 @@ function diffTopIssues(
         baselineCount: before?.count ?? 0,
         currentCount: after?.count ?? 0,
         delta: round((after?.count ?? 0) - (before?.count ?? 0)),
-        projects,
+        subjects,
       };
     });
 }

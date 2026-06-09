@@ -39,19 +39,22 @@ describe('delivery impact and ai analysis', () => {
         {
           id: 'domain-violation',
           ruleId: 'domain-boundary',
-          project: 'platform-shell',
+          subjectId: 'platform-shell',
           severity: 'error',
           category: 'boundary',
           message: 'Cross-domain dependency.',
+          reference: {
+            nodeId: 'platform-shell',
+            relatedNodeIds: ['booking-ui', 'platform-shell'],
+          },
         },
       ],
       signals: [
         {
           id: 'signal-domain',
           type: 'cross-domain-dependency',
-          sourceProjectId: 'platform-shell',
-          targetProjectId: 'booking-ui',
-          relatedProjectIds: ['platform-shell', 'booking-ui'],
+          nodeId: 'platform-shell',
+          relatedNodeIds: ['platform-shell', 'booking-ui'],
           severity: 'warning',
           category: 'boundary',
           message: 'Cross-domain dependency.',
@@ -168,7 +171,7 @@ describe('delivery impact and ai analysis', () => {
     const rootCause = buildRootCauseRequest({
       profile: 'frontend-layered',
       snapshot,
-      dependencies: coreTestWorkspace.dependencies,
+      relations: coreTestWorkspace.relations,
       topViolations: [
         {
           type: 'domain-boundary',
@@ -181,12 +184,12 @@ describe('delivery impact and ai analysis', () => {
     });
     const prImpact = buildPrImpactRequest({
       profile: 'frontend-layered',
-      affectedProjects: ['platform-shell', 'booking-ui'],
-      dependencies: coreTestWorkspace.dependencies,
+      affectedNodeIds: ['platform-shell', 'booking-ui'],
+      relations: coreTestWorkspace.relations,
       metadata: {
         changedFilesCount: 6,
         affectedDomainCount: 2,
-        crossDomainDependencyEdges: 1,
+        crossDomainRelationEdges: 1,
       },
     });
 

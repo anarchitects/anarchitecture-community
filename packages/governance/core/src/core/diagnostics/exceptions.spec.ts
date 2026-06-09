@@ -13,8 +13,8 @@ describe('governance exception contract', () => {
       scope: {
         source: 'policy',
         ruleId: ' domain-boundary ',
-        projectId: ' billing-feature ',
-        targetProjectId: ' shared-util ',
+        nodeId: ' billing-feature ',
+        relatedNodeIds: [' shared-util ', ' billing-feature '],
       },
       reason: '  Transitional boundary while extracting an API. ',
       owner: ' @org/architecture ',
@@ -30,8 +30,8 @@ describe('governance exception contract', () => {
       scope: {
         source: 'policy',
         ruleId: 'domain-boundary',
-        projectId: 'billing-feature',
-        targetProjectId: 'shared-util',
+        nodeId: 'billing-feature',
+        relatedNodeIds: ['billing-feature', 'shared-util'],
       },
       reason: 'Transitional boundary while extracting an API.',
       owner: '@org/architecture',
@@ -42,19 +42,14 @@ describe('governance exception contract', () => {
     });
   });
 
-  it('normalizes conformance related projects deterministically', () => {
+  it('normalizes conformance related nodes deterministically', () => {
     const exception = normalizeGovernanceException({
       id: 'conformance-waiver',
       source: 'conformance',
       scope: {
         source: 'conformance',
         ruleId: 'enforce-module-boundaries',
-        relatedProjectIds: [
-          'payments-lib',
-          'checkout-app',
-          'payments-lib',
-          '  ',
-        ],
+        relatedNodeIds: ['payments-lib', 'checkout-app', 'payments-lib', '  '],
       },
       reason: 'Known migration overlap.',
       owner: '@org/architecture',
@@ -66,24 +61,24 @@ describe('governance exception contract', () => {
     expect(exception.scope).toEqual({
       source: 'conformance',
       ruleId: 'enforce-module-boundaries',
-      relatedProjectIds: ['checkout-app', 'payments-lib'],
+      relatedNodeIds: ['checkout-app', 'payments-lib'],
     });
   });
 
-  it('builds stable scope keys across equivalent related project orderings', () => {
+  it('builds stable scope keys across equivalent related node orderings', () => {
     const first = buildGovernanceExceptionScopeKey({
       source: 'conformance',
       ruleId: 'enforce-module-boundaries',
-      relatedProjectIds: ['b', 'a', 'b'],
+      relatedNodeIds: ['b', 'a', 'b'],
     });
     const second = buildGovernanceExceptionScopeKey({
       source: 'conformance',
       ruleId: 'enforce-module-boundaries',
-      relatedProjectIds: ['a', 'b'],
+      relatedNodeIds: ['a', 'b'],
     });
 
     expect(first).toBe(second);
-    expect(first).toBe('conformance|enforce-module-boundaries|||a,b');
+    expect(first).toBe('conformance|enforce-module-boundaries||||a,b|');
   });
 
   it('exposes policy and conformance scope type guards', () => {
@@ -93,8 +88,8 @@ describe('governance exception contract', () => {
       scope: {
         source: 'policy',
         ruleId: 'layer-boundary',
-        projectId: 'feature-lib',
-        targetProjectId: 'util-lib',
+        nodeId: 'feature-lib',
+        relatedNodeIds: ['feature-lib', 'util-lib'],
       },
       reason: 'Temporary layering gap.',
       owner: '@org/architecture',
