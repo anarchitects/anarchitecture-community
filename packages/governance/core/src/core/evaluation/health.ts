@@ -229,8 +229,8 @@ function buildProjectHotspots(
       continue;
     }
 
-    for (const project of issue.projects) {
-      const current = counts.get(project) ?? {
+    for (const subject of issue.subjects) {
+      const current = counts.get(subject) ?? {
         count: 0,
         typeCounts: new Map<GovernanceTopIssue['type'], number>(),
       };
@@ -240,7 +240,7 @@ function buildProjectHotspots(
         issue.type,
         (current.typeCounts.get(issue.type) ?? 0) + issue.count,
       );
-      counts.set(project, current);
+      counts.set(subject, current);
     }
   }
 

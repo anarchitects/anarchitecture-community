@@ -29,12 +29,13 @@ describe('buildMetricSnapshot', () => {
         {
           id: 'booking-ui-domain',
           ruleId: 'domain-boundary',
-          project: 'booking-ui',
+          subjectId: 'booking-ui',
           severity: 'error',
           category: 'boundary',
           message: 'Cross-domain dependency.',
-          details: {
-            target: 'platform-shell',
+          reference: {
+            nodeId: 'booking-ui',
+            relatedNodeIds: ['booking-ui', 'platform-shell'],
           },
         },
       ],
@@ -85,7 +86,7 @@ describe('buildMetricSnapshot', () => {
           source: 'policy',
           severity: 'error',
           count: 1,
-          projects: ['booking-ui', 'platform-shell'],
+          subjects: ['booking-ui', 'platform-shell'],
           ruleId: 'domain-boundary',
           message: 'Cross-domain dependency.',
         },

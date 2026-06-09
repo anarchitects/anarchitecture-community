@@ -65,17 +65,20 @@ describe('Core rule engine contracts', () => {
     const violation: Violation = {
       id: 'domain-violation',
       ruleId: 'domain-boundary',
-      project: 'platform-shell',
+      subjectId: 'platform-shell',
       severity: 'error',
       category: 'boundary',
       message: 'Platform shell should not depend on booking UI.',
+      reference: {
+        nodeId: 'platform-shell',
+        relatedNodeIds: ['booking-ui', 'platform-shell'],
+      },
     };
     const signal: GovernanceSignal = {
       id: 'signal-domain-violation',
       type: 'domain-boundary-violation',
-      sourceProjectId: 'platform-shell',
-      targetProjectId: 'booking-ui',
-      relatedProjectIds: ['platform-shell', 'booking-ui'],
+      nodeId: 'platform-shell',
+      relatedNodeIds: ['platform-shell', 'booking-ui'],
       severity: 'warning',
       category: 'boundary',
       message: 'Platform shell should not depend on booking UI.',

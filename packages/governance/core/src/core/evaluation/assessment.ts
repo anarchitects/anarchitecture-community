@@ -300,7 +300,7 @@ export function buildTopIssues(
 
     if (existing) {
       existing.issue.count += 1;
-      existing.issue.projects = mergeProjects(existing.issue.projects, signal);
+      existing.issue.subjects = mergeSubjects(existing.issue.subjects, signal);
       if (!existing.issue.ruleId) {
         existing.issue.ruleId = readRuleId(signal);
       }
@@ -316,7 +316,7 @@ export function buildTopIssues(
         source: signal.source,
         severity: signal.severity,
         count: 1,
-        projects: projectsFromSignal(signal),
+        subjects: subjectsFromSignal(signal),
         ruleId: readRuleId(signal),
         message: signal.message,
         sourcePluginId: signal.sourcePluginId,
@@ -334,30 +334,32 @@ function buildGroupKey(signal: GovernanceSignal): string {
     signal.type,
     signal.source,
     signal.severity,
-    signal.sourceProjectId ?? '',
-    signal.targetProjectId ?? '',
-    signal.relatedProjectIds.join(','),
+    signal.nodeId ?? '',
+    signal.relationId ?? '',
+    (signal.relatedNodeIds ?? []).join(','),
+    (signal.relatedRelationIds ?? []).join(','),
   ].join('|');
 }
 
-function projectsFromSignal(signal: GovernanceSignal): string[] {
+function subjectsFromSignal(signal: GovernanceSignal): string[] {
   return [
     ...new Set(
       [
-        signal.sourceProjectId,
-        signal.targetProjectId,
-        ...signal.relatedProjectIds,
+        signal.nodeId,
+        signal.relationId,
+        ...(signal.relatedNodeIds ?? []),
+        ...(signal.relatedRelationIds ?? []),
       ].filter((value): value is string => Boolean(value)),
     ),
   ].sort((a, b) => a.localeCompare(b));
 }
 
-function mergeProjects(
-  existingProjects: string[],
+function mergeSubjects(
+  existingSubjects: string[],
   signal: GovernanceSignal,
 ): string[] {
   return [
-    ...new Set([...existingProjects, ...projectsFromSignal(signal)]),
+    ...new Set([...existingSubjects, ...subjectsFromSignal(signal)]),
   ].sort((a, b) => a.localeCompare(b));
 }
 
@@ -407,11 +409,11 @@ function compareTopIssues(
     return sourceOrder;
   }
 
-  const projectsOrder = a.projects
+  const subjectsOrder = a.subjects
     .join(',')
-    .localeCompare(b.projects.join(','));
-  if (projectsOrder !== 0) {
-    return projectsOrder;
+    .localeCompare(b.subjects.join(','));
+  if (subjectsOrder !== 0) {
+    return subjectsOrder;
   }
 
   return a.message.localeCompare(b.message);

@@ -126,11 +126,15 @@ describe('Core built-in policy rules', () => {
     expect(result.violations).toEqual([
       expect.objectContaining({
         ruleId: 'domain-boundary',
-        project: 'booking-feature',
+        subjectId: 'booking-feature',
         severity: 'error',
         category: 'boundary',
+        reference: expect.objectContaining({
+          nodeId: 'booking-feature',
+          relatedNodeIds: ['booking-feature', 'payments-ui'],
+        }),
         details: {
-          targetProject: 'payments-ui',
+          targetSubject: 'payments-ui',
           sourceDomain: 'booking',
           targetDomain: 'payments',
           dependencyType: 'static',
@@ -164,9 +168,13 @@ describe('Core built-in policy rules', () => {
     expect(result.violations).toEqual([
       expect.objectContaining({
         ruleId: 'layer-boundary',
-        project: 'shared-data',
+        subjectId: 'shared-data',
         severity: 'warning',
         category: 'boundary',
+        reference: expect.objectContaining({
+          nodeId: 'shared-data',
+          relatedNodeIds: ['booking-feature', 'shared-data'],
+        }),
       }),
     ]);
   });
@@ -180,8 +188,11 @@ describe('Core built-in policy rules', () => {
     expect(result.violations).toEqual([
       expect.objectContaining({
         ruleId: 'ownership-presence',
-        project: 'shared-data',
+        subjectId: 'shared-data',
         category: 'ownership',
+        reference: expect.objectContaining({
+          nodeId: 'shared-data',
+        }),
       }),
     ]);
   });

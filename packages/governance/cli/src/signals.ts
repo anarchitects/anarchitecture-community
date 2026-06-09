@@ -190,15 +190,15 @@ function compareSignals(
     return byType;
   }
 
-  const bySourceProject = (left.sourceProjectId ?? '').localeCompare(
-    right.sourceProjectId ?? '',
+  const bySourceProject = readSignalSourceProjectId(left).localeCompare(
+    readSignalSourceProjectId(right),
   );
   if (bySourceProject !== 0) {
     return bySourceProject;
   }
 
-  const byTargetProject = (left.targetProjectId ?? '').localeCompare(
-    right.targetProjectId ?? '',
+  const byTargetProject = readSignalTargetProjectId(left).localeCompare(
+    readSignalTargetProjectId(right),
   );
   if (byTargetProject !== 0) {
     return byTargetProject;
@@ -230,4 +230,15 @@ function severityRank(severity: GovernanceSignalSeverity): number {
     default:
       return 0;
   }
+}
+
+function readSignalSourceProjectId(signal: GovernanceSignal): string {
+  return signal.nodeId ?? '';
+}
+
+function readSignalTargetProjectId(signal: GovernanceSignal): string {
+  const sourceNodeId = signal.nodeId;
+  return (
+    signal.relatedNodeIds?.find((nodeId) => nodeId !== sourceNodeId) ?? ''
+  );
 }

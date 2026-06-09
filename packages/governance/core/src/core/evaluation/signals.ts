@@ -41,9 +41,6 @@ export type GovernanceSignalSource =
 export interface GovernanceSignal {
   id: string;
   type: GovernanceSignalType;
-  sourceProjectId?: string;
-  targetProjectId?: string;
-  relatedProjectIds: string[];
   nodeId?: string;
   relationId?: string;
   relatedNodeIds?: string[];

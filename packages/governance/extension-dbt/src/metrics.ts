@@ -139,7 +139,7 @@ export function buildDbtGovernanceMetrics(
   const hotspotResourceIds = [
     ...new Set(
       hotspotSignals.flatMap((signal) =>
-        signal.nodeId ? [signal.nodeId] : signal.relatedProjectIds,
+        signal.nodeId ? [signal.nodeId] : (signal.relatedNodeIds ?? []),
       ),
     ),
   ].sort();

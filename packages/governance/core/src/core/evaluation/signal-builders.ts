@@ -14,22 +14,26 @@ export interface GovernanceGraphSnapshotProject {
   domain?: string;
 }
 
-export interface GovernanceGraphSnapshotDependency {
-  sourceProjectId: string;
-  targetProjectId: string;
-  type?: string;
+export interface GovernanceGraphSnapshotRelation {
+  id?: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  kind?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface GovernanceGraphSnapshot {
   extractedAt: string;
-  projects: GovernanceGraphSnapshotProject[];
-  dependencies: GovernanceGraphSnapshotDependency[];
+  nodes: GovernanceGraphSnapshotProject[];
+  relations: GovernanceGraphSnapshotRelation[];
 }
 
 export interface GovernanceConformanceFinding {
   ruleId?: string;
-  projectId?: string;
-  relatedProjectIds: string[];
+  nodeId?: string;
+  relationId?: string;
+  relatedNodeIds: string[];
+  relatedRelationIds: string[];
   category: GovernanceSignalCategory;
   severity: GovernanceSignalSeverity;
   message: string;
@@ -49,9 +53,10 @@ export interface BuildGovernanceSignalsOptions {
 
 interface SignalDraft {
   type: GovernanceSignalType;
-  sourceProjectId?: string;
-  targetProjectId?: string;
-  relatedProjectIds: string[];
+  nodeId?: string;
+  relationId?: string;
+  relatedNodeIds?: string[];
+  relatedRelationIds?: string[];
   severity: GovernanceSignalSeverity;
   category: GovernanceSignalCategory;
   message: string;
@@ -78,32 +83,38 @@ const SEVERITY_SORT_ORDER: Record<GovernanceSignalSeverity, number> = {
 export function buildGovernanceGraphSignals(
   snapshot: GovernanceGraphSnapshot,
 ): GovernanceSignal[] {
-  const projectsById = new Map(
-    snapshot.projects.map((project) => [project.id, project] as const),
+  const nodesById = new Map(
+    snapshot.nodes.map((node) => [node.id, node] as const),
   );
   const signals: GovernanceSignal[] = [];
 
-  for (const dependency of snapshot.dependencies) {
-    const sourceProject = projectsById.get(dependency.sourceProjectId);
-    const targetProject = projectsById.get(dependency.targetProjectId);
-    const sourceDomain = normalizeText(sourceProject?.domain);
-    const targetDomain = normalizeText(targetProject?.domain);
-    const relatedProjectIds = normalizeRelatedProjectIds([
-      dependency.sourceProjectId,
-      dependency.targetProjectId,
+  for (const relation of snapshot.relations) {
+    const sourceNode = nodesById.get(relation.sourceNodeId);
+    const targetNode = nodesById.get(relation.targetNodeId);
+    const sourceDomain = normalizeText(sourceNode?.domain);
+    const targetDomain = normalizeText(targetNode?.domain);
+    const relatedNodeIds = normalizeRelatedIds([
+      relation.sourceNodeId,
+      relation.targetNodeId,
     ]);
+    const relationId = normalizeText(relation.id);
+    const dependencyType = readStringMetadata(
+      relation.metadata,
+      'dependencyType',
+    );
 
     signals.push(
       finalizeSignal({
         type: 'structural-dependency',
-        sourceProjectId: dependency.sourceProjectId,
-        targetProjectId: dependency.targetProjectId,
-        relatedProjectIds,
+        nodeId: relation.sourceNodeId,
+        ...(relationId ? { relationId } : {}),
+        relatedNodeIds,
+        ...(relationId ? { relatedRelationIds: [relationId] } : {}),
         severity: 'info',
         category: 'dependency',
-        message: `Dependency: ${dependency.sourceProjectId} -> ${dependency.targetProjectId}.`,
+        message: `Dependency: ${relation.sourceNodeId} -> ${relation.targetNodeId}.`,
         metadata: {
-          dependencyType: dependency.type,
+          ...(dependencyType ? { dependencyType } : {}),
         },
         source: 'graph',
         createdAt: snapshot.extractedAt,
@@ -114,12 +125,13 @@ export function buildGovernanceGraphSignals(
       signals.push(
         finalizeSignal({
           type: 'cross-domain-dependency',
-          sourceProjectId: dependency.sourceProjectId,
-          targetProjectId: dependency.targetProjectId,
-          relatedProjectIds,
+          nodeId: relation.sourceNodeId,
+          ...(relationId ? { relationId } : {}),
+          relatedNodeIds,
+          ...(relationId ? { relatedRelationIds: [relationId] } : {}),
           severity: 'warning',
           category: 'boundary',
-          message: `Cross-domain dependency: ${dependency.sourceProjectId} (${sourceDomain}) -> ${dependency.targetProjectId} (${targetDomain}).`,
+          message: `Cross-domain dependency: ${relation.sourceNodeId} (${sourceDomain}) -> ${relation.targetNodeId} (${targetDomain}).`,
           metadata: {
             sourceDomain,
             targetDomain,
@@ -132,12 +144,13 @@ export function buildGovernanceGraphSignals(
       signals.push(
         finalizeSignal({
           type: 'missing-domain-context',
-          sourceProjectId: dependency.sourceProjectId,
-          targetProjectId: dependency.targetProjectId,
-          relatedProjectIds,
+          nodeId: relation.sourceNodeId,
+          ...(relationId ? { relationId } : {}),
+          relatedNodeIds,
+          ...(relationId ? { relatedRelationIds: [relationId] } : {}),
           severity: 'warning',
           category: 'boundary',
-          message: `Missing domain context for dependency: ${dependency.sourceProjectId} -> ${dependency.targetProjectId}.`,
+          message: `Missing domain context for dependency: ${relation.sourceNodeId} -> ${relation.targetNodeId}.`,
           metadata: {
             sourceDomain,
             targetDomain,
@@ -209,17 +222,15 @@ function mapConformanceFindingToSignal(
   finding: GovernanceConformanceFinding,
   extractedAt: string,
 ): GovernanceSignal {
-  const relatedProjectIds = normalizeRelatedProjectIds(
-    finding.relatedProjectIds,
-  );
-  const targetProjectId =
-    relatedProjectIds.length === 1 ? relatedProjectIds[0] : undefined;
+  const relatedNodeIds = normalizeRelatedIds(finding.relatedNodeIds);
+  const relatedRelationIds = normalizeRelatedIds(finding.relatedRelationIds);
 
   return finalizeSignal({
     type: 'conformance-violation',
-    sourceProjectId: finding.projectId,
-    targetProjectId,
-    relatedProjectIds,
+    nodeId: normalizeText(finding.nodeId),
+    relationId: normalizeText(finding.relationId),
+    relatedNodeIds,
+    relatedRelationIds,
     severity: finding.severity,
     category: finding.category,
     message: finding.message,
@@ -242,21 +253,24 @@ function mapViolationToPolicySignal(
   }
 
   const details = asRecord(violation.details);
-  const targetProjectId = normalizeText(
-    asString(details?.targetProject ?? details?.target),
-  );
-  const sourceProjectId = normalizeText(violation.project);
-  const relatedProjectIds = normalizeRelatedProjectIds([
-    sourceProjectId,
-    targetProjectId,
+  const nodeId = normalizeText(violation.reference?.nodeId);
+  const relationId = normalizeText(violation.reference?.relationId);
+  const relatedNodeIds = normalizeRelatedIds([
+    nodeId,
+    ...(violation.reference?.relatedNodeIds ?? []),
+  ]);
+  const relatedRelationIds = normalizeRelatedIds([
+    relationId,
+    ...(violation.reference?.relatedRelationIds ?? []),
   ]);
 
   return [
     finalizeSignal({
       type: ruleMapping.type,
-      sourceProjectId,
-      targetProjectId,
-      relatedProjectIds,
+      nodeId,
+      relationId,
+      relatedNodeIds,
+      relatedRelationIds,
       severity: violation.severity,
       category: ruleMapping.category,
       message: violation.message,
@@ -272,8 +286,10 @@ function mapViolationToPolicySignal(
       createdAt,
       identityKey: [
         violation.ruleId,
-        sourceProjectId ?? '',
-        targetProjectId ?? '',
+        nodeId ?? '',
+        relationId ?? '',
+        relatedNodeIds.join(','),
+        relatedRelationIds.join(','),
         violation.message,
       ].join('|'),
     }),
@@ -306,12 +322,16 @@ function mapPolicyRuleToSignalDescriptor(ruleId: string): {
 }
 
 function finalizeSignal(draft: SignalDraft): GovernanceSignal {
-  const relatedProjectIds = normalizeRelatedProjectIds(draft.relatedProjectIds);
+  const relatedNodeIds = normalizeRelatedIds(draft.relatedNodeIds ?? []);
+  const relatedRelationIds = normalizeRelatedIds(
+    draft.relatedRelationIds ?? [],
+  );
   const payload = {
     type: draft.type,
-    sourceProjectId: normalizeText(draft.sourceProjectId),
-    targetProjectId: normalizeText(draft.targetProjectId),
-    relatedProjectIds,
+    nodeId: normalizeText(draft.nodeId),
+    relationId: normalizeText(draft.relationId),
+    relatedNodeIds,
+    relatedRelationIds,
     severity: draft.severity,
     category: draft.category,
     message: draft.message,
@@ -324,13 +344,14 @@ function finalizeSignal(draft: SignalDraft): GovernanceSignal {
   return {
     id: `${SIGNAL_ID_PREFIX}${hashSignalIdentity(draft.identityKey ?? payload)}`,
     type: payload.type,
-    ...(payload.sourceProjectId
-      ? { sourceProjectId: payload.sourceProjectId }
+    ...(payload.nodeId ? { nodeId: payload.nodeId } : {}),
+    ...(payload.relationId ? { relationId: payload.relationId } : {}),
+    ...(payload.relatedNodeIds.length > 0
+      ? { relatedNodeIds: payload.relatedNodeIds }
       : {}),
-    ...(payload.targetProjectId
-      ? { targetProjectId: payload.targetProjectId }
+    ...(payload.relatedRelationIds.length > 0
+      ? { relatedRelationIds: payload.relatedRelationIds }
       : {}),
-    relatedProjectIds: payload.relatedProjectIds,
     severity: payload.severity,
     category: payload.category,
     message: payload.message,
@@ -371,10 +392,8 @@ function normalizeMetadata(
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
-function normalizeRelatedProjectIds(
-  projectIds: (string | undefined)[],
-): string[] {
-  return [...new Set(projectIds.map(normalizeText).filter(isPresent))].sort(
+function normalizeRelatedIds(ids: (string | undefined)[]): string[] {
+  return [...new Set(ids.map(normalizeText).filter(isPresent))].sort(
     (left, right) => left.localeCompare(right),
   );
 }
@@ -410,16 +429,18 @@ function compareSignals(
   }
 
   const scopeComparison = [
-    left.sourceProjectId ?? '',
-    left.targetProjectId ?? '',
-    left.relatedProjectIds.join(','),
+    left.nodeId ?? '',
+    left.relationId ?? '',
+    (left.relatedNodeIds ?? []).join(','),
+    (left.relatedRelationIds ?? []).join(','),
   ]
     .join('|')
     .localeCompare(
       [
-        right.sourceProjectId ?? '',
-        right.targetProjectId ?? '',
-        right.relatedProjectIds.join(','),
+        right.nodeId ?? '',
+        right.relationId ?? '',
+        (right.relatedNodeIds ?? []).join(','),
+        (right.relatedRelationIds ?? []).join(','),
       ].join('|'),
     );
   if (scopeComparison !== 0) {
@@ -435,8 +456,12 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-function asString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
+function readStringMetadata(
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = metadata?.[key];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function isPresent<T>(value: T | undefined): value is T {

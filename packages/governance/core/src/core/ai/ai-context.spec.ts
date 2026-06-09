@@ -14,7 +14,7 @@ import {
   type SnapshotViolation,
 } from '../index.js';
 import {
-  coreTestProjects,
+  coreTestNodes,
   coreTestWorkspace,
 } from '../../../tests/workspace.fixtures.js';
 
@@ -97,9 +97,9 @@ describe('core AI context builders', () => {
 
   it('builds reusable PR impact and cognitive-load contexts', () => {
     const prImpact = buildPrImpactContext({
-      affectedProjects: ['platform-shell', 'booking-ui'],
-      dependencies: coreTestWorkspace.dependencies,
-      projects: coreTestWorkspace.projects,
+      affectedNodeIds: ['platform-shell', 'booking-ui'],
+      relations: coreTestWorkspace.relations,
+      nodes: coreTestNodes,
       changedFiles: [
         'apps/platform-shell/src/main.ts',
         'libs/booking/ui/src/lib.ts',
@@ -108,35 +108,35 @@ describe('core AI context builders', () => {
 
     expect(prImpact).toEqual({
       changedFilesCount: 2,
-      affectedProjects: ['booking-ui', 'platform-shell'],
-      affectedProjectsCount: 2,
+      affectedNodeIds: ['booking-ui', 'platform-shell'],
+      affectedNodeCount: 2,
       affectedDomains: ['booking', 'platform'],
       affectedDomainCount: 2,
-      scopedDependencyCount: 2,
-      crossDomainDependencyEdges: 1,
+      scopedRelationCount: 2,
+      crossDomainRelationEdges: 1,
     });
 
     const cognitiveLoad = buildCognitiveLoadContext({
-      selectedProjects: ['platform-shell', 'booking-ui'],
-      dependencies: coreTestWorkspace.dependencies,
-      projects: coreTestWorkspace.projects,
+      selectedNodeIds: ['platform-shell', 'booking-ui'],
+      relations: coreTestWorkspace.relations,
+      nodes: coreTestNodes,
       scope: 'workspace',
       topProjectsLimit: 3,
     });
 
     expect(cognitiveLoad).toEqual({
       scope: 'workspace',
-      selectedProjects: ['booking-ui', 'platform-shell'],
-      selectedProjectsCount: 2,
+      selectedNodeIds: ['booking-ui', 'platform-shell'],
+      selectedNodeCount: 2,
       affectedDomains: ['booking', 'platform'],
       affectedDomainCount: 2,
-      scopedDependencyCount: 2,
-      crossDomainDependencyEdges: 1,
+      scopedRelationCount: 2,
+      crossDomainRelationEdges: 1,
       averageFanout: 1,
       maxFanout: 1,
-      topFanoutProjects: [
-        { project: 'booking-ui', fanout: 1 },
-        { project: 'platform-shell', fanout: 1 },
+      topFanoutNodes: [
+        { nodeId: 'booking-ui', fanout: 1 },
+        { nodeId: 'platform-shell', fanout: 1 },
       ],
     });
   });
@@ -268,21 +268,21 @@ describe('core AI context builders', () => {
     expect(
       buildRefactoringSuggestionsContext({
         violations,
-        dependencies: coreTestWorkspace.dependencies,
-        projects: coreTestProjects,
+        relations: coreTestWorkspace.relations,
+        nodes: coreTestNodes,
         recentSnapshots,
         topProjectsLimit: 2,
       }),
     ).toEqual({
       analyzedViolations: 3,
       totalViolations: 3,
-      hotspotProjects: [
-        { project: 'booking-domain', count: 1 },
-        { project: 'booking-ui', count: 1 },
+      hotspotNodes: [
+        { nodeId: 'booking-domain', count: 1 },
+        { nodeId: 'booking-ui', count: 1 },
       ],
-      highFanoutProjects: [
-        { project: 'booking-ui', count: 1 },
-        { project: 'platform-shell', count: 1 },
+      highFanoutNodes: [
+        { nodeId: 'booking-ui', count: 1 },
+        { nodeId: 'platform-shell', count: 1 },
       ],
       hotspotDomains: ['booking'],
       persistentSmellSignals: [
@@ -295,15 +295,15 @@ describe('core AI context builders', () => {
 
     expect(
       buildOnboardingContext({
-        projects: coreTestProjects,
-        dependencies: coreTestWorkspace.dependencies,
+        nodes: coreTestNodes,
+        relations: coreTestWorkspace.relations,
         topViolations: violations.slice(0, 2),
         totalViolationsCount: violations.length,
         topProjectsLimit: 2,
       }),
     ).toEqual({
-      projectCount: 3,
-      dependencyCount: 2,
+      nodeCount: 3,
+      relationCount: 2,
       ownershipCoverage: 1,
       domainSummary: [
         { domain: 'booking', count: 2 },
@@ -314,9 +314,9 @@ describe('core AI context builders', () => {
         { layer: 'domain', count: 1 },
         { layer: 'ui', count: 1 },
       ],
-      topFanoutProjects: [
-        { project: 'booking-ui', count: 1 },
-        { project: 'platform-shell', count: 1 },
+      topFanoutNodes: [
+        { nodeId: 'booking-ui', count: 1 },
+        { nodeId: 'platform-shell', count: 1 },
       ],
       analyzedViolations: 2,
       totalViolations: 3,

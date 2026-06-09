@@ -35,8 +35,9 @@ describe('assessment artifact assembly', () => {
       conformanceFindings: [
         {
           ruleId: 'api-contract',
-          projectId: 'booking-ui',
-          relatedProjectIds: ['booking-ui'],
+          nodeId: 'booking-ui',
+          relatedNodeIds: ['booking-ui'],
+          relatedRelationIds: [],
           category: 'compliance',
           severity: 'warning',
           message: 'Contract mismatch.',

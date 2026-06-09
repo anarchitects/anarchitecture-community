@@ -58,7 +58,7 @@ describe('core ai handoff payload builders', () => {
       generatedAt: '2026-05-13T10:00:00.000Z',
       profile: assessment.profile,
       inputs: {
-        dependencies: coreTestWorkspace.dependencies,
+        relations: coreTestWorkspace.relations,
         topViolations: [],
       },
     };
@@ -103,8 +103,8 @@ describe('core ai handoff payload builders', () => {
       generatedAt: '2026-05-13T10:00:00.000Z',
       profile: 'frontend-layered',
       inputs: {
-        affectedProjects: ['platform-shell'],
-        dependencies: coreTestWorkspace.dependencies,
+        affectedNodeIds: ['platform-shell'],
+        relations: coreTestWorkspace.relations,
         metadata: {
           baseRef: 'main',
           headRef: 'feature/branch',

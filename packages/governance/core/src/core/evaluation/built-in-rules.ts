@@ -471,12 +471,18 @@ function evaluateDomainBoundaryDependency(
     {
       id: `${source.name}-${target.name}-domain`,
       ruleId: 'domain-boundary',
-      project: source.name,
+      subjectId: source.name,
       severity,
       category: 'boundary',
       message: `Project ${source.name} in domain ${source.domain} depends on ${target.name} in domain ${target.domain}.`,
+      reference: {
+        nodeId: source.id,
+        relatedNodeIds: [source.id, target.id].sort((a, b) =>
+          a.localeCompare(b),
+        ),
+      },
       details: {
-        targetProject: target.name,
+        targetSubject: target.name,
         sourceDomain: source.domain,
         targetDomain: target.domain,
         dependencyType: dependency.type,
@@ -517,12 +523,18 @@ function evaluateLayerBoundaryDependency(
     {
       id: `${source.name}-${target.name}-layer`,
       ruleId: 'layer-boundary',
-      project: source.name,
+      subjectId: source.name,
       severity,
       category: 'boundary',
       message: `Layer violation: ${source.name} (${source.layer}) depends on ${target.name} (${target.layer}).`,
+      reference: {
+        nodeId: source.id,
+        relatedNodeIds: [source.id, target.id].sort((a, b) =>
+          a.localeCompare(b),
+        ),
+      },
       details: {
-        targetProject: target.name,
+        targetSubject: target.name,
         sourceLayer: source.layer,
         targetLayer: target.layer,
         ...(options.usesExplicitDependencies
@@ -555,10 +567,13 @@ function evaluateOwnershipPresence(
     {
       id: `${project.name}-ownership`,
       ruleId: 'ownership-presence',
-      project: project.name,
+      subjectId: project.name,
       severity,
       category: 'ownership',
       message: `Project ${project.name} has no ownership metadata or CODEOWNERS mapping.`,
+      reference: {
+        nodeId: project.id,
+      },
       recommendation:
         'Add ownership metadata in project configuration or ensure CODEOWNERS covers the project root.',
     },
@@ -579,12 +594,15 @@ function evaluateProjectNameConvention(
     {
       id: `${project.name}-project-name-convention`,
       ruleId: 'project-name-convention',
-      project: project.name,
+      subjectId: project.name,
       severity,
       category: 'convention',
       message:
         options.message ??
         `Project ${project.name} does not match the configured naming convention.`,
+      reference: {
+        nodeId: project.id,
+      },
       details: {
         projectName: project.name,
         pattern: options.pattern,
@@ -613,10 +631,13 @@ function evaluateTagConvention(
       violations.push({
         id: `${project.name}-tag-convention-required-${requiredPrefix}`,
         ruleId: 'tag-convention',
-        project: project.name,
+        subjectId: project.name,
         severity,
         category: 'metadata',
         message: `Project ${project.name} is missing a tag with required prefix ${requiredPrefix}.`,
+        reference: {
+          nodeId: project.id,
+        },
         details: {
           requiredPrefix,
           tags: project.tags,
@@ -638,10 +659,13 @@ function evaluateTagConvention(
       violations.push({
         id: `${project.name}-tag-convention-allowed-${tag}`,
         ruleId: 'tag-convention',
-        project: project.name,
+        subjectId: project.name,
         severity,
         category: 'metadata',
         message: `Project ${project.name} uses tag ${tag} with disallowed prefix ${prefix}.`,
+        reference: {
+          nodeId: project.id,
+        },
         details: {
           tag,
           prefix,
@@ -656,10 +680,13 @@ function evaluateTagConvention(
       violations.push({
         id: `${project.name}-tag-convention-value-${tag}`,
         ruleId: 'tag-convention',
-        project: project.name,
+        subjectId: project.name,
         severity,
         category: 'metadata',
         message: `Project ${project.name} has tag ${tag} with a value that does not match the configured pattern.`,
+        reference: {
+          nodeId: project.id,
+        },
         details: {
           tag,
           value,
@@ -686,10 +713,13 @@ function evaluateMissingDomain(
     {
       id: `${project.name}-missing-domain`,
       ruleId: 'missing-domain',
-      project: project.name,
+      subjectId: project.name,
       severity,
       category: 'metadata',
       message: `Project ${project.name} is missing domain metadata.`,
+      reference: {
+        nodeId: project.id,
+      },
       recommendation:
         'Populate the project domain through adapter normalization, metadata, or project overrides.',
     },
@@ -708,10 +738,13 @@ function evaluateMissingLayer(
     {
       id: `${project.name}-missing-layer`,
       ruleId: 'missing-layer',
-      project: project.name,
+      subjectId: project.name,
       severity,
       category: 'metadata',
       message: `Project ${project.name} is missing layer metadata.`,
+      reference: {
+        nodeId: project.id,
+      },
       recommendation:
         'Populate the project layer through adapter normalization, metadata, or project overrides.',
     },

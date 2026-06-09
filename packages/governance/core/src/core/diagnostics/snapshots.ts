@@ -41,8 +41,8 @@ export function buildMetricSnapshot(
   const violations: SnapshotViolation[] = assessment.violations.map(
     (violation) => ({
       type: violation.ruleId,
-      source: violation.project,
-      target: asString(violation.details?.target),
+      source: violation.subjectId ?? violation.reference?.nodeId ?? 'unknown',
+      target: resolveSnapshotViolationTarget(violation),
       ruleId: violation.ruleId,
       severity: violation.severity,
       message: violation.message,
@@ -92,4 +92,15 @@ export function buildSnapshotDeliveryImpactSummary(
 
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
+}
+
+function resolveSnapshotViolationTarget(
+  violation: GovernanceAssessment['violations'][number],
+): string | undefined {
+  const sourceNodeId = violation.reference?.nodeId;
+  const relatedNodeId = violation.reference?.relatedNodeIds?.find(
+    (nodeId) => nodeId !== sourceNodeId,
+  );
+
+  return relatedNodeId ?? asString(violation.reference?.relationId);
 }

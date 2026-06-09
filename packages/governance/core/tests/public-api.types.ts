@@ -1,5 +1,6 @@
 import type {
   GovernanceNode,
+  GovernanceRuntimeReference,
   GovernanceRelation,
   GovernanceWorkspace,
 } from '../src/index.js';
@@ -29,6 +30,18 @@ const workspace = {
 
 const node: GovernanceNode = workspace.nodes[0];
 const relation: GovernanceRelation = workspace.relations[0];
+const reference = {
+  nodeId: node.id,
+  relatedNodeIds: [node.id],
+  relatedRelationIds: [relation.id],
+} satisfies GovernanceRuntimeReference;
+
+const legacyProjectReference: GovernanceRuntimeReference = {
+  // @ts-expect-error Runtime references no longer accept project-specific ids.
+  projectId: node.id,
+};
 
 void node;
 void relation;
+void reference;
+void legacyProjectReference;

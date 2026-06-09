@@ -10,15 +10,19 @@ describe('signal builders', () => {
   it('builds deterministic graph, conformance, and policy signals', () => {
     const graphSignals = buildGovernanceGraphSignals({
       extractedAt: '2026-05-23T10:00:00.000Z',
-      projects: [
+      nodes: [
         { id: 'booking-ui', domain: 'booking' },
         { id: 'platform-shell', domain: 'platform' },
       ],
-      dependencies: [
+      relations: [
         {
-          sourceProjectId: 'platform-shell',
-          targetProjectId: 'booking-ui',
-          type: 'static',
+          id: 'platform-shell->booking-ui',
+          sourceNodeId: 'platform-shell',
+          targetNodeId: 'booking-ui',
+          kind: 'dependency',
+          metadata: {
+            dependencyType: 'static',
+          },
         },
       ],
     });
@@ -27,8 +31,9 @@ describe('signal builders', () => {
       findings: [
         {
           ruleId: 'api-contract',
-          projectId: 'booking-ui',
-          relatedProjectIds: ['booking-ui'],
+          nodeId: 'booking-ui',
+          relatedNodeIds: ['booking-ui'],
+          relatedRelationIds: [],
           category: 'compliance',
           severity: 'warning',
           message: 'Contract mismatch.',
@@ -39,12 +44,13 @@ describe('signal builders', () => {
       {
         id: 'policy-1',
         ruleId: 'domain-boundary',
-        project: 'platform-shell',
+        subjectId: 'platform-shell',
         severity: 'error',
         category: 'boundary',
         message: 'Cross-domain dependency.',
-        details: {
-          targetProject: 'booking-ui',
+        reference: {
+          nodeId: 'platform-shell',
+          relatedNodeIds: ['booking-ui', 'platform-shell'],
         },
       } satisfies Violation,
     ]);

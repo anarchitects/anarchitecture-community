@@ -424,7 +424,6 @@ function createDiagnostic({
     source: DBT_GOVERNANCE_DIAGNOSTIC_SOURCE,
     reference: {
       nodeId: governanceNodeId,
-      projectId: governanceNodeId,
     },
     recommendation,
     details: {

@@ -11,16 +11,20 @@ export interface GovernanceExceptionReview {
 export interface GovernancePolicyExceptionScope {
   source: 'policy';
   ruleId: string;
-  projectId: string;
-  targetProjectId?: string;
+  nodeId?: string;
+  relationId?: string;
+  relatedNodeIds?: string[];
+  relatedRelationIds?: string[];
 }
 
 export interface GovernanceConformanceExceptionScope {
   source: 'conformance';
   ruleId?: string;
   category?: GovernanceConformanceCategory;
-  projectId?: string;
-  relatedProjectIds?: string[];
+  nodeId?: string;
+  relationId?: string;
+  relatedNodeIds?: string[];
+  relatedRelationIds?: string[];
 }
 
 export type GovernanceExceptionScope =
@@ -71,8 +75,10 @@ export function buildGovernanceExceptionScopeKey(
     return [
       normalizedScope.source,
       normalizedScope.ruleId,
-      normalizedScope.projectId,
-      normalizedScope.targetProjectId ?? '',
+      normalizedScope.nodeId ?? '',
+      normalizedScope.relationId ?? '',
+      (normalizedScope.relatedNodeIds ?? []).join(','),
+      (normalizedScope.relatedRelationIds ?? []).join(','),
     ].join('|');
   }
 
@@ -80,8 +86,10 @@ export function buildGovernanceExceptionScopeKey(
     normalizedScope.source,
     normalizedScope.ruleId ?? '',
     normalizedScope.category ?? '',
-    normalizedScope.projectId ?? '',
-    (normalizedScope.relatedProjectIds ?? []).join(','),
+    normalizedScope.nodeId ?? '',
+    normalizedScope.relationId ?? '',
+    (normalizedScope.relatedNodeIds ?? []).join(','),
+    (normalizedScope.relatedRelationIds ?? []).join(','),
   ].join('|');
 }
 
@@ -121,27 +129,49 @@ function normalizeGovernanceExceptionScope(
   scope: GovernanceExceptionScope,
 ): GovernanceExceptionScope {
   if (scope.source === 'policy') {
+    const nodeId = normalizeOptionalString(scope.nodeId);
+    const relationId = normalizeOptionalString(scope.relationId);
+    const relatedNodeIds = normalizeRelatedIds(scope.relatedNodeIds);
+    const relatedRelationIds = normalizeRelatedIds(scope.relatedRelationIds);
+
+    if (
+      !nodeId &&
+      !relationId &&
+      relatedNodeIds.length === 0 &&
+      relatedRelationIds.length === 0
+    ) {
+      throw new Error(
+        'Policy exception scope must define nodeId, relationId, relatedNodeIds, or relatedRelationIds.',
+      );
+    }
+
     return {
       source: 'policy',
       ruleId: normalizeRequiredString(scope.ruleId, 'Policy exception ruleId'),
-      projectId: normalizeRequiredString(
-        scope.projectId,
-        'Policy exception projectId',
-      ),
-      ...(normalizeOptionalString(scope.targetProjectId)
-        ? { targetProjectId: normalizeOptionalString(scope.targetProjectId) }
-        : {}),
+      ...(nodeId ? { nodeId } : {}),
+      ...(relationId ? { relationId } : {}),
+      ...(relatedNodeIds.length > 0 ? { relatedNodeIds } : {}),
+      ...(relatedRelationIds.length > 0 ? { relatedRelationIds } : {}),
     };
   }
 
   const ruleId = normalizeOptionalString(scope.ruleId);
   const category = normalizeOptionalCategory(scope.category);
-  const projectId = normalizeOptionalString(scope.projectId);
-  const relatedProjectIds = normalizeRelatedProjectIds(scope.relatedProjectIds);
+  const nodeId = normalizeOptionalString(scope.nodeId);
+  const relationId = normalizeOptionalString(scope.relationId);
+  const relatedNodeIds = normalizeRelatedIds(scope.relatedNodeIds);
+  const relatedRelationIds = normalizeRelatedIds(scope.relatedRelationIds);
 
-  if (!ruleId && !category && !projectId && relatedProjectIds.length === 0) {
+  if (
+    !ruleId &&
+    !category &&
+    !nodeId &&
+    !relationId &&
+    relatedNodeIds.length === 0 &&
+    relatedRelationIds.length === 0
+  ) {
     throw new Error(
-      'Conformance exception scope must define ruleId, category, projectId, or relatedProjectIds.',
+      'Conformance exception scope must define ruleId, category, nodeId, relationId, relatedNodeIds, or relatedRelationIds.',
     );
   }
 
@@ -149,8 +179,10 @@ function normalizeGovernanceExceptionScope(
     source: 'conformance',
     ...(ruleId ? { ruleId } : {}),
     ...(category ? { category } : {}),
-    ...(projectId ? { projectId } : {}),
-    ...(relatedProjectIds.length > 0 ? { relatedProjectIds } : {}),
+    ...(nodeId ? { nodeId } : {}),
+    ...(relationId ? { relationId } : {}),
+    ...(relatedNodeIds.length > 0 ? { relatedNodeIds } : {}),
+    ...(relatedRelationIds.length > 0 ? { relatedRelationIds } : {}),
   };
 }
 
@@ -184,16 +216,14 @@ function normalizeOptionalString(
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeRelatedProjectIds(
-  relatedProjectIds: string[] | undefined,
-): string[] {
-  if (!Array.isArray(relatedProjectIds)) {
+function normalizeRelatedIds(relatedIds: string[] | undefined): string[] {
+  if (!Array.isArray(relatedIds)) {
     return [];
   }
 
   return [
     ...new Set(
-      relatedProjectIds
+      relatedIds
         .map(normalizeOptionalString)
         .filter((value): value is string => !!value),
     ),

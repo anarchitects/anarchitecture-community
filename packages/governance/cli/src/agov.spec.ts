@@ -3487,7 +3487,8 @@ describe('agov executable command surface', () => {
         severity: string;
         ruleId: string;
         category: string;
-        project: string;
+        subjectId?: string;
+        reference?: { nodeId?: string };
       }>;
     };
 
@@ -3512,7 +3513,7 @@ describe('agov executable command surface', () => {
           '--category',
           selected.category,
           '--project',
-          selected.project,
+          selected.subjectId ?? selected.reference?.nodeId ?? 'unknown',
           '--format',
           'json',
         ],
@@ -3527,7 +3528,8 @@ describe('agov executable command surface', () => {
         severity: string;
         ruleId: string;
         category: string;
-        project: string;
+        subjectId?: string;
+        reference?: { nodeId?: string };
       }>;
     };
 
@@ -3538,7 +3540,8 @@ describe('agov executable command surface', () => {
           violation.severity === selected.severity &&
           violation.ruleId === selected.ruleId &&
           violation.category === selected.category &&
-          violation.project === selected.project,
+          (violation.subjectId ?? violation.reference?.nodeId ?? 'unknown') ===
+            (selected.subjectId ?? selected.reference?.nodeId ?? 'unknown'),
       ),
     ).toBe(true);
     expect(io.err).toBe('');

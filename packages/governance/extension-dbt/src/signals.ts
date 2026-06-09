@@ -117,9 +117,9 @@ interface SignalDraft {
   message: string;
   nodeId?: string;
   dbtUniqueId?: string;
-  sourceProjectId?: string;
-  targetProjectId?: string;
-  relatedProjectIds: string[];
+  sourceNodeId?: string;
+  targetNodeId?: string;
+  relatedNodeIds: string[];
   metadata?: Omit<DbtGovernanceSignalMetadata, 'code'>;
   identityParts: readonly string[];
 }
@@ -235,7 +235,7 @@ function buildResourceSignals(
         message: `Resolved dbt layer "${resolvedLayer}" for ${resolution.governanceNodeId}.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: [
           'layer-resolved',
           resolution.governanceNodeId,
@@ -268,7 +268,7 @@ function buildResourceSignals(
         message: `Resolved dbt domain "${resolvedDomain}" for ${resolution.governanceNodeId}.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: [
           'domain-resolved',
           resolution.governanceNodeId,
@@ -299,7 +299,7 @@ function buildResourceSignals(
         message: `Resolved dbt owner "${resolvedOwner}" for ${resolution.governanceNodeId}.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: [
           'owner-resolved',
           resolution.governanceNodeId,
@@ -322,7 +322,7 @@ function buildResourceSignals(
         message: `Owner metadata is missing for ${resolution.governanceNodeId}.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: ['owner-missing', resolution.governanceNodeId],
         metadata: {
           resolutionStatus: resolution.owner.status,
@@ -362,7 +362,7 @@ function appendDocumentationSignals(
         message: `Documentation is present for ${resolution.governanceNodeId}.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: ['description-present', resolution.governanceNodeId],
         metadata: {
           documentationPresent: true,
@@ -381,7 +381,7 @@ function appendDocumentationSignals(
         message: `Documentation is missing for ${resolution.governanceNodeId}.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: ['description-missing', resolution.governanceNodeId],
         metadata: {
           documentationPresent: false,
@@ -402,7 +402,7 @@ function appendDocumentationSignals(
         message: `Public or governed dbt model ${resolution.governanceNodeId} is undocumented.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: [
           'public-model-undocumented',
           resolution.governanceNodeId,
@@ -440,7 +440,7 @@ function appendTestingSignals(
         message: `Tests are present for ${resolution.governanceNodeId}.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: ['tests-present', resolution.governanceNodeId],
         metadata: {
           testsPresent: true,
@@ -459,7 +459,7 @@ function appendTestingSignals(
         message: `Tests are missing for ${resolution.governanceNodeId}.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: ['tests-missing', resolution.governanceNodeId],
         metadata: {
           testsPresent: false,
@@ -486,7 +486,7 @@ function appendTestingSignals(
         message: `Critical dbt model ${resolution.governanceNodeId} does not have tests.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: [
           'critical-model-without-tests',
           resolution.governanceNodeId,
@@ -518,7 +518,7 @@ function appendContractSignals(
         message: `Contract metadata is present for ${resolution.governanceNodeId}.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: ['contract-enabled', resolution.governanceNodeId],
         metadata: {
           contractPresent: true,
@@ -542,7 +542,7 @@ function appendContractSignals(
         message: `Public or governed dbt model ${resolution.governanceNodeId} does not expose contract metadata.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: ['contract-missing', resolution.governanceNodeId],
         metadata: {
           publicInterface: true,
@@ -572,7 +572,7 @@ function appendDagShapeSignals(
         message: `dbt resource ${resolution.governanceNodeId} has high fan-in (${fanIn}).`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: ['high-fan-in', resolution.governanceNodeId, `${fanIn}`],
         metadata: {
           fanIn,
@@ -593,7 +593,7 @@ function appendDagShapeSignals(
         message: `dbt resource ${resolution.governanceNodeId} has high fan-out (${fanOut}).`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: [
           'high-fan-out',
           resolution.governanceNodeId,
@@ -623,7 +623,7 @@ function appendDagShapeSignals(
         message: `dbt resource ${resolution.governanceNodeId} is an architectural hotspot candidate.`,
         nodeId: resolution.governanceNodeId,
         dbtUniqueId: resolution.dbtUniqueId,
-        relatedProjectIds: [resolution.governanceNodeId],
+        relatedNodeIds: [resolution.governanceNodeId],
         identityParts: [
           'architectural-hotspot',
           resolution.governanceNodeId,
@@ -658,7 +658,7 @@ function buildDependencySignals(
   }
 
   const signals: DbtGovernanceExtensionSignal[] = [];
-  const relatedProjectIds = normalizeRelatedProjectIds([
+  const relatedNodeIds = normalizeRelatedNodeIds([
     source.governanceNodeId,
     target.governanceNodeId,
   ]);
@@ -687,10 +687,10 @@ function buildDependencySignals(
         severity: 'info',
         category: 'dependency',
         message: `dbt layer dependency detected: ${source.governanceNodeId} (${sourceLayer}) -> ${target.governanceNodeId} (${targetLayer}).`,
-        sourceProjectId: source.governanceNodeId,
-        targetProjectId: target.governanceNodeId,
+        sourceNodeId: source.governanceNodeId,
+        targetNodeId: target.governanceNodeId,
         dbtUniqueId: source.dbtUniqueId,
-        relatedProjectIds,
+        relatedNodeIds,
         identityParts: ['layer-dependency', dependencyKey],
         metadata: {
           dependencyKey,
@@ -710,10 +710,10 @@ function buildDependencySignals(
           severity: 'warning',
           category: 'boundary',
           message: `dbt dependency ${dependencyKey} points from an earlier layer to a later layer.`,
-          sourceProjectId: source.governanceNodeId,
-          targetProjectId: target.governanceNodeId,
+          sourceNodeId: source.governanceNodeId,
+          targetNodeId: target.governanceNodeId,
           dbtUniqueId: source.dbtUniqueId,
-          relatedProjectIds,
+          relatedNodeIds,
           identityParts: ['layer-direction', dependencyKey],
           metadata: {
             dependencyKey,
@@ -739,10 +739,10 @@ function buildDependencySignals(
           severity: 'warning',
           category: 'boundary',
           message: `dbt dependency ${dependencyKey} skips an intermediate layer.`,
-          sourceProjectId: source.governanceNodeId,
-          targetProjectId: target.governanceNodeId,
+          sourceNodeId: source.governanceNodeId,
+          targetNodeId: target.governanceNodeId,
           dbtUniqueId: source.dbtUniqueId,
-          relatedProjectIds,
+          relatedNodeIds,
           identityParts: ['layer-bypass', dependencyKey],
           metadata: {
             dependencyKey,
@@ -769,10 +769,10 @@ function buildDependencySignals(
         severity: 'warning',
         category: 'boundary',
         message: `Cross-domain dbt dependency detected: ${source.governanceNodeId} (${source.domain.value}) -> ${target.governanceNodeId} (${target.domain.value}).`,
-        sourceProjectId: source.governanceNodeId,
-        targetProjectId: target.governanceNodeId,
+        sourceNodeId: source.governanceNodeId,
+        targetNodeId: target.governanceNodeId,
         dbtUniqueId: source.dbtUniqueId,
-        relatedProjectIds,
+        relatedNodeIds,
         identityParts: ['cross-domain-dependency', dependencyKey],
         metadata: {
           dependencyKey,
@@ -793,10 +793,10 @@ function buildDependencySignals(
           severity: 'warning',
           category: 'boundary',
           message: `dbt dependency target ${target.governanceNodeId} appears to be a shared model across domains.`,
-          sourceProjectId: source.governanceNodeId,
-          targetProjectId: target.governanceNodeId,
+          sourceNodeId: source.governanceNodeId,
+          targetNodeId: target.governanceNodeId,
           dbtUniqueId: target.dbtUniqueId,
-          relatedProjectIds,
+          relatedNodeIds,
           identityParts: ['shared-model-dependency', dependencyKey],
           metadata: {
             dependencyKey,
@@ -825,10 +825,10 @@ function buildDependencySignals(
         severity: 'warning',
         category: 'ownership',
         message: `dbt dependency ${dependencyKey} crosses inconsistent owners within domain "${source.domain.value}".`,
-        sourceProjectId: source.governanceNodeId,
-        targetProjectId: target.governanceNodeId,
+        sourceNodeId: source.governanceNodeId,
+        targetNodeId: target.governanceNodeId,
         dbtUniqueId: source.dbtUniqueId,
-        relatedProjectIds,
+        relatedNodeIds,
         identityParts: ['owner-inconsistent', dependencyKey],
         metadata: {
           dependencyKey,
@@ -853,15 +853,16 @@ function createSignal(
   return {
     id,
     type: draft.type,
-    ...(draft.sourceProjectId
-      ? { sourceProjectId: draft.sourceProjectId }
-      : {}),
-    ...(draft.targetProjectId
-      ? { targetProjectId: draft.targetProjectId }
-      : {}),
-    relatedProjectIds: normalizeRelatedProjectIds(draft.relatedProjectIds),
-    ...(draft.nodeId ? { nodeId: draft.nodeId } : {}),
-    ...(draft.nodeId ? { relatedNodeIds: [draft.nodeId] } : {}),
+    ...(draft.nodeId
+      ? { nodeId: draft.nodeId }
+      : draft.sourceNodeId
+        ? { nodeId: draft.sourceNodeId }
+        : {}),
+    relatedNodeIds: normalizeRelatedNodeIds(
+      draft.relatedNodeIds.length > 0
+        ? draft.relatedNodeIds
+        : [draft.nodeId ?? draft.sourceNodeId],
+    ),
     severity: draft.severity,
     category: draft.category,
     message: draft.message,
@@ -1042,10 +1043,6 @@ function extractDiagnosticNodeIds(diagnostic: GovernanceDiagnostic): string[] {
   if (reference?.nodeId) {
     ids.add(reference.nodeId);
   }
-  if (reference?.projectId) {
-    ids.add(reference.projectId);
-  }
-
   const details = asRecord(diagnostic.details);
   const governanceNodeId = asString(details?.governanceNodeId);
   if (governanceNodeId) {
@@ -1145,7 +1142,7 @@ function readPathValue(value: unknown, path: readonly string[]): unknown {
   return current;
 }
 
-function normalizeRelatedProjectIds(
+function normalizeRelatedNodeIds(
   ids: readonly (string | undefined)[],
 ): string[] {
   return [...new Set(ids.filter((id): id is string => Boolean(id)))].sort();

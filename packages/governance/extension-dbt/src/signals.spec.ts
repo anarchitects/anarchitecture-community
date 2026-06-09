@@ -336,8 +336,10 @@ describe('dbt governance signals', () => {
         signal.metadata?.code === 'DBT_CROSS_DOMAIN_DEPENDENCY_DETECTED',
     );
     expect(crossDomainSignal).toMatchObject({
-      sourceProjectId: expect.any(String),
-      targetProjectId: 'model.analytics.orders_marts',
+      nodeId: expect.any(String),
+      relatedNodeIds: expect.arrayContaining([
+        'model.analytics.orders_marts',
+      ]),
       metadata: {
         dependencyKey: expect.stringContaining(
           '->model.analytics.orders_marts',

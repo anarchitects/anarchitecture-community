@@ -3,8 +3,8 @@ import type {
   AiAnalysisResult,
   DriftSignal,
   DriftSummary,
-  GovernanceDependency,
-  GovernanceProject,
+  GovernanceNode,
+  GovernanceRelation,
   MetricSnapshot,
   SnapshotViolation,
 } from '../model/models.js';
@@ -16,31 +16,31 @@ import {
 
 export interface GovernancePrImpactContext {
   changedFilesCount: number;
-  affectedProjects: string[];
-  affectedProjectsCount: number;
+  affectedNodeIds: string[];
+  affectedNodeCount: number;
   affectedDomains: string[];
   affectedDomainCount: number;
-  scopedDependencyCount: number;
-  crossDomainDependencyEdges: number;
+  scopedRelationCount: number;
+  crossDomainRelationEdges: number;
 }
 
-export interface FanoutProjectSummary {
-  project: string;
+export interface FanoutNodeSummary {
+  nodeId: string;
   fanout: number;
 }
 
 export interface GovernanceCognitiveLoadContext {
   scope: string;
-  selectedProjects: string[];
-  selectedProjectsCount: number;
+  selectedNodeIds: string[];
+  selectedNodeCount: number;
   affectedDomains: string[];
   affectedDomainCount: number;
-  scopedDependencyCount: number;
-  crossDomainDependencyEdges: number;
+  scopedRelationCount: number;
+  crossDomainRelationEdges: number;
   averageFanout: number;
   maxFanout: number;
-  topFanoutProjects: FanoutProjectSummary[];
-  project?: string;
+  topFanoutNodes: FanoutNodeSummary[];
+  nodeId?: string;
   domain?: string;
 }
 
@@ -60,16 +60,16 @@ export interface GovernancePersistentSmellSignal {
   count: number;
 }
 
-export interface HotspotProjectSummary {
-  project: string;
+export interface HotspotNodeSummary {
+  nodeId: string;
   count: number;
 }
 
 export interface GovernanceRefactoringSuggestionsContext {
   analyzedViolations: number;
   totalViolations: number;
-  hotspotProjects: HotspotProjectSummary[];
-  highFanoutProjects: HotspotProjectSummary[];
+  hotspotNodes: HotspotNodeSummary[];
+  highFanoutNodes: HotspotNodeSummary[];
   hotspotDomains: string[];
   persistentSmellSignals: GovernancePersistentSmellSignal[];
   snapshotCount: number;
@@ -87,30 +87,30 @@ export interface LayerCountSummary {
 }
 
 export interface GovernanceOnboardingContext {
-  projectCount: number;
-  dependencyCount: number;
+  nodeCount: number;
+  relationCount: number;
   ownershipCoverage: number;
   domainSummary: DomainCountSummary[];
   layerSummary: LayerCountSummary[];
-  topFanoutProjects: HotspotProjectSummary[];
+  topFanoutNodes: HotspotNodeSummary[];
   analyzedViolations: number;
   totalViolations: number;
 }
 
 export interface BuildPrImpactContextInput {
-  affectedProjects: readonly string[] | readonly GovernanceProject[];
-  dependencies: readonly GovernanceDependency[];
-  projects?: readonly GovernanceProject[];
+  affectedNodeIds: readonly string[] | readonly GovernanceNode[];
+  relations: readonly GovernanceRelation[];
+  nodes?: readonly GovernanceNode[];
   changedFiles?: readonly string[];
   changedFilesCount?: number;
 }
 
 export interface BuildCognitiveLoadContextInput {
-  selectedProjects: readonly string[] | readonly GovernanceProject[];
-  dependencies: readonly GovernanceDependency[];
-  projects?: readonly GovernanceProject[];
+  selectedNodeIds: readonly string[] | readonly GovernanceNode[];
+  relations: readonly GovernanceRelation[];
+  nodes?: readonly GovernanceNode[];
   scope?: string;
-  project?: string;
+  nodeId?: string;
   domain?: string;
   topProjectsLimit?: number;
 }
@@ -128,8 +128,8 @@ export interface BuildPersistentSmellSignalsInput {
 
 export interface BuildRefactoringSuggestionsContextInput {
   violations: readonly SnapshotViolation[];
-  dependencies: readonly GovernanceDependency[];
-  projects: readonly GovernanceProject[];
+  relations: readonly GovernanceRelation[];
+  nodes: readonly GovernanceNode[];
   recentSnapshots?: readonly MetricSnapshot[];
   topProjectsLimit?: number;
   analyzedViolationsLimit?: number;
@@ -137,8 +137,8 @@ export interface BuildRefactoringSuggestionsContextInput {
 }
 
 export interface BuildOnboardingContextInput {
-  projects: readonly GovernanceProject[];
-  dependencies: readonly GovernanceDependency[];
+  nodes: readonly GovernanceNode[];
+  relations: readonly GovernanceRelation[];
   topViolations?: readonly SnapshotViolation[];
   topProjectsLimit?: number;
   totalViolationsCount?: number;
@@ -200,34 +200,31 @@ export const buildDriftInterpretationAnalysis = summarizeDriftInterpretation;
 export function buildPrImpactContext(
   input: BuildPrImpactContextInput,
 ): GovernancePrImpactContext {
-  const selection = resolveProjectSelection(
-    input.affectedProjects,
-    input.projects,
-  );
-  const scopedDependencies = input.dependencies.filter(
-    (dependency) =>
-      selection.projectNames.has(dependency.source) ||
-      selection.projectNames.has(dependency.target),
+  const selection = resolveNodeSelection(input.affectedNodeIds, input.nodes);
+  const scopedRelations = input.relations.filter(
+    (relation) =>
+      selection.nodeIds.has(relation.sourceNodeId) ||
+      selection.nodeIds.has(relation.targetNodeId),
   );
   const affectedDomains = uniqueSortedStrings(
-    selection.projects
-      .map((project) => project.domain)
+    selection.nodes
+      .map(readNodeDomain)
       .filter((domain): domain is string => Boolean(domain)),
   );
 
   return {
     changedFilesCount:
       input.changedFilesCount ?? input.changedFiles?.length ?? 0,
-    affectedProjects: [...selection.projectNames].sort((left, right) =>
+    affectedNodeIds: [...selection.nodeIds].sort((left, right) =>
       left.localeCompare(right),
     ),
-    affectedProjectsCount: selection.projectNames.size,
+    affectedNodeCount: selection.nodeIds.size,
     affectedDomains,
     affectedDomainCount: affectedDomains.length,
-    scopedDependencyCount: scopedDependencies.length,
-    crossDomainDependencyEdges: countCrossDomainDependencies(
-      scopedDependencies,
-      selection.projectsByName,
+    scopedRelationCount: scopedRelations.length,
+    crossDomainRelationEdges: countCrossDomainRelations(
+      scopedRelations,
+      selection.nodesById,
     ),
   };
 }
@@ -235,25 +232,22 @@ export function buildPrImpactContext(
 export function buildCognitiveLoadContext(
   input: BuildCognitiveLoadContextInput,
 ): GovernanceCognitiveLoadContext {
-  const selection = resolveProjectSelection(
-    input.selectedProjects,
-    input.projects,
-  );
-  const scopedDependencies = input.dependencies.filter(
-    (dependency) =>
-      selection.projectNames.has(dependency.source) ||
-      selection.projectNames.has(dependency.target),
+  const selection = resolveNodeSelection(input.selectedNodeIds, input.nodes);
+  const scopedRelations = input.relations.filter(
+    (relation) =>
+      selection.nodeIds.has(relation.sourceNodeId) ||
+      selection.nodeIds.has(relation.targetNodeId),
   );
   const fanoutByProject = new Map<string, number>();
 
-  for (const dependency of scopedDependencies) {
-    if (!selection.projectNames.has(dependency.source)) {
+  for (const relation of scopedRelations) {
+    if (!selection.nodeIds.has(relation.sourceNodeId)) {
       continue;
     }
 
     fanoutByProject.set(
-      dependency.source,
-      (fanoutByProject.get(dependency.source) ?? 0) + 1,
+      relation.sourceNodeId,
+      (fanoutByProject.get(relation.sourceNodeId) ?? 0) + 1,
     );
   }
 
@@ -269,35 +263,35 @@ export function buildCognitiveLoadContext(
       : 0;
   const maxFanout = fanoutValues.length > 0 ? Math.max(...fanoutValues) : 0;
   const affectedDomains = uniqueSortedStrings(
-    selection.projects
-      .map((project) => project.domain)
+    selection.nodes
+      .map(readNodeDomain)
       .filter((domain): domain is string => Boolean(domain)),
   );
-  const topFanoutProjects = [...fanoutByProject.entries()]
+  const topFanoutNodes = [...fanoutByProject.entries()]
     .sort(
       (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
     )
     .slice(0, Math.max(1, input.topProjectsLimit ?? 10))
-    .map(([project, fanout]) => ({ project, fanout }));
+    .map(([nodeId, fanout]) => ({ nodeId, fanout }));
 
   return {
     scope: input.scope ?? 'workspace',
-    ...(input.project ? { project: input.project } : {}),
+    ...(input.nodeId ? { nodeId: input.nodeId } : {}),
     ...(input.domain ? { domain: input.domain } : {}),
-    selectedProjects: [...selection.projectNames].sort((left, right) =>
+    selectedNodeIds: [...selection.nodeIds].sort((left, right) =>
       left.localeCompare(right),
     ),
-    selectedProjectsCount: selection.projectNames.size,
+    selectedNodeCount: selection.nodeIds.size,
     affectedDomains,
     affectedDomainCount: affectedDomains.length,
-    scopedDependencyCount: scopedDependencies.length,
-    crossDomainDependencyEdges: countCrossDomainDependencies(
-      scopedDependencies,
-      selection.projectsByName,
+    scopedRelationCount: scopedRelations.length,
+    crossDomainRelationEdges: countCrossDomainRelations(
+      scopedRelations,
+      selection.nodesById,
     ),
     averageFanout,
     maxFanout,
-    topFanoutProjects,
+    topFanoutNodes,
   };
 }
 
@@ -377,32 +371,32 @@ export function buildRefactoringSuggestionsContext(
   }
 
   const fanoutCounts = new Map<string, number>();
-  for (const dependency of input.dependencies) {
+  for (const relation of input.relations) {
     fanoutCounts.set(
-      dependency.source,
-      (fanoutCounts.get(dependency.source) ?? 0) + 1,
+      relation.sourceNodeId,
+      (fanoutCounts.get(relation.sourceNodeId) ?? 0) + 1,
     );
   }
 
   const topProjectsLimit = Math.max(1, input.topProjectsLimit ?? 5);
-  const hotspotProjects = [...hotspotCounts.entries()]
+  const hotspotNodes = [...hotspotCounts.entries()]
     .sort(
       (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
     )
     .slice(0, topProjectsLimit)
-    .map(([project, count]) => ({ project, count }));
-  const highFanoutProjects = [...fanoutCounts.entries()]
+    .map(([nodeId, count]) => ({ nodeId, count }));
+  const highFanoutNodes = [...fanoutCounts.entries()]
     .sort(
       (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
     )
     .slice(0, topProjectsLimit)
-    .map(([project, count]) => ({ project, count }));
-  const projectsByName = new Map(
-    input.projects.map((project) => [project.name, project] as const),
+    .map(([nodeId, count]) => ({ nodeId, count }));
+  const nodesById = new Map(
+    input.nodes.map((node) => [node.id, node] as const),
   );
   const hotspotDomains = uniqueSortedStrings(
-    hotspotProjects
-      .map((entry) => projectsByName.get(entry.project)?.domain)
+    hotspotNodes
+      .map((entry) => readNodeDomain(nodesById.get(entry.nodeId)))
       .filter((domain): domain is string => Boolean(domain)),
   );
   const recentSnapshots = input.recentSnapshots ?? [];
@@ -410,8 +404,8 @@ export function buildRefactoringSuggestionsContext(
   return {
     analyzedViolations: prioritizedViolations.length,
     totalViolations: input.violations.length,
-    hotspotProjects,
-    highFanoutProjects,
+    hotspotNodes,
+    highFanoutNodes,
     hotspotDomains,
     persistentSmellSignals: buildPersistentSmellSignals({
       recentSnapshots,
@@ -429,38 +423,37 @@ export function buildOnboardingContext(
   const layerCounts = new Map<string, number>();
   const fanoutCounts = new Map<string, number>();
 
-  for (const project of input.projects) {
-    if (project.domain) {
-      domainCounts.set(
-        project.domain,
-        (domainCounts.get(project.domain) ?? 0) + 1,
-      );
+  for (const node of input.nodes) {
+    const domain = readNodeDomain(node);
+    if (domain) {
+      domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
     }
 
-    if (project.layer) {
-      layerCounts.set(project.layer, (layerCounts.get(project.layer) ?? 0) + 1);
+    const layer = readNodeLayer(node);
+    if (layer) {
+      layerCounts.set(layer, (layerCounts.get(layer) ?? 0) + 1);
     }
   }
 
-  for (const dependency of input.dependencies) {
+  for (const relation of input.relations) {
     fanoutCounts.set(
-      dependency.source,
-      (fanoutCounts.get(dependency.source) ?? 0) + 1,
+      relation.sourceNodeId,
+      (fanoutCounts.get(relation.sourceNodeId) ?? 0) + 1,
     );
   }
 
   const topProjectsLimit = Math.max(1, input.topProjectsLimit ?? 5);
-  const ownedProjectsCount = input.projects.filter((project) =>
-    Boolean(project.ownership?.team),
+  const ownedProjectsCount = input.nodes.filter((node) =>
+    Boolean(node.ownership?.team),
   ).length;
   const analyzedViolations = input.topViolations?.length ?? 0;
 
   return {
-    projectCount: input.projects.length,
-    dependencyCount: input.dependencies.length,
+    nodeCount: input.nodes.length,
+    relationCount: input.relations.length,
     ownershipCoverage:
-      input.projects.length > 0
-        ? Number((ownedProjectsCount / input.projects.length).toFixed(3))
+      input.nodes.length > 0
+        ? Number((ownedProjectsCount / input.nodes.length).toFixed(3))
         : 0,
     domainSummary: [...domainCounts.entries()]
       .sort(
@@ -472,75 +465,85 @@ export function buildOnboardingContext(
         (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
       )
       .map(([layer, count]) => ({ layer, count })),
-    topFanoutProjects: [...fanoutCounts.entries()]
+    topFanoutNodes: [...fanoutCounts.entries()]
       .sort(
         (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
       )
       .slice(0, topProjectsLimit)
-      .map(([project, count]) => ({ project, count })),
+      .map(([nodeId, count]) => ({ nodeId, count })),
     analyzedViolations,
     totalViolations: input.totalViolationsCount ?? analyzedViolations,
   };
 }
 
-function resolveProjectSelection(
-  selectedProjects: readonly string[] | readonly GovernanceProject[],
-  allProjects: readonly GovernanceProject[] | undefined,
+function resolveNodeSelection(
+  selectedNodes: readonly string[] | readonly GovernanceNode[],
+  allNodes: readonly GovernanceNode[] | undefined,
 ): {
-  projectNames: Set<string>;
-  projects: GovernanceProject[];
-  projectsByName: Map<string, GovernanceProject>;
+  nodeIds: Set<string>;
+  nodes: GovernanceNode[];
+  nodesById: Map<string, GovernanceNode>;
 } {
-  const selectedProjectNames = new Set<string>();
-  const selectedProjectRecords: GovernanceProject[] = [];
-  const selectedProjectByName = new Map<string, GovernanceProject>();
+  const selectedNodeIds = new Set<string>();
+  const selectedNodeRecords: GovernanceNode[] = [];
+  const selectedNodeById = new Map<string, GovernanceNode>();
 
   if (
-    selectedProjects.length > 0 &&
-    typeof selectedProjects[0] === 'object' &&
-    selectedProjects[0] !== null
+    selectedNodes.length > 0 &&
+    typeof selectedNodes[0] === 'object' &&
+    selectedNodes[0] !== null
   ) {
-    for (const project of selectedProjects as readonly GovernanceProject[]) {
-      selectedProjectNames.add(project.name);
-      selectedProjectRecords.push(project);
-      selectedProjectByName.set(project.name, project);
+    for (const node of selectedNodes as readonly GovernanceNode[]) {
+      selectedNodeIds.add(node.id);
+      selectedNodeRecords.push(node);
+      selectedNodeById.set(node.id, node);
     }
   } else {
     const projectLookup = new Map(
-      (allProjects ?? []).map((project) => [project.name, project] as const),
+      (allNodes ?? []).map((node) => [node.id, node] as const),
     );
 
-    for (const projectName of selectedProjects as readonly string[]) {
-      selectedProjectNames.add(projectName);
-      const project = projectLookup.get(projectName);
-      if (project) {
-        selectedProjectRecords.push(project);
-        selectedProjectByName.set(project.name, project);
+    for (const nodeId of selectedNodes as readonly string[]) {
+      selectedNodeIds.add(nodeId);
+      const node = projectLookup.get(nodeId);
+      if (node) {
+        selectedNodeRecords.push(node);
+        selectedNodeById.set(node.id, node);
       }
     }
   }
 
   return {
-    projectNames: selectedProjectNames,
-    projects: selectedProjectRecords.sort((left, right) =>
-      left.name.localeCompare(right.name),
+    nodeIds: selectedNodeIds,
+    nodes: selectedNodeRecords.sort((left, right) =>
+      left.id.localeCompare(right.id),
     ),
-    projectsByName: selectedProjectByName,
+    nodesById: selectedNodeById,
   };
 }
 
-function countCrossDomainDependencies(
-  dependencies: readonly GovernanceDependency[],
-  projectsByName: ReadonlyMap<string, GovernanceProject>,
+function countCrossDomainRelations(
+  relations: readonly GovernanceRelation[],
+  nodesById: ReadonlyMap<string, GovernanceNode>,
 ): number {
-  return dependencies.filter((dependency) => {
-    const sourceDomain = projectsByName.get(dependency.source)?.domain;
-    const targetDomain = projectsByName.get(dependency.target)?.domain;
+  return relations.filter((relation) => {
+    const sourceDomain = readNodeDomain(nodesById.get(relation.sourceNodeId));
+    const targetDomain = readNodeDomain(nodesById.get(relation.targetNodeId));
 
     return Boolean(
       sourceDomain && targetDomain && sourceDomain !== targetDomain,
     );
   }).length;
+}
+
+function readNodeDomain(node: GovernanceNode | undefined): string | undefined {
+  const domain = node?.classification?.domain ?? node?.classification?.scope;
+  return typeof domain === 'string' && domain.length > 0 ? domain : undefined;
+}
+
+function readNodeLayer(node: GovernanceNode | undefined): string | undefined {
+  const layer = node?.classification?.layer;
+  return typeof layer === 'string' && layer.length > 0 ? layer : undefined;
 }
 
 function buildPersistentViolationKey(violation: SnapshotViolation): string {
