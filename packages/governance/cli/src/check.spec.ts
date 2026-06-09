@@ -128,10 +128,9 @@ describe('agov check/assess assessment pipeline', () => {
     const compatibilityWorkspace = toCompatibilityWorkspace(
       result.assessment.workspace,
     );
-    expect(compatibilityWorkspace.projects.map((project) => project.id)).toEqual([
-      'app',
-      'shared',
-    ]);
+    expect(
+      compatibilityWorkspace.projects.map((project) => project.id),
+    ).toEqual(['app', 'shared']);
     expect(compatibilityWorkspace.dependencies).toEqual([
       expect.objectContaining({
         source: 'app',
@@ -298,6 +297,7 @@ function createCanonicalGraphAdapter(): GovernanceWorkspaceAdapter<string> {
             kind: 'dependency',
             metadata: {
               source: 'projectGraph',
+              dependencyType: 'static',
             },
           },
         ],

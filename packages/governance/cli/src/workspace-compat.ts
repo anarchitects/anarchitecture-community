@@ -25,20 +25,32 @@ export function toCompatibilityWorkspace(
   };
 }
 
+const PROJECT_KINDS = new Set([
+  'unknown',
+  'project',
+  'application',
+  'app',
+  'library',
+  'lib',
+  'tool',
+]);
+
 function governanceNodesToProjects(
   nodes: readonly GovernanceNode[],
 ): GovernanceProject[] {
-  return nodes.map((node) => ({
-    id: node.id,
-    name: node.name ?? node.id,
-    root: node.root ?? node.path ?? '',
-    type: normalizeProjectType(node.kind),
-    tags: node.tags,
-    domain: readClassificationValue(node, 'domain', 'scope'),
-    layer: readClassificationValue(node, 'layer'),
-    ownership: resolveOwnership(node),
-    metadata: node.metadata,
-  }));
+  return nodes
+    .filter((node) => PROJECT_KINDS.has(node.kind))
+    .map((node) => ({
+      id: node.id,
+      name: node.name ?? node.id,
+      root: node.root ?? node.path ?? '',
+      type: normalizeProjectType(node.kind),
+      tags: node.tags,
+      domain: readClassificationValue(node, 'domain', 'scope'),
+      layer: readClassificationValue(node, 'layer'),
+      ownership: resolveOwnership(node),
+      metadata: node.metadata,
+    }));
 }
 
 function governanceRelationsToDependencies(
