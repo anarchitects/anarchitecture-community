@@ -26,6 +26,8 @@ describe('governance extension runtime', () => {
       root: '/repo',
       projects: [],
       dependencies: [],
+      nodes: [],
+      relations: [],
     },
     capabilities: new DefaultGovernanceCapabilityRegistry([
       {

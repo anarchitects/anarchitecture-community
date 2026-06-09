@@ -1,1 +1,31 @@
-export * from './adapter.js';
+export {
+  buildGovernanceInventory,
+  buildGovernanceWorkspace,
+  buildGovernanceWorkspaceFromAdapterResult,
+  normalizeGovernanceWorkspace,
+} from './adapter.js';
+
+export type {
+  GovernanceAuthority,
+  GovernanceCapability,
+  GovernanceClassificationInput,
+  GovernanceConfidence,
+  GovernanceDiagnostic,
+  GovernanceDiagnosticCategory,
+  GovernanceDiagnosticKind,
+  GovernanceDiagnosticSeverity,
+  GovernanceDependencyInput,
+  GovernanceEvidence,
+  GovernanceNodeInput,
+  GovernanceNodeKind,
+  GovernanceOwnershipInput,
+  GovernancePerspective,
+  GovernanceProjectInput,
+  GovernanceRelationInput,
+  GovernanceRelationKind,
+  GovernanceSource,
+  GovernanceWorkspaceAdapter,
+  GovernanceWorkspaceAdapterProbeConfidence,
+  GovernanceWorkspaceAdapterProbeResult,
+  GovernanceWorkspaceAdapterResult,
+} from './adapter.js';

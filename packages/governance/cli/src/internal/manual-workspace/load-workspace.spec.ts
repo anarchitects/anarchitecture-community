@@ -62,6 +62,44 @@ describe('manual workspace loader', () => {
       id: 'demo',
       name: 'demo',
       root: '.',
+      capabilities: [
+        {
+          id: 'capability:manual-workspace',
+          data: {
+            format: 'yaml',
+            schemaVersion: 1,
+          },
+        },
+      ],
+      nodes: [
+        {
+          id: 'customer-domain',
+          kind: 'unknown',
+          name: 'customer-domain',
+          root: 'src/customer/domain',
+          tags: ['layer:domain', 'scope:customer', 'type:domain'],
+          metadata: {},
+        },
+        {
+          id: 'order-domain',
+          kind: 'library',
+          name: 'order-domain',
+          root: 'src/order/domain',
+          tags: ['layer:domain', 'scope:order', 'type:domain'],
+          metadata: {},
+        },
+      ],
+      relations: [
+        {
+          id: 'legacy:customer-domain->order-domain:static:0',
+          kind: 'dependency',
+          metadata: {
+            dependencyType: 'static',
+          },
+          sourceNodeId: 'customer-domain',
+          targetNodeId: 'order-domain',
+        },
+      ],
       projects: [
         {
           id: 'customer-domain',
@@ -93,6 +131,7 @@ describe('manual workspace loader', () => {
       dependencies: [
         {
           source: 'customer-domain',
+          sourceFile: undefined,
           target: 'order-domain',
           type: 'static',
         },

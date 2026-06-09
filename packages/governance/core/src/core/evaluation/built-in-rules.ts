@@ -1,4 +1,9 @@
-import type { GovernanceProject, Violation } from '../model/models.js';
+import type {
+  GovernanceDependency,
+  GovernanceProject,
+  Violation,
+} from '../model/models.js';
+import { toGovernanceCompatibilityWorkspace } from '../compatibility/internal-workspace.js';
 import {
   deriveAllowedLayerDependenciesFromLayerOrder,
   normalizeGovernanceProfile,
@@ -29,6 +34,9 @@ export const domainBoundaryRule: SynchronousGovernanceRule = {
   category: 'boundary',
   defaultSeverity: 'error',
   evaluate({ workspace, profile }) {
+    const compatibilityWorkspace =
+      toGovernanceCompatibilityWorkspace(workspace);
+
     if (!profile) {
       return {};
     }
@@ -42,21 +50,23 @@ export const domainBoundaryRule: SynchronousGovernanceRule = {
       | GovernanceDomainBoundaryRuleOptions
       | undefined;
     const severity = ruleConfig?.severity ?? domainBoundaryRule.defaultSeverity;
-    const projectByName = projectByNameMap(workspace.projects);
-    const violations = workspace.dependencies.flatMap((dependency) => {
-      const source = projectByName.get(dependency.source);
-      const target = projectByName.get(dependency.target);
+    const projectByName = projectByNameMap(compatibilityWorkspace.projects);
+    const violations = compatibilityWorkspace.dependencies.flatMap(
+      (dependency) => {
+        const source = projectByName.get(dependency.source);
+        const target = projectByName.get(dependency.target);
 
-      return evaluateDomainBoundaryDependency(
-        source,
-        target,
-        dependency,
-        options ?? {
-          allowedDependencies: profile.allowedDomainDependencies,
-        },
-        severity,
-      );
-    });
+        return evaluateDomainBoundaryDependency(
+          source,
+          target,
+          dependency,
+          options ?? {
+            allowedDependencies: profile.allowedDomainDependencies,
+          },
+          severity,
+        );
+      },
+    );
 
     return { violations };
   },
@@ -70,6 +80,9 @@ export const layerBoundaryRule: SynchronousGovernanceRule = {
   category: 'boundary',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
+    const compatibilityWorkspace =
+      toGovernanceCompatibilityWorkspace(workspace);
+
     if (!profile) {
       return {};
     }
@@ -90,22 +103,24 @@ export const layerBoundaryRule: SynchronousGovernanceRule = {
       usesExplicitDependencies: profile.allowedLayerDependencies !== undefined,
     };
     const severity = ruleConfig?.severity ?? layerBoundaryRule.defaultSeverity;
-    const projectByName = projectByNameMap(workspace.projects);
+    const projectByName = projectByNameMap(compatibilityWorkspace.projects);
     const declaredLayers = new Set(normalizedOptions.layers);
 
-    const violations = workspace.dependencies.flatMap((dependency) => {
-      const source = projectByName.get(dependency.source);
-      const target = projectByName.get(dependency.target);
+    const violations = compatibilityWorkspace.dependencies.flatMap(
+      (dependency) => {
+        const source = projectByName.get(dependency.source);
+        const target = projectByName.get(dependency.target);
 
-      return evaluateLayerBoundaryDependency(
-        source,
-        target,
-        dependency,
-        declaredLayers,
-        normalizedOptions,
-        severity,
-      );
-    });
+        return evaluateLayerBoundaryDependency(
+          source,
+          target,
+          dependency,
+          declaredLayers,
+          normalizedOptions,
+          severity,
+        );
+      },
+    );
 
     return { violations };
   },
@@ -119,6 +134,9 @@ export const ownershipPresenceRule: SynchronousGovernanceRule = {
   category: 'ownership',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
+    const compatibilityWorkspace =
+      toGovernanceCompatibilityWorkspace(workspace);
+
     if (!profile) {
       return {};
     }
@@ -142,7 +160,7 @@ export const ownershipPresenceRule: SynchronousGovernanceRule = {
       return {};
     }
 
-    const violations = workspace.projects.flatMap((project) =>
+    const violations = compatibilityWorkspace.projects.flatMap((project) =>
       evaluateOwnershipPresence(project, severity),
     );
 
@@ -158,6 +176,9 @@ export const projectNameConventionRule: SynchronousGovernanceRule = {
   category: 'convention',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
+    const compatibilityWorkspace =
+      toGovernanceCompatibilityWorkspace(workspace);
+
     if (!profile) {
       return {};
     }
@@ -177,7 +198,7 @@ export const projectNameConventionRule: SynchronousGovernanceRule = {
       ruleConfig.severity ?? projectNameConventionRule.defaultSeverity;
 
     return {
-      violations: workspace.projects.flatMap((project) =>
+      violations: compatibilityWorkspace.projects.flatMap((project) =>
         evaluateProjectNameConvention(project, options, pattern, severity),
       ),
     };
@@ -192,6 +213,9 @@ export const tagConventionRule: SynchronousGovernanceRule = {
   category: 'metadata',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
+    const compatibilityWorkspace =
+      toGovernanceCompatibilityWorkspace(workspace);
+
     if (!profile) {
       return {};
     }
@@ -214,7 +238,7 @@ export const tagConventionRule: SynchronousGovernanceRule = {
       : undefined;
 
     return {
-      violations: workspace.projects.flatMap((project) =>
+      violations: compatibilityWorkspace.projects.flatMap((project) =>
         evaluateTagConvention(project, options, valuePattern, severity),
       ),
     };
@@ -228,6 +252,9 @@ export const missingDomainRule: SynchronousGovernanceRule = {
   category: 'metadata',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
+    const compatibilityWorkspace =
+      toGovernanceCompatibilityWorkspace(workspace);
+
     if (!profile) {
       return {};
     }
@@ -243,7 +270,7 @@ export const missingDomainRule: SynchronousGovernanceRule = {
     const severity = ruleConfig.severity ?? missingDomainRule.defaultSeverity;
 
     return {
-      violations: workspace.projects.flatMap((project) =>
+      violations: compatibilityWorkspace.projects.flatMap((project) =>
         evaluateMissingDomain(project, severity),
       ),
     };
@@ -257,6 +284,9 @@ export const missingLayerRule: SynchronousGovernanceRule = {
   category: 'metadata',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
+    const compatibilityWorkspace =
+      toGovernanceCompatibilityWorkspace(workspace);
+
     if (!profile) {
       return {};
     }
@@ -272,7 +302,7 @@ export const missingLayerRule: SynchronousGovernanceRule = {
     const severity = ruleConfig.severity ?? missingLayerRule.defaultSeverity;
 
     return {
-      violations: workspace.projects.flatMap((project) =>
+      violations: compatibilityWorkspace.projects.flatMap((project) =>
         evaluateMissingLayer(project, severity),
       ),
     };
@@ -296,7 +326,8 @@ export function evaluateCoreBuiltInPolicyViolations(
     return [];
   }
 
-  const { workspace, profile } = context;
+  const { profile } = context;
+  const workspace = toGovernanceCompatibilityWorkspace(context.workspace);
   const normalizedProfile = normalizeGovernanceProfile(profile);
   const domainRuleConfig = normalizedProfile.rules[domainBoundaryRule.id];
   const domainEnabled = domainRuleConfig?.enabled !== false;
@@ -415,7 +446,7 @@ function isGovernanceRuleContext(
 function evaluateDomainBoundaryDependency(
   source: GovernanceProject | undefined,
   target: GovernanceProject | undefined,
-  dependency: GovernanceRuleContext['workspace']['dependencies'][number],
+  dependency: GovernanceDependency,
   options: GovernanceDomainBoundaryRuleOptions,
   severity: Violation['severity'],
 ): Violation[] {
@@ -459,7 +490,7 @@ function evaluateDomainBoundaryDependency(
 function evaluateLayerBoundaryDependency(
   source: GovernanceProject | undefined,
   target: GovernanceProject | undefined,
-  _dependency: GovernanceRuleContext['workspace']['dependencies'][number],
+  _dependency: GovernanceDependency,
   declaredLayers: Set<string>,
   options: GovernanceLayerBoundaryRuleOptions,
   severity: Violation['severity'],

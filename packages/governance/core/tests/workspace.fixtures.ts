@@ -1,12 +1,18 @@
+import { normalizeGovernanceGraph } from '../src/core/index.js';
 import type {
-  GovernanceDependencyInput,
-  GovernanceDependency,
-  GovernanceProjectInput,
-  GovernanceProject,
   GovernanceWorkspaceAdapterResult,
-  GovernanceWorkspace,
   Ownership,
 } from '../src/core/index.js';
+import type {
+  GovernanceDependencyInput,
+  GovernanceProjectInput,
+} from '../src/core/adapter/adapter.js';
+import type {
+  GovernanceCompatibilityWorkspace,
+  GovernanceDependency,
+  GovernanceProject,
+  GovernanceWorkspace,
+} from '../src/core/model/models.js';
 
 export const bookingTeamOwnership = {
   team: 'booking-team',
@@ -72,14 +78,6 @@ export const coreTestDependencies = [
   },
 ] satisfies GovernanceDependency[];
 
-export const coreTestWorkspace = {
-  id: 'test-workspace',
-  name: 'Test Workspace',
-  root: '/virtual/workspace',
-  projects: coreTestProjects,
-  dependencies: coreTestDependencies,
-} satisfies GovernanceWorkspace;
-
 export const coreTestAdapterProjects = [
   {
     id: 'booking-ui',
@@ -138,10 +136,35 @@ export const coreTestAdapterResult = {
   dependencies: coreTestAdapterDependencies,
 } satisfies GovernanceWorkspaceAdapterResult;
 
+const coreTestGraph = normalizeGovernanceGraph(coreTestAdapterResult);
+
+export const coreTestWorkspace = {
+  id: 'test-workspace',
+  name: 'Test Workspace',
+  root: '/virtual/workspace',
+  nodes: coreTestGraph.nodes,
+  relations: coreTestGraph.relations,
+  projects: coreTestProjects,
+  dependencies: coreTestDependencies,
+} satisfies GovernanceCompatibilityWorkspace;
+
 export const coreTestWorkspaceWithDanglingDependency = {
   id: 'edge-workspace',
   name: 'Edge Workspace',
   root: '/virtual/workspace',
+  nodes: coreTestGraph.nodes,
+  relations: [
+    ...coreTestGraph.relations,
+    {
+      id: 'legacy:booking-ui->missing-project:static:2',
+      sourceNodeId: 'booking-ui',
+      targetNodeId: 'missing-project',
+      kind: 'dependency',
+      metadata: {
+        dependencyType: 'static',
+      },
+    },
+  ],
   projects: coreTestProjects,
   dependencies: [
     ...coreTestDependencies,
@@ -151,14 +174,17 @@ export const coreTestWorkspaceWithDanglingDependency = {
       type: 'static',
     },
   ],
-} satisfies GovernanceWorkspace;
+} satisfies GovernanceCompatibilityWorkspace;
 
 export function findDanglingDependencies(
   workspace: GovernanceWorkspace,
 ): GovernanceDependency[] {
-  const projectIds = new Set(workspace.projects.map((project) => project.id));
+  const compatibilityWorkspace = workspace as GovernanceCompatibilityWorkspace;
+  const projectIds = new Set(
+    compatibilityWorkspace.projects.map((project) => project.id),
+  );
 
-  return workspace.dependencies.filter(
+  return compatibilityWorkspace.dependencies.filter(
     (dependency) =>
       !projectIds.has(dependency.source) || !projectIds.has(dependency.target),
   );

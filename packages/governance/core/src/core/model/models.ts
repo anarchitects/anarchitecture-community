@@ -7,9 +7,13 @@ import type {
 } from '../evaluation/signals.js';
 import type {
   GovernanceAuthority,
+  GovernanceCapability,
+  GovernanceDiagnostic,
   GovernanceConfidence,
   GovernanceEvidence,
+  GovernanceNodeInput,
   GovernancePerspective,
+  GovernanceRelationInput,
   GovernanceSource,
 } from '../adapter/adapter.js';
 
@@ -22,7 +26,7 @@ export interface GovernanceWorkspace {
    * assessment consumers.
    *
    * @deprecated New graph-aware consumers should prefer canonical nodes from
-   * adapter results or `normalizeGovernanceGraph(...)`. Keep this view for
+   * `workspace.nodes` or `normalizeGovernanceGraph(...)`. Keep this view for
    * project/dependency compatibility.
    */
   projects: GovernanceProject[];
@@ -31,10 +35,52 @@ export interface GovernanceWorkspace {
    * assessment consumers.
    *
    * @deprecated New graph-aware consumers should prefer canonical relations
-   * from adapter results or `normalizeGovernanceGraph(...)`. Keep this view for
-   * project/dependency compatibility.
+   * from `workspace.relations` or `normalizeGovernanceGraph(...)`. Keep this
+   * view for project/dependency compatibility.
    */
   dependencies: GovernanceDependency[];
+  nodes?: GovernanceNode[];
+  relations?: GovernanceRelation[];
+  capabilities?: GovernanceCapability[];
+  diagnostics?: GovernanceDiagnostic[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface GovernanceNode {
+  id: string;
+  name?: string;
+  kind: string;
+  technology?: string;
+  sourceSystem?: string;
+  root?: string;
+  path?: string;
+  tags: string[];
+  classification?: GovernanceNodeInput['classification'];
+  ownership?: GovernanceNodeInput['ownership'];
+  perspective?: GovernanceNodeInput['perspective'];
+  source?: GovernanceNodeInput['source'];
+  evidence?: GovernanceNodeInput['evidence'];
+  authority?: GovernanceNodeInput['authority'];
+  confidence?: GovernanceNodeInput['confidence'];
+  metadata: Record<string, unknown>;
+}
+
+export interface GovernanceRelation {
+  id: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  kind: string;
+  perspective?: GovernanceRelationInput['perspective'];
+  source?: GovernanceRelationInput['source'];
+  evidence?: GovernanceRelationInput['evidence'];
+  authority?: GovernanceRelationInput['authority'];
+  confidence?: GovernanceRelationInput['confidence'];
+  metadata: Record<string, unknown>;
+}
+
+export interface GovernanceCompatibilityWorkspace extends GovernanceWorkspace {
+  nodes: GovernanceNode[];
+  relations: GovernanceRelation[];
 }
 
 /**

@@ -1,4 +1,5 @@
 import type { Measurement, GovernanceWorkspace } from '../model/models.js';
+import { toGovernanceCompatibilityWorkspace } from '../compatibility/internal-workspace.js';
 import type { GovernanceSignal } from './signals.js';
 
 interface SignalAggregate {
@@ -15,7 +16,8 @@ export interface CalculateGovernanceMetricsInput {
 export function calculateGovernanceMetrics(
   input: CalculateGovernanceMetricsInput,
 ): Measurement[] {
-  const { workspace, signals } = input;
+  const { signals } = input;
+  const workspace = toGovernanceCompatibilityWorkspace(input.workspace);
   const dependencyCount = workspace.dependencies.length;
   const projectCount = workspace.projects.length || 1;
   const signalAggregates = aggregateSignals(signals);
