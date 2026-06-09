@@ -85,7 +85,7 @@ describe('delivery impact and ai analysis', () => {
             score: 50,
           },
         ],
-        projectHotspots: [],
+        subjectHotspots: [],
         explainability: {
           summary: 'Boundary pressure.',
           statusReason: 'Score is below threshold.',
@@ -149,7 +149,7 @@ describe('delivery impact and ai analysis', () => {
           grade: 'A',
           hotspots: [],
           metricHotspots: [],
-          projectHotspots: [],
+          subjectHotspots: [],
           explainability: {
             summary: 'Healthy.',
             statusReason: 'Healthy.',

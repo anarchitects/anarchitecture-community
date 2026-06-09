@@ -97,7 +97,7 @@ describe('buildMetricSnapshot', () => {
         grade: 'B',
         hotspots: [],
         metricHotspots: [],
-        projectHotspots: [],
+        subjectHotspots: [],
         explainability: {
           summary: 'Warning due to architecture.',
           statusReason: 'Score is below good threshold.',

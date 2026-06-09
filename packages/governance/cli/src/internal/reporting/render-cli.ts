@@ -75,9 +75,7 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
     for (const finding of assessment.exceptions.suppressedFindings) {
       const ruleIdSuffix = finding.ruleId ? ` :: ${finding.ruleId}` : '';
       const referenceScope = formatExceptionFindingScope(finding);
-      const scopeSuffix = referenceScope
-        ? ` :: scope=${referenceScope}`
-        : '';
+      const scopeSuffix = referenceScope ? ` :: scope=${referenceScope}` : '';
 
       lines.push(
         `- ${finding.exceptionId} :: ${finding.status} :: ${finding.source}/${finding.kind} :: [${finding.severity}]${ruleIdSuffix}${scopeSuffix} :: ${finding.message}`,
@@ -90,9 +88,7 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
     for (const finding of assessment.exceptions.reactivatedFindings) {
       const ruleIdSuffix = finding.ruleId ? ` :: ${finding.ruleId}` : '';
       const referenceScope = formatExceptionFindingScope(finding);
-      const scopeSuffix = referenceScope
-        ? ` :: scope=${referenceScope}`
-        : '';
+      const scopeSuffix = referenceScope ? ` :: scope=${referenceScope}` : '';
 
       lines.push(
         `- ${finding.exceptionId} :: ${finding.status} :: ${finding.source}/${finding.kind} :: [${finding.severity}]${ruleIdSuffix}${scopeSuffix} :: ${finding.message}`,
@@ -128,12 +124,12 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
     }
   }
 
-  if (assessment.health.projectHotspots.length > 0) {
+  if (assessment.health.subjectHotspots.length > 0) {
     lines.push('');
-    lines.push('Project Hotspots:');
-    for (const hotspot of assessment.health.projectHotspots) {
+    lines.push('Subject Hotspots:');
+    for (const hotspot of assessment.health.subjectHotspots) {
       lines.push(
-        `- ${hotspot.project}: ${
+        `- ${hotspot.subjectId} (${hotspot.subjectType}): ${
           hotspot.count
         } :: types=${hotspot.dominantIssueTypes.join(',')}`,
       );

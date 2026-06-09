@@ -222,8 +222,9 @@ export interface HealthMetricHotspot {
   score: number;
 }
 
-export interface HealthProjectHotspot {
-  project: string;
+export interface HealthSubjectHotspot {
+  subjectId: string;
+  subjectType: 'node' | 'relation' | 'unknown';
   count: number;
   dominantIssueTypes: GovernanceSignalType[];
 }
@@ -241,7 +242,7 @@ export interface HealthScore {
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
   hotspots: string[];
   metricHotspots: HealthMetricHotspot[];
-  projectHotspots: HealthProjectHotspot[];
+  subjectHotspots: HealthSubjectHotspot[];
   explainability: HealthExplainability;
   dimensions?: GovernanceScore[];
   metadata?: Record<string, unknown>;

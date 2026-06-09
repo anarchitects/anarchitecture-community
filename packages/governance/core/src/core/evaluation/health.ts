@@ -1,7 +1,7 @@
 import type {
   GovernanceTopIssue,
   HealthMetricHotspot,
-  HealthProjectHotspot,
+  HealthSubjectHotspot,
   HealthScore,
   HealthStatus,
   HealthStatusThresholds,
@@ -15,7 +15,7 @@ export type MetricWeights = Partial<Record<Measurement['id'], number>>;
 
 export interface GovernanceHealthExplainabilityInput {
   topIssues?: GovernanceTopIssue[];
-  projectHotspotLimit?: number;
+  subjectHotspotLimit?: number;
 }
 
 export function calculateGovernanceHealth(
@@ -31,9 +31,9 @@ export function calculateGovernanceHealth(
   const dominantIssues = buildDominantIssues(
     explainabilityInput.topIssues ?? [],
   );
-  const projectHotspots = buildProjectHotspots(
+  const subjectHotspots = buildSubjectHotspots(
     explainabilityInput.topIssues ?? [],
-    explainabilityInput.projectHotspotLimit ?? 5,
+    explainabilityInput.subjectHotspotLimit ?? 5,
   );
   const status = statusForScore(score, resolvedStatusThresholds);
 
@@ -43,7 +43,7 @@ export function calculateGovernanceHealth(
     grade: gradeForScore(score),
     hotspots: metricHotspots.map((measurement) => measurement.name),
     metricHotspots,
-    projectHotspots,
+    subjectHotspots,
     explainability: {
       summary: buildExplainabilitySummary(
         score,
@@ -84,7 +84,7 @@ export function buildGovernanceRecommendations(
       title: 'Improve ownership coverage',
       priority: 'medium',
       reason:
-        'Unowned projects slow down incident response and architectural decision making.',
+        'Unowned nodes slow down incident response and architectural decision making.',
     });
   }
 
@@ -215,10 +215,10 @@ function buildDominantIssues(
   return topIssues.slice(0, 3);
 }
 
-function buildProjectHotspots(
+function buildSubjectHotspots(
   topIssues: GovernanceTopIssue[],
   limit: number,
-): HealthProjectHotspot[] {
+): HealthSubjectHotspot[] {
   const counts = new Map<
     string,
     { count: number; typeCounts: Map<GovernanceTopIssue['type'], number> }
@@ -247,8 +247,9 @@ function buildProjectHotspots(
   return [...counts.entries()]
     .sort((a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0]))
     .slice(0, Math.max(1, limit))
-    .map(([project, details]) => ({
-      project,
+    .map(([subjectId, details]) => ({
+      subjectId,
+      subjectType: inferSubjectType(subjectId),
       count: details.count,
       dominantIssueTypes: [...details.typeCounts.entries()]
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
@@ -259,6 +260,16 @@ function buildProjectHotspots(
 
 function isHealthDrivingIssue(issue: GovernanceTopIssue): boolean {
   return issue.type !== 'structural-dependency';
+}
+
+function inferSubjectType(
+  subjectId: string,
+): HealthSubjectHotspot['subjectType'] {
+  if (subjectId.includes('->')) {
+    return 'relation';
+  }
+
+  return subjectId.length > 0 ? 'node' : 'unknown';
 }
 
 function buildStatusReason(

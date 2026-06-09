@@ -2,19 +2,101 @@ import {
   buildGovernanceRecommendations,
   calculateGovernanceHealth,
   calculateGovernanceMetrics,
+  type GovernanceNode,
   type GovernanceSignal,
+  type GovernanceWorkspace,
+  type GovernanceRelation,
   type Violation,
 } from '../index.js';
-import { coreTestWorkspace } from '../../../tests/workspace.fixtures.js';
 
 describe('metrics and health', () => {
-  it('calculates governance metrics, health, and recommendations from normalized input', () => {
+  it('calculates canonical node/relation metrics, health, and recommendations deterministically', () => {
+    const workspace = createWorkspace(
+      [
+        {
+          id: 'app-shell',
+          name: 'app-shell',
+          kind: 'application',
+          classification: {
+            domain: 'platform',
+            layer: 'app',
+          },
+          tags: ['domain:platform', 'layer:app'],
+          ownership: {
+            team: 'platform-team',
+            source: 'project-metadata',
+          },
+          metadata: {
+            documentation: true,
+          },
+        },
+        {
+          id: 'booking-ui',
+          name: 'booking-ui',
+          kind: 'library',
+          classification: {
+            domain: 'booking',
+            layer: 'ui',
+          },
+          tags: ['domain:booking', 'layer:ui'],
+          ownership: {
+            source: 'none',
+          },
+          metadata: {},
+        },
+        {
+          id: 'booking-domain',
+          name: 'booking-domain',
+          kind: 'library',
+          classification: {
+            domain: 'booking',
+            layer: 'domain',
+          },
+          tags: ['domain:booking', 'layer:domain'],
+          ownership: {
+            contacts: ['@booking'],
+            source: 'codeowners',
+          },
+          metadata: {
+            documentation: true,
+          },
+        },
+      ],
+      [
+        {
+          id: 'relation:app-shell->booking-ui',
+          sourceNodeId: 'app-shell',
+          targetNodeId: 'booking-ui',
+          kind: 'dependency',
+          metadata: {
+            dependencyType: 'static',
+          },
+        },
+        {
+          id: 'relation:booking-ui->booking-domain',
+          sourceNodeId: 'booking-ui',
+          targetNodeId: 'booking-domain',
+          kind: 'dependency',
+          metadata: {
+            dependencyType: 'static',
+          },
+        },
+        {
+          id: 'relation:booking-domain->app-shell:traceability',
+          sourceNodeId: 'booking-domain',
+          targetNodeId: 'app-shell',
+          kind: 'traceability',
+          metadata: {},
+        },
+      ],
+    );
+
     const signals: GovernanceSignal[] = [
       {
         id: 'signal-domain',
         type: 'domain-boundary-violation',
-        nodeId: 'platform-shell',
-        relatedNodeIds: ['platform-shell', 'booking-ui'],
+        relationId: 'relation:app-shell->booking-ui',
+        relatedNodeIds: ['app-shell', 'booking-ui'],
         severity: 'error',
         category: 'boundary',
         message: 'Cross-domain dependency.',
@@ -24,37 +106,108 @@ describe('metrics and health', () => {
       {
         id: 'signal-ownership',
         type: 'ownership-gap',
-        nodeId: 'platform-shell',
-        relatedNodeIds: ['platform-shell'],
+        nodeId: 'booking-ui',
+        relatedNodeIds: ['booking-ui'],
         severity: 'warning',
         category: 'ownership',
         message: 'Ownership missing.',
         source: 'policy',
         createdAt: '2026-05-23T10:00:00.000Z',
       },
+      {
+        id: 'signal-structure',
+        type: 'structural-dependency',
+        relationId: 'relation:booking-ui->booking-domain',
+        relatedNodeIds: ['booking-ui', 'booking-domain'],
+        severity: 'info',
+        category: 'dependency',
+        message: 'Structural dependency.',
+        source: 'graph',
+        createdAt: '2026-05-23T10:00:00.000Z',
+      },
+      {
+        id: 'signal-entropy',
+        type: 'cross-domain-dependency',
+        relationId: 'relation:app-shell->booking-ui',
+        relatedNodeIds: ['app-shell', 'booking-ui'],
+        severity: 'warning',
+        category: 'boundary',
+        message: 'Cross-domain dependency.',
+        source: 'graph',
+        createdAt: '2026-05-23T10:00:00.000Z',
+      },
+      {
+        id: 'signal-layer',
+        type: 'layer-boundary-violation',
+        relationId: 'relation:app-shell->booking-ui',
+        relatedNodeIds: ['app-shell', 'booking-ui'],
+        severity: 'warning',
+        category: 'boundary',
+        message: 'Layer boundary violation.',
+        source: 'policy',
+        createdAt: '2026-05-23T10:00:00.000Z',
+      },
     ];
+
     const metrics = calculateGovernanceMetrics({
-      workspace: coreTestWorkspace,
+      workspace,
       signals,
     });
-    const health = calculateGovernanceHealth(metrics, {
-      'ownership-coverage': 2,
+    const reorderedMetrics = calculateGovernanceMetrics({
+      workspace: createWorkspace(
+        [...workspace.nodes].reverse(),
+        [...workspace.relations].reverse(),
+      ),
+      signals: [...signals].reverse(),
     });
+    const health = calculateGovernanceHealth(
+      metrics,
+      {
+        'ownership-coverage': 2,
+      },
+      undefined,
+      {
+        topIssues: [
+          {
+            type: 'domain-boundary-violation',
+            source: 'policy',
+            severity: 'error',
+            count: 2,
+            subjects: [
+              'relation:app-shell->booking-ui',
+              'app-shell',
+              'booking-ui',
+            ],
+            ruleId: 'domain-boundary',
+            message: 'Cross-domain dependency.',
+          },
+          {
+            type: 'ownership-gap',
+            source: 'policy',
+            severity: 'warning',
+            count: 1,
+            subjects: ['booking-ui'],
+            ruleId: 'ownership-presence',
+            message: 'Ownership missing.',
+          },
+        ],
+      },
+    );
     const recommendations = buildGovernanceRecommendations(
       [
         {
           id: 'violation-domain',
           ruleId: 'domain-boundary',
-          subjectId: 'platform-shell',
+          subjectId: 'relation:app-shell->booking-ui',
           severity: 'error',
           category: 'boundary',
           message: 'Cross-domain dependency.',
           reference: {
-            nodeId: 'platform-shell',
-            relatedNodeIds: ['booking-ui', 'platform-shell'],
+            relationId: 'relation:app-shell->booking-ui',
+            relatedNodeIds: ['app-shell', 'booking-ui'],
           },
-        } satisfies Violation,
-      ],
+        },
+      ] satisfies Violation[],
       metrics,
     );
 
@@ -66,7 +219,103 @@ describe('metrics and health', () => {
       'documentation-completeness',
       'layer-integrity',
     ]);
-    expect(health.grade).toMatch(/[A-F]/);
+    expect(reorderedMetrics).toEqual(metrics);
+    expect(findMeasurement(metrics, 'dependency-complexity')).toMatchObject({
+      value: 0.1667,
+      score: 83,
+      metadata: {
+        nodeCount: 3,
+        dependencyRelationCount: 2,
+      },
+    });
+    expect(findMeasurement(metrics, 'ownership-coverage')).toMatchObject({
+      value: 0.6667,
+      score: 67,
+      metadata: {
+        nodeCount: 3,
+        ownedNodeCount: 2,
+      },
+    });
+    expect(
+      findMeasurement(metrics, 'documentation-completeness'),
+    ).toMatchObject({
+      value: 0.6667,
+      score: 67,
+      metadata: {
+        nodeCount: 3,
+        documentedNodeCount: 2,
+      },
+    });
+    expect(findMeasurement(metrics, 'domain-integrity')).toMatchObject({
+      value: 0.5,
+      score: 50,
+      metadata: {
+        dependencyRelationCount: 2,
+        violatingRelationWeight: 1,
+      },
+    });
+    expect(findMeasurement(metrics, 'layer-integrity')).toMatchObject({
+      value: 0.3,
+      score: 70,
+      metadata: {
+        dependencyRelationCount: 2,
+        violatingRelationWeight: 0.6,
+      },
+    });
+    expect(findMeasurement(metrics, 'architectural-entropy')).toMatchObject({
+      value: 0.3,
+      score: 70,
+      metadata: {
+        nodeCount: 3,
+        dependencyRelationCount: 2,
+        crossDomainPenaltyWeight: 0.6,
+      },
+    });
+    expect(health.subjectHotspots).toEqual([
+      {
+        subjectId: 'booking-ui',
+        subjectType: 'node',
+        count: 3,
+        dominantIssueTypes: ['domain-boundary-violation', 'ownership-gap'],
+      },
+      {
+        subjectId: 'app-shell',
+        subjectType: 'node',
+        count: 2,
+        dominantIssueTypes: ['domain-boundary-violation'],
+      },
+      {
+        subjectId: 'relation:app-shell->booking-ui',
+        subjectType: 'relation',
+        count: 2,
+        dominantIssueTypes: ['domain-boundary-violation'],
+      },
+    ]);
+    expect(health).toMatchObject({
+      score: 68,
+      status: 'critical',
+      grade: 'D',
+    });
     expect(recommendations[0]?.id).toBe('reduce-cross-domain-dependencies');
   });
 });
+
+function createWorkspace(
+  nodes: GovernanceNode[],
+  relations: GovernanceRelation[],
+): GovernanceWorkspace {
+  return {
+    id: 'workspace',
+    name: 'workspace',
+    root: '.',
+    nodes,
+    relations,
+  };
+}
+
+function findMeasurement(
+  measurements: ReturnType<typeof calculateGovernanceMetrics>,
+  id: string,
+) {
+  return measurements.find((measurement) => measurement.id === id);
+}
