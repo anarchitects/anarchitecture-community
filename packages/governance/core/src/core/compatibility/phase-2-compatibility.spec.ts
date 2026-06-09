@@ -5,47 +5,53 @@ import {
 } from '../../index.js';
 
 describe('Phase 2 compatibility contracts', () => {
-  it('keeps deprecated project and dependency adapter output functional', () => {
+  it('uses canonical workspace node and relation output from nested workspace input', () => {
     const adapterResult = {
-      workspaceId: 'compatibility',
-      workspaceName: 'compatibility',
-      workspaceRoot: '.',
-      projects: [
-        {
-          id: 'app',
-          name: 'App',
-          root: 'apps/app',
-          type: 'application',
-          domain: 'customer',
-          layer: 'app',
-          tags: ['domain:customer'],
-          metadata: {
-            compatibility: true,
+      workspace: {
+        id: 'compatibility',
+        name: 'compatibility',
+        root: '.',
+        nodes: [
+          {
+            id: 'app',
+            name: 'App',
+            kind: 'application',
+            tags: ['domain:customer'],
+            classification: {
+              domain: 'customer',
+              layer: 'app',
+            },
+            metadata: {
+              compatibility: true,
+            },
           },
-        },
-        {
-          id: 'shared',
-          name: 'Shared',
-          root: 'packages/shared',
-          type: 'library',
-        },
-      ],
-      dependencies: [
-        {
-          sourceProjectId: 'app',
-          targetProjectId: 'shared',
-          type: 'static',
-          metadata: {
-            source: 'legacy-fixture',
+          {
+            id: 'shared',
+            name: 'Shared',
+            kind: 'library',
+            tags: [],
+            metadata: {},
           },
-        },
-      ],
+        ],
+        relations: [
+          {
+            id: 'canonical:app->shared:dependency:0',
+            sourceNodeId: 'app',
+            targetNodeId: 'shared',
+            kind: 'dependency',
+            metadata: {
+              dependencyType: 'static',
+              source: 'nested-workspace',
+            },
+          },
+        ],
+      },
     } satisfies GovernanceWorkspaceAdapterResult;
 
     const workspace = buildGovernanceWorkspace(adapterResult);
     const graph = normalizeGovernanceGraph(adapterResult);
 
-    expect(workspace.nodes?.map((node) => node.id)).toEqual(['app', 'shared']);
+    expect(workspace.nodes.map((node) => node.id)).toEqual(['app', 'shared']);
     expect(workspace.relations).toEqual([
       expect.objectContaining({
         sourceNodeId: 'app',
@@ -72,28 +78,37 @@ describe('Phase 2 compatibility contracts', () => {
         kind: 'dependency',
         metadata: {
           dependencyType: 'static',
-          source: 'legacy-fixture',
+          source: 'nested-workspace',
         },
       }),
     ]);
   });
 
-  it('prefers explicit canonical node and relation output in mixed adapter results', () => {
+  it('prefers top-level canonical node and relation output over nested workspace canonical data', () => {
     const adapterResult = {
-      projects: [
-        {
-          id: 'same-id',
-          name: 'Compatibility Project',
-          root: 'legacy/same-id',
-        },
-      ],
-      dependencies: [
-        {
-          sourceProjectId: 'same-id',
-          targetProjectId: 'compatibility-only',
-          type: 'implicit',
-        },
-      ],
+      workspace: {
+        id: 'workspace',
+        name: 'workspace',
+        root: '/workspace',
+        nodes: [
+          {
+            id: 'same-id',
+            name: 'Nested Canonical Node',
+            kind: 'resource',
+            tags: [],
+            metadata: {},
+          },
+        ],
+        relations: [
+          {
+            id: 'canonical:same-id->nested-only:traceability:0',
+            sourceNodeId: 'same-id',
+            targetNodeId: 'nested-only',
+            kind: 'traceability',
+            metadata: {},
+          },
+        ],
+      },
       nodes: [
         {
           id: 'same-id',
@@ -132,5 +147,6 @@ describe('Phase 2 compatibility contracts', () => {
         }),
       ]),
     );
+    expect(graph.relations).toHaveLength(1);
   });
 });
