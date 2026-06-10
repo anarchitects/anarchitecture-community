@@ -10,6 +10,7 @@ import {
   registerLoadedGovernanceExtensionsWithDiagnostics,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
+  type GovernanceWorkspace,
   type Ownership,
 } from '@anarchitects/governance-core';
 
@@ -25,8 +26,8 @@ import {
   type DbtGovernanceRecommendationProviderInput,
   type DbtGovernanceRulePackInput,
   type DbtGovernanceSignalProviderInput,
-  type DbtGovernanceMetadataResolverInput,
 } from './index.js';
+import { toResolverInput } from './dbt-graph.js';
 import { createCompatibilityWorkspace } from './test-workspace.js';
 
 type FixtureWorkspaceProject = {
@@ -89,7 +90,7 @@ describe('dbt Governance extension end-to-end flow', () => {
   }
 
   function createContext(
-    workspace: ReturnType<typeof createCompatibilityWorkspace>,
+    workspace: GovernanceWorkspace,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -116,9 +117,9 @@ describe('dbt Governance extension end-to-end flow', () => {
     );
     const profile = options.profile ?? createProfile();
     const context = createContext(workspace);
-    const metadataResolutions = workspace.projects
-      .filter((project) => hasDbtMetadata(project.metadata))
-      .map((project) => resolveDbtGovernanceMetadata(toResolverInput(project)));
+    const metadataResolutions = workspace.nodes
+      .filter((node) => hasDbtMetadata(node.metadata))
+      .map((node) => resolveDbtGovernanceMetadata(toResolverInput(node)));
 
     const registration =
       await registerLoadedGovernanceExtensionsWithDiagnostics(context, [
@@ -547,19 +548,4 @@ function hasDbtMetadata(
   metadata: unknown,
 ): metadata is Record<string, unknown> {
   return typeof metadata === 'object' && metadata !== null && 'dbt' in metadata;
-}
-
-function toResolverInput(
-  project: FixtureWorkspaceProject,
-): DbtGovernanceMetadataResolverInput {
-  return {
-    id: project.id,
-    name: project.name,
-    root: project.root,
-    tags: project.tags,
-    domain: project.domain,
-    layer: project.layer,
-    ownership: project.ownership,
-    metadata: project.metadata,
-  };
 }

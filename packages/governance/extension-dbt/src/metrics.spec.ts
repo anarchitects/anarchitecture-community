@@ -1,8 +1,8 @@
 import {
   DefaultGovernanceCapabilityRegistry,
-  type GovernanceCompatibilityWorkspace,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
+  type GovernanceWorkspace,
   type Ownership,
 } from '@anarchitects/governance-core';
 
@@ -62,7 +62,7 @@ describe('dbt governance metrics', () => {
   function createWorkspace(
     projects: TestWorkspaceProject[],
     dependencies: TestWorkspaceDependency[] = [],
-  ): GovernanceCompatibilityWorkspace {
+  ): GovernanceWorkspace {
     return createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',
@@ -73,7 +73,7 @@ describe('dbt governance metrics', () => {
   }
 
   function createContext(
-    workspace: GovernanceCompatibilityWorkspace,
+    workspace: GovernanceWorkspace,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -85,7 +85,7 @@ describe('dbt governance metrics', () => {
   }
 
   function createMetricInput(
-    workspace: GovernanceCompatibilityWorkspace,
+    workspace: GovernanceWorkspace,
     overrides: Partial<DbtGovernanceMetricProviderInput> = {},
   ): DbtGovernanceMetricProviderInput {
     return {
@@ -246,7 +246,7 @@ describe('dbt governance metrics', () => {
       unit: 'count',
       metadata: {
         count: 3,
-        countedResourceIds: [
+        countedNodeIds: [
           'model.analytics.orders_intermediate',
           'model.analytics.orders_mart',
           'model.analytics.orders_staging',
@@ -257,9 +257,9 @@ describe('dbt governance metrics', () => {
       value: 2,
       metadata: {
         count: 2,
-        countedDependencyKeys: [
-          'model.analytics.orders_mart->model.analytics.orders_intermediate',
-          'model.analytics.orders_staging->model.analytics.orders_intermediate',
+        countedRelationIds: [
+          'dbt:lineage:model.analytics.orders_mart->model.analytics.orders_intermediate',
+          'dbt:lineage:model.analytics.orders_staging->model.analytics.orders_intermediate',
         ],
       },
     });
@@ -267,8 +267,8 @@ describe('dbt governance metrics', () => {
       value: 1,
       metadata: {
         count: 1,
-        countedDependencyKeys: [
-          'model.analytics.orders_mart->model.analytics.orders_intermediate',
+        countedRelationIds: [
+          'dbt:lineage:model.analytics.orders_mart->model.analytics.orders_intermediate',
         ],
       },
     });
@@ -319,7 +319,7 @@ describe('dbt governance metrics', () => {
       value: 1,
       metadata: {
         count: 1,
-        countedResourceIds: ['source.analytics.raw_orders'],
+        countedNodeIds: ['source.analytics.raw_orders'],
         countedDiagnosticCodes: ['DBT_LAYER_UNRESOLVED'],
       },
     });
@@ -379,7 +379,7 @@ describe('dbt governance metrics', () => {
     expect(byId.get('dbt-unresolved-domain-count')).toMatchObject({
       value: 1,
       metadata: {
-        countedResourceIds: ['model.analytics.stg_customers'],
+        countedNodeIds: ['model.analytics.stg_customers'],
         countedDiagnosticCodes: ['DBT_DOMAIN_UNRESOLVED'],
         countedDiagnosticIds: expect.arrayContaining([expect.any(String)]),
       },

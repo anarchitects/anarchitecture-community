@@ -1,8 +1,8 @@
 import {
   DefaultGovernanceCapabilityRegistry,
-  type GovernanceCompatibilityWorkspace,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
+  type GovernanceWorkspace,
   type Ownership,
 } from '@anarchitects/governance-core';
 
@@ -62,7 +62,7 @@ describe('dbt governance signals', () => {
   }
 
   function createContext(
-    workspace: GovernanceCompatibilityWorkspace,
+    workspace: GovernanceWorkspace,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -76,7 +76,7 @@ describe('dbt governance signals', () => {
   function createWorkspace(
     projects: TestWorkspaceProject[],
     dependencies: TestWorkspaceDependency[] = [],
-  ): GovernanceCompatibilityWorkspace {
+  ): GovernanceWorkspace {
     return createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',
@@ -87,7 +87,7 @@ describe('dbt governance signals', () => {
   }
 
   function createSignalInput(
-    workspace: GovernanceCompatibilityWorkspace,
+    workspace: GovernanceWorkspace,
     overrides: Partial<DbtGovernanceSignalProviderInput> = {},
   ): DbtGovernanceSignalProviderInput {
     return {
@@ -337,9 +337,7 @@ describe('dbt governance signals', () => {
     );
     expect(crossDomainSignal).toMatchObject({
       nodeId: expect.any(String),
-      relatedNodeIds: expect.arrayContaining([
-        'model.analytics.orders_marts',
-      ]),
+      relatedNodeIds: expect.arrayContaining(['model.analytics.orders_marts']),
       metadata: {
         dependencyKey: expect.stringContaining(
           '->model.analytics.orders_marts',

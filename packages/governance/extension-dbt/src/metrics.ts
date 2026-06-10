@@ -1,5 +1,7 @@
 import type {
   GovernanceDiagnostic,
+  GovernanceNode,
+  GovernanceRelation,
   GovernanceSignal,
   Measurement,
   Violation,
@@ -9,6 +11,12 @@ import type {
   DbtGovernanceMetricProvider,
   DbtGovernanceMetricProviderInput,
 } from './contracts.js';
+import {
+  getDbtDependencyRelations,
+  getDbtNodes,
+  toRelationKey,
+  toResolverInput,
+} from './dbt-graph.js';
 import { buildDbtGovernanceDiagnostics } from './diagnostics.js';
 import {
   DBT_BASIC_ARCHITECTURE_RULE_PACK_ID,
@@ -18,9 +26,7 @@ import { buildDbtGovernanceSignals } from './signals.js';
 import {
   resolveDbtGovernanceMetadata,
   type DbtGovernanceMetadataResolution,
-  type DbtGovernanceMetadataResolverInput,
 } from './resolvers.js';
-import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_GOVERNANCE_METRIC_IDS = [
   'dbt-model-count',
@@ -46,9 +52,9 @@ export interface DbtGovernanceMetricMetadata extends Record<string, unknown> {
   denominator?: number;
   ratio?: number;
   zeroDenominator?: boolean;
-  eligibleResourceIds?: string[];
-  countedResourceIds?: string[];
-  countedDependencyKeys?: string[];
+  eligibleNodeIds?: string[];
+  countedNodeIds?: string[];
+  countedRelationIds?: string[];
   countedSignalIds?: string[];
   countedDiagnosticIds?: string[];
   countedViolationIds?: string[];
@@ -66,23 +72,6 @@ interface ResolvedDbtMetricContext {
   signals: readonly GovernanceSignal[];
   violations: readonly Violation[];
   modelIds: Set<string>;
-}
-
-interface DbtProjectLike {
-  id: string;
-  name?: string;
-  root?: string;
-  tags?: readonly string[];
-  domain?: string;
-  layer?: string;
-  ownership?: unknown;
-  metadata?: Record<string, unknown>;
-}
-
-interface DbtDependencyLike {
-  source: string;
-  target: string;
-  type?: string;
 }
 
 const DEFAULT_PROVIDER_ID = 'dbt-governance-metrics';
@@ -104,12 +93,12 @@ export function createDbtGovernanceMetricProvider(): DbtGovernanceMetricProvider
 export function buildDbtGovernanceMetrics(
   input: DbtGovernanceMetricProviderInput,
 ): DbtGovernanceMeasurement[] {
-  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
+  const dependencyRelations = getDbtDependencyRelations(input.workspace);
   const context = resolveDbtMetricContext(input);
-  const modelDependencies = compatibilityWorkspace.dependencies.filter(
-    (dependency) =>
-      context.modelIds.has(dependency.source) &&
-      context.modelIds.has(dependency.target),
+  const modelDependencies = dependencyRelations.filter(
+    (relation) =>
+      context.modelIds.has(relation.sourceNodeId) &&
+      context.modelIds.has(relation.targetNodeId),
   );
   const crossDomainSignals = context.signals.filter(
     (signal) =>
@@ -125,18 +114,27 @@ export function buildDbtGovernanceMetrics(
     countedCrossDomainDependencyKeys.length > 0
       ? countedCrossDomainDependencyKeys
       : modelDependencies
-          .filter((dependency) =>
-            isCrossDomainDependency(context.metadataResolutions, dependency),
+          .filter((relation) =>
+            isCrossDomainDependency(context.metadataResolutions, relation),
           )
-          .map(toDependencyKey)
+          .map(toRelationKey)
           .sort();
+  const relationIdByKey = new Map(
+    modelDependencies.map((relation) => [toRelationKey(relation), relation.id]),
+  );
+  const countedCrossDomainRelationIds = dedupeAndSortStrings(
+    crossDomainDependencyKeys.flatMap((key) => {
+      const relationId = relationIdByKey.get(key);
+      return relationId ? [relationId] : [];
+    }),
+  );
   const layerViolations = context.violations.filter(
     (violation) => violation.ruleId === 'dbt/no-disallowed-layer-dependency',
   );
   const hotspotSignals = context.signals.filter((signal) =>
     HOTSPOT_SIGNAL_CODES.has(asString(signal.metadata?.code) ?? ''),
   );
-  const hotspotResourceIds = [
+  const hotspotNodeIds = [
     ...new Set(
       hotspotSignals.flatMap((signal) =>
         signal.nodeId ? [signal.nodeId] : (signal.relatedNodeIds ?? []),
@@ -164,21 +162,23 @@ export function buildDbtGovernanceMetrics(
       name: 'dbt Model Count',
       family: 'architecture',
       count: context.modelIds.size,
-      countedResourceIds: [...context.modelIds].sort(),
+      countedNodeIds: [...context.modelIds].sort(),
     }),
     createCountMeasurement({
       id: 'dbt-dependency-count',
       name: 'dbt Dependency Count',
       family: 'architecture',
       count: modelDependencies.length,
-      countedDependencyKeys: modelDependencies.map(toDependencyKey).sort(),
+      countedRelationIds: modelDependencies
+        .map((relation) => relation.id)
+        .sort(),
     }),
     createCountMeasurement({
       id: 'dbt-cross-domain-dependency-count',
       name: 'dbt Cross-Domain Dependency Count',
       family: 'boundaries',
-      count: crossDomainDependencyKeys.length,
-      countedDependencyKeys: crossDomainDependencyKeys,
+      count: countedCrossDomainRelationIds.length,
+      countedRelationIds: countedCrossDomainRelationIds,
       countedSignalIds: crossDomainSignals.map((signal) => signal.id).sort(),
       signalIds: crossDomainSignals.map((signal) => signal.id).sort(),
     }),
@@ -198,8 +198,8 @@ export function buildDbtGovernanceMetrics(
       id: 'dbt-ownership-completeness-ratio',
       name: 'dbt Ownership Completeness Ratio',
       family: 'ownership',
-      eligibleResourceIds: [...context.modelIds].sort(),
-      countedResourceIds: context.metadataResolutions
+      eligibleNodeIds: [...context.modelIds].sort(),
+      countedNodeIds: context.metadataResolutions
         .filter(
           (resolution) =>
             context.modelIds.has(resolution.governanceNodeId) &&
@@ -213,8 +213,8 @@ export function buildDbtGovernanceMetrics(
       id: 'dbt-documentation-coverage-ratio',
       name: 'dbt Documentation Coverage Ratio',
       family: 'documentation',
-      eligibleResourceIds: [...context.modelIds].sort(),
-      countedResourceIds: context.metadataResolutions
+      eligibleNodeIds: [...context.modelIds].sort(),
+      countedNodeIds: context.metadataResolutions
         .filter(
           (resolution) =>
             context.modelIds.has(resolution.governanceNodeId) &&
@@ -228,8 +228,8 @@ export function buildDbtGovernanceMetrics(
       id: 'dbt-test-coverage-ratio',
       name: 'dbt Test Coverage Ratio',
       family: 'documentation',
-      eligibleResourceIds: [...context.modelIds].sort(),
-      countedResourceIds: context.metadataResolutions
+      eligibleNodeIds: [...context.modelIds].sort(),
+      countedNodeIds: context.metadataResolutions
         .filter(
           (resolution) =>
             context.modelIds.has(resolution.governanceNodeId) &&
@@ -243,8 +243,8 @@ export function buildDbtGovernanceMetrics(
       id: 'dbt-contract-adoption-ratio',
       name: 'dbt Contract Adoption Ratio',
       family: 'documentation',
-      eligibleResourceIds: [...context.modelIds].sort(),
-      countedResourceIds: context.metadataResolutions
+      eligibleNodeIds: [...context.modelIds].sort(),
+      countedNodeIds: context.metadataResolutions
         .filter(
           (resolution) =>
             context.modelIds.has(resolution.governanceNodeId) &&
@@ -258,8 +258,8 @@ export function buildDbtGovernanceMetrics(
       id: 'dbt-hotspot-count',
       name: 'dbt Hotspot Count',
       family: 'architecture',
-      count: hotspotResourceIds.length,
-      countedResourceIds: hotspotResourceIds,
+      count: hotspotNodeIds.length,
+      countedNodeIds: hotspotNodeIds,
       countedSignalIds: hotspotSignals.map((signal) => signal.id).sort(),
       signalIds: hotspotSignals.map((signal) => signal.id).sort(),
     }),
@@ -268,7 +268,7 @@ export function buildDbtGovernanceMetrics(
       name: 'dbt Unresolved Layer Count',
       family: 'boundaries',
       count: unresolvedLayerIds.length,
-      countedResourceIds: unresolvedLayerIds,
+      countedNodeIds: unresolvedLayerIds,
       countedDiagnosticIds: unresolvedLayerDiagnostics
         .map((diagnostic) => diagnostic.id)
         .filter((id): id is string => Boolean(id))
@@ -280,7 +280,7 @@ export function buildDbtGovernanceMetrics(
       name: 'dbt Unresolved Domain Count',
       family: 'boundaries',
       count: unresolvedDomainIds.length,
-      countedResourceIds: unresolvedDomainIds,
+      countedNodeIds: unresolvedDomainIds,
       countedDiagnosticIds: unresolvedDomainDiagnostics
         .map((diagnostic) => diagnostic.id)
         .filter((id): id is string => Boolean(id))
@@ -293,19 +293,16 @@ export function buildDbtGovernanceMetrics(
 function resolveDbtMetricContext(
   input: DbtGovernanceMetricProviderInput,
 ): ResolvedDbtMetricContext {
-  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
   const metadataResolutions =
     input.metadataResolutions && input.metadataResolutions.length > 0
       ? input.metadataResolutions
-      : compatibilityWorkspace.projects
-          .filter((project) => hasDbtMetadata(project.metadata))
-          .map((project) =>
-            resolveDbtGovernanceMetadata(toResolverInput(project)),
-          );
+      : getDbtNodes(input.workspace).map((node) =>
+          resolveDbtGovernanceMetadata(toResolverInput(node)),
+        );
   const modelIds = new Set(
-    compatibilityWorkspace.projects
-      .filter((project) => isDbtModelProject(project))
-      .map((project) => project.id),
+    getDbtNodes(input.workspace)
+      .filter((node) => isDbtModelNode(node))
+      .map((node) => node.id),
   );
   const diagnostics =
     input.diagnostics && input.diagnostics.length > 0
@@ -357,8 +354,8 @@ function createCountMeasurement(options: {
   name: string;
   family: Measurement['family'];
   count: number;
-  countedResourceIds?: string[];
-  countedDependencyKeys?: string[];
+  countedNodeIds?: string[];
+  countedRelationIds?: string[];
   countedSignalIds?: string[];
   countedDiagnosticIds?: string[];
   countedViolationIds?: string[];
@@ -381,11 +378,11 @@ function createCountMeasurement(options: {
       metricId: options.id,
       rawKind: 'count',
       count: options.count,
-      ...(options.countedResourceIds
-        ? { countedResourceIds: options.countedResourceIds }
+      ...(options.countedNodeIds
+        ? { countedNodeIds: options.countedNodeIds }
         : {}),
-      ...(options.countedDependencyKeys
-        ? { countedDependencyKeys: options.countedDependencyKeys }
+      ...(options.countedRelationIds
+        ? { countedRelationIds: options.countedRelationIds }
         : {}),
       ...(options.countedSignalIds
         ? { countedSignalIds: options.countedSignalIds }
@@ -408,11 +405,11 @@ function createRatioMeasurement(options: {
   id: DbtGovernanceMetricId;
   name: string;
   family: Measurement['family'];
-  eligibleResourceIds: string[];
-  countedResourceIds: string[];
+  eligibleNodeIds: string[];
+  countedNodeIds: string[];
 }): DbtGovernanceMeasurement {
-  const denominator = options.eligibleResourceIds.length;
-  const numerator = options.countedResourceIds.length;
+  const denominator = options.eligibleNodeIds.length;
+  const numerator = options.countedNodeIds.length;
   const ratio = denominator === 0 ? 0 : numerator / denominator;
 
   return {
@@ -430,16 +427,18 @@ function createRatioMeasurement(options: {
       denominator,
       ratio: Number(ratio.toFixed(4)),
       zeroDenominator: denominator === 0,
-      eligibleResourceIds: options.eligibleResourceIds,
-      countedResourceIds: options.countedResourceIds,
+      eligibleNodeIds: options.eligibleNodeIds,
+      countedNodeIds: options.countedNodeIds,
     },
   };
 }
 
-function isDbtModelProject(project: DbtProjectLike): boolean {
-  const identity = asRecord(
-    readPathValue(project.metadata, ['dbt', 'identity']),
-  );
+function isDbtModelNode(node: GovernanceNode): boolean {
+  if (node.kind === 'dbt-model') {
+    return true;
+  }
+
+  const identity = asRecord(readPathValue(node.metadata, ['dbt', 'identity']));
   const resourceType = asString(identity?.resourceType);
   const uniqueId = asString(identity?.uniqueId);
 
@@ -451,37 +450,12 @@ function isDbtModelProject(project: DbtProjectLike): boolean {
     return uniqueId.startsWith('model.');
   }
 
-  return project.id.startsWith('model.');
-}
-
-function hasDbtMetadata(
-  metadata: unknown,
-): metadata is Record<string, unknown> {
-  return Boolean(asRecord(asRecord(metadata)?.dbt));
-}
-
-function toResolverInput(
-  project: DbtProjectLike,
-): DbtGovernanceMetadataResolverInput {
-  return {
-    id: project.id,
-    name: project.name,
-    root: project.root,
-    tags: project.tags,
-    domain: project.domain,
-    layer: project.layer,
-    ownership: asRecord(project.ownership),
-    metadata: project.metadata,
-  };
-}
-
-function toDependencyKey(dependency: DbtDependencyLike): string {
-  return `${dependency.source}->${dependency.target}`;
+  return node.id.startsWith('model.');
 }
 
 function isCrossDomainDependency(
   metadataResolutions: readonly DbtGovernanceMetadataResolution[],
-  dependency: DbtDependencyLike,
+  relation: GovernanceRelation,
 ): boolean {
   const resolutionById = new Map(
     metadataResolutions.map((resolution) => [
@@ -489,8 +463,8 @@ function isCrossDomainDependency(
       resolution,
     ]),
   );
-  const source = resolutionById.get(dependency.source);
-  const target = resolutionById.get(dependency.target);
+  const source = resolutionById.get(relation.sourceNodeId);
+  const target = resolutionById.get(relation.targetNodeId);
 
   return Boolean(
     source &&

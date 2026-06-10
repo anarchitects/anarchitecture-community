@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import type {
   GovernanceDiagnostic,
   GovernanceProfile,
+  GovernanceRelation,
   GovernanceSignal,
   GovernanceSignalCategory,
   GovernanceSignalSeverity,
@@ -13,14 +14,18 @@ import type {
   DbtGovernanceSignalProvider,
   DbtGovernanceSignalProviderInput,
 } from './contracts.js';
+import {
+  getDbtDependencyRelations,
+  normalizeIds,
+  toRelationKey,
+  toResolverInput,
+} from './dbt-graph.js';
 import { buildDbtGovernanceDiagnostics } from './diagnostics.js';
 import {
   resolveDbtGovernanceMetadata,
   type DbtGovernanceMetadataResolution,
-  type DbtGovernanceMetadataResolverInput,
   type DbtMetadataResolution,
 } from './resolvers.js';
-import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_GOVERNANCE_SIGNAL_SOURCE = 'governance.dbt_extension';
 
@@ -91,24 +96,6 @@ export interface DbtGovernanceSignalProviderOptions {
   criticalityLevelsRequiringTests?: readonly string[];
 }
 
-interface DbtProjectLike {
-  id: string;
-  name?: string;
-  root?: string;
-  tags?: readonly string[];
-  domain?: string;
-  layer?: string;
-  ownership?: unknown;
-  metadata?: Record<string, unknown>;
-}
-
-interface DbtDependencyLike {
-  source: string;
-  target: string;
-  type?: string;
-  metadata?: Record<string, unknown>;
-}
-
 interface SignalDraft {
   code: DbtGovernanceSignalCode;
   type: GovernanceSignalType;
@@ -116,10 +103,12 @@ interface SignalDraft {
   category: GovernanceSignalCategory;
   message: string;
   nodeId?: string;
+  relationId?: string;
   dbtUniqueId?: string;
   sourceNodeId?: string;
   targetNodeId?: string;
   relatedNodeIds: string[];
+  relatedRelationIds?: string[];
   metadata?: Omit<DbtGovernanceSignalMetadata, 'code'>;
   identityParts: readonly string[];
 }
@@ -157,7 +146,7 @@ export function buildDbtGovernanceSignals(
   input: DbtGovernanceSignalProviderInput,
   options: DbtGovernanceSignalProviderOptions = {},
 ): DbtGovernanceExtensionSignal[] {
-  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
+  const dependencyRelations = getDbtDependencyRelations(input.workspace);
   const resolvedOptions = resolveSignalOptions(input.profile, options);
   const metadataResolutions = resolveMetadataResolutions(input);
   const diagnostics = resolveDiagnostics(input, metadataResolutions);
@@ -167,15 +156,13 @@ export function buildDbtGovernanceSignals(
       (resolution) => [resolution.governanceNodeId, resolution] as const,
     ),
   );
-  const dependencyContexts = compatibilityWorkspace.dependencies.map((dependency) => ({
-    dependency,
-    source: resolutionByNodeId.get(dependency.source),
-    target: resolutionByNodeId.get(dependency.target),
+  const dependencyContexts = dependencyRelations.map((relation) => ({
+    relation,
+    source: resolutionByNodeId.get(relation.sourceNodeId),
+    target: resolutionByNodeId.get(relation.targetNodeId),
   }));
-  const inboundCounts = countInboundDependencies(compatibilityWorkspace.dependencies);
-  const outboundCounts = countOutboundDependencies(
-    compatibilityWorkspace.dependencies,
-  );
+  const inboundCounts = countInboundDependencies(dependencyRelations);
+  const outboundCounts = countOutboundDependencies(dependencyRelations);
   const inboundDomains = collectInboundDomains(dependencyContexts);
   const signals: DbtGovernanceExtensionSignal[] = [];
   const signalContext: DbtSignalContext = {
@@ -644,26 +631,26 @@ function appendDagShapeSignals(
 
 function buildDependencySignals(
   dependencyContext: {
-    dependency: DbtDependencyLike;
+    relation: GovernanceRelation;
     source?: DbtGovernanceMetadataResolution;
     target?: DbtGovernanceMetadataResolution;
   },
   inboundDomains: Map<string, Set<string>>,
   context: DbtSignalContext,
 ): DbtGovernanceExtensionSignal[] {
-  const { dependency, source, target } = dependencyContext;
+  const { relation, source, target } = dependencyContext;
 
   if (!source || !target) {
     return [];
   }
 
   const signals: DbtGovernanceExtensionSignal[] = [];
-  const relatedNodeIds = normalizeRelatedNodeIds([
+  const relatedNodeIds = normalizeIds([
     source.governanceNodeId,
     target.governanceNodeId,
   ]);
-  const dependencyKey = `${source.governanceNodeId}->${target.governanceNodeId}`;
-  const dependencyType = readDependencyKind(dependency);
+  const dependencyKey = toRelationKey(relation);
+  const dependencyType = readDependencyKind(relation);
 
   if (
     source.layer.status === 'resolved' &&
@@ -689,8 +676,10 @@ function buildDependencySignals(
         message: `dbt layer dependency detected: ${source.governanceNodeId} (${sourceLayer}) -> ${target.governanceNodeId} (${targetLayer}).`,
         sourceNodeId: source.governanceNodeId,
         targetNodeId: target.governanceNodeId,
+        relationId: relation.id,
         dbtUniqueId: source.dbtUniqueId,
         relatedNodeIds,
+        relatedRelationIds: [relation.id],
         identityParts: ['layer-dependency', dependencyKey],
         metadata: {
           dependencyKey,
@@ -712,8 +701,10 @@ function buildDependencySignals(
           message: `dbt dependency ${dependencyKey} points from an earlier layer to a later layer.`,
           sourceNodeId: source.governanceNodeId,
           targetNodeId: target.governanceNodeId,
+          relationId: relation.id,
           dbtUniqueId: source.dbtUniqueId,
           relatedNodeIds,
+          relatedRelationIds: [relation.id],
           identityParts: ['layer-direction', dependencyKey],
           metadata: {
             dependencyKey,
@@ -741,8 +732,10 @@ function buildDependencySignals(
           message: `dbt dependency ${dependencyKey} skips an intermediate layer.`,
           sourceNodeId: source.governanceNodeId,
           targetNodeId: target.governanceNodeId,
+          relationId: relation.id,
           dbtUniqueId: source.dbtUniqueId,
           relatedNodeIds,
+          relatedRelationIds: [relation.id],
           identityParts: ['layer-bypass', dependencyKey],
           metadata: {
             dependencyKey,
@@ -771,8 +764,10 @@ function buildDependencySignals(
         message: `Cross-domain dbt dependency detected: ${source.governanceNodeId} (${source.domain.value}) -> ${target.governanceNodeId} (${target.domain.value}).`,
         sourceNodeId: source.governanceNodeId,
         targetNodeId: target.governanceNodeId,
+        relationId: relation.id,
         dbtUniqueId: source.dbtUniqueId,
         relatedNodeIds,
+        relatedRelationIds: [relation.id],
         identityParts: ['cross-domain-dependency', dependencyKey],
         metadata: {
           dependencyKey,
@@ -795,8 +790,10 @@ function buildDependencySignals(
           message: `dbt dependency target ${target.governanceNodeId} appears to be a shared model across domains.`,
           sourceNodeId: source.governanceNodeId,
           targetNodeId: target.governanceNodeId,
+          relationId: relation.id,
           dbtUniqueId: target.dbtUniqueId,
           relatedNodeIds,
+          relatedRelationIds: [relation.id],
           identityParts: ['shared-model-dependency', dependencyKey],
           metadata: {
             dependencyKey,
@@ -827,8 +824,10 @@ function buildDependencySignals(
         message: `dbt dependency ${dependencyKey} crosses inconsistent owners within domain "${source.domain.value}".`,
         sourceNodeId: source.governanceNodeId,
         targetNodeId: target.governanceNodeId,
+        relationId: relation.id,
         dbtUniqueId: source.dbtUniqueId,
         relatedNodeIds,
+        relatedRelationIds: [relation.id],
         identityParts: ['owner-inconsistent', dependencyKey],
         metadata: {
           dependencyKey,
@@ -858,11 +857,15 @@ function createSignal(
       : draft.sourceNodeId
         ? { nodeId: draft.sourceNodeId }
         : {}),
-    relatedNodeIds: normalizeRelatedNodeIds(
+    ...(draft.relationId ? { relationId: draft.relationId } : {}),
+    relatedNodeIds: normalizeIds(
       draft.relatedNodeIds.length > 0
         ? draft.relatedNodeIds
         : [draft.nodeId ?? draft.sourceNodeId],
     ),
+    ...(draft.relatedRelationIds && draft.relatedRelationIds.length > 0
+      ? { relatedRelationIds: normalizeIds(draft.relatedRelationIds) }
+      : {}),
     severity: draft.severity,
     category: draft.category,
     message: draft.message,
@@ -894,9 +897,9 @@ function resolveMetadataResolutions(
     return input.metadataResolutions;
   }
 
-  return toCompatibilityWorkspace(input.workspace).projects
-    .filter((project) => hasDbtMetadata(project.metadata))
-    .map((project) => resolveDbtGovernanceMetadata(toResolverInput(project)));
+  return input.workspace.nodes
+    .filter((node) => hasDbtMetadata(node.metadata))
+    .map((node) => resolveDbtGovernanceMetadata(toResolverInput(node)));
 }
 
 function resolveDiagnostics(
@@ -955,24 +958,30 @@ function resolveLayerOrder(
 }
 
 function countInboundDependencies(
-  dependencies: readonly DbtDependencyLike[],
+  dependencies: readonly GovernanceRelation[],
 ): Map<string, number> {
   const counts = new Map<string, number>();
 
   for (const dependency of dependencies) {
-    counts.set(dependency.target, (counts.get(dependency.target) ?? 0) + 1);
+    counts.set(
+      dependency.targetNodeId,
+      (counts.get(dependency.targetNodeId) ?? 0) + 1,
+    );
   }
 
   return counts;
 }
 
 function countOutboundDependencies(
-  dependencies: readonly DbtDependencyLike[],
+  dependencies: readonly GovernanceRelation[],
 ): Map<string, number> {
   const counts = new Map<string, number>();
 
   for (const dependency of dependencies) {
-    counts.set(dependency.source, (counts.get(dependency.source) ?? 0) + 1);
+    counts.set(
+      dependency.sourceNodeId,
+      (counts.get(dependency.sourceNodeId) ?? 0) + 1,
+    );
   }
 
   return counts;
@@ -980,7 +989,7 @@ function countOutboundDependencies(
 
 function collectInboundDomains(
   dependencyContexts: readonly {
-    dependency: DbtDependencyLike;
+    relation: GovernanceRelation;
     source?: DbtGovernanceMetadataResolution;
     target?: DbtGovernanceMetadataResolution;
   }[],
@@ -1100,32 +1109,17 @@ function hasDbtMetadata(
   return isRecord(metadata) && isRecord(metadata.dbt);
 }
 
-function toResolverInput(
-  project: DbtProjectLike,
-): DbtGovernanceMetadataResolverInput {
-  return {
-    id: project.id,
-    name: project.name,
-    root: project.root,
-    tags: project.tags,
-    domain: project.domain,
-    layer: project.layer,
-    ownership: isRecord(project.ownership) ? project.ownership : undefined,
-    metadata: project.metadata,
-  };
-}
-
-function readDependencyKind(dependency: DbtDependencyLike): string | undefined {
-  const lineage = readPathValue(dependency.metadata, ['dbt', 'lineage']);
+function readDependencyKind(relation: GovernanceRelation): string | undefined {
+  const lineage = readPathValue(relation.metadata, ['dbt', 'lineage']);
 
   if (!isRecord(lineage)) {
-    return dependency.type;
+    return relation.kind;
   }
 
   return (
     asString(lineage.dependencyKind) ??
     asString(lineage.artifactDependencyKind) ??
-    dependency.type
+    relation.kind
   );
 }
 
@@ -1140,12 +1134,6 @@ function readPathValue(value: unknown, path: readonly string[]): unknown {
   }
 
   return current;
-}
-
-function normalizeRelatedNodeIds(
-  ids: readonly (string | undefined)[],
-): string[] {
-  return [...new Set(ids.filter((id): id is string => Boolean(id)))].sort();
 }
 
 function isResolvedTrue(resolution: DbtMetadataResolution<boolean>): boolean {

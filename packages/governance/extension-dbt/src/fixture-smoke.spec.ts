@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import type {
   GovernanceExtensionHostContext,
   GovernanceProfile,
+  GovernanceWorkspace,
   Ownership,
 } from '@anarchitects/governance-core';
 
@@ -77,7 +78,7 @@ describe('dbt extension fixture smoke coverage', () => {
   }
 
   function createContext(
-    workspace: ReturnType<typeof createCompatibilityWorkspace>,
+    workspace: GovernanceWorkspace,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -182,27 +183,27 @@ describe('dbt extension fixture smoke coverage', () => {
     ]);
 
     for (const fixtureName of fixtureNames) {
-      const workspace = loadFixture(fixtureName);
+      const workspace = createCompatibilityWorkspace(loadFixture(fixtureName));
 
       expect(typeof workspace.id).toBe('string');
       expect(typeof workspace.name).toBe('string');
       expect(typeof workspace.root).toBe('string');
-      expect(Array.isArray(workspace.projects)).toBe(true);
-      expect(Array.isArray(workspace.dependencies)).toBe(true);
+      expect(Array.isArray(workspace.nodes)).toBe(true);
+      expect(Array.isArray(workspace.relations)).toBe(true);
       expect(
-        workspace.projects.every(
-          (project) =>
-            typeof project.id === 'string' &&
-            Array.isArray(project.tags) &&
-            typeof project.metadata === 'object' &&
-            project.metadata !== null,
+        workspace.nodes.every(
+          (node) =>
+            typeof node.id === 'string' &&
+            Array.isArray(node.tags) &&
+            typeof node.metadata === 'object' &&
+            node.metadata !== null,
         ),
       ).toBe(true);
       expect(
-        workspace.projects.some(
-          (project) =>
-            typeof project.metadata?.dbt === 'object' &&
-            project.metadata.dbt !== null,
+        workspace.nodes.some(
+          (node) =>
+            typeof node.metadata?.dbt === 'object' &&
+            node.metadata.dbt !== null,
         ),
       ).toBe(true);
     }
