@@ -202,14 +202,15 @@ function createWorkspaceAdapter(
         workspaceId: 'diagnostic-workspace',
         workspaceName: 'diagnostic-workspace',
         workspaceRoot: '.',
-        projects: [
+        nodes: [
           {
             id: 'app',
             name: 'app',
+            kind: 'application',
             root: 'apps/app',
           },
         ],
-        dependencies: [],
+        relations: [],
         diagnostics,
       };
     },

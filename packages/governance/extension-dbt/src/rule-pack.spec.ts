@@ -3,7 +3,6 @@ import {
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
   type GovernanceWorkspace,
-  type Ownership,
 } from '@anarchitects/governance-core';
 
 import {
@@ -12,7 +11,10 @@ import {
   evaluateDbtArchitectureViolations,
   type DbtGovernanceRulePackInput,
 } from './index.js';
-import { createCompatibilityWorkspace } from './test-workspace.js';
+import {
+  createCompatibilityWorkspace,
+  type LegacyWorkspaceOwnership,
+} from './test-workspace.js';
 
 describe('dbt architecture basic rule pack', () => {
   type TestWorkspaceProject = {
@@ -23,7 +25,7 @@ describe('dbt architecture basic rule pack', () => {
     tags: string[];
     domain?: string;
     layer?: string;
-    ownership?: Ownership;
+    ownership?: LegacyWorkspaceOwnership;
     metadata: Record<string, unknown>;
   };
 

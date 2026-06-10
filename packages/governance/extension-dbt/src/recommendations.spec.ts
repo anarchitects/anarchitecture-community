@@ -6,7 +6,6 @@ import {
   type GovernanceSignal,
   type Measurement,
   type GovernanceWorkspace,
-  type Ownership,
   type Violation,
 } from '@anarchitects/governance-core';
 
@@ -16,7 +15,10 @@ import {
   resolveDbtGovernanceMetadata,
   type DbtGovernanceRecommendationProviderInput,
 } from './index.js';
-import { createCompatibilityWorkspace } from './test-workspace.js';
+import {
+  createCompatibilityWorkspace,
+  type LegacyWorkspaceOwnership,
+} from './test-workspace.js';
 
 describe('dbt governance recommendations', () => {
   type TestWorkspaceProject = {
@@ -27,7 +29,7 @@ describe('dbt governance recommendations', () => {
     tags: string[];
     domain?: string;
     layer?: string;
-    ownership?: Ownership;
+    ownership?: LegacyWorkspaceOwnership;
     metadata: Record<string, unknown>;
   };
 

@@ -2,7 +2,7 @@ import type { GovernanceException } from '../diagnostics/exceptions.js';
 import {
   normalizeGovernanceProfile,
   type GovernanceProfile,
-  type GovernanceProjectOverride,
+  type GovernanceNodeOverride,
 } from '../index.js';
 
 describe('normalizeGovernanceProfile', () => {
@@ -122,7 +122,7 @@ describe('normalizeGovernanceProfile', () => {
         },
       },
     ];
-    const projectOverrides: Record<string, GovernanceProjectOverride> = {
+    const projectOverrides: Record<string, GovernanceNodeOverride> = {
       'booking-feature': {
         domain: 'booking',
         documentation: true,

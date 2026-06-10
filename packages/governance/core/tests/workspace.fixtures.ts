@@ -1,80 +1,22 @@
 import { normalizeGovernanceGraph } from '../src/core/index.js';
 import type {
   GovernanceWorkspaceAdapterResult,
-  Ownership,
-} from '../src/core/index.js';
-import type {
-  GovernanceCompatibilityWorkspace,
-  GovernanceDependency,
   GovernanceNode,
-  GovernanceProject,
   GovernanceRelation,
   GovernanceWorkspace,
-} from '../src/core/model/models.js';
+} from '../src/core/index.js';
 
 export const bookingTeamOwnership = {
   team: 'booking-team',
   contacts: ['@booking-team'],
   source: 'project-metadata',
-} satisfies Ownership;
+} satisfies NonNullable<GovernanceNode['ownership']>;
 
 export const platformTeamOwnership = {
   team: 'platform-team',
   contacts: ['@platform-team'],
   source: 'project-metadata',
-} satisfies Ownership;
-
-export const coreTestProjects = [
-  {
-    id: 'booking-ui',
-    name: 'booking-ui',
-    root: 'libs/booking/ui',
-    type: 'library',
-    domain: 'booking',
-    layer: 'ui',
-    tags: ['scope:booking', 'type:ui'],
-    ownership: bookingTeamOwnership,
-    metadata: {
-      documentation: true,
-    },
-  },
-  {
-    id: 'booking-domain',
-    name: 'booking-domain',
-    root: 'libs/booking/domain',
-    type: 'library',
-    domain: 'booking',
-    layer: 'domain',
-    tags: ['scope:booking', 'type:domain'],
-    ownership: bookingTeamOwnership,
-    metadata: {},
-  },
-  {
-    id: 'platform-shell',
-    name: 'platform-shell',
-    root: 'apps/platform-shell',
-    type: 'application',
-    domain: 'platform',
-    layer: 'app',
-    tags: ['scope:platform', 'type:app'],
-    ownership: platformTeamOwnership,
-    metadata: {},
-  },
-] satisfies GovernanceProject[];
-
-export const coreTestDependencies = [
-  {
-    source: 'booking-ui',
-    target: 'booking-domain',
-    type: 'static',
-  },
-  {
-    source: 'platform-shell',
-    target: 'booking-ui',
-    type: 'static',
-    sourceFile: 'apps/platform-shell/src/main.ts',
-  },
-] satisfies GovernanceDependency[];
+} satisfies NonNullable<GovernanceNode['ownership']>;
 
 export const coreTestNodes = [
   {
@@ -172,9 +114,7 @@ export const coreTestWorkspace = {
   root: '/virtual/workspace',
   nodes: coreTestGraph.nodes,
   relations: coreTestGraph.relations,
-  projects: coreTestProjects,
-  dependencies: coreTestDependencies,
-} satisfies GovernanceCompatibilityWorkspace;
+} satisfies GovernanceWorkspace;
 
 export const coreTestWorkspaceWithDanglingDependency = {
   id: 'edge-workspace',
@@ -193,27 +133,16 @@ export const coreTestWorkspaceWithDanglingDependency = {
       },
     },
   ],
-  projects: coreTestProjects,
-  dependencies: [
-    ...coreTestDependencies,
-    {
-      source: 'booking-ui',
-      target: 'missing-project',
-      type: 'static',
-    },
-  ],
-} satisfies GovernanceCompatibilityWorkspace;
+} satisfies GovernanceWorkspace;
 
-export function findDanglingDependencies(
+export function findDanglingRelations(
   workspace: GovernanceWorkspace,
-): GovernanceDependency[] {
-  const compatibilityWorkspace = workspace as GovernanceCompatibilityWorkspace;
-  const projectIds = new Set(
-    compatibilityWorkspace.projects.map((project) => project.id),
-  );
+): GovernanceRelation[] {
+  const nodeIds = new Set(workspace.nodes.map((node) => node.id));
 
-  return compatibilityWorkspace.dependencies.filter(
-    (dependency) =>
-      !projectIds.has(dependency.source) || !projectIds.has(dependency.target),
+  return workspace.relations.filter(
+    (relation) =>
+      !nodeIds.has(relation.sourceNodeId) ||
+      !nodeIds.has(relation.targetNodeId),
   );
 }

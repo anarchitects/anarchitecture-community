@@ -264,7 +264,7 @@ describe('Core built-in policy rules', () => {
     );
   });
 
-  it('does not require workspace.projects or workspace.dependencies', async () => {
+  it('does not require legacy compatibility workspace views', async () => {
     const workspace = createWorkspace(baseNodes, baseRelations);
 
     const result = await evaluateRulePack(coreBuiltInRulePack, {

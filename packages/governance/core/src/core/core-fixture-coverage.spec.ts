@@ -30,26 +30,26 @@ import {
   coreTestAdapterResult,
   coreTestWorkspace,
   coreTestWorkspaceWithDanglingDependency,
-  findDanglingDependencies,
+  findDanglingRelations,
 } from '../../tests/workspace.fixtures.js';
 
 describe('Core fixtures', () => {
   it('provide a plain governance workspace with valid dependency references', () => {
-    expect(coreTestWorkspace.projects).toHaveLength(3);
-    expect(coreTestWorkspace.dependencies).toHaveLength(2);
-    expect(findDanglingDependencies(coreTestWorkspace)).toEqual([]);
+    expect(coreTestWorkspace.nodes).toHaveLength(3);
+    expect(coreTestWorkspace.relations).toHaveLength(2);
+    expect(findDanglingRelations(coreTestWorkspace)).toEqual([]);
   });
 
   it('includes an edge-case workspace with a dangling dependency target', () => {
-    const danglingDependencies = findDanglingDependencies(
+    const danglingRelations = findDanglingRelations(
       coreTestWorkspaceWithDanglingDependency,
     );
 
-    expect(danglingDependencies).toHaveLength(1);
-    expect(danglingDependencies[0]).toMatchObject({
-      source: 'booking-ui',
-      target: 'missing-project',
-      type: 'static',
+    expect(danglingRelations).toHaveLength(1);
+    expect(danglingRelations[0]).toMatchObject({
+      sourceNodeId: 'booking-ui',
+      targetNodeId: 'missing-project',
+      kind: 'dependency',
     });
   });
 });

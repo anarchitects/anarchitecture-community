@@ -3,7 +3,6 @@ import {
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
   type GovernanceWorkspace,
-  type Ownership,
 } from '@anarchitects/governance-core';
 
 import {
@@ -11,7 +10,10 @@ import {
   dbtGovernanceSignalProvider,
   type DbtGovernanceSignalProviderInput,
 } from './index.js';
-import { createCompatibilityWorkspace } from './test-workspace.js';
+import {
+  createCompatibilityWorkspace,
+  type LegacyWorkspaceOwnership,
+} from './test-workspace.js';
 
 describe('dbt governance signals', () => {
   type TestWorkspaceProject = {
@@ -22,7 +24,7 @@ describe('dbt governance signals', () => {
     tags: string[];
     domain?: string;
     layer?: string;
-    ownership?: Ownership;
+    ownership?: LegacyWorkspaceOwnership;
     metadata: Record<string, unknown>;
   };
 

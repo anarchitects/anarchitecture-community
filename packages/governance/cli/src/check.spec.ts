@@ -7,7 +7,6 @@ import type {
 } from '@anarchitects/governance-core';
 
 import { runAgovAssess, runAgovCheck } from './check.js';
-import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 describe('agov check/assess assessment pipeline', () => {
   afterEach(() => {
@@ -90,7 +89,7 @@ describe('agov check/assess assessment pipeline', () => {
     ).toBe(true);
   });
 
-  it('preserves compatibility workspace output while exposing canonical graph output', async () => {
+  it('exposes canonical workspace and graph output without compatibility views', async () => {
     const result = await runAgovAssess({
       workspaceAdapter: createCanonicalGraphAdapter(),
       workspaceAdapterInput: '.',
@@ -125,19 +124,19 @@ describe('agov check/assess assessment pipeline', () => {
         }),
       ]),
     );
-    const compatibilityWorkspace = toCompatibilityWorkspace(
-      result.assessment.workspace,
-    );
-    expect(
-      compatibilityWorkspace.projects.map((project) => project.id),
-    ).toEqual(['app', 'shared']);
-    expect(compatibilityWorkspace.dependencies).toEqual([
+    expect(result.assessment.workspace.nodes.map((node) => node.id)).toEqual([
+      'app',
+      'shared',
+    ]);
+    expect(result.assessment.workspace.relations).toEqual([
       expect.objectContaining({
-        source: 'app',
-        target: 'shared',
-        type: 'static',
+        sourceNodeId: 'app',
+        targetNodeId: 'shared',
+        kind: 'dependency',
       }),
     ]);
+    expect('projects' in result.assessment.workspace).toBe(false);
+    expect('dependencies' in result.assessment.workspace).toBe(false);
   });
 
   it('propagates canonical adapter diagnostics and capabilities through assessment artifacts', async () => {
@@ -149,8 +148,8 @@ describe('agov check/assess assessment pipeline', () => {
             workspaceId: 'diagnostic-workspace',
             workspaceName: 'diagnostic-workspace',
             workspaceRoot: '.',
-            projects: [],
-            dependencies: [],
+            nodes: [],
+            relations: [],
             capabilities: [
               {
                 id: 'governance.adapter.partial-extraction',
@@ -213,7 +212,10 @@ describe('agov check/assess assessment pipeline', () => {
         expect.objectContaining({
           id: 'test-extension:app',
           ruleId: 'test.extension.project-present',
-          project: 'app',
+          subjectId: 'app',
+          reference: {
+            nodeId: 'app',
+          },
           sourcePluginId: 'test.extension:typescript',
         }),
       ]),
@@ -233,38 +235,6 @@ function createCanonicalGraphAdapter(): GovernanceWorkspaceAdapter<string> {
         workspaceId: 'typescript-workspace',
         workspaceName: 'typescript-workspace',
         workspaceRoot: '.',
-        projects: [
-          {
-            id: 'app',
-            name: 'App',
-            root: 'apps/app',
-            type: 'application',
-            tags: ['typescript'],
-            metadata: {
-              projectType: 'application',
-            },
-          },
-          {
-            id: 'shared',
-            name: 'Shared',
-            root: 'libs/shared',
-            type: 'library',
-            tags: ['typescript'],
-            metadata: {
-              projectType: 'library',
-            },
-          },
-        ],
-        dependencies: [
-          {
-            sourceProjectId: 'app',
-            targetProjectId: 'shared',
-            type: 'static',
-            metadata: {
-              source: 'projectGraph',
-            },
-          },
-        ],
         nodes: [
           {
             id: 'app',
@@ -316,12 +286,14 @@ function createTestExtension(): GovernanceLoadedExtension {
       register(host) {
         host.registerRulePack({
           evaluate({ workspace }) {
-            const compatibilityWorkspace = toCompatibilityWorkspace(workspace);
             return [
               {
                 id: 'test-extension:app',
                 ruleId: 'test.extension.project-present',
-                project: compatibilityWorkspace.projects[0]?.id ?? 'workspace',
+                subjectId: workspace.nodes[0]?.id ?? 'workspace',
+                reference: {
+                  nodeId: workspace.nodes[0]?.id ?? 'workspace',
+                },
                 severity: 'warning',
                 category: 'architecture',
                 message: 'Extension rule executed.',
