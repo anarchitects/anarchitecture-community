@@ -2,33 +2,33 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type {
-  GovernanceDependencyInput,
+  GovernanceCapability,
   GovernanceDiagnostic,
   GovernanceDiagnosticCategory,
   GovernanceDiagnosticKind,
   GovernanceDiagnosticSeverity,
   GovernanceNodeInput,
-  GovernanceProjectInput,
+  GovernanceOwnershipInput,
   GovernanceRelationInput,
   GovernanceWorkspaceAdapter,
   GovernanceWorkspaceAdapterProbeResult,
   GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
-import {
-  governanceDependenciesToRelations,
-  governanceProjectsToNodes,
-} from '@anarchitects/governance-core';
 
 import { detectTypeScriptWorkspace } from './detect-typescript-workspace.js';
 import { buildTypeScriptImportGraph } from './import-graph.js';
+import { loadPackageMetadata } from './load-package-metadata.js';
 import { mapTypeScriptImportsToGovernanceDependencies } from './map-imports-to-projects.js';
 import { parsePackageManagerWorkspace } from './parse-package-manager-workspace.js';
 import { parseTsConfigResolution } from './parse-tsconfig.js';
 import { discoverTypeScriptProjects } from './project-discovery.js';
 import type {
-  TypeScriptWorkspaceDetectionDiagnostic,
+  TsConfigResolutionModel,
+  TypeScriptDiscoveredProject,
   TypeScriptPackageGovernanceMetadataConfig,
   TypeScriptProjectDiscoveryConfig,
+  TypeScriptWorkspaceDetectionDiagnostic,
+  WorkspacePackageResolution,
 } from './types.js';
 
 export interface CreateTypeScriptWorkspaceAdapterOptions {
@@ -70,6 +70,17 @@ export const DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG = {
     owner: 'owner',
   },
 } satisfies TypeScriptPackageGovernanceMetadataConfig;
+
+const TYPESCRIPT_ADAPTER_SOURCE = {
+  id: 'governance-adapter:typescript',
+  name: 'TypeScript adapter',
+  type: 'adapter',
+} as const;
+
+interface LoadedPackageMetadata {
+  packageJsonPath: string;
+  packageJson?: Record<string, unknown>;
+}
 
 export function createTypeScriptWorkspaceAdapter(
   options: CreateTypeScriptWorkspaceAdapterOptions,
@@ -116,17 +127,56 @@ export function createTypeScriptWorkspaceAdapter(
         projects: discovered.projects,
         importGraph,
       });
-      const projects = discovered.projects;
-      const dependencies = mapping.dependencies;
+
+      const workspaceName = inferWorkspaceName(workspaceRoot);
+      const workspaceNode = buildWorkspaceNode(
+        workspaceRoot,
+        workspaceName,
+        workspace.packageManager,
+      );
+      const projectPackageMetadata = readProjectPackageMetadata(
+        workspaceRoot,
+        discovered.projects,
+      );
+      const projectNodes = discovered.projects.map((project) =>
+        buildProjectNode(
+          project,
+          workspace.packageManager,
+          projectPackageMetadata,
+        ),
+      );
+      const tsconfigNodes = buildTsconfigNodes(tsconfig);
+      const externalPackageNodes = buildExternalPackageNodes(
+        workspace.packageManager,
+        projectPackageMetadata,
+        discovered.projects,
+      );
+      const relations = sortRelations([
+        ...buildWorkspaceMembershipRelations(
+          workspaceNode.id,
+          discovered.projects,
+        ),
+        ...mapping.relations,
+        ...buildPackageDependencyRelations(
+          workspace.packageManager,
+          projectPackageMetadata,
+          discovered.projects,
+        ),
+        ...buildTsconfigPathMappingRelations(tsconfig, discovered.projects),
+      ]);
 
       return {
         workspaceId: inferWorkspaceId(workspaceRoot),
-        workspaceName: inferWorkspaceName(workspaceRoot),
+        workspaceName,
         workspaceRoot: '.',
-        projects,
-        dependencies,
-        nodes: mapTypeScriptProjectsToGovernanceNodes(projects),
-        relations: mapTypeScriptDependenciesToGovernanceRelations(dependencies),
+        nodes: sortNodes([
+          workspaceNode,
+          ...projectNodes,
+          ...tsconfigNodes,
+          ...externalPackageNodes,
+        ]),
+        relations,
+        capabilities: buildCapabilities(workspace, tsconfig),
         diagnostics: canonicalizeAdapterDiagnostics([
           ...workspace.diagnostics,
           ...discovered.diagnostics,
@@ -134,6 +184,15 @@ export function createTypeScriptWorkspaceAdapter(
           ...importGraph.diagnostics,
           ...mapping.diagnostics,
         ]),
+        metadata: {
+          packageManager: workspace.packageManager ?? 'unknown',
+          workspacePatterns: [...workspace.patterns],
+          tsconfig: {
+            configFiles: [...tsconfig.configFiles],
+            ...(tsconfig.baseUrl ? { baseUrl: tsconfig.baseUrl } : {}),
+            pathAliasCount: Object.keys(tsconfig.pathAliases).length,
+          },
+        },
       };
     },
   };
@@ -156,6 +215,455 @@ export function createGovernanceWorkspaceAdapter(
 export const governanceWorkspaceAdapter = createGovernanceWorkspaceAdapter();
 
 export default governanceWorkspaceAdapter;
+
+function buildWorkspaceNode(
+  workspaceRoot: string,
+  workspaceName: string,
+  packageManager?: WorkspacePackageResolution['packageManager'],
+): GovernanceNodeInput {
+  const metadata = loadPackageMetadata(workspaceRoot);
+  const packageName =
+    readOptionalString(metadata.packageJson?.name) ?? workspaceName;
+
+  return {
+    id: buildWorkspaceNodeId(packageName),
+    name: packageName,
+    kind: 'package-manager-package',
+    sourceSystem: packageManager ?? 'npm',
+    root: '.',
+    path: 'package.json',
+    source: TYPESCRIPT_ADAPTER_SOURCE,
+    authority: 'documented',
+    confidence: 1,
+    metadata: {
+      packageManager: {
+        workspace: true,
+        packageManager: packageManager ?? 'unknown',
+        packageJsonPath: normalizeRelativePath(
+          workspaceRoot,
+          metadata.packageJsonPath,
+        ),
+        ...(metadata.packageJson ? { packageJson: metadata.packageJson } : {}),
+      },
+    },
+  };
+}
+
+function buildProjectNode(
+  project: TypeScriptDiscoveredProject,
+  packageManager: WorkspacePackageResolution['packageManager'],
+  packageMetadataMap: ReadonlyMap<string, LoadedPackageMetadata>,
+): GovernanceNodeInput {
+  const root = project.root ?? '';
+  const packageMetadata = packageMetadataMap.get(project.id);
+  const owner = readOptionalString(project.metadata?.owner);
+
+  return {
+    id: project.id,
+    name: project.name ?? project.id,
+    kind: 'typescript-workspace-project',
+    technology: 'typescript',
+    sourceSystem: packageManager ?? 'typescript',
+    ...(root ? { root } : {}),
+    ...(root ? { path: root } : {}),
+    tags: [...(project.tags ?? [])],
+    ...(buildProjectClassification(project)
+      ? { classification: buildProjectClassification(project) }
+      : {}),
+    ...(owner ? { ownership: buildOwnership(owner) } : {}),
+    source: TYPESCRIPT_ADAPTER_SOURCE,
+    authority: 'discovered',
+    confidence: 1,
+    metadata: {
+      typescript: {
+        workspaceProject: {
+          id: project.id,
+          ...(project.type ? { type: project.type } : {}),
+          ...(project.domain ? { domain: project.domain } : {}),
+          ...(project.layer ? { layer: project.layer } : {}),
+          ...(project.scope ? { scope: project.scope } : {}),
+        },
+      },
+      ...(packageMetadata
+        ? {
+            packageManager: {
+              packageManager: packageManager ?? 'unknown',
+              packageJsonPath: packageMetadata.packageJsonPath,
+              ...(packageMetadata.packageJson
+                ? { packageJson: packageMetadata.packageJson }
+                : {}),
+            },
+          }
+        : {}),
+      ...(project.metadata ? { discovery: project.metadata } : {}),
+    },
+  };
+}
+
+function buildProjectClassification(project: TypeScriptDiscoveredProject) {
+  const tags = [...(project.tags ?? [])];
+
+  if (
+    !project.domain &&
+    !project.layer &&
+    !project.scope &&
+    tags.length === 0
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...(project.domain ? { domain: project.domain } : {}),
+    ...(project.layer ? { layer: project.layer } : {}),
+    ...(project.scope ? { scope: project.scope } : {}),
+    ...(tags.length > 0 ? { tags } : {}),
+  };
+}
+
+function buildOwnership(owner: string): GovernanceOwnershipInput {
+  return {
+    team: owner,
+    source: 'package.json',
+  };
+}
+
+function buildTsconfigNodes(
+  tsconfig: TsConfigResolutionModel,
+): GovernanceNodeInput[] {
+  return [...tsconfig.configFiles]
+    .sort((left, right) => left.localeCompare(right))
+    .map((configFile) => ({
+      id: buildTsconfigNodeId(configFile),
+      name: path.basename(configFile),
+      kind: 'typescript-tsconfig',
+      technology: 'typescript',
+      sourceSystem: 'typescript',
+      root: path.posix.dirname(configFile),
+      path: configFile,
+      source: TYPESCRIPT_ADAPTER_SOURCE,
+      authority: 'documented',
+      confidence: 1,
+      metadata: {
+        typescript: {
+          tsconfig: {
+            configFile,
+            ...(configFile === tsconfig.configFiles.at(-1)
+              ? {
+                  ...(tsconfig.baseUrl ? { baseUrl: tsconfig.baseUrl } : {}),
+                  pathAliases: tsconfig.pathAliases,
+                }
+              : {}),
+          },
+        },
+      },
+    }));
+}
+
+function buildExternalPackageNodes(
+  packageManager: WorkspacePackageResolution['packageManager'],
+  packageMetadataMap: ReadonlyMap<string, LoadedPackageMetadata>,
+  projects: readonly TypeScriptDiscoveredProject[],
+): GovernanceNodeInput[] {
+  const workspacePackageNames = new Set<string>();
+  for (const entry of packageMetadataMap.values()) {
+    const packageName = readOptionalString(entry.packageJson?.name);
+    if (packageName) {
+      workspacePackageNames.add(packageName);
+    }
+  }
+
+  const nodes = new Map<string, GovernanceNodeInput>();
+
+  for (const project of projects) {
+    const packageMetadata = packageMetadataMap.get(project.id)?.packageJson;
+    if (!packageMetadata) {
+      continue;
+    }
+
+    for (const dependency of readPackageDependencies(packageMetadata)) {
+      if (workspacePackageNames.has(dependency.name)) {
+        continue;
+      }
+
+      const id = buildExternalPackageNodeId(dependency.name);
+      if (nodes.has(id)) {
+        continue;
+      }
+
+      nodes.set(id, {
+        id,
+        name: dependency.name,
+        kind: 'package-manager-package',
+        sourceSystem: packageManager ?? 'npm',
+        source: TYPESCRIPT_ADAPTER_SOURCE,
+        authority: 'documented',
+        confidence: 1,
+        metadata: {
+          packageManager: {
+            packageManager: packageManager ?? 'unknown',
+            external: true,
+            packageName: dependency.name,
+          },
+        },
+      });
+    }
+  }
+
+  return [...nodes.values()].sort((left, right) =>
+    left.id.localeCompare(right.id),
+  );
+}
+
+function buildWorkspaceMembershipRelations(
+  workspaceNodeId: string,
+  projects: readonly TypeScriptDiscoveredProject[],
+): GovernanceRelationInput[] {
+  return [...projects]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((project) => ({
+      id: `typescript:workspace-member:${workspaceNodeId}->${project.id}`,
+      sourceNodeId: workspaceNodeId,
+      targetNodeId: project.id,
+      kind: 'workspace-member',
+      source: TYPESCRIPT_ADAPTER_SOURCE,
+      authority: 'documented',
+      confidence: 1,
+      metadata: {
+        typescript: {
+          workspaceMember: {
+            projectRoot: project.root ?? '',
+          },
+        },
+      },
+    }));
+}
+
+function buildPackageDependencyRelations(
+  packageManager: WorkspacePackageResolution['packageManager'],
+  packageMetadataMap: ReadonlyMap<string, LoadedPackageMetadata>,
+  projects: readonly TypeScriptDiscoveredProject[],
+): GovernanceRelationInput[] {
+  const packageNameToNodeId = new Map<string, string>();
+
+  for (const project of projects) {
+    const packageName = readOptionalString(
+      packageMetadataMap.get(project.id)?.packageJson?.name,
+    );
+    if (packageName) {
+      packageNameToNodeId.set(packageName, project.id);
+    }
+  }
+
+  const relations: GovernanceRelationInput[] = [];
+  const relationKeys = new Set<string>();
+
+  for (const project of [...projects].sort((left, right) =>
+    left.id.localeCompare(right.id),
+  )) {
+    const packageMetadata = packageMetadataMap.get(project.id)?.packageJson;
+    if (!packageMetadata) {
+      continue;
+    }
+
+    for (const dependency of readPackageDependencies(packageMetadata)) {
+      const targetNodeId =
+        packageNameToNodeId.get(dependency.name) ??
+        buildExternalPackageNodeId(dependency.name);
+      const relationId = `typescript:dependency:${project.id}->${targetNodeId}:${dependency.type}`;
+
+      if (relationKeys.has(relationId)) {
+        continue;
+      }
+
+      relationKeys.add(relationId);
+      relations.push({
+        id: relationId,
+        sourceNodeId: project.id,
+        targetNodeId,
+        kind: 'dependency',
+        source: TYPESCRIPT_ADAPTER_SOURCE,
+        authority: 'documented',
+        confidence: 1,
+        metadata: {
+          packageManager: {
+            packageManager: packageManager ?? 'unknown',
+            dependencyType: dependency.type,
+            packageName: dependency.name,
+            specifier: dependency.specifier,
+          },
+        },
+      });
+    }
+  }
+
+  return relations;
+}
+
+function buildTsconfigPathMappingRelations(
+  tsconfig: TsConfigResolutionModel,
+  projects: readonly TypeScriptDiscoveredProject[],
+): GovernanceRelationInput[] {
+  const relations: GovernanceRelationInput[] = [];
+  const relationKeys = new Set<string>();
+
+  for (const configFile of [...tsconfig.configFiles].sort()) {
+    const tsconfigNodeId = buildTsconfigNodeId(configFile);
+
+    for (const [alias, targets] of Object.entries(tsconfig.pathAliases).sort(
+      ([left], [right]) => left.localeCompare(right),
+    )) {
+      for (const target of [...targets].sort()) {
+        const normalizedTarget = normalizePath(target.replace(/\/\*$/u, ''));
+        const matchingProjects = projects
+          .filter((project) => {
+            const root = normalizePath(project.root ?? '');
+            return root.length > 0 && normalizedTarget.startsWith(root);
+          })
+          .sort((left, right) => left.id.localeCompare(right.id));
+
+        for (const project of matchingProjects) {
+          const relationId = `typescript:path-mapping:${tsconfigNodeId}->${project.id}:${alias}`;
+          if (relationKeys.has(relationId)) {
+            continue;
+          }
+
+          relationKeys.add(relationId);
+          relations.push({
+            id: relationId,
+            sourceNodeId: tsconfigNodeId,
+            targetNodeId: project.id,
+            kind: 'path-mapping',
+            source: TYPESCRIPT_ADAPTER_SOURCE,
+            authority: 'documented',
+            confidence: 1,
+            metadata: {
+              typescript: {
+                pathMapping: {
+                  alias,
+                  target,
+                  tsconfig: configFile,
+                },
+              },
+            },
+          });
+        }
+      }
+    }
+  }
+
+  return relations;
+}
+
+function readProjectPackageMetadata(
+  workspaceRoot: string,
+  projects: readonly TypeScriptDiscoveredProject[],
+): Map<string, LoadedPackageMetadata> {
+  const metadata = new Map<string, LoadedPackageMetadata>();
+
+  for (const project of projects) {
+    if (!project.root) {
+      continue;
+    }
+
+    const loaded = loadPackageMetadata(path.join(workspaceRoot, project.root));
+    metadata.set(project.id, {
+      packageJsonPath: normalizeRelativePath(
+        workspaceRoot,
+        loaded.packageJsonPath,
+      ),
+      packageJson: loaded.packageJson,
+    });
+  }
+
+  return metadata;
+}
+
+function readPackageDependencies(packageJson: Record<string, unknown>): Array<{
+  name: string;
+  specifier: string;
+  type:
+    | 'dependencies'
+    | 'devDependencies'
+    | 'peerDependencies'
+    | 'optionalDependencies';
+}> {
+  const sections = [
+    'dependencies',
+    'devDependencies',
+    'peerDependencies',
+    'optionalDependencies',
+  ] as const;
+  const dependencies: Array<{
+    name: string;
+    specifier: string;
+    type: (typeof sections)[number];
+  }> = [];
+
+  for (const section of sections) {
+    const record = asRecord(packageJson[section]);
+    if (!record) {
+      continue;
+    }
+
+    for (const [name, specifier] of Object.entries(record).sort((left, right) =>
+      left[0].localeCompare(right[0]),
+    )) {
+      if (typeof specifier !== 'string' || specifier.trim().length === 0) {
+        continue;
+      }
+
+      dependencies.push({
+        name,
+        specifier,
+        type: section,
+      });
+    }
+  }
+
+  return dependencies;
+}
+
+function buildCapabilities(
+  workspace: WorkspacePackageResolution,
+  tsconfig: TsConfigResolutionModel,
+): GovernanceCapability[] {
+  return [
+    {
+      id: 'governance.typescript.workspace',
+      source: 'governance-adapter:typescript',
+      data: {
+        packageManager: workspace.packageManager ?? 'unknown',
+        patterns: [...workspace.patterns],
+        packageRoots: [...workspace.packageRoots],
+      },
+    },
+    {
+      id: 'governance.typescript.tsconfig',
+      source: 'governance-adapter:typescript',
+      data: {
+        configFiles: [...tsconfig.configFiles],
+        ...(tsconfig.baseUrl ? { baseUrl: tsconfig.baseUrl } : {}),
+        pathAliases: tsconfig.pathAliases,
+      },
+    },
+  ];
+}
+
+function sortNodes(nodes: GovernanceNodeInput[]): GovernanceNodeInput[] {
+  return [...nodes].sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function sortRelations(
+  relations: GovernanceRelationInput[],
+): GovernanceRelationInput[] {
+  return [...relations].sort(
+    (left, right) =>
+      (left.id ?? '').localeCompare(right.id ?? '') ||
+      left.sourceNodeId.localeCompare(right.sourceNodeId) ||
+      left.targetNodeId.localeCompare(right.targetNodeId) ||
+      (left.kind ?? '').localeCompare(right.kind ?? ''),
+  );
+}
 
 function buildProbeReasons(
   detection: ReturnType<typeof detectTypeScriptWorkspace>,
@@ -214,92 +722,46 @@ function inferWorkspaceName(workspaceRoot: string): string {
   return path.basename(workspaceRoot);
 }
 
-function mapTypeScriptProjectsToGovernanceNodes(
-  projects: readonly GovernanceProjectInput[],
-): GovernanceNodeInput[] {
-  return governanceProjectsToNodes(projects).map((node, index) => {
-    const project = projects[index];
-    const projectType = inferTypeScriptProjectType(project);
-
-    return {
-      ...node,
-      kind: projectType,
-      technology: 'typescript',
-      sourceSystem: 'typescript',
-      path: project.root ?? node.root,
-      classification: {
-        ...(node.classification ?? {}),
-        tags: project.tags ?? [],
-        metadata: {
-          ...(node.classification?.metadata ?? {}),
-          projectType,
-        },
-      },
-      metadata: {
-        ...(node.metadata ?? {}),
-        projectType,
-        compatibilityProjectType: project.type ?? 'unknown',
-      },
-    };
-  });
+function buildWorkspaceNodeId(workspaceName: string): string {
+  return `workspace:${workspaceName}`;
 }
 
-function mapTypeScriptDependenciesToGovernanceRelations(
-  dependencies: readonly GovernanceDependencyInput[],
-): GovernanceRelationInput[] {
-  return governanceDependenciesToRelations(dependencies).map(
-    (relation, index) => {
-      const dependency = dependencies[index];
-
-      return {
-        ...relation,
-        metadata: {
-          ...(relation.metadata ?? {}),
-          compatibilityDependencyType: dependency.type ?? 'unknown',
-        },
-      };
-    },
-  );
+function buildTsconfigNodeId(configFile: string): string {
+  return `tsconfig:${normalizePath(configFile)}`;
 }
 
-function inferTypeScriptProjectType(
-  project: GovernanceProjectInput,
-): GovernanceNodeInput['kind'] {
-  const tagType = tagValue(project.tags ?? [], 'type');
-
-  if (tagType === 'app' || tagType === 'application') {
-    return 'application';
-  }
-
-  if (tagType === 'lib' || tagType === 'library') {
-    return 'library';
-  }
-
-  if (tagType === 'tool') {
-    return 'tool';
-  }
-
-  if (project.type && project.type !== 'unknown') {
-    return project.type;
-  }
-
-  return 'project';
-}
-
-function tagValue(tags: readonly string[], prefix: string): string | undefined {
-  const found = tags.find((tag) => tag.startsWith(`${prefix}:`));
-  return found?.split(':').slice(1).join(':');
+function buildExternalPackageNodeId(packageName: string): string {
+  return `package:${packageName}`;
 }
 
 function canonicalizeAdapterDiagnostics(
   diagnostics: readonly TypeScriptWorkspaceDetectionDiagnostic[],
 ): GovernanceDiagnostic[] {
-  return diagnostics.map((diagnostic) => ({
-    severity: diagnosticSeverity(diagnostic),
-    kind: diagnosticKind(diagnostic),
-    category: diagnosticCategory(diagnostic),
-    ...diagnostic,
-  }));
+  return diagnostics.map((diagnostic) => {
+    const nodeIds = readNodeIds(diagnostic);
+
+    return {
+      severity: diagnosticSeverity(diagnostic),
+      kind: diagnosticKind(diagnostic),
+      category: diagnosticCategory(diagnostic),
+      ...(nodeIds.length > 0 ? { reference: { relatedNodeIds: nodeIds } } : {}),
+      ...diagnostic,
+    };
+  });
+}
+
+function readNodeIds(
+  diagnostic: TypeScriptWorkspaceDetectionDiagnostic,
+): string[] {
+  const details = asRecord(diagnostic.details);
+  const nodeIds = details?.nodeIds;
+
+  return Array.isArray(nodeIds)
+    ? nodeIds.filter(
+        (entry): entry is string =>
+          typeof entry === 'string' && entry.trim().length > 0,
+      )
+    : [];
 }
 
 function diagnosticSeverity(
@@ -349,4 +811,30 @@ function diagnosticCategory(
   ]);
 
   return configurationCodes.has(diagnostic.code) ? 'configuration' : 'adapter';
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function normalizeRelativePath(
+  workspaceRoot: string,
+  filePath: string,
+): string {
+  return normalizePath(path.relative(workspaceRoot, filePath));
+}
+
+function normalizePath(value: string): string {
+  return value
+    .split(path.sep)
+    .join('/')
+    .replace(/^\.\/+/u, '');
 }

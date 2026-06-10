@@ -346,7 +346,7 @@ export function sourceFileOutsideProjectDiagnostic(
 ): TypeScriptWorkspaceDetectionDiagnostic {
   return {
     code: 'governance.typescript_adapter.source_file_outside_project',
-    message: `Source file "${filePath}" does not belong to a discovered project.`,
+    message: `Source file "${filePath}" does not belong to a discovered governance node root.`,
     source: DIAGNOSTIC_SOURCE,
     path,
   };
@@ -358,7 +358,7 @@ export function resolvedImportOutsideProjectDiagnostic(
 ): TypeScriptWorkspaceDetectionDiagnostic {
   return {
     code: 'governance.typescript_adapter.resolved_import_outside_project',
-    message: `Resolved import file "${filePath}" does not belong to a discovered project.`,
+    message: `Resolved import file "${filePath}" does not belong to a discovered governance node root.`,
     source: DIAGNOSTIC_SOURCE,
     path,
   };
@@ -371,7 +371,7 @@ export function unresolvedInternalImportDiagnostic(
 ): TypeScriptWorkspaceDetectionDiagnostic {
   return {
     code: 'governance.typescript_adapter.unresolved_internal_import',
-    message: `Internal import specifier "${specifier}" from "${sourceFile}" could not be mapped to a discovered project.`,
+    message: `Internal import specifier "${specifier}" from "${sourceFile}" could not be mapped to a discovered governance node.`,
     source: DIAGNOSTIC_SOURCE,
     path,
   };
@@ -384,11 +384,11 @@ export function ambiguousProjectMatchDiagnostic(
 ): TypeScriptWorkspaceDetectionDiagnostic {
   return {
     code: 'governance.typescript_adapter.ambiguous_project_match',
-    message: `File "${filePath}" matched multiple discovered projects.`,
+    message: `File "${filePath}" matched multiple discovered governance nodes.`,
     source: DIAGNOSTIC_SOURCE,
     path,
     details: {
-      projectIds: [...projectIds],
+      nodeIds: [...projectIds],
     },
   };
 }

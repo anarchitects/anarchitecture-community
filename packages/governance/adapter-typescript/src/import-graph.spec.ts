@@ -3,9 +3,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { GovernanceProjectInput } from '@anarchitects/governance-core';
-
 import { buildTypeScriptImportGraph } from './import-graph.js';
+import type { TypeScriptDiscoveredProject } from './types.js';
 
 const specDir = fileURLToPath(new URL('.', import.meta.url));
 
@@ -313,7 +312,7 @@ function createWorkspace(files: Record<string, string>): string {
   return workspaceRoot;
 }
 
-function project(name: string, root: string): GovernanceProjectInput {
+function project(name: string, root: string): TypeScriptDiscoveredProject {
   return {
     id: name,
     name,

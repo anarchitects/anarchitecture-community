@@ -36,14 +36,16 @@ describe('package governance metadata regression coverage', () => {
     const result =
       createGovernanceWorkspaceAdapter().loadWorkspace(workspaceRoot);
 
-    expect(result.projects).toEqual(
+    expect(result.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'customer',
-          domain: 'booking',
-          layer: 'domain',
-          scope: 'booking',
-          metadata: expect.objectContaining({ owner: 'booking-team' }),
+          classification: expect.objectContaining({
+            domain: 'booking',
+            layer: 'domain',
+            scope: 'booking',
+          }),
+          ownership: expect.objectContaining({ team: 'booking-team' }),
           tags: ['domain:booking', 'layer:domain', 'scope:booking'],
         }),
       ]),
@@ -84,14 +86,16 @@ describe('package governance metadata regression coverage', () => {
       },
     }).loadWorkspace(workspaceRoot);
 
-    expect(result.projects).toEqual(
+    expect(result.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'customer',
-          domain: 'booking',
-          layer: 'domain',
-          scope: 'booking',
-          metadata: expect.objectContaining({ owner: 'booking-team' }),
+          classification: expect.objectContaining({
+            domain: 'booking',
+            layer: 'domain',
+            scope: 'booking',
+          }),
+          ownership: expect.objectContaining({ team: 'booking-team' }),
           tags: ['domain:booking', 'layer:domain', 'scope:booking'],
         }),
       ]),
@@ -168,7 +172,7 @@ describe('package governance metadata regression coverage', () => {
     const result =
       createGovernanceWorkspaceAdapter().loadWorkspace(workspaceRoot);
 
-    expect(result.projects).toEqual(
+    expect(result.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'web' }),
         expect.objectContaining({ id: 'customer' }),

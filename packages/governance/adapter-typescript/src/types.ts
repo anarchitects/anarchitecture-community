@@ -1,7 +1,12 @@
 import type {
+  GovernanceAuthority,
+  GovernanceClassificationInput,
+  GovernanceConfidence,
   GovernanceDiagnostic,
-  GovernanceDependencyInput,
-  GovernanceProjectInput,
+  GovernanceNodeInput,
+  GovernanceOwnershipInput,
+  GovernanceRelationInput,
+  GovernanceSource,
 } from '@anarchitects/governance-core';
 
 export type TypeScriptWorkspaceDetectionStatus =
@@ -80,8 +85,21 @@ export interface TypeScriptPackageGovernanceMetadata {
 
 export interface TypeScriptProjectDiscoveryResult {
   workspaceRoot: string;
-  projects: GovernanceProjectInput[];
+  projects: TypeScriptDiscoveredProject[];
   diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
+}
+
+export interface TypeScriptDiscoveredProject {
+  id: string;
+  name?: string;
+  root?: string;
+  type?: string;
+  domain?: string;
+  layer?: string;
+  scope?: string;
+  tags?: string[];
+  ownership?: GovernanceOwnershipInput;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TypeScriptSourceFileNode {
@@ -109,7 +127,32 @@ export interface TypeScriptImportGraph {
   diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
 }
 
-export interface TypeScriptProjectDependencyMappingResult {
-  dependencies: GovernanceDependencyInput[];
+export interface TypeScriptProjectRelationMappingResult {
+  relations: GovernanceRelationInput[];
   diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
+}
+
+export interface TypeScriptPackageNodeInput extends GovernanceNodeInput {
+  metadata?: {
+    packageManager?: Record<string, unknown>;
+    typescript?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+}
+
+export interface TypeScriptGraphArtifactNode {
+  id: string;
+  name: string;
+  kind: GovernanceNodeInput['kind'];
+  technology?: string;
+  sourceSystem?: string;
+  root?: string;
+  path?: string;
+  tags?: string[];
+  classification?: GovernanceClassificationInput;
+  ownership?: GovernanceOwnershipInput;
+  source?: GovernanceSource;
+  authority?: GovernanceAuthority;
+  confidence?: GovernanceConfidence;
+  metadata?: Record<string, unknown>;
 }

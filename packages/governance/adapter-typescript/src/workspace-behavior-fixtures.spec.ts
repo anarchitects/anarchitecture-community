@@ -33,19 +33,9 @@ describe('TypeScript adapter workspace behavior fixtures', () => {
       'packages/customer',
       'packages/order',
     ]);
-    expect(analysis.mapping.dependencies).toEqual([
-      {
-        sourceProjectId: 'customer',
-        targetProjectId: 'order',
-        type: 'static',
-        sourceFile: 'packages/customer/src/index.ts',
-      },
-      {
-        sourceProjectId: 'web',
-        targetProjectId: 'customer',
-        type: 'static',
-        sourceFile: 'apps/web/src/index.ts',
-      },
+    expect(analysis.mapping.relations).toEqual([
+      relation('customer', 'order', 'packages/customer/src/index.ts'),
+      relation('web', 'customer', 'apps/web/src/index.ts'),
     ]);
     expect(allDiagnostics(analysis)).toEqual([]);
   });
@@ -65,19 +55,9 @@ describe('TypeScript adapter workspace behavior fixtures', () => {
       'packages/customer',
       'packages/order',
     ]);
-    expect(analysis.mapping.dependencies).toEqual([
-      {
-        sourceProjectId: 'customer',
-        targetProjectId: 'order',
-        type: 'static',
-        sourceFile: 'packages/customer/src/index.ts',
-      },
-      {
-        sourceProjectId: 'web',
-        targetProjectId: 'customer',
-        type: 'static',
-        sourceFile: 'apps/web/src/index.ts',
-      },
+    expect(analysis.mapping.relations).toEqual([
+      relation('customer', 'order', 'packages/customer/src/index.ts'),
+      relation('web', 'customer', 'apps/web/src/index.ts'),
     ]);
     expect(allDiagnostics(analysis)).toEqual([]);
   });
@@ -92,13 +72,8 @@ describe('TypeScript adapter workspace behavior fixtures', () => {
       'apps/console',
     ]);
     expect(projectRoots(analysis)).toEqual(['apps/console', 'packages/utils']);
-    expect(analysis.mapping.dependencies).toEqual([
-      {
-        sourceProjectId: 'console',
-        targetProjectId: 'utils',
-        type: 'static',
-        sourceFile: 'apps/console/src/index.ts',
-      },
+    expect(analysis.mapping.relations).toEqual([
+      relation('console', 'utils', 'apps/console/src/index.ts'),
     ]);
     expect(allDiagnostics(analysis)).toEqual([]);
   });
@@ -113,13 +88,8 @@ describe('TypeScript adapter workspace behavior fixtures', () => {
       'packages/shared',
     ]);
     expect(projectRoots(analysis)).toEqual(['apps/admin', 'packages/shared']);
-    expect(analysis.mapping.dependencies).toEqual([
-      {
-        sourceProjectId: 'admin',
-        targetProjectId: 'shared',
-        type: 'static',
-        sourceFile: 'apps/admin/src/index.ts',
-      },
+    expect(analysis.mapping.relations).toEqual([
+      relation('admin', 'shared', 'apps/admin/src/index.ts'),
     ]);
     expect(allDiagnostics(analysis)).toEqual([]);
   });
@@ -295,9 +265,28 @@ function summarizeAnalysis(analysis: ReturnType<typeof analyzeFixture>) {
       resolvedFile: edge.resolvedFile,
       external: edge.external,
     })),
-    dependencies: analysis.mapping.dependencies,
+    relations: analysis.mapping.relations,
     diagnostics: allDiagnostics(analysis),
   };
+}
+
+function relation(
+  sourceNodeId: string,
+  targetNodeId: string,
+  sourceFile: string,
+) {
+  return expect.objectContaining({
+    sourceNodeId,
+    targetNodeId,
+    kind: 'import',
+    metadata: {
+      typescript: {
+        import: expect.objectContaining({
+          sourceFile,
+        }),
+      },
+    },
+  });
 }
 
 function fixturePath(name: string): string {

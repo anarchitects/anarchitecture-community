@@ -2,8 +2,6 @@ import path from 'node:path';
 
 import { minimatch } from 'minimatch';
 
-import type { GovernanceProjectInput } from '@anarchitects/governance-core';
-
 import {
   discoveryPatternNoMatchesDiagnostic,
   duplicateProjectNameDiagnostic,
@@ -16,6 +14,7 @@ import { renderProjectNameTemplate } from './project-naming.js';
 import { deriveProjectTags } from './tag-mapping.js';
 import type {
   TypeScriptPackageGovernanceMetadataConfig,
+  TypeScriptDiscoveredProject,
   TypeScriptProjectDiscoveryConfig,
   TypeScriptProjectDiscoveryResult,
   TypeScriptWorkspaceDetectionDiagnostic,
@@ -28,7 +27,7 @@ export function discoverTypeScriptProjects(
   packageGovernanceMetadataConfig?: TypeScriptPackageGovernanceMetadataConfig,
 ): TypeScriptProjectDiscoveryResult {
   const diagnostics: TypeScriptWorkspaceDetectionDiagnostic[] = [];
-  const projects: GovernanceProjectInput[] = [];
+  const projects: TypeScriptDiscoveredProject[] = [];
   const seenRoots = new Set<string>();
   const seenNames = new Set<string>();
 
@@ -189,7 +188,7 @@ function createGovernanceProject({
   metadataDomain?: string;
   metadataLayer?: string;
   metadataScope?: string;
-}): GovernanceProjectInput {
+}): TypeScriptDiscoveredProject {
   const resolvedGovernance = resolveGovernanceWithMetadataPrecedence({
     domain,
     layer,

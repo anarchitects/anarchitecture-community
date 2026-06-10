@@ -1,10 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import type {
-  GovernanceDependencyInput,
-  GovernanceProjectInput,
-} from '@anarchitects/governance-core';
+import type { GovernanceRelationInput } from '@anarchitects/governance-core';
 
 import {
   ambiguousProjectMatchDiagnostic,
@@ -13,26 +10,33 @@ import {
   unresolvedInternalImportDiagnostic,
 } from './diagnostics.js';
 import type {
+  TypeScriptDiscoveredProject,
   TypeScriptImportEdge,
   TypeScriptImportGraph,
-  TypeScriptProjectDependencyMappingResult,
+  TypeScriptProjectRelationMappingResult,
   TypeScriptWorkspaceDetectionDiagnostic,
 } from './types.js';
 
 type ProjectMatch =
-  | { status: 'matched'; project: GovernanceProjectInput }
+  | { status: 'matched'; project: TypeScriptDiscoveredProject }
   | { status: 'outside' }
-  | { status: 'ambiguous'; projects: GovernanceProjectInput[] };
+  | { status: 'ambiguous'; projects: TypeScriptDiscoveredProject[] };
+
+const TYPESCRIPT_IMPORT_SOURCE = {
+  id: 'typescript-import-graph',
+  name: 'TypeScript import graph',
+  type: 'analysis',
+} as const;
 
 export function mapTypeScriptImportsToGovernanceDependencies(options: {
   workspaceRoot: string;
-  projects: readonly GovernanceProjectInput[];
+  projects: readonly TypeScriptDiscoveredProject[];
   importGraph: TypeScriptImportGraph;
-}): TypeScriptProjectDependencyMappingResult {
+}): TypeScriptProjectRelationMappingResult {
   const workspaceRoot = path.resolve(options.workspaceRoot);
   const diagnostics: TypeScriptWorkspaceDetectionDiagnostic[] = [];
-  const dependencies: GovernanceDependencyInput[] = [];
-  const dependencyKeys = new Set<string>();
+  const relations: GovernanceRelationInput[] = [];
+  const relationKeys = new Set<string>();
   const sourceMatches = new Map<string, ProjectMatch>();
   const packageNameToProject = readWorkspacePackageProjectMap(
     workspaceRoot,
@@ -82,32 +86,33 @@ export function mapTypeScriptImportsToGovernanceDependencies(options: {
       continue;
     }
 
-    const dependency = createDependency(
+    const relation = createImportRelation(
       sourceMatch.project.id,
       targetProject.id,
       edge,
     );
-    const dependencyKey = [
-      dependency.sourceProjectId,
-      dependency.targetProjectId,
-      dependency.type ?? 'unknown',
+    const relationKey = [
+      relation.sourceNodeId,
+      relation.targetNodeId,
+      relation.kind ?? 'unknown',
+      edge.specifier,
     ].join('::');
 
-    if (dependencyKeys.has(dependencyKey)) {
+    if (relationKeys.has(relationKey)) {
       continue;
     }
 
-    dependencyKeys.add(dependencyKey);
-    dependencies.push(dependency);
+    relationKeys.add(relationKey);
+    relations.push(relation);
   }
 
   return {
-    dependencies: dependencies.sort((left, right) => {
+    relations: relations.sort((left, right) => {
       return (
-        left.sourceProjectId.localeCompare(right.sourceProjectId) ||
-        left.targetProjectId.localeCompare(right.targetProjectId) ||
-        (left.type ?? '').localeCompare(right.type ?? '') ||
-        (left.sourceFile ?? '').localeCompare(right.sourceFile ?? '')
+        left.sourceNodeId.localeCompare(right.sourceNodeId) ||
+        left.targetNodeId.localeCompare(right.targetNodeId) ||
+        (left.kind ?? '').localeCompare(right.kind ?? '') ||
+        relationSourceFile(left).localeCompare(relationSourceFile(right))
       );
     }),
     diagnostics,
@@ -123,10 +128,10 @@ function resolveTargetProject({
 }: {
   workspaceRoot: string;
   edge: TypeScriptImportEdge;
-  projects: readonly GovernanceProjectInput[];
-  packageNameToProject: Map<string, GovernanceProjectInput[]>;
+  projects: readonly TypeScriptDiscoveredProject[];
+  packageNameToProject: Map<string, TypeScriptDiscoveredProject[]>;
   diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
-}): GovernanceProjectInput | undefined {
+}): TypeScriptDiscoveredProject | undefined {
   if (edge.resolvedFile) {
     const match = resolveProjectForFile(edge.resolvedFile, projects);
 
@@ -204,7 +209,7 @@ function resolveTargetProject({
 
 function resolveProjectForFile(
   filePath: string,
-  projects: readonly GovernanceProjectInput[],
+  projects: readonly TypeScriptDiscoveredProject[],
 ): ProjectMatch {
   const normalizedFilePath = normalizePath(filePath);
   const matches = projects
@@ -237,9 +242,9 @@ function resolveProjectForFile(
 
 function readWorkspacePackageProjectMap(
   workspaceRoot: string,
-  projects: readonly GovernanceProjectInput[],
-): Map<string, GovernanceProjectInput[]> {
-  const packageNameToProject = new Map<string, GovernanceProjectInput[]>();
+  projects: readonly TypeScriptDiscoveredProject[],
+): Map<string, TypeScriptDiscoveredProject[]> {
+  const packageNameToProject = new Map<string, TypeScriptDiscoveredProject[]>();
   const sortedProjects = [...projects].sort((left, right) => {
     const leftRoot = normalizePath(left.root ?? '');
     const rightRoot = normalizePath(right.root ?? '');
@@ -307,17 +312,67 @@ function extractPackageReference(specifier: string): string | undefined {
   return segments[0] || undefined;
 }
 
-function createDependency(
-  sourceProjectId: string,
-  targetProjectId: string,
+function createImportRelation(
+  sourceNodeId: string,
+  targetNodeId: string,
   edge: TypeScriptImportEdge,
-): GovernanceDependencyInput {
+): GovernanceRelationInput {
   return {
-    sourceProjectId,
-    targetProjectId,
-    type: edge.kind === 'dynamic-import' ? 'dynamic' : 'static',
-    sourceFile: edge.sourceFile,
+    id: buildTypeScriptImportRelationId(sourceNodeId, targetNodeId, edge),
+    sourceNodeId,
+    targetNodeId,
+    kind: 'import',
+    source: TYPESCRIPT_IMPORT_SOURCE,
+    authority: 'discovered',
+    confidence: 1,
+    metadata: {
+      typescript: {
+        import: {
+          sourceFile: edge.sourceFile,
+          specifier: edge.specifier,
+          importKind: edge.kind,
+          external: edge.external,
+          ...(edge.resolvedFile ? { resolvedFile: edge.resolvedFile } : {}),
+        },
+      },
+    },
   };
+}
+
+function buildTypeScriptImportRelationId(
+  sourceNodeId: string,
+  targetNodeId: string,
+  edge: TypeScriptImportEdge,
+): string {
+  return `typescript:import:${sourceNodeId}->${targetNodeId}:${edge.kind}:${edge.specifier}`;
+}
+
+function relationSourceFile(relation: GovernanceRelationInput): string {
+  const metadata = relation.metadata;
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return '';
+  }
+
+  const typescript = (metadata as Record<string, unknown>).typescript;
+  if (
+    !typescript ||
+    typeof typescript !== 'object' ||
+    Array.isArray(typescript)
+  ) {
+    return '';
+  }
+
+  const importMetadata = (typescript as Record<string, unknown>).import;
+  if (
+    !importMetadata ||
+    typeof importMetadata !== 'object' ||
+    Array.isArray(importMetadata)
+  ) {
+    return '';
+  }
+
+  const sourceFile = (importMetadata as Record<string, unknown>).sourceFile;
+  return typeof sourceFile === 'string' ? sourceFile : '';
 }
 
 function isPathWithinRoot(filePath: string, root: string): boolean {
