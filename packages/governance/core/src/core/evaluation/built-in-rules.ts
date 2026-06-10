@@ -9,7 +9,7 @@ import {
   normalizeGovernanceProfile,
   type MissingDomainOptions,
   type MissingLayerOptions,
-  type ProjectNameConventionOptions,
+  type NodeNameConventionOptions,
   type TagConventionOptions,
   type GovernanceDomainBoundaryRuleOptions,
   type GovernanceLayerBoundaryRuleOptions,
@@ -159,7 +159,7 @@ export const projectNameConventionRule: SynchronousGovernanceRule = {
     const normalizedProfile = normalizeGovernanceProfile(profile);
     const ruleConfig = normalizedProfile.rules[projectNameConventionRule.id];
     const options = ruleConfig?.options as
-      | ProjectNameConventionOptions
+      | NodeNameConventionOptions
       | undefined;
 
     if (!ruleConfig?.enabled || !options?.pattern) {
@@ -583,7 +583,7 @@ function evaluateOwnershipPresence(
 
 function evaluateNodeNameConvention(
   node: GovernanceNode,
-  options: ProjectNameConventionOptions,
+  options: NodeNameConventionOptions,
   pattern: RegExp,
   severity: Violation['severity'],
 ): Violation[] {

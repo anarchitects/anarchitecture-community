@@ -24,7 +24,7 @@
     "documentationCompletenessWeight": 0.2,
     "layerIntegrityWeight": 0.2
   },
-  "projectOverrides": {
+  "nodeOverrides": {
     "@anarchitecture-plugins/source": {
       "documentation": true
     },

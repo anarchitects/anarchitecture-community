@@ -214,7 +214,7 @@ export interface GovernanceDiagnostic {
 
 export function buildGovernanceWorkspace(
   adapterResult: GovernanceWorkspaceAdapterResult,
-  _overrides: ProfileOverrides = { projectOverrides: {} },
+  _overrides: ProfileOverrides = { nodeOverrides: {} },
 ): GovernanceWorkspace {
   const graph = buildGovernanceNormalizedGraph(adapterResult);
   const root =

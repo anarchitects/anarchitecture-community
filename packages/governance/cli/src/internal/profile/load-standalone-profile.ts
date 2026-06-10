@@ -22,7 +22,7 @@ const PROFILE_TOP_LEVEL_FIELDS = new Set([
   'metrics',
 ]);
 const NX_RUNTIME_PROFILE_ONLY_FIELDS = new Set([
-  'projectOverrides',
+  'nodeOverrides',
   'exceptions',
   'eslint',
 ]);
@@ -218,7 +218,7 @@ function detectUnsupportedNxRuntimeProfile(
   return {
     code: 'governance.profile.unsupported_nx_runtime_profile',
     message:
-      'Nx Governance runtime profile files are not supported by the standalone CLI. Use a standalone profile with an explicit "name" field and without Nx-only override fields such as "projectOverrides", "exceptions", or legacy metric weight keys.',
+      'Nx Governance runtime profile files are not supported by the standalone CLI. Use a standalone profile with an explicit "name" field and without Nx-only override fields such as "nodeOverrides", "exceptions", or legacy metric weight keys.',
     path: '/',
   };
 }
