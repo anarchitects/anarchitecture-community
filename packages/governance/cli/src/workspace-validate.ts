@@ -13,13 +13,12 @@ import {
   loadGenericWorkspace,
   type GenericWorkspaceValidationIssue,
 } from './internal/manual-workspace/load-workspace.js';
-import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export interface AgovWorkspaceValidateSummary {
   status: 'valid' | 'invalid';
   workspaceName?: string;
-  projectCount: number;
-  dependencyCount: number;
+  nodeCount: number;
+  relationCount: number;
   errorCount: number;
   diagnosticCount: number;
   warningCount: number;
@@ -85,8 +84,8 @@ export async function runAgovWorkspaceValidate<TInput = unknown>(
           errors: [...error.issues],
           summary: {
             status: 'invalid',
-            projectCount: 0,
-            dependencyCount: 0,
+            nodeCount: 0,
+            relationCount: 0,
             errorCount: error.issues.length,
             diagnosticCount: 0,
             warningCount: 0,
@@ -113,8 +112,8 @@ export async function runAgovWorkspaceValidate<TInput = unknown>(
           diagnostics,
           summary: {
             status: 'invalid',
-            projectCount: 0,
-            dependencyCount: 0,
+            nodeCount: 0,
+            relationCount: 0,
             errorCount: 0,
             diagnosticCount: diagnostics.length,
             warningCount: countWarningDiagnostics(diagnostics),
@@ -178,12 +177,11 @@ function toAdapterMetadata(
 function buildValidSummary(
   workspace: GovernanceWorkspace,
 ): AgovWorkspaceValidateSummary {
-  const compatibilityWorkspace = toCompatibilityWorkspace(workspace);
   return {
     status: 'valid',
     workspaceName: workspace.name,
-    projectCount: compatibilityWorkspace.projects.length,
-    dependencyCount: compatibilityWorkspace.dependencies.length,
+    nodeCount: workspace.nodes.length,
+    relationCount: workspace.relations.length,
     errorCount: 0,
     diagnosticCount: 0,
     warningCount: 0,
@@ -194,14 +192,13 @@ function buildAdapterSummary(
   workspace: GovernanceWorkspace,
   diagnostics: GovernanceDiagnostic[],
 ): AgovWorkspaceValidateSummary {
-  const compatibilityWorkspace = toCompatibilityWorkspace(workspace);
   const errorCount = countErrorDiagnostics(diagnostics);
 
   return {
     status: errorCount > 0 ? 'invalid' : 'valid',
     workspaceName: workspace.name,
-    projectCount: compatibilityWorkspace.projects.length,
-    dependencyCount: compatibilityWorkspace.dependencies.length,
+    nodeCount: workspace.nodes.length,
+    relationCount: workspace.relations.length,
     errorCount,
     diagnosticCount: diagnostics.length,
     warningCount: countWarningDiagnostics(diagnostics),

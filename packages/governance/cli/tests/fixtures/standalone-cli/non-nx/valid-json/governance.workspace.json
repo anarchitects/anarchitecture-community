@@ -1,25 +1,46 @@
 {
   "schemaVersion": 1,
   "workspace": {
+    "id": "fixture-valid-json",
     "name": "fixture-valid-json"
   },
-  "projects": [
+  "nodes": [
     {
+      "id": "billing-domain",
       "name": "billing-domain",
       "root": "src/billing/domain",
-      "tags": ["scope:billing", "layer:domain"]
+      "path": "src/billing/domain",
+      "tags": ["scope:billing", "layer:domain"],
+      "classification": {
+        "domain": "billing",
+        "layer": "domain",
+        "scope": "billing"
+      },
+      "metadata": {}
     },
     {
+      "id": "shared-domain",
       "name": "shared-domain",
       "root": "src/shared/domain",
-      "tags": ["scope:shared", "layer:domain"]
+      "path": "src/shared/domain",
+      "tags": ["scope:shared", "layer:domain"],
+      "classification": {
+        "domain": "shared",
+        "layer": "domain",
+        "scope": "shared"
+      },
+      "metadata": {}
     }
   ],
-  "dependencies": [
+  "relations": [
     {
-      "source": "billing-domain",
-      "target": "shared-domain",
-      "type": "static"
+      "id": "billing-domain->shared-domain",
+      "sourceNodeId": "billing-domain",
+      "targetNodeId": "shared-domain",
+      "kind": "dependency",
+      "metadata": {
+        "dependencyType": "static"
+      }
     }
   ]
 }

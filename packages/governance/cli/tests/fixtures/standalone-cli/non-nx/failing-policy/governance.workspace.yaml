@@ -1,18 +1,36 @@
 schemaVersion: 1
 workspace:
+  id: fixture-failing-policy
   name: fixture-failing-policy
-projects:
-  - name: customer-domain
+nodes:
+  - id: customer-domain
+    name: customer-domain
     root: src/customer/domain
+    path: src/customer/domain
     tags:
       - scope:customer
       - layer:domain
-  - name: order-domain
+    classification:
+      domain: customer
+      layer: domain
+      scope: customer
+    metadata: {}
+  - id: order-domain
+    name: order-domain
     root: src/order/domain
+    path: src/order/domain
     tags:
       - scope:order
       - layer:domain
-dependencies:
-  - source: customer-domain
-    target: order-domain
-    type: static
+    classification:
+      domain: order
+      layer: domain
+      scope: order
+    metadata: {}
+relations:
+  - id: customer-domain->order-domain
+    sourceNodeId: customer-domain
+    targetNodeId: order-domain
+    kind: dependency
+    metadata:
+      dependencyType: static

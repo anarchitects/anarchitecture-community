@@ -10,7 +10,7 @@ import {
   appendReportScopeMarkdown,
   appendReportScopeText,
 } from './internal/reporting/render-report-scope.js';
-import type { GovernanceSignal, Violation } from '@anarchitects/governance-core';
+import type { Violation } from '@anarchitects/governance-core';
 
 import type { AgovAssessResult, AgovCheckResult } from './check.js';
 import type { AgovDependenciesResult } from './dependencies.js';
@@ -476,8 +476,8 @@ function renderAgovWorkspaceValidateTable(
         ['adapter package', result.adapterPackage ?? 'none'],
         ['adapter id', result.adapter?.id ?? 'none'],
         ['workspace name', result.summary.workspaceName ?? 'none'],
-        ['project count', String(result.summary.projectCount)],
-        ['dependency count', String(result.summary.dependencyCount)],
+        ['node count', String(result.summary.nodeCount)],
+        ['relation count', String(result.summary.relationCount)],
         ['error count', String(result.summary.errorCount)],
         ['diagnostic count', String(result.summary.diagnosticCount)],
         ['warning count', String(result.summary.warningCount)],
@@ -539,11 +539,11 @@ function renderAgovDependenciesTable(result: AgovDependenciesResult): string {
         ['workspace', result.workspace.name],
         ['total dependencies', String(result.summary.totalDependencies)],
         ['by type', formatCountSummary(result.summary.byType, 'type')],
-        ['project count', String(result.summary.projectCount)],
-        ['source project count', String(result.summary.sourceProjectCount)],
-        ['target project count', String(result.summary.targetProjectCount)],
-        ['top outgoing', formatProjectCountSummary(result.summary.topOutgoing)],
-        ['top incoming', formatProjectCountSummary(result.summary.topIncoming)],
+        ['node count', String(result.summary.nodeCount)],
+        ['source node count', String(result.summary.sourceNodeCount)],
+        ['target node count', String(result.summary.targetNodeCount)],
+        ['top outgoing', formatNodeCountSummary(result.summary.topOutgoing)],
+        ['top incoming', formatNodeCountSummary(result.summary.topIncoming)],
       ],
     }),
   );
@@ -554,15 +554,8 @@ function renderAgovDependenciesTable(result: AgovDependenciesResult): string {
     ...reportingPrimitives.renderTwoColumnTextTable({
       headers: ['Dependency', 'Details'],
       rows: result.dependencies.map((dependency) => [
-        `${dependency.source} -> ${dependency.target}`,
-        [
-          `type=${dependency.type}`,
-          dependency.sourceFile
-            ? `sourceFile=${dependency.sourceFile}`
-            : undefined,
-        ]
-          .filter((part): part is string => Boolean(part))
-          .join(' :: '),
+        formatDependencyLabel(dependency),
+        formatDependencyEntryDetails(dependency),
       ]),
     }),
   );
@@ -623,14 +616,6 @@ function renderAgovInspectTable(result: AgovInspectResult): string {
           String(result.summary?.relationCount ?? result.relations.length),
         ],
         [
-          'projects',
-          String(result.summary?.projectCount ?? result.projects.length),
-        ],
-        [
-          'dependencies',
-          String(result.summary?.dependencyCount ?? result.dependencies.length),
-        ],
-        [
           'node kinds',
           formatStringSummary(result.summary?.distinctNodeKinds ?? []),
         ],
@@ -666,36 +651,8 @@ function renderAgovInspectTable(result: AgovInspectResult): string {
       ...reportingPrimitives.renderTwoColumnTextTable({
         headers: ['Relation', 'Details'],
         rows: result.relations.map((relation) => [
-          `${relation.sourceNodeId} -> ${relation.targetNodeId}`,
-          formatRelationDetails(relation),
-        ]),
-      }),
-    );
-  }
-
-  if (result.projects.length > 0) {
-    lines.push('');
-    lines.push('Compatibility Projects');
-    lines.push(
-      ...reportingPrimitives.renderTwoColumnTextTable({
-        headers: ['Project', 'Details'],
-        rows: result.projects.map((project) => [
-          project.id,
-          formatProjectDetails(project),
-        ]),
-      }),
-    );
-  }
-
-  if (result.dependencies.length > 0) {
-    lines.push('');
-    lines.push('Compatibility Dependencies');
-    lines.push(
-      ...reportingPrimitives.renderTwoColumnTextTable({
-        headers: ['Dependency', 'Details'],
-        rows: result.dependencies.map((dependency) => [
-          `${dependency.source} -> ${dependency.target}`,
-          formatDependencyDetails(dependency),
+          formatInspectRelationLabel(result, relation),
+          formatInspectRelationDetails(result, relation),
         ]),
       }),
     );
@@ -757,14 +714,6 @@ function renderAgovInspectMarkdown(result: AgovInspectResult): string {
           String(result.summary?.relationCount ?? result.relations.length),
         ],
         [
-          'projects',
-          String(result.summary?.projectCount ?? result.projects.length),
-        ],
-        [
-          'dependencies',
-          String(result.summary?.dependencyCount ?? result.dependencies.length),
-        ],
-        [
           'node kinds',
           formatStringSummary(result.summary?.distinctNodeKinds ?? []),
         ],
@@ -800,37 +749,9 @@ function renderAgovInspectMarkdown(result: AgovInspectResult): string {
       ...reportingPrimitives.renderMarkdownTable({
         headers: ['source', 'target', 'details'],
         rows: result.relations.map((relation) => [
-          relation.sourceNodeId,
-          relation.targetNodeId,
-          formatRelationDetails(relation),
-        ]),
-      }),
-    );
-  }
-
-  if (result.projects.length > 0) {
-    lines.push('');
-    lines.push('## Compatibility Projects');
-    lines.push(
-      ...reportingPrimitives.renderMarkdownTable({
-        headers: ['Project', 'Details'],
-        rows: result.projects.map((project) => [
-          project.id,
-          formatProjectDetails(project),
-        ]),
-      }),
-    );
-  }
-
-  if (result.dependencies.length > 0) {
-    lines.push('');
-    lines.push('## Compatibility Dependencies');
-    lines.push(
-      ...reportingPrimitives.renderMarkdownTable({
-        headers: ['Dependency', 'Details'],
-        rows: result.dependencies.map((dependency) => [
-          `${dependency.source} -> ${dependency.target}`,
-          formatDependencyDetails(dependency),
+          resolveNodeLabel(result, relation.sourceNodeId),
+          resolveNodeLabel(result, relation.targetNodeId),
+          formatInspectRelationDetails(result, relation),
         ]),
       }),
     );
@@ -854,11 +775,11 @@ function renderAgovDependenciesMarkdown(
         ['workspace', result.workspace.name],
         ['total dependencies', String(result.summary.totalDependencies)],
         ['by type', formatCountSummary(result.summary.byType, 'type')],
-        ['project count', String(result.summary.projectCount)],
-        ['source project count', String(result.summary.sourceProjectCount)],
-        ['target project count', String(result.summary.targetProjectCount)],
-        ['top outgoing', formatProjectCountSummary(result.summary.topOutgoing)],
-        ['top incoming', formatProjectCountSummary(result.summary.topIncoming)],
+        ['node count', String(result.summary.nodeCount)],
+        ['source node count', String(result.summary.sourceNodeCount)],
+        ['target node count', String(result.summary.targetNodeCount)],
+        ['top outgoing', formatNodeCountSummary(result.summary.topOutgoing)],
+        ['top incoming', formatNodeCountSummary(result.summary.topIncoming)],
       ],
     }),
   );
@@ -869,8 +790,8 @@ function renderAgovDependenciesMarkdown(
     ...reportingPrimitives.renderMarkdownTable({
       headers: ['source', 'target', 'type', 'source file'],
       rows: result.dependencies.map((dependency) => [
-        dependency.source,
-        dependency.target,
+        formatNodeLabel(dependency.sourceNodeId, dependency.sourceNodeName),
+        formatNodeLabel(dependency.targetNodeId, dependency.targetNodeName),
         dependency.type,
         dependency.sourceFile ?? 'none',
       ]),
@@ -936,8 +857,8 @@ function renderAgovWorkspaceValidateMarkdown(
         ['adapter package', result.adapterPackage ?? 'none'],
         ['adapter id', result.adapter?.id ?? 'none'],
         ['workspace name', result.summary.workspaceName ?? 'none'],
-        ['project count', String(result.summary.projectCount)],
-        ['dependency count', String(result.summary.dependencyCount)],
+        ['node count', String(result.summary.nodeCount)],
+        ['relation count', String(result.summary.relationCount)],
         ['error count', String(result.summary.errorCount)],
         ['diagnostic count', String(result.summary.diagnosticCount)],
         ['warning count', String(result.summary.warningCount)],
@@ -1149,7 +1070,7 @@ function renderAgovViolationsTable(result: AgovViolationsResult): string {
           formatCountSummary(result.summary.byCategory, 'category'),
         ],
         ['by rule', formatCountSummary(result.summary.byRule, 'rule')],
-        ['by project', formatCountSummary(result.summary.byProject, 'project')],
+        ['by subject', formatCountSummary(result.summary.bySubject, 'subject')],
         [
           'by source plugin',
           formatCountSummary(result.summary.bySourcePlugin, 'sourcePlugin'),
@@ -1165,13 +1086,16 @@ function renderAgovViolationsTable(result: AgovViolationsResult): string {
     ...reportingPrimitives.renderTwoColumnTextTable({
       headers: ['Violation', 'Details'],
       rows: result.violations.map((violation) => [
-        `${violation.ruleId} @ ${readViolationProjectKey(violation)}`,
+        `${violation.ruleId} @ ${readViolationSubjectKey(violation)}`,
         [
           `severity=${violation.severity}`,
           `category=${violation.category}`,
+          formatReferenceDetails(violation.reference, violation.subjectId),
           `message=${violation.message}`,
           `sourcePlugin=${violation.sourcePluginId ?? 'none'}`,
-        ].join(' :: '),
+        ]
+          .filter((part): part is string => Boolean(part))
+          .join(' :: '),
       ]),
     }),
   );
@@ -1218,7 +1142,10 @@ function renderAgovRecommendationsTable(
             `priority=${recommendation.priority}`,
             `title=${recommendation.title}`,
             `reason=${recommendation.reason}`,
-          ].join(' :: '),
+            formatReferenceDetails(recommendation.reference),
+          ]
+            .filter((part): part is string => Boolean(part))
+            .join(' :: '),
         ]),
       }),
     );
@@ -1263,11 +1190,13 @@ function renderAgovSignalsTable(result: AgovSignalsResult): string {
           `severity=${signal.severity}`,
           `source=${signal.source}`,
           `type=${signal.type}`,
-          readSignalSourceProjectId(signal)
-            ? `sourceProject=${readSignalSourceProjectId(signal)}`
+          signal.nodeId ? `node=${signal.nodeId}` : undefined,
+          signal.relationId ? `relation=${signal.relationId}` : undefined,
+          signal.relatedNodeIds?.length
+            ? `relatedNodes=${signal.relatedNodeIds.join(',')}`
             : undefined,
-          readSignalTargetProjectId(signal)
-            ? `targetProject=${readSignalTargetProjectId(signal)}`
+          signal.relatedRelationIds?.length
+            ? `relatedRelations=${signal.relatedRelationIds.join(',')}`
             : undefined,
           signal.sourcePluginId
             ? `sourcePlugin=${signal.sourcePluginId}`
@@ -1325,7 +1254,7 @@ function renderAgovViolationsMarkdown(result: AgovViolationsResult): string {
           formatCountSummary(result.summary.byCategory, 'category'),
         ],
         ['by rule', formatCountSummary(result.summary.byRule, 'rule')],
-        ['by project', formatCountSummary(result.summary.byProject, 'project')],
+        ['by subject', formatCountSummary(result.summary.bySubject, 'subject')],
         [
           'by source plugin',
           formatCountSummary(result.summary.bySourcePlugin, 'sourcePlugin'),
@@ -1343,7 +1272,8 @@ function renderAgovViolationsMarkdown(result: AgovViolationsResult): string {
         'severity',
         'rule',
         'category',
-        'project',
+        'subject',
+        'reference',
         'message',
         'source plugin',
       ],
@@ -1351,7 +1281,9 @@ function renderAgovViolationsMarkdown(result: AgovViolationsResult): string {
         violation.severity,
         violation.ruleId,
         violation.category,
-        readViolationProjectKey(violation),
+        readViolationSubjectKey(violation),
+        formatReferenceDetails(violation.reference, violation.subjectId) ??
+          'none',
         violation.message,
         violation.sourcePluginId ?? 'none',
       ]),
@@ -1393,12 +1325,13 @@ function renderAgovRecommendationsMarkdown(
     lines.push(`## Recommendations (${group.priority})`);
     lines.push(
       ...reportingPrimitives.renderMarkdownTable({
-        headers: ['priority', 'id', 'title', 'reason'],
+        headers: ['priority', 'id', 'title', 'reason', 'reference'],
         rows: group.recommendations.map((recommendation) => [
           recommendation.priority,
           recommendation.id,
           recommendation.title,
           recommendation.reason,
+          formatReferenceDetails(recommendation.reference) ?? 'none',
         ]),
       }),
     );
@@ -1441,8 +1374,9 @@ function renderAgovSignalsMarkdown(result: AgovSignalsResult): string {
         'severity',
         'source',
         'type',
-        'source project',
-        'target project',
+        'node',
+        'relation',
+        'related nodes',
         'source plugin',
         'message',
       ],
@@ -1451,8 +1385,9 @@ function renderAgovSignalsMarkdown(result: AgovSignalsResult): string {
         signal.severity,
         signal.source,
         signal.type,
-        readSignalSourceProjectId(signal) || 'none',
-        readSignalTargetProjectId(signal) || 'none',
+        signal.nodeId ?? 'none',
+        signal.relationId ?? 'none',
+        signal.relatedNodeIds?.join(',') ?? 'none',
         signal.sourcePluginId ?? 'none',
         signal.message,
       ]),
@@ -1507,38 +1442,6 @@ function formatCountSummary<
     .join(', ');
 }
 
-function formatProjectDetails(
-  project: AgovInspectResult['projects'][number],
-): string {
-  return [
-    `type=${project.type}`,
-    project.domain ? `domain=${project.domain}` : undefined,
-    project.layer ? `layer=${project.layer}` : undefined,
-    project.ownership?.team ? `ownership=${project.ownership.team}` : undefined,
-    project.ownership?.contacts?.length
-      ? `contacts=${project.ownership.contacts.join(',')}`
-      : undefined,
-    project.tags.length > 0 ? `tags=${project.tags.join(',')}` : undefined,
-    `root=${project.root}`,
-    Object.keys(project.metadata).length > 0
-      ? `metadata=${compactJson(project.metadata)}`
-      : undefined,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .join(' :: ');
-}
-
-function formatDependencyDetails(
-  dependency: AgovInspectResult['dependencies'][number],
-): string {
-  return [
-    `type=${dependency.type}`,
-    dependency.sourceFile ? `sourceFile=${dependency.sourceFile}` : undefined,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .join(' :: ');
-}
-
 function formatCoverage(
   coverage: AgovInspectResult['summary'] extends infer T
     ? T extends { ownershipCoverage: infer U }
@@ -1553,31 +1456,109 @@ function formatCoverage(
   return `${coverage.covered}/${coverage.total} (${Math.round(coverage.ratio * 100)}%)`;
 }
 
-function formatProjectCountSummary(
-  entries: Array<{ projectId: string; projectName: string; count: number }>,
+function formatNodeCountSummary(
+  entries: Array<{ nodeId: string; nodeName: string; count: number }>,
 ): string {
   if (entries.length === 0) {
     return 'none';
   }
 
   return entries
-    .map((entry) => `${entry.projectName}(${entry.projectId}):${entry.count}`)
+    .map((entry) => `${entry.nodeName}(${entry.nodeId}):${entry.count}`)
     .join(', ');
 }
 
-function readViolationProjectKey(violation: Violation): string {
-  return violation.subjectId ?? violation.reference?.nodeId ?? 'unknown';
+function resolveNodeLabel(result: AgovInspectResult, nodeId: string): string {
+  const node = result.nodes.find((entry) => entry.id === nodeId);
+  if (!node) {
+    return nodeId;
+  }
+
+  return formatNodeLabel(node.id, node.name);
 }
 
-function readSignalSourceProjectId(signal: GovernanceSignal): string {
-  return signal.nodeId ?? '';
+function formatNodeLabel(nodeId: string, nodeName?: string): string {
+  return nodeName && nodeName !== nodeId ? `${nodeName} (${nodeId})` : nodeId;
 }
 
-function readSignalTargetProjectId(signal: GovernanceSignal): string {
-  const sourceNodeId = signal.nodeId;
+function formatDependencyLabel(
+  dependency: AgovDependenciesResult['dependencies'][number],
+): string {
+  return `${formatNodeLabel(
+    dependency.sourceNodeId,
+    dependency.sourceNodeName,
+  )} -> ${formatNodeLabel(dependency.targetNodeId, dependency.targetNodeName)}`;
+}
+
+function formatDependencyEntryDetails(
+  dependency: AgovDependenciesResult['dependencies'][number],
+): string {
+  return [
+    `id=${dependency.id}`,
+    `kind=${dependency.kind}`,
+    `type=${dependency.type}`,
+    dependency.sourceFile ? `sourceFile=${dependency.sourceFile}` : undefined,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(' :: ');
+}
+
+function formatInspectRelationLabel(
+  result: AgovInspectResult,
+  relation: AgovInspectResult['relations'][number],
+): string {
+  return `${resolveNodeLabel(result, relation.sourceNodeId)} -> ${resolveNodeLabel(
+    result,
+    relation.targetNodeId,
+  )}`;
+}
+
+function formatInspectRelationDetails(
+  result: AgovInspectResult,
+  relation: AgovInspectResult['relations'][number],
+): string {
+  return [
+    formatRelationDetails(relation),
+    `sourceNodeId=${relation.sourceNodeId}`,
+    `targetNodeId=${relation.targetNodeId}`,
+    `sourceNode=${resolveNodeLabel(result, relation.sourceNodeId)}`,
+    `targetNode=${resolveNodeLabel(result, relation.targetNodeId)}`,
+  ].join(' :: ');
+}
+
+function readViolationSubjectKey(violation: Violation): string {
   return (
-    signal.relatedNodeIds?.find((nodeId) => nodeId !== sourceNodeId) ?? ''
+    violation.subjectId ??
+    violation.reference?.relationId ??
+    violation.reference?.nodeId ??
+    'unknown'
   );
+}
+
+function formatReferenceDetails(
+  reference:
+    | Violation['reference']
+    | AgovRecommendationsResult['recommendations'][number]['reference']
+    | undefined,
+  subjectId?: string,
+): string | undefined {
+  if (!reference && !subjectId) {
+    return undefined;
+  }
+
+  return [
+    subjectId ? `subject=${subjectId}` : undefined,
+    reference?.nodeId ? `nodeId=${reference.nodeId}` : undefined,
+    reference?.relationId ? `relationId=${reference.relationId}` : undefined,
+    reference?.relatedNodeIds?.length
+      ? `relatedNodeIds=${reference.relatedNodeIds.join(',')}`
+      : undefined,
+    reference?.relatedRelationIds?.length
+      ? `relatedRelationIds=${reference.relatedRelationIds.join(',')}`
+      : undefined,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(' :: ');
 }
 
 function compactJson(value: unknown): string {

@@ -1,27 +1,48 @@
 {
   "schemaVersion": 1,
   "workspace": {
+    "id": "demo",
     "name": "demo",
     "root": "."
   },
-  "projects": [
+  "nodes": [
     {
+      "id": "order-domain",
       "name": "order-domain",
+      "kind": "library",
       "root": "src/order/domain",
+      "path": "src/order/domain",
       "tags": ["scope:order", "layer:domain", "type:domain"],
-      "type": "library"
+      "classification": {
+        "domain": "order",
+        "layer": "domain",
+        "scope": "order"
+      },
+      "metadata": {}
     },
     {
+      "id": "customer-domain",
       "name": "customer-domain",
       "root": "src/customer/domain",
-      "tags": ["scope:customer", "layer:domain", "type:domain"]
+      "path": "src/customer/domain",
+      "tags": ["scope:customer", "layer:domain", "type:domain"],
+      "classification": {
+        "domain": "customer",
+        "layer": "domain",
+        "scope": "customer"
+      },
+      "metadata": {}
     }
   ],
-  "dependencies": [
+  "relations": [
     {
-      "source": "customer-domain",
-      "target": "order-domain",
-      "type": "static"
+      "id": "customer-domain->order-domain",
+      "sourceNodeId": "customer-domain",
+      "targetNodeId": "order-domain",
+      "kind": "dependency",
+      "metadata": {
+        "dependencyType": "static"
+      }
     }
   ]
 }

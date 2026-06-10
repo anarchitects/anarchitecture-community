@@ -411,7 +411,7 @@ describe('agov executable command surface', () => {
     expect(JSON.parse(io.out)).toMatchObject({
       command: 'dependencies',
       dependencies: expect.any(Array),
-      projects: expect.any(Array),
+      nodes: expect.any(Array),
       summary: {
         totalDependencies: expect.any(Number),
       },
@@ -1171,8 +1171,8 @@ describe('agov executable command surface', () => {
                 workspaceId: 'adapter-demo',
                 workspaceName: 'adapter-demo',
                 workspaceRoot: '.',
-                projects: [],
-                dependencies: [],
+                nodes: [],
+                relations: [],
               };
             },
           };
@@ -1909,10 +1909,10 @@ describe('agov executable command surface', () => {
     ).toBe(AGOV_EXIT_SUCCESS);
     expect(io.out).toContain('Workspace');
     expect(io.out).toContain('Summary');
-    expect(io.out).toContain('Projects');
-    expect(io.out).toContain('Dependencies');
-    expect(io.out).toContain('projects');
-    expect(io.out).toContain('dependencies');
+    expect(io.out).toContain('Nodes');
+    expect(io.out).toContain('Relations');
+    expect(io.out).toContain('nodes');
+    expect(io.out).toContain('relations');
     expect(() => JSON.parse(io.out)).toThrow();
     expect(io.err).toBe('');
   });
@@ -2018,13 +2018,13 @@ describe('agov executable command surface', () => {
     ).toBe(AGOV_EXIT_SUCCESS);
 
     const parsed = JSON.parse(io.out) as {
-      projects: Array<{ id: string }>;
-      dependencies: Array<Record<string, unknown>>;
+      nodes: Array<{ id: string }>;
+      relations: Array<Record<string, unknown>>;
     };
 
-    expect(parsed.projects).toHaveLength(1);
-    expect(parsed.projects[0]?.id).toBe('customer-domain');
-    expect(parsed.dependencies).toHaveLength(1);
+    expect(parsed.nodes).toHaveLength(1);
+    expect(parsed.nodes[0]?.id).toBe('customer-domain');
+    expect(parsed.relations).toHaveLength(1);
     expect(io.err).toBe('');
   });
 
@@ -2047,18 +2047,18 @@ describe('agov executable command surface', () => {
       workspace: {
         name: 'demo',
       },
-      projects: [
-        {
-          id: 'customer-domain',
-        },
+      nodes: [
         {
           id: 'order-domain',
         },
-      ],
-      dependencies: [
         {
-          source: 'customer-domain',
-          target: 'order-domain',
+          id: 'customer-domain',
+        },
+      ],
+      relations: [
+        {
+          sourceNodeId: 'customer-domain',
+          targetNodeId: 'order-domain',
         },
       ],
     });
@@ -2841,7 +2841,7 @@ describe('agov executable command surface', () => {
         name: 'demo',
       },
       dependencies: expect.any(Array),
-      projects: expect.any(Array),
+      nodes: expect.any(Array),
       summary: {
         totalDependencies: expect.any(Number),
       },
@@ -2880,7 +2880,7 @@ describe('agov executable command surface', () => {
         name: path.basename(cwd),
       },
       dependencies: [],
-      projects: [],
+      nodes: [],
       summary: {
         totalDependencies: 0,
       },
@@ -2964,39 +2964,53 @@ describe('agov executable command surface', () => {
     writeJson(path.join(cwd, 'workspace.json'), {
       schemaVersion: 1,
       workspace: {
+        id: 'demo',
         name: 'demo',
         root: '.',
       },
-      projects: [
+      nodes: [
         {
+          id: 'customer-domain',
           name: 'customer-domain',
           root: 'src/customer/domain',
+          path: 'src/customer/domain',
+          kind: 'library',
           tags: [],
-          type: 'library',
+          metadata: {},
         },
         {
+          id: 'order-domain',
           name: 'order-domain',
           root: 'src/order/domain',
+          path: 'src/order/domain',
+          kind: 'library',
           tags: [],
-          type: 'library',
+          metadata: {},
         },
         {
+          id: 'billing-domain',
           name: 'billing-domain',
           root: 'src/billing/domain',
+          path: 'src/billing/domain',
+          kind: 'library',
           tags: [],
-          type: 'library',
+          metadata: {},
         },
       ],
-      dependencies: [
+      relations: [
         {
-          source: 'customer-domain',
-          target: 'order-domain',
-          type: 'static',
+          id: 'customer-domain->order-domain',
+          sourceNodeId: 'customer-domain',
+          targetNodeId: 'order-domain',
+          kind: 'dependency',
+          metadata: { dependencyType: 'static' },
         },
         {
-          source: 'order-domain',
-          target: 'billing-domain',
-          type: 'dynamic',
+          id: 'order-domain->billing-domain',
+          sourceNodeId: 'order-domain',
+          targetNodeId: 'billing-domain',
+          kind: 'dependency',
+          metadata: { dependencyType: 'dynamic' },
         },
       ],
     });
@@ -3019,18 +3033,22 @@ describe('agov executable command surface', () => {
     ).toBe(AGOV_EXIT_SUCCESS);
 
     const parsed = JSON.parse(io.out) as {
-      projects: Array<{ id: string }>;
-      dependencies: Array<{ source: string; target: string; type: string }>;
+      nodes: Array<{ id: string }>;
+      dependencies: Array<{
+        sourceNodeId: string;
+        targetNodeId: string;
+        type: string;
+      }>;
     };
 
     expect(parsed.dependencies).toEqual([
-      {
-        source: 'customer-domain',
-        target: 'order-domain',
+      expect.objectContaining({
+        sourceNodeId: 'customer-domain',
+        targetNodeId: 'order-domain',
         type: 'static',
-      },
+      }),
     ]);
-    expect(parsed.projects).toEqual(
+    expect(parsed.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'customer-domain' }),
         expect.objectContaining({ id: 'order-domain' }),
@@ -3046,49 +3064,67 @@ describe('agov executable command surface', () => {
     writeJson(path.join(cwd, 'workspace.json'), {
       schemaVersion: 1,
       workspace: {
+        id: 'demo',
         name: 'demo',
         root: '.',
       },
-      projects: [
+      nodes: [
         {
+          id: 'customer-domain',
           name: 'customer-domain',
           root: 'src/customer/domain',
+          path: 'src/customer/domain',
+          kind: 'library',
           tags: [],
-          type: 'library',
+          metadata: {},
         },
         {
+          id: 'order-domain',
           name: 'order-domain',
           root: 'src/order/domain',
+          path: 'src/order/domain',
+          kind: 'library',
           tags: [],
-          type: 'library',
+          metadata: {},
         },
         {
+          id: 'billing-domain',
           name: 'billing-domain',
           root: 'src/billing/domain',
+          path: 'src/billing/domain',
+          kind: 'library',
           tags: [],
-          type: 'library',
+          metadata: {},
         },
       ],
-      dependencies: [
+      relations: [
         {
-          source: 'customer-domain',
-          target: 'order-domain',
-          type: 'static',
+          id: 'customer-domain->order-domain',
+          sourceNodeId: 'customer-domain',
+          targetNodeId: 'order-domain',
+          kind: 'dependency',
+          metadata: { dependencyType: 'static' },
         },
         {
-          source: 'order-domain',
-          target: 'billing-domain',
-          type: 'dynamic',
+          id: 'order-domain->billing-domain',
+          sourceNodeId: 'order-domain',
+          targetNodeId: 'billing-domain',
+          kind: 'dependency',
+          metadata: { dependencyType: 'dynamic' },
         },
         {
-          source: 'billing-domain',
-          target: 'customer-domain',
-          type: 'implicit',
+          id: 'billing-domain->customer-domain',
+          sourceNodeId: 'billing-domain',
+          targetNodeId: 'customer-domain',
+          kind: 'dependency',
+          metadata: { dependencyType: 'implicit' },
         },
         {
-          source: 'order-domain',
-          target: 'customer-domain',
-          type: 'unknown',
+          id: 'order-domain->customer-domain',
+          sourceNodeId: 'order-domain',
+          targetNodeId: 'customer-domain',
+          kind: 'dependency',
+          metadata: { dependencyType: 'unknown' },
         },
       ],
     });
@@ -3118,15 +3154,19 @@ describe('agov executable command surface', () => {
 
     const parsed = JSON.parse(io.out) as {
       summary: { totalDependencies: number };
-      dependencies: Array<{ source: string; target: string; type: string }>;
+      dependencies: Array<{
+        sourceNodeId: string;
+        targetNodeId: string;
+        type: string;
+      }>;
     };
 
     expect(parsed.dependencies).toEqual([
-      {
-        source: 'customer-domain',
-        target: 'order-domain',
+      expect.objectContaining({
+        sourceNodeId: 'customer-domain',
+        targetNodeId: 'order-domain',
         type: 'static',
-      },
+      }),
     ]);
     expect(parsed.summary.totalDependencies).toBe(1);
     expect(io.err).toBe('');
@@ -3278,21 +3318,21 @@ describe('agov executable command surface', () => {
 
     const parsed = JSON.parse(io.out) as {
       dependencies: Array<unknown>;
-      projects: Array<unknown>;
+      nodes: Array<unknown>;
       summary: {
         totalDependencies: number;
-        projectCount: number;
-        sourceProjectCount: number;
-        targetProjectCount: number;
+        nodeCount: number;
+        sourceNodeCount: number;
+        targetNodeCount: number;
       };
     };
 
     expect(parsed.dependencies).toEqual([]);
-    expect(parsed.projects).toEqual([]);
+    expect(parsed.nodes).toEqual([]);
     expect(parsed.summary.totalDependencies).toBe(0);
-    expect(parsed.summary.projectCount).toBe(0);
-    expect(parsed.summary.sourceProjectCount).toBe(0);
-    expect(parsed.summary.targetProjectCount).toBe(0);
+    expect(parsed.summary.nodeCount).toBe(0);
+    expect(parsed.summary.sourceNodeCount).toBe(0);
+    expect(parsed.summary.targetNodeCount).toBe(0);
     expect(io.err).toBe('');
   });
 
@@ -3631,8 +3671,8 @@ function createAdapterModule(input: { workspaceName: string }): unknown {
             workspaceId: input.workspaceName,
             workspaceName: input.workspaceName,
             workspaceRoot: '.',
-            projects: [],
-            dependencies: [],
+            nodes: [],
+            relations: [],
             diagnostics: [],
           };
         },
@@ -3653,8 +3693,8 @@ function createDiagnosticAdapterModule(input: {
             workspaceId: input.workspaceName,
             workspaceName: input.workspaceName,
             workspaceRoot: '.',
-            projects: [],
-            dependencies: [],
+            nodes: [],
+            relations: [],
             diagnostics: [
               {
                 code: 'governance.adapter.partial_extraction',
@@ -3687,7 +3727,10 @@ function createExtensionModule(): unknown {
               {
                 id: 'test-extension:workspace',
                 ruleId: 'test.extension.loaded',
-                project: 'workspace',
+                subjectId: 'workspace',
+                reference: {
+                  nodeId: 'workspace',
+                },
                 severity: 'warning',
                 category: 'architecture',
                 message: 'Test extension executed.',
@@ -3723,8 +3766,8 @@ function createProbeableAdapterModule(input: {
             workspaceId: input.workspaceName,
             workspaceName: input.workspaceName,
             workspaceRoot: '.',
-            projects: [],
-            dependencies: [],
+            nodes: [],
+            relations: [],
             diagnostics: [],
           };
         },
@@ -3779,11 +3822,10 @@ function writeInvalidFixtureWorkspace(filePath: string): void {
   writeJson(filePath, {
     schemaVersion: 1,
     workspace: {
+      id: 'demo',
       name: 'demo',
       root: '.',
     },
-    projects: [],
-    dependencies: [],
   });
 }
 

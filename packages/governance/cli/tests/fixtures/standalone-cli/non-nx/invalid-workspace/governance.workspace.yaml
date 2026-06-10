@@ -1,13 +1,24 @@
 schemaVersion: 1
 workspace:
+  id: fixture-invalid-workspace
   name: fixture-invalid-workspace
-projects:
-  - name: customer-domain
+nodes:
+  - id: customer-domain
+    name: customer-domain
     root: /src/customer/domain
+    path: /src/customer/domain
     tags:
       - scope:customer
       - layer:domain
-dependencies:
-  - source: customer-domain
-    target: missing-domain
-    type: static
+    classification:
+      domain: customer
+      layer: domain
+      scope: customer
+    metadata: {}
+relations:
+  - id: customer-domain->missing-domain
+    sourceNodeId: customer-domain
+    targetNodeId: missing-domain
+    kind: dependency
+    metadata:
+      dependencyType: static

@@ -4,10 +4,9 @@ import path from 'node:path';
 import { parseDocument } from 'yaml';
 
 import type {
-  GovernanceDependencyInput,
+  GovernanceCapability,
   GovernanceDiagnostic,
   GovernanceNodeInput,
-  GovernanceProjectInput,
   GovernanceRelationInput,
   GovernanceWorkspace,
   GovernanceWorkspaceAdapterResult,
@@ -19,50 +18,73 @@ import { createManualWorkspaceCapability } from './capability.js';
 const TOP_LEVEL_FIELDS = new Set([
   'schemaVersion',
   'workspace',
-  'projects',
-  'dependencies',
+  'nodes',
+  'relations',
 ]);
-const WORKSPACE_FIELDS = new Set(['name', 'root']);
-const PROJECT_FIELDS = new Set(['name', 'root', 'tags', 'type', 'metadata']);
-const DEPENDENCY_FIELDS = new Set(['source', 'target', 'type']);
-
-const PROJECT_TYPES = new Set(['application', 'library', 'tool', 'unknown']);
-const DEPENDENCY_TYPES = new Set(['static', 'dynamic', 'implicit', 'unknown']);
-const RESERVED_METADATA_FIELDS = new Set(['name', 'root', 'tags', 'type']);
-const CLASSIFICATION_TAG_PREFIXES = ['domain', 'scope', 'layer'] as const;
+const LEGACY_TOP_LEVEL_FIELDS = new Map([
+  ['projects', 'nodes'],
+  ['dependencies', 'relations'],
+]);
+const WORKSPACE_FIELDS = new Set([
+  'id',
+  'name',
+  'root',
+  'capabilities',
+  'diagnostics',
+  'metadata',
+]);
+const NODE_FIELDS = new Set([
+  'id',
+  'name',
+  'kind',
+  'technology',
+  'sourceSystem',
+  'root',
+  'path',
+  'tags',
+  'classification',
+  'ownership',
+  'perspective',
+  'source',
+  'evidence',
+  'authority',
+  'confidence',
+  'metadata',
+]);
+const RELATION_FIELDS = new Set([
+  'id',
+  'sourceNodeId',
+  'targetNodeId',
+  'kind',
+  'perspective',
+  'source',
+  'evidence',
+  'authority',
+  'confidence',
+  'metadata',
+]);
 
 type GenericWorkspaceFormat = 'json' | 'yaml';
 
 interface GenericWorkspaceSchema {
   schemaVersion: 1;
   workspace: {
+    id?: string;
     name: string;
     root: string;
+    capabilities?: GovernanceCapability[];
+    diagnostics?: GovernanceDiagnostic[];
+    metadata?: Record<string, unknown>;
   };
-  projects: GenericWorkspaceProject[];
-  dependencies: GenericWorkspaceDependency[];
+  nodes: GovernanceNodeInput[];
+  relations: GovernanceRelationInput[];
 }
 
-interface GenericWorkspaceProject {
-  name: string;
-  root: string;
-  tags: string[];
-  type: 'application' | 'library' | 'tool' | 'unknown';
-  metadata: Record<string, unknown>;
-}
-
-interface GenericWorkspaceDependency {
-  source: string;
-  target: string;
-  type: 'static' | 'dynamic' | 'implicit' | 'unknown';
-}
-
-interface ValidatedGenericWorkspaceProject extends GenericWorkspaceProject {
+interface ValidatedNodeInput extends GovernanceNodeInput {
   index: number;
 }
 
-interface ValidatedGenericWorkspaceDependency
-  extends GenericWorkspaceDependency {
+interface ValidatedRelationInput extends GovernanceRelationInput {
   index: number;
 }
 
@@ -159,34 +181,15 @@ export function validateGenericWorkspaceSchema(
   }
 
   validateUnknownFields(root, TOP_LEVEL_FIELDS, '/', issues);
+  validateUnsupportedLegacyFields(root, issues);
 
-  const schemaVersionValue = root.schemaVersion;
-  let schemaVersion: 1 | undefined;
-
-  if (schemaVersionValue === undefined) {
-    issues.push(
-      missingRequiredField('/schemaVersion', 'schemaVersion is required.'),
-    );
-  } else if (!Number.isInteger(schemaVersionValue)) {
-    issues.push(
-      invalidFieldType('/schemaVersion', 'schemaVersion must be an integer.'),
-    );
-  } else if (schemaVersionValue !== 1) {
-    issues.push({
-      code: 'governance.workspace_schema.unsupported_schema_version',
-      message: 'schemaVersion must equal 1.',
-      path: '/schemaVersion',
-    });
-  } else {
-    schemaVersion = 1;
-  }
-
+  const schemaVersion = validateSchemaVersion(root.schemaVersion, issues);
   const workspace = validateWorkspace(root.workspace, issues);
-  const projects = validateProjects(root.projects, issues);
-  const dependencies = validateDependencies(root.dependencies, issues);
+  const nodes = validateNodes(root.nodes, issues);
+  const relations = validateRelations(root.relations, issues);
 
-  validateProjectCrossReferences(projects, issues);
-  validateDependencyReferences(projects, dependencies, issues);
+  validateNodeCrossReferences(nodes, issues);
+  validateRelationCrossReferences(nodes, relations, issues);
 
   if (issues.length > 0 || !workspace || !schemaVersion) {
     throwValidationIssues('<memory>', issues);
@@ -195,8 +198,8 @@ export function validateGenericWorkspaceSchema(
   return {
     schemaVersion,
     workspace,
-    projects: projects.map(stripValidatedProjectIndex),
-    dependencies: dependencies.map(stripValidatedDependencyIndex),
+    nodes: nodes.map(stripValidatedNodeIndex),
+    relations: relations.map(stripValidatedRelationIndex),
   };
 }
 
@@ -279,6 +282,36 @@ function parseWorkspaceSource(
   }
 }
 
+function validateSchemaVersion(
+  value: unknown,
+  issues: GenericWorkspaceValidationIssue[],
+): 1 | undefined {
+  if (value === undefined) {
+    issues.push(
+      missingRequiredField('/schemaVersion', 'schemaVersion is required.'),
+    );
+    return undefined;
+  }
+
+  if (!Number.isInteger(value)) {
+    issues.push(
+      invalidFieldType('/schemaVersion', 'schemaVersion must be an integer.'),
+    );
+    return undefined;
+  }
+
+  if (value !== 1) {
+    issues.push({
+      code: 'governance.workspace_schema.unsupported_schema_version',
+      message: 'schemaVersion must equal 1.',
+      path: '/schemaVersion',
+    });
+    return undefined;
+  }
+
+  return 1;
+}
+
 function validateWorkspace(
   value: unknown,
   issues: GenericWorkspaceValidationIssue[],
@@ -297,21 +330,35 @@ function validateWorkspace(
 
   validateUnknownFields(record, WORKSPACE_FIELDS, pointer, issues);
 
-  const name = requiredString(record.name, `${pointer}/name`, issues, 'name');
+  const id = optionalNonEmptyString(record.id, `${pointer}/id`, issues, 'id');
+  const name = requiredNonEmptyString(
+    record.name,
+    `${pointer}/name`,
+    issues,
+    'name',
+  );
   const rootValue = record.root ?? '.';
   const root = optionalString(rootValue, `${pointer}/root`, issues, 'root');
+  const capabilities = validateObjectArray(
+    record.capabilities,
+    `${pointer}/capabilities`,
+    issues,
+    'capabilities',
+  ) as GovernanceCapability[] | undefined;
+  const diagnostics = validateObjectArray(
+    record.diagnostics,
+    `${pointer}/diagnostics`,
+    issues,
+    'diagnostics',
+  ) as GovernanceDiagnostic[] | undefined;
+  const metadata = validateLooseRecord(
+    record.metadata,
+    `${pointer}/metadata`,
+    issues,
+    'metadata',
+  );
 
-  if (name === undefined || root === undefined) {
-    return undefined;
-  }
-
-  if (name.trim().length === 0) {
-    issues.push(
-      invalidValue(`${pointer}/name`, 'workspace.name must be non-empty.'),
-    );
-  }
-
-  if (!isNormalizedWorkspacePath(root)) {
+  if (root !== undefined && !isNormalizedWorkspacePath(root)) {
     issues.push(
       invalidPath(
         `${pointer}/root`,
@@ -320,258 +367,403 @@ function validateWorkspace(
     );
   }
 
+  if (name === undefined || root === undefined) {
+    return undefined;
+  }
+
   return {
+    ...(id ? { id } : {}),
     name,
     root,
+    ...(capabilities ? { capabilities } : {}),
+    ...(diagnostics ? { diagnostics } : {}),
+    ...(metadata ? { metadata } : {}),
   };
 }
 
-function validateProjects(
+function validateNodes(
   value: unknown,
   issues: GenericWorkspaceValidationIssue[],
-): ValidatedGenericWorkspaceProject[] {
-  const pointer = '/projects';
+): ValidatedNodeInput[] {
+  const pointer = '/nodes';
   if (value === undefined) {
-    issues.push(missingRequiredField(pointer, 'projects is required.'));
+    issues.push(missingRequiredField(pointer, 'nodes is required.'));
     return [];
   }
 
   if (!Array.isArray(value)) {
-    issues.push(invalidFieldType(pointer, 'projects must be an array.'));
+    issues.push(invalidFieldType(pointer, 'nodes must be an array.'));
     return [];
   }
 
-  if (value.length === 0) {
-    issues.push(
-      invalidValue(pointer, 'projects must contain at least one project.'),
-    );
-  }
-
-  const projects: ValidatedGenericWorkspaceProject[] = [];
+  const nodes: ValidatedNodeInput[] = [];
 
   value.forEach((entry, index) => {
-    const projectPointer = `${pointer}/${index}`;
+    const nodePointer = `${pointer}/${index}`;
     const record = asRecord(entry);
 
     if (!record) {
       issues.push(
-        invalidFieldType(projectPointer, 'Each project must be an object.'),
+        invalidFieldType(nodePointer, 'Each node must be an object.'),
       );
       return;
     }
 
-    validateUnknownFields(record, PROJECT_FIELDS, projectPointer, issues);
+    validateUnknownFields(record, NODE_FIELDS, nodePointer, issues);
 
-    const name = requiredString(
+    const id = requiredNonEmptyString(
+      record.id,
+      `${nodePointer}/id`,
+      issues,
+      'id',
+    );
+    const name = optionalString(
       record.name,
-      `${projectPointer}/name`,
+      `${nodePointer}/name`,
       issues,
       'name',
     );
-    const root = requiredString(
+    const kind = optionalString(
+      record.kind,
+      `${nodePointer}/kind`,
+      issues,
+      'kind',
+    );
+    const technology = optionalString(
+      record.technology,
+      `${nodePointer}/technology`,
+      issues,
+      'technology',
+    );
+    const sourceSystem = optionalString(
+      record.sourceSystem,
+      `${nodePointer}/sourceSystem`,
+      issues,
+      'sourceSystem',
+    );
+    const rootValue = optionalString(
       record.root,
-      `${projectPointer}/root`,
+      `${nodePointer}/root`,
       issues,
       'root',
     );
+    const pathValue = optionalString(
+      record.path,
+      `${nodePointer}/path`,
+      issues,
+      'path',
+    );
+    const tags = validateTags(record.tags, `${nodePointer}/tags`, issues);
+    const classification = validateLooseRecord(
+      record.classification,
+      `${nodePointer}/classification`,
+      issues,
+      'classification',
+    ) as GovernanceNodeInput['classification'];
+    const ownership = validateLooseRecord(
+      record.ownership,
+      `${nodePointer}/ownership`,
+      issues,
+      'ownership',
+    ) as GovernanceNodeInput['ownership'];
+    const perspective = validateLooseRecord(
+      record.perspective,
+      `${nodePointer}/perspective`,
+      issues,
+      'perspective',
+    ) as GovernanceNodeInput['perspective'];
+    const source = validateLooseRecord(
+      record.source,
+      `${nodePointer}/source`,
+      issues,
+      'source',
+    ) as GovernanceNodeInput['source'];
+    const evidence = validateObjectArray(
+      record.evidence,
+      `${nodePointer}/evidence`,
+      issues,
+      'evidence',
+    ) as GovernanceNodeInput['evidence'];
+    const authority = optionalString(
+      record.authority,
+      `${nodePointer}/authority`,
+      issues,
+      'authority',
+    ) as GovernanceNodeInput['authority'];
+    const confidence = validateNumber(
+      record.confidence,
+      `${nodePointer}/confidence`,
+      issues,
+      'confidence',
+    ) as GovernanceNodeInput['confidence'];
+    const metadata =
+      validateLooseRecord(
+        record.metadata,
+        `${nodePointer}/metadata`,
+        issues,
+        'metadata',
+      ) ?? {};
 
-    if (root !== undefined && !isNormalizedWorkspacePath(root)) {
+    if (rootValue !== undefined && !isNormalizedWorkspacePath(rootValue)) {
       issues.push(
         invalidPath(
-          `${projectPointer}/root`,
-          'Project root must be a normalized relative path.',
+          `${nodePointer}/root`,
+          'Node root must be a normalized relative path.',
         ),
       );
     }
 
-    const tags = validateTags(record.tags, `${projectPointer}/tags`, issues);
-    const type = validateProjectType(
-      record.type,
-      `${projectPointer}/type`,
-      issues,
-    );
-    const metadata = validateProjectMetadata(
-      record.metadata,
-      `${projectPointer}/metadata`,
-      issues,
-    );
-
-    if (name !== undefined && name.trim().length === 0) {
+    if (pathValue !== undefined && !isNormalizedWorkspacePath(pathValue)) {
       issues.push(
-        invalidValue(
-          `${projectPointer}/name`,
-          'Project name must be non-empty.',
+        invalidPath(
+          `${nodePointer}/path`,
+          'Node path must be a normalized relative path.',
         ),
       );
     }
 
-    if (
-      name === undefined ||
-      root === undefined ||
-      tags === undefined ||
-      type === undefined ||
-      metadata === undefined
-    ) {
+    if (id === undefined || tags === undefined) {
       return;
     }
 
-    projects.push({
+    nodes.push({
       index,
-      name,
-      root,
-      tags,
-      type,
+      id,
+      ...(name !== undefined ? { name } : {}),
+      ...(kind !== undefined ? { kind } : {}),
+      ...(technology !== undefined ? { technology } : {}),
+      ...(sourceSystem !== undefined ? { sourceSystem } : {}),
+      ...(rootValue !== undefined ? { root: rootValue } : {}),
+      ...(pathValue !== undefined ? { path: pathValue } : {}),
+      ...(tags.length > 0 ? { tags } : {}),
+      ...(classification ? { classification } : {}),
+      ...(ownership ? { ownership } : {}),
+      ...(perspective ? { perspective } : {}),
+      ...(source ? { source } : {}),
+      ...(evidence ? { evidence } : {}),
+      ...(authority !== undefined ? { authority } : {}),
+      ...(confidence !== undefined ? { confidence } : {}),
       metadata,
     });
   });
 
-  return projects;
+  return nodes;
 }
 
-function validateDependencies(
+function validateRelations(
   value: unknown,
   issues: GenericWorkspaceValidationIssue[],
-): ValidatedGenericWorkspaceDependency[] {
-  const pointer = '/dependencies';
+): ValidatedRelationInput[] {
+  const pointer = '/relations';
   if (value === undefined) {
-    issues.push(missingRequiredField(pointer, 'dependencies is required.'));
+    issues.push(missingRequiredField(pointer, 'relations is required.'));
     return [];
   }
 
   if (!Array.isArray(value)) {
-    issues.push(invalidFieldType(pointer, 'dependencies must be an array.'));
+    issues.push(invalidFieldType(pointer, 'relations must be an array.'));
     return [];
   }
 
-  const dependencies: ValidatedGenericWorkspaceDependency[] = [];
+  const relations: ValidatedRelationInput[] = [];
 
   value.forEach((entry, index) => {
-    const dependencyPointer = `${pointer}/${index}`;
+    const relationPointer = `${pointer}/${index}`;
     const record = asRecord(entry);
 
     if (!record) {
       issues.push(
-        invalidFieldType(
-          dependencyPointer,
-          'Each dependency must be an object.',
-        ),
+        invalidFieldType(relationPointer, 'Each relation must be an object.'),
       );
       return;
     }
 
-    validateUnknownFields(record, DEPENDENCY_FIELDS, dependencyPointer, issues);
+    validateUnknownFields(record, RELATION_FIELDS, relationPointer, issues);
 
-    const source = requiredString(
+    const id = optionalString(record.id, `${relationPointer}/id`, issues, 'id');
+    const sourceNodeId = requiredNonEmptyString(
+      record.sourceNodeId,
+      `${relationPointer}/sourceNodeId`,
+      issues,
+      'sourceNodeId',
+    );
+    const targetNodeId = requiredNonEmptyString(
+      record.targetNodeId,
+      `${relationPointer}/targetNodeId`,
+      issues,
+      'targetNodeId',
+    );
+    const kind = optionalString(
+      record.kind,
+      `${relationPointer}/kind`,
+      issues,
+      'kind',
+    );
+    const perspective = validateLooseRecord(
+      record.perspective,
+      `${relationPointer}/perspective`,
+      issues,
+      'perspective',
+    ) as GovernanceRelationInput['perspective'];
+    const source = validateLooseRecord(
       record.source,
-      `${dependencyPointer}/source`,
+      `${relationPointer}/source`,
       issues,
       'source',
-    );
-    const target = requiredString(
-      record.target,
-      `${dependencyPointer}/target`,
+    ) as GovernanceRelationInput['source'];
+    const evidence = validateObjectArray(
+      record.evidence,
+      `${relationPointer}/evidence`,
       issues,
-      'target',
-    );
-    const type = validateDependencyType(
-      record.type,
-      `${dependencyPointer}/type`,
+      'evidence',
+    ) as GovernanceRelationInput['evidence'];
+    const authority = optionalString(
+      record.authority,
+      `${relationPointer}/authority`,
       issues,
-    );
+      'authority',
+    ) as GovernanceRelationInput['authority'];
+    const confidence = validateNumber(
+      record.confidence,
+      `${relationPointer}/confidence`,
+      issues,
+      'confidence',
+    ) as GovernanceRelationInput['confidence'];
+    const metadata =
+      validateLooseRecord(
+        record.metadata,
+        `${relationPointer}/metadata`,
+        issues,
+        'metadata',
+      ) ?? {};
 
-    if (source !== undefined && target !== undefined && source === target) {
+    if (
+      sourceNodeId !== undefined &&
+      targetNodeId !== undefined &&
+      sourceNodeId === targetNodeId
+    ) {
       issues.push({
-        code: 'governance.workspace_schema.self_dependency',
-        message: 'Dependency source and target must differ.',
-        path: dependencyPointer,
+        code: 'governance.workspace_schema.self_relation',
+        message: 'Relation sourceNodeId and targetNodeId must differ.',
+        path: relationPointer,
       });
     }
 
-    if (source === undefined || target === undefined || type === undefined) {
+    if (sourceNodeId === undefined || targetNodeId === undefined) {
       return;
     }
 
-    dependencies.push({
+    relations.push({
       index,
-      source,
-      target,
-      type,
+      ...(id !== undefined ? { id } : {}),
+      sourceNodeId,
+      targetNodeId,
+      ...(kind !== undefined ? { kind } : {}),
+      ...(perspective ? { perspective } : {}),
+      ...(source ? { source } : {}),
+      ...(evidence ? { evidence } : {}),
+      ...(authority !== undefined ? { authority } : {}),
+      ...(confidence !== undefined ? { confidence } : {}),
+      metadata,
     });
   });
 
-  return dependencies;
+  return relations;
 }
 
-function validateProjectCrossReferences(
-  projects: ValidatedGenericWorkspaceProject[],
+function validateNodeCrossReferences(
+  nodes: ValidatedNodeInput[],
   issues: GenericWorkspaceValidationIssue[],
 ): void {
-  const names = new Set<string>();
+  const nodeIds = new Set<string>();
   const roots = new Set<string>();
 
-  projects.forEach((project) => {
-    const projectPointer = `/projects/${project.index}`;
-
-    if (names.has(project.name)) {
+  for (const node of nodes) {
+    const pointer = `/nodes/${node.index}`;
+    if (nodeIds.has(node.id)) {
       issues.push({
-        code: 'governance.workspace_schema.duplicate_project_name',
-        message: `Duplicate project name "${project.name}" is not allowed.`,
-        path: `${projectPointer}/name`,
+        code: 'governance.workspace_schema.duplicate_node_id',
+        message: `Duplicate node id "${node.id}" is not allowed.`,
+        path: `${pointer}/id`,
       });
     } else {
-      names.add(project.name);
+      nodeIds.add(node.id);
     }
 
-    if (roots.has(project.root)) {
+    if (!node.root) {
+      continue;
+    }
+
+    if (roots.has(node.root)) {
       issues.push({
-        code: 'governance.workspace_schema.duplicate_project_root',
-        message: `Duplicate project root "${project.root}" is not allowed.`,
-        path: `${projectPointer}/root`,
+        code: 'governance.workspace_schema.duplicate_node_root',
+        message: `Duplicate node root "${node.root}" is not allowed.`,
+        path: `${pointer}/root`,
       });
     } else {
-      roots.add(project.root);
+      roots.add(node.root);
     }
-  });
+  }
 }
 
-function validateDependencyReferences(
-  projects: ValidatedGenericWorkspaceProject[],
-  dependencies: ValidatedGenericWorkspaceDependency[],
+function validateRelationCrossReferences(
+  nodes: ValidatedNodeInput[],
+  relations: ValidatedRelationInput[],
   issues: GenericWorkspaceValidationIssue[],
 ): void {
-  const projectNames = new Set(projects.map((project) => project.name));
-  const seenDependencies = new Set<string>();
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const seenRelationIds = new Set<string>();
+  const seenImplicitKeys = new Set<string>();
 
-  dependencies.forEach((dependency) => {
-    const dependencyPointer = `/dependencies/${dependency.index}`;
+  for (const relation of relations) {
+    const pointer = `/relations/${relation.index}`;
 
-    if (!projectNames.has(dependency.source)) {
+    if (!nodeIds.has(relation.sourceNodeId)) {
       issues.push({
-        code: 'governance.workspace_schema.unknown_dependency_source',
-        message: `Dependency source "${dependency.source}" does not match a declared project.`,
-        path: `${dependencyPointer}/source`,
+        code: 'governance.workspace_schema.unknown_relation_source',
+        message: `Relation sourceNodeId "${relation.sourceNodeId}" does not match a declared node.`,
+        path: `${pointer}/sourceNodeId`,
       });
     }
 
-    if (!projectNames.has(dependency.target)) {
+    if (!nodeIds.has(relation.targetNodeId)) {
       issues.push({
-        code: 'governance.workspace_schema.unknown_dependency_target',
-        message: `Dependency target "${dependency.target}" does not match a declared project.`,
-        path: `${dependencyPointer}/target`,
+        code: 'governance.workspace_schema.unknown_relation_target',
+        message: `Relation targetNodeId "${relation.targetNodeId}" does not match a declared node.`,
+        path: `${pointer}/targetNodeId`,
       });
     }
 
-    const key = `${dependency.source}\u0000${dependency.target}\u0000${dependency.type}`;
-    if (seenDependencies.has(key)) {
+    if (relation.id) {
+      if (seenRelationIds.has(relation.id)) {
+        issues.push({
+          code: 'governance.workspace_schema.duplicate_relation_id',
+          message: `Duplicate relation id "${relation.id}" is not allowed.`,
+          path: `${pointer}/id`,
+        });
+      } else {
+        seenRelationIds.add(relation.id);
+      }
+      continue;
+    }
+
+    const key = [
+      relation.sourceNodeId,
+      relation.targetNodeId,
+      relation.kind ?? 'unknown',
+      relation.index,
+    ].join('\u0000');
+    if (seenImplicitKeys.has(key)) {
       issues.push({
-        code: 'governance.workspace_schema.duplicate_dependency',
-        message: `Duplicate dependency "${dependency.source}" -> "${dependency.target}" of type "${dependency.type}" is not allowed.`,
-        path: dependencyPointer,
+        code: 'governance.workspace_schema.duplicate_relation',
+        message:
+          'Duplicate relation sourceNodeId/targetNodeId/kind combination without explicit ids is not allowed at the same position.',
+        path: pointer,
       });
     } else {
-      seenDependencies.add(key);
+      seenImplicitKeys.add(key);
     }
-  });
+  }
 }
 
 function validateTags(
@@ -580,8 +772,7 @@ function validateTags(
   issues: GenericWorkspaceValidationIssue[],
 ): string[] | undefined {
   if (value === undefined) {
-    issues.push(missingRequiredField(pointer, 'tags is required.'));
-    return undefined;
+    return [];
   }
 
   if (!Array.isArray(value)) {
@@ -590,8 +781,7 @@ function validateTags(
   }
 
   const tags: string[] = [];
-  const seenTags = new Set<string>();
-  const classificationTagSeen = new Map<string, string>();
+  const seen = new Set<string>();
 
   value.forEach((entry, index) => {
     const tagPointer = `${pointer}/${index}`;
@@ -602,7 +792,7 @@ function validateTags(
 
     if (entry.length === 0 || entry.trim() !== entry) {
       issues.push(
-        invalidTag(
+        invalidValue(
           tagPointer,
           'Tags must be non-empty and may not contain leading or trailing whitespace.',
         ),
@@ -610,251 +800,170 @@ function validateTags(
       return;
     }
 
-    if (seenTags.has(entry)) {
+    if (seen.has(entry)) {
       issues.push(
-        invalidTag(tagPointer, `Duplicate tag "${entry}" is not allowed.`),
+        invalidValue(tagPointer, `Duplicate tag "${entry}" is not allowed.`),
       );
       return;
     }
 
-    const classificationPrefix = classificationTagPrefix(entry);
-    if (classificationPrefix) {
-      const existing = classificationTagSeen.get(classificationPrefix);
-      if (existing) {
-        issues.push(
-          invalidTag(
-            tagPointer,
-            `Multiple "${classificationPrefix}:" tags are not allowed on the same project.`,
-          ),
-        );
-        return;
-      }
-
-      classificationTagSeen.set(classificationPrefix, entry);
-    }
-
-    seenTags.add(entry);
+    seen.add(entry);
     tags.push(entry);
   });
 
   return tags;
 }
 
-function validateProjectType(
-  value: unknown,
-  pointer: string,
+function validateUnsupportedLegacyFields(
+  root: Record<string, unknown>,
   issues: GenericWorkspaceValidationIssue[],
-): GenericWorkspaceProject['type'] | undefined {
-  if (value === undefined) {
-    return 'unknown';
-  }
-
-  if (typeof value !== 'string') {
-    issues.push(invalidFieldType(pointer, 'Project type must be a string.'));
-    return undefined;
-  }
-
-  if (!PROJECT_TYPES.has(value)) {
-    issues.push(
-      invalidEnumValue(
-        pointer,
-        'Project type must be one of application, library, tool, or unknown.',
-      ),
-    );
-    return undefined;
-  }
-
-  return value as GenericWorkspaceProject['type'];
-}
-
-function validateDependencyType(
-  value: unknown,
-  pointer: string,
-  issues: GenericWorkspaceValidationIssue[],
-): GenericWorkspaceDependency['type'] | undefined {
-  if (typeof value !== 'string') {
-    if (value === undefined) {
-      issues.push(
-        missingRequiredField(pointer, 'Dependency type is required.'),
-      );
-    } else {
-      issues.push(
-        invalidFieldType(pointer, 'Dependency type must be a string.'),
-      );
-    }
-
-    return undefined;
-  }
-
-  if (!DEPENDENCY_TYPES.has(value)) {
-    issues.push(
-      invalidEnumValue(
-        pointer,
-        'Dependency type must be one of static, dynamic, implicit, or unknown.',
-      ),
-    );
-    return undefined;
-  }
-
-  return value as GenericWorkspaceDependency['type'];
-}
-
-function validateProjectMetadata(
-  value: unknown,
-  pointer: string,
-  issues: GenericWorkspaceValidationIssue[],
-): Record<string, unknown> | undefined {
-  if (value === undefined) {
-    return {};
-  }
-
-  const record = asRecord(value);
-  if (!record) {
-    issues.push(invalidFieldType(pointer, 'metadata must be an object.'));
-    return undefined;
-  }
-
-  Object.keys(record).forEach((key) => {
-    if (RESERVED_METADATA_FIELDS.has(key)) {
-      issues.push(
-        invalidValue(
-          `${pointer}/${escapeJsonPointerSegment(key)}`,
-          `metadata must not redefine first-class field "${key}".`,
-        ),
-      );
-    }
-  });
-
-  return record;
-}
-
-function toGenericWorkspaceAdapterResult(
-  schema: GenericWorkspaceSchema,
-  format: GenericWorkspaceFormat,
-): GovernanceWorkspaceAdapterResult {
-  const nodes: GovernanceNodeInput[] = [...schema.projects]
-    .sort((left, right) => left.name.localeCompare(right.name))
-    .map((project) => ({
-      id: project.name,
-      name: project.name,
-      kind: project.type,
-      root: project.root,
-      tags: [...project.tags].sort((left, right) => left.localeCompare(right)),
-      classification: deriveClassification(project.tags),
-      metadata: { ...project.metadata },
-    }));
-
-  const relations: GovernanceRelationInput[] = [...schema.dependencies]
-    .sort(compareDependencies)
-    .map((dependency, index) => ({
-      id: `legacy:${dependency.source}->${dependency.target}:${dependency.type}:${index}`,
-      sourceNodeId: dependency.source,
-      targetNodeId: dependency.target,
-      kind: 'dependency',
-      metadata: {
-        dependencyType: dependency.type,
-      },
-    }));
-
-  const projects: GovernanceProjectInput[] = [...schema.projects]
-    .sort((left, right) => left.name.localeCompare(right.name))
-    .map((project) => ({
-      id: project.name,
-      name: project.name,
-      root: project.root,
-      type: project.type,
-      tags: [...project.tags].sort((left, right) => left.localeCompare(right)),
-      metadata: { ...project.metadata },
-    }));
-
-  const dependencies: GovernanceDependencyInput[] = [...schema.dependencies]
-    .sort(compareDependencies)
-    .map((dependency) => ({
-      sourceProjectId: dependency.source,
-      targetProjectId: dependency.target,
-      type: dependency.type,
-    }));
-
-  return {
-    workspaceId: schema.workspace.name,
-    workspaceName: schema.workspace.name,
-    workspaceRoot: schema.workspace.root,
-    nodes,
-    relations,
-    projects,
-    dependencies,
-    capabilities: [
-      createManualWorkspaceCapability({
-        format,
-        schemaVersion: schema.schemaVersion,
-      }),
-    ],
-  };
-}
-
-function compareDependencies(
-  left: GenericWorkspaceDependency,
-  right: GenericWorkspaceDependency,
-): number {
-  return (
-    left.source.localeCompare(right.source) ||
-    left.target.localeCompare(right.target) ||
-    left.type.localeCompare(right.type)
-  );
-}
-
-function deriveClassification(
-  tags: readonly string[],
-): GovernanceNodeInput['classification'] | undefined {
-  const classification: NonNullable<GovernanceNodeInput['classification']> = {};
-
-  for (const tag of tags) {
-    const prefix = classificationTagPrefix(tag);
-    if (!prefix) {
+): void {
+  for (const [field, replacement] of LEGACY_TOP_LEVEL_FIELDS) {
+    if (root[field] === undefined) {
       continue;
     }
 
-    const value = tag.slice(prefix.length + 1);
-    if (value.length === 0) {
-      continue;
-    }
-
-    if (prefix === 'domain') {
-      classification.domain ??= value;
-      continue;
-    }
-
-    if (prefix === 'scope') {
-      classification.scope ??= value;
-      continue;
-    }
-
-    if (prefix === 'layer') {
-      classification.layer ??= value;
-    }
+    issues.push({
+      code: 'governance.workspace_schema.unsupported_legacy_field',
+      message: `Legacy field "${field}" is not supported. Use "${replacement}" instead.`,
+      path: `/${field}`,
+    });
   }
-
-  return Object.keys(classification).length > 0 ? classification : undefined;
 }
 
 function validateUnknownFields(
   record: Record<string, unknown>,
-  allowedFields: Set<string>,
+  allowedFields: ReadonlySet<string>,
   pointer: string,
   issues: GenericWorkspaceValidationIssue[],
 ): void {
-  Object.keys(record).forEach((key) => {
-    if (!allowedFields.has(key)) {
+  Object.keys(record)
+    .sort((left, right) => left.localeCompare(right))
+    .forEach((key) => {
+      if (allowedFields.has(key) || LEGACY_TOP_LEVEL_FIELDS.has(key)) {
+        return;
+      }
+
+      const fieldPath =
+        pointer === '/'
+          ? `/${escapeJsonPointerSegment(key)}`
+          : `${pointer}/${escapeJsonPointerSegment(key)}`;
+
       issues.push({
         code: 'governance.workspace_schema.unknown_field',
         message: `Unknown field "${key}" is not allowed.`,
-        path:
-          pointer === '/'
-            ? `/${escapeJsonPointerSegment(key)}`
-            : `${pointer}/${escapeJsonPointerSegment(key)}`,
+        path: fieldPath,
       });
+    });
+}
+
+function validateLooseRecord(
+  value: unknown,
+  pointer: string,
+  issues: GenericWorkspaceValidationIssue[],
+  fieldName: string,
+): Record<string, unknown> | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const record = asRecord(value);
+  if (!record) {
+    issues.push(invalidFieldType(pointer, `${fieldName} must be an object.`));
+    return undefined;
+  }
+
+  return record;
+}
+
+function validateObjectArray(
+  value: unknown,
+  pointer: string,
+  issues: GenericWorkspaceValidationIssue[],
+  fieldName: string,
+): Record<string, unknown>[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    issues.push(
+      invalidFieldType(pointer, `${fieldName} must be an array of objects.`),
+    );
+    return undefined;
+  }
+
+  const values: Record<string, unknown>[] = [];
+  value.forEach((entry, index) => {
+    const record = asRecord(entry);
+    if (!record) {
+      issues.push(
+        invalidFieldType(
+          `${pointer}/${index}`,
+          `Each ${fieldName.slice(0, -1)} must be an object.`,
+        ),
+      );
+      return;
     }
+    values.push(record);
   });
+  return values;
+}
+
+function validateNumber(
+  value: unknown,
+  pointer: string,
+  issues: GenericWorkspaceValidationIssue[],
+  fieldName: string,
+): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    issues.push(invalidFieldType(pointer, `${fieldName} must be a number.`));
+    return undefined;
+  }
+
+  return value;
+}
+
+function requiredNonEmptyString(
+  value: unknown,
+  pointer: string,
+  issues: GenericWorkspaceValidationIssue[],
+  fieldName: string,
+): string | undefined {
+  const result = requiredString(value, pointer, issues, fieldName);
+  if (result === undefined) {
+    return undefined;
+  }
+
+  if (result.trim().length === 0) {
+    issues.push(invalidValue(pointer, `${fieldName} must be non-empty.`));
+    return undefined;
+  }
+
+  return result;
+}
+
+function optionalNonEmptyString(
+  value: unknown,
+  pointer: string,
+  issues: GenericWorkspaceValidationIssue[],
+  fieldName: string,
+): string | undefined {
+  const result = optionalString(value, pointer, issues, fieldName);
+  if (result === undefined) {
+    return undefined;
+  }
+
+  if (result.trim().length === 0) {
+    issues.push(invalidValue(pointer, `${fieldName} must be non-empty.`));
+    return undefined;
+  }
+
+  return result;
 }
 
 function requiredString(
@@ -868,12 +977,7 @@ function requiredString(
     return undefined;
   }
 
-  if (typeof value !== 'string') {
-    issues.push(invalidFieldType(pointer, `${fieldName} must be a string.`));
-    return undefined;
-  }
-
-  return value;
+  return optionalString(value, pointer, issues, fieldName);
 }
 
 function optionalString(
@@ -882,6 +986,10 @@ function optionalString(
   issues: GenericWorkspaceValidationIssue[],
   fieldName: string,
 ): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
   if (typeof value !== 'string') {
     issues.push(invalidFieldType(pointer, `${fieldName} must be a string.`));
     return undefined;
@@ -890,136 +998,142 @@ function optionalString(
   return value;
 }
 
-function missingRequiredField(
-  pointer: string,
-  message: string,
-): GenericWorkspaceValidationIssue {
+function toGenericWorkspaceAdapterResult(
+  schema: GenericWorkspaceSchema,
+  format: GenericWorkspaceFormat,
+): GovernanceWorkspaceAdapterResult {
+  const capabilities = [
+    createManualWorkspaceCapability({
+      format,
+      schemaVersion: schema.schemaVersion,
+    }),
+    ...(schema.workspace.capabilities ?? []),
+  ];
+
   return {
-    code: 'governance.workspace_schema.missing_required_field',
-    message,
-    path: pointer,
+    workspaceId: schema.workspace.id ?? schema.workspace.name,
+    workspaceName: schema.workspace.name,
+    workspaceRoot: schema.workspace.root,
+    nodes: sortNodes(schema.nodes),
+    relations: sortRelations(schema.relations),
+    capabilities,
+    ...(schema.workspace.diagnostics
+      ? { diagnostics: [...schema.workspace.diagnostics] }
+      : {}),
+    ...(schema.workspace.metadata
+      ? { metadata: { ...schema.workspace.metadata } }
+      : {}),
   };
 }
 
-function invalidFieldType(
-  pointer: string,
-  message: string,
-): GenericWorkspaceValidationIssue {
-  return {
-    code: 'governance.workspace_schema.invalid_field_type',
-    message,
-    path: pointer,
-  };
+function sortNodes(
+  nodes: readonly GovernanceNodeInput[],
+): GovernanceNodeInput[] {
+  return [...nodes].sort((left, right) => left.id.localeCompare(right.id));
 }
 
-function invalidValue(
-  pointer: string,
-  message: string,
-): GenericWorkspaceValidationIssue {
-  return {
-    code: 'governance.workspace_schema.invalid_value',
-    message,
-    path: pointer,
-  };
+function sortRelations(
+  relations: readonly GovernanceRelationInput[],
+): GovernanceRelationInput[] {
+  return [...relations].sort(
+    (left, right) =>
+      (left.id ?? '').localeCompare(right.id ?? '') ||
+      left.sourceNodeId.localeCompare(right.sourceNodeId) ||
+      left.targetNodeId.localeCompare(right.targetNodeId) ||
+      (left.kind ?? '').localeCompare(right.kind ?? ''),
+  );
 }
 
-function invalidPath(
-  pointer: string,
-  message: string,
-): GenericWorkspaceValidationIssue {
-  return {
-    code: 'governance.workspace_schema.invalid_path',
-    message,
-    path: pointer,
-  };
+function stripValidatedNodeIndex(
+  node: ValidatedNodeInput,
+): GovernanceNodeInput {
+  const { index: _index, ...rest } = node;
+  return rest;
 }
 
-function invalidEnumValue(
-  pointer: string,
-  message: string,
-): GenericWorkspaceValidationIssue {
-  return {
-    code: 'governance.workspace_schema.invalid_enum_value',
-    message,
-    path: pointer,
-  };
-}
-
-function invalidTag(
-  pointer: string,
-  message: string,
-): GenericWorkspaceValidationIssue {
-  return {
-    code: 'governance.workspace_schema.invalid_tag',
-    message,
-    path: pointer,
-  };
+function stripValidatedRelationIndex(
+  relation: ValidatedRelationInput,
+): GovernanceRelationInput {
+  const { index: _index, ...rest } = relation;
+  return rest;
 }
 
 function throwValidationIssues(
   filePath: string,
   issues: GenericWorkspaceValidationIssue[],
 ): never {
-  throw new GenericWorkspaceValidationError(filePath, issues);
-}
-
-function classificationTagPrefix(
-  tag: string,
-): (typeof CLASSIFICATION_TAG_PREFIXES)[number] | undefined {
-  return CLASSIFICATION_TAG_PREFIXES.find((prefix) =>
-    tag.startsWith(`${prefix}:`),
+  throw new GenericWorkspaceValidationError(
+    filePath,
+    [...issues].sort((left, right) => left.path.localeCompare(right.path)),
   );
 }
 
-function stripValidatedProjectIndex(
-  project: ValidatedGenericWorkspaceProject,
-): GenericWorkspaceProject {
+function missingRequiredField(
+  pathValue: string,
+  message: string,
+): GenericWorkspaceValidationIssue {
   return {
-    name: project.name,
-    root: project.root,
-    tags: project.tags,
-    type: project.type,
-    metadata: project.metadata,
+    code: 'governance.workspace_schema.missing_required_field',
+    message,
+    path: pathValue,
   };
 }
 
-function stripValidatedDependencyIndex(
-  dependency: ValidatedGenericWorkspaceDependency,
-): GenericWorkspaceDependency {
+function invalidFieldType(
+  pathValue: string,
+  message: string,
+): GenericWorkspaceValidationIssue {
   return {
-    source: dependency.source,
-    target: dependency.target,
-    type: dependency.type,
+    code: 'governance.workspace_schema.invalid_field_type',
+    message,
+    path: pathValue,
+  };
+}
+
+function invalidValue(
+  pathValue: string,
+  message: string,
+): GenericWorkspaceValidationIssue {
+  return {
+    code: 'governance.workspace_schema.invalid_value',
+    message,
+    path: pathValue,
+  };
+}
+
+function invalidPath(
+  pathValue: string,
+  message: string,
+): GenericWorkspaceValidationIssue {
+  return {
+    code: 'governance.workspace_schema.invalid_path',
+    message,
+    path: pathValue,
   };
 }
 
 function isNormalizedWorkspacePath(value: string): boolean {
-  if (value.length === 0 || value.includes('\\')) {
+  if (value === '.') {
+    return true;
+  }
+
+  if (value.length === 0 || path.isAbsolute(value)) {
     return false;
   }
 
-  if (value.startsWith('/') || value.startsWith('./') || value.endsWith('/')) {
-    return false;
-  }
-
-  if (/^[A-Za-z]:[\\/]/.test(value)) {
-    return false;
-  }
-
-  const segments = value.split('/');
-  if (segments.some((segment) => segment === '..' || segment.length === 0)) {
-    return false;
-  }
-
-  return path.posix.normalize(value) === value;
+  return normalizePath(value) === value;
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
+function normalizePath(value: string): string {
+  return value.split(path.sep).join('/');
 }
 
 function escapeJsonPointerSegment(value: string): string {
   return value.replaceAll('~', '~0').replaceAll('/', '~1');
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
 }

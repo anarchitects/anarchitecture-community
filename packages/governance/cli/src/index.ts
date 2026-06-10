@@ -9,8 +9,8 @@ export type {
 export { runAgovAssess, runAgovCheck } from './check.js';
 export type {
   AgovDependenciesFilters,
+  AgovDependenciesNode,
   AgovDependenciesOptions,
-  AgovDependenciesProject,
   AgovDependenciesResult,
   AgovDependenciesSummary,
   AgovDependenciesWorkspace,
@@ -20,10 +20,8 @@ export type {
 export { runAgovDependencies } from './dependencies.js';
 export type {
   AgovInspectAdapterMetadata,
-  AgovInspectDependency,
   AgovInspectFilters,
   AgovInspectOptions,
-  AgovInspectProject,
   AgovInspectResult,
   AgovInspectSummary,
   AgovInspectWorkspace,
