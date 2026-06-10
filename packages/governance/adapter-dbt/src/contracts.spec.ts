@@ -27,7 +27,7 @@ describe('dbt adapter contracts', () => {
       },
       metadata: {
         dbt: {
-          projectId: 'analytics',
+          workspaceLabel: 'analytics',
         },
       },
     } satisfies DbtGovernanceAdapterInput;
@@ -58,10 +58,18 @@ describe('dbt adapter contracts', () => {
       workspaceId: 'analytics',
       workspaceName: 'analytics',
       workspaceRoot: '/repo/analytics',
+      nodes: [
+        {
+          id: 'dbt.project.analytics',
+          kind: 'dbt-project',
+          technology: 'dbt',
+          sourceSystem: 'dbt',
+        },
+      ],
+      relations: [],
       diagnostics,
       metadata: {
         adapter: 'dbt',
-        validationMode: 'lenient',
         paths: {
           projectDir: '/repo/analytics',
           dbtProjectPath: '/repo/analytics/dbt_project.yml',
@@ -76,6 +84,12 @@ describe('dbt adapter contracts', () => {
     const coreCompatible: GovernanceWorkspaceAdapterResult = result;
 
     expect(coreCompatible.workspaceId).toBe('analytics');
+    expect(coreCompatible.nodes).toEqual([
+      expect.objectContaining({
+        id: 'dbt.project.analytics',
+        kind: 'dbt-project',
+      }),
+    ]);
     expect(result.diagnostics?.[0]?.inputField).toBe('paths.manifestPath');
     expect(result.diagnostics?.[0]?.dbtUniqueId).toBe('model.analytics.orders');
     expect(result.metadata?.dbt).toEqual({ manifestVersion: 12 });

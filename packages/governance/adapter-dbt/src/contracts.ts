@@ -87,6 +87,10 @@ export interface DbtManifest {
   nodes: Record<string, DbtManifestResource>;
   sources?: Record<string, DbtManifestResource>;
   exposures?: Record<string, DbtManifestResource>;
+  metrics?: Record<string, DbtManifestResource>;
+  semantic_models?: Record<string, DbtManifestResource>;
+  unit_tests?: Record<string, DbtManifestResource>;
+  saved_queries?: Record<string, DbtManifestResource>;
   child_map?: Record<string, string[]>;
   parent_map?: Record<string, string[]>;
   [key: string]: unknown;
@@ -131,8 +135,8 @@ export interface DbtArtifactLoadResult {
 
 export interface DbtAdapterResultMetadata extends DbtAdapterMetadataEnvelope {
   adapter: 'dbt';
-  validationMode: DbtAdapterValidationMode;
-  paths: ResolvedDbtArtifactPaths;
+  validationMode?: DbtAdapterValidationMode;
+  paths?: ResolvedDbtArtifactPaths;
 }
 
 export interface DbtAdapterResult extends GovernanceWorkspaceAdapterResult {

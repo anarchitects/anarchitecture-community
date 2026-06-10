@@ -1,20 +1,17 @@
 import path from 'node:path';
 
 import type {
-  GovernanceDependencyInput,
+  GovernanceClassificationInput,
   GovernanceNodeInput,
   GovernanceOwnershipInput,
-  GovernanceProjectInput,
-} from '@anarchitects/governance-core';
-import {
-  governanceDependenciesToRelations,
-  governanceProjectsToNodes,
+  GovernanceRelationInput,
 } from '@anarchitects/governance-core';
 
 import type {
   DbtAdapterDiagnostic,
   DbtAdapterResult,
   DbtArtifacts,
+  DbtManifest,
   DbtManifestResource,
   DbtProjectContext,
 } from './contracts.js';
@@ -30,18 +27,46 @@ import {
   unsupportedDbtResourceShapeDiagnostic,
 } from './diagnostics.js';
 
-const SUPPORTED_NODE_RESOURCE_TYPES = new Set(['model', 'seed', 'snapshot']);
-const SUPPORTED_SOURCE_RESOURCE_TYPES = new Set(['source']);
-const SUPPORTED_EXPOSURE_RESOURCE_TYPES = new Set(['exposure']);
-const DBT_ARTIFACT_DEPENDENCY_KIND = 'depends_on.nodes';
+const SUPPORTED_RESOURCE_TYPES = new Set([
+  'model',
+  'seed',
+  'snapshot',
+  'source',
+  'exposure',
+  'test',
+  'metric',
+  'semantic_model',
+  'saved_query',
+]);
+const MANIFEST_RESOURCE_COLLECTION_FIELDS = [
+  'nodes',
+  'sources',
+  'exposures',
+  'metrics',
+  'semantic_models',
+  'unit_tests',
+  'saved_queries',
+] as const;
+const DBT_ARTIFACT_RELATION_KIND = 'depends_on.nodes';
+const DBT_MANIFEST_SOURCE = {
+  id: 'dbt-manifest',
+  name: 'dbt manifest',
+  type: 'artifact',
+} as const;
+const DBT_PROJECT_SOURCE = {
+  id: 'dbt-project-config',
+  name: 'dbt project config',
+  type: 'configuration',
+} as const;
 
 type ResourceRecord = Record<string, unknown>;
+type ManifestResourceCollectionField =
+  (typeof MANIFEST_RESOURCE_COLLECTION_FIELDS)[number];
 
 interface NormalizedResource {
-  project: GovernanceProjectInput;
-  nodeMetadata: Record<string, unknown>;
-  path?: string;
-  kind: GovernanceNodeInput['kind'];
+  node: GovernanceNodeInput;
+  resourceType: string;
+  manifestRecord: ResourceRecord;
 }
 
 interface DependencyNodeIdsResult {
@@ -49,8 +74,8 @@ interface DependencyNodeIdsResult {
   unsupported: boolean;
 }
 
-interface DependencyMappingResult {
-  dependencies: GovernanceDependencyInput[];
+interface RelationMappingResult {
+  relations: GovernanceRelationInput[];
   unresolvedCount: number;
   notNormalizedCount: number;
   unsupportedCount: number;
@@ -61,12 +86,13 @@ export function normalizeDbtArtifacts(
   artifacts: DbtArtifacts,
 ): DbtAdapterResult {
   const diagnostics: DbtAdapterDiagnostic[] = [];
-  const normalizedProjects: GovernanceProjectInput[] = [];
   const normalizedResourcesById = new Map<string, NormalizedResource>();
   let skippedCount = 0;
   let invalidCount = 0;
 
-  for (const resource of Object.values(artifacts.manifest.nodes)) {
+  for (const [, resource] of collectManifestResourceEntries(
+    artifacts.manifest,
+  )) {
     const normalized = normalizeDbtManifestResource(
       resource,
       projectContext,
@@ -82,133 +108,183 @@ export function normalizeDbtArtifacts(
       continue;
     }
 
-    normalizedProjects.push(normalized.project);
-    normalizedResourcesById.set(normalized.project.id, normalized);
-  }
-
-  for (const resource of Object.values(artifacts.manifest.sources ?? {})) {
-    const normalized = normalizeDbtManifestResource(
-      resource,
-      projectContext,
-      diagnostics,
-    );
-
-    if (!normalized) {
-      invalidCount += 1;
-      continue;
-    }
-
-    normalizedProjects.push(normalized.project);
-    normalizedResourcesById.set(normalized.project.id, normalized);
-  }
-
-  for (const resource of Object.values(artifacts.manifest.exposures ?? {})) {
-    const normalized = normalizeDbtManifestResource(
-      resource,
-      projectContext,
-      diagnostics,
-    );
-
-    if (!normalized) {
-      invalidCount += 1;
-      continue;
-    }
-
-    normalizedProjects.push(normalized.project);
-    normalizedResourcesById.set(normalized.project.id, normalized);
+    normalizedResourcesById.set(normalized.node.id, normalized);
   }
 
   if (skippedCount > 0 || invalidCount > 0) {
     diagnostics.push(
       partialDbtNormalizationDiagnostic({
-        normalizedCount: normalizedProjects.length,
+        normalizedCount: normalizedResourcesById.size,
         skippedCount,
         invalidCount,
       }),
     );
   }
 
-  const nodes = governanceProjectsToNodes(normalizedProjects).map((node) => {
-    const normalized = normalizedResourcesById.get(node.id);
-
-    return {
-      ...node,
-      kind: normalized?.kind ?? node.kind,
-      technology: 'dbt',
-      sourceSystem: 'dbt',
-      path: normalized?.path,
-      authority: 'discovered',
-      confidence: 1,
-      metadata: normalized?.nodeMetadata ?? node.metadata ?? {},
-    };
-  });
-
-  const dependencyMapping = mapDbtDependencies(
-    artifacts,
+  const projectNode = buildDbtProjectNode(projectContext, artifacts);
+  const relationMapping = mapDbtRelations(
+    artifacts.manifest,
     normalizedResourcesById,
     diagnostics,
   );
-  const relations = governanceDependenciesToRelations(
-    dependencyMapping.dependencies,
-  );
 
   if (
-    dependencyMapping.unresolvedCount > 0 ||
-    dependencyMapping.notNormalizedCount > 0 ||
-    dependencyMapping.unsupportedCount > 0
+    relationMapping.unresolvedCount > 0 ||
+    relationMapping.notNormalizedCount > 0 ||
+    relationMapping.unsupportedCount > 0
   ) {
     diagnostics.push(
       partialDbtDependencyMappingDiagnostic({
-        mappedCount: dependencyMapping.dependencies.length,
-        unresolvedCount: dependencyMapping.unresolvedCount,
-        notNormalizedCount: dependencyMapping.notNormalizedCount,
-        unsupportedCount: dependencyMapping.unsupportedCount,
+        mappedCount: relationMapping.relations.length,
+        unresolvedCount: relationMapping.unresolvedCount,
+        notNormalizedCount: relationMapping.notNormalizedCount,
+        unsupportedCount: relationMapping.unsupportedCount,
       }),
     );
   }
+
+  const nodes = [
+    projectNode,
+    ...[...normalizedResourcesById.values()].map((entry) => entry.node),
+  ].sort((left, right) => left.id.localeCompare(right.id));
+  const relations = [...relationMapping.relations].sort(
+    (left, right) =>
+      (left.id ?? '').localeCompare(right.id ?? '') ||
+      left.sourceNodeId.localeCompare(right.sourceNodeId) ||
+      left.targetNodeId.localeCompare(right.targetNodeId) ||
+      (left.kind ?? '').localeCompare(right.kind ?? ''),
+  );
 
   return {
     workspaceId: `dbt:${artifacts.projectConfig.name}`,
     workspaceName: artifacts.projectConfig.name,
     workspaceRoot: projectContext.projectDir,
-    projects: normalizedProjects,
     nodes,
-    dependencies: dependencyMapping.dependencies,
     relations,
     diagnostics: [...projectContext.diagnostics, ...diagnostics],
+    metadata: {
+      adapter: 'dbt',
+      paths: projectContext.artifactPaths,
+      dbt: {
+        project: {
+          name: artifacts.projectConfig.name,
+          ...(artifacts.projectConfig.version !== undefined
+            ? { version: artifacts.projectConfig.version }
+            : {}),
+          ...(artifacts.projectConfig.configVersion !== undefined
+            ? { configVersion: artifacts.projectConfig.configVersion }
+            : {}),
+          ...(artifacts.projectConfig.profile
+            ? { profile: artifacts.projectConfig.profile }
+            : {}),
+        },
+        manifest: {
+          projectName: artifacts.manifest.metadata.project_name,
+          dbtSchemaVersion: artifacts.manifest.metadata.dbt_schema_version,
+          ...(artifacts.manifest.metadata.dbt_version
+            ? { dbtVersion: artifacts.manifest.metadata.dbt_version }
+            : {}),
+          ...(artifacts.manifest.metadata.adapter_type
+            ? { adapterType: artifacts.manifest.metadata.adapter_type }
+            : {}),
+          ...(artifacts.manifest.metadata.generated_at
+            ? { generatedAt: artifacts.manifest.metadata.generated_at }
+            : {}),
+          ...(artifacts.manifest.metadata.invocation_id
+            ? { invocationId: artifacts.manifest.metadata.invocation_id }
+            : {}),
+        },
+      },
+    },
   };
 }
 
-function mapDbtDependencies(
+function buildDbtProjectNode(
+  projectContext: DbtProjectContext,
   artifacts: DbtArtifacts,
+): GovernanceNodeInput {
+  return {
+    id: buildDbtProjectNodeId(artifacts.projectConfig.name),
+    name: artifacts.projectConfig.name,
+    kind: 'dbt-project',
+    technology: 'dbt',
+    sourceSystem: 'dbt',
+    root: projectContext.projectDir,
+    path: projectContext.dbtProjectPath,
+    tags: [],
+    source: DBT_PROJECT_SOURCE,
+    authority: 'documented',
+    confidence: 1,
+    metadata: {
+      dbt: {
+        identity: {
+          projectName: artifacts.projectConfig.name,
+          resourceType: 'project',
+        },
+        project: {
+          name: artifacts.projectConfig.name,
+          ...(artifacts.projectConfig.version !== undefined
+            ? { version: artifacts.projectConfig.version }
+            : {}),
+          ...(artifacts.projectConfig.configVersion !== undefined
+            ? { configVersion: artifacts.projectConfig.configVersion }
+            : {}),
+          ...(artifacts.projectConfig.profile
+            ? { profile: artifacts.projectConfig.profile }
+            : {}),
+          ...(artifacts.projectConfig.modelPaths
+            ? { modelPaths: artifacts.projectConfig.modelPaths }
+            : {}),
+          ...(artifacts.projectConfig.seedPaths
+            ? { seedPaths: artifacts.projectConfig.seedPaths }
+            : {}),
+          ...(artifacts.projectConfig.snapshotPaths
+            ? { snapshotPaths: artifacts.projectConfig.snapshotPaths }
+            : {}),
+          ...(artifacts.projectConfig.analysisPaths
+            ? { analysisPaths: artifacts.projectConfig.analysisPaths }
+            : {}),
+          ...(artifacts.projectConfig.macroPaths
+            ? { macroPaths: artifacts.projectConfig.macroPaths }
+            : {}),
+          ...(artifacts.projectConfig.testPaths
+            ? { testPaths: artifacts.projectConfig.testPaths }
+            : {}),
+        },
+        manifest: {
+          projectName: artifacts.manifest.metadata.project_name,
+          dbtSchemaVersion: artifacts.manifest.metadata.dbt_schema_version,
+        },
+        paths: {
+          projectDir: projectContext.projectDir,
+          dbtProjectPath: projectContext.dbtProjectPath,
+          manifestPath: projectContext.artifactPaths.manifestPath,
+        },
+      },
+    },
+  };
+}
+
+function mapDbtRelations(
+  manifest: DbtManifest,
   normalizedResourcesById: ReadonlyMap<string, NormalizedResource>,
   diagnostics: DbtAdapterDiagnostic[],
-): DependencyMappingResult {
-  const manifestResourcesById = collectManifestResources(artifacts);
-  const dependencies: GovernanceDependencyInput[] = [];
-  const dependencyKeys = new Set<string>();
+): RelationMappingResult {
+  const manifestResourcesById = collectManifestResources(manifest);
+  const relations: GovernanceRelationInput[] = [];
+  const relationKeys = new Set<string>();
   let unresolvedCount = 0;
   let notNormalizedCount = 0;
   let unsupportedCount = 0;
 
-  for (const sourceUniqueId of normalizedResourcesById.keys()) {
-    const sourceResource = manifestResourcesById.get(sourceUniqueId);
-
+  for (const sourceUniqueId of [...normalizedResourcesById.keys()].sort()) {
+    const sourceResource = normalizedResourcesById.get(sourceUniqueId);
     if (!sourceResource) {
       continue;
     }
 
-    const sourceRecord = asRecord(sourceResource);
-    if (!sourceRecord) {
-      diagnostics.push(
-        unsupportedDbtDependencyShapeDiagnostic(sourceUniqueId, 'depends_on'),
-      );
-      unsupportedCount += 1;
-      continue;
-    }
-
     const dependsOn = readDependsOnNodeIds(
-      sourceRecord,
+      sourceResource.manifestRecord,
       sourceUniqueId,
       diagnostics,
     );
@@ -217,14 +293,14 @@ function mapDbtDependencies(
       continue;
     }
 
-    for (const targetUniqueId of dependsOn.nodeIds) {
-      const dependencyKey = `${sourceUniqueId}->${targetUniqueId}`;
-      if (dependencyKeys.has(dependencyKey)) {
+    for (const targetUniqueId of [...dependsOn.nodeIds].sort()) {
+      const relationKey = `${sourceUniqueId}->${targetUniqueId}`;
+      if (relationKeys.has(relationKey)) {
         continue;
       }
 
-      const targetResource = manifestResourcesById.get(targetUniqueId);
-      if (!targetResource) {
+      const targetManifestResource = manifestResourcesById.get(targetUniqueId);
+      if (!targetManifestResource) {
         diagnostics.push(
           unresolvedDbtDependencyTargetDiagnostic(
             sourceUniqueId,
@@ -235,7 +311,8 @@ function mapDbtDependencies(
         continue;
       }
 
-      if (!normalizedResourcesById.has(targetUniqueId)) {
+      const targetResource = normalizedResourcesById.get(targetUniqueId);
+      if (!targetResource) {
         diagnostics.push(
           dependencyTargetNotNormalizedDiagnostic(
             sourceUniqueId,
@@ -246,61 +323,71 @@ function mapDbtDependencies(
         continue;
       }
 
-      dependencyKeys.add(dependencyKey);
-      dependencies.push({
-        sourceProjectId: sourceUniqueId,
-        targetProjectId: targetUniqueId,
-        type: 'static',
-        metadata: buildDependencyMetadata(
+      relationKeys.add(relationKey);
+      const relationKind = buildDbtRelationKind(
+        sourceResource.resourceType,
+        targetResource.resourceType,
+      );
+      relations.push({
+        id: buildDbtRelationId(sourceUniqueId, targetUniqueId, relationKind),
+        sourceNodeId: sourceUniqueId,
+        targetNodeId: targetUniqueId,
+        kind: relationKind,
+        source: DBT_MANIFEST_SOURCE,
+        authority: 'discovered',
+        confidence: 1,
+        metadata: buildRelationMetadata(
           sourceUniqueId,
-          sourceRecord,
+          sourceResource.manifestRecord,
           targetUniqueId,
-          targetResource,
+          targetResource.manifestRecord,
+          relationKind,
         ),
       });
     }
   }
 
   return {
-    dependencies,
+    relations,
     unresolvedCount,
     notNormalizedCount,
     unsupportedCount,
   };
 }
 
-function buildDependencyMetadata(
+function buildRelationMetadata(
   sourceUniqueId: string,
   sourceResource: ResourceRecord,
   targetUniqueId: string,
-  targetResource: DbtManifestResource,
+  targetResource: ResourceRecord,
+  relationKind: GovernanceRelationInput['kind'],
 ): Record<string, unknown> {
-  const targetRecord = asRecord(targetResource) ?? {};
-  const targetResourceType = readOptionalString(targetRecord.resource_type);
+  const targetResourceType = readOptionalString(targetResource.resource_type);
   const dependencyKind = targetResourceType === 'source' ? 'source' : 'ref';
 
   return {
     dbt: {
-      source: buildDependencyEndpoint(sourceUniqueId, sourceResource),
-      target: buildDependencyEndpoint(targetUniqueId, targetRecord),
+      source: buildRelationEndpoint(sourceUniqueId, sourceResource),
+      target: buildRelationEndpoint(targetUniqueId, targetResource),
       lineage: {
+        relationKind,
         dependencyKind,
-        artifactDependencyKind: DBT_ARTIFACT_DEPENDENCY_KIND,
+        artifactDependencyKind: DBT_ARTIFACT_RELATION_KIND,
         ...(dependencyKind === 'ref'
           ? {
               ref: {
-                packageName: readOptionalString(targetRecord.package_name),
-                name: readOptionalString(targetRecord.name),
-                fqn: readOptionalStringArray(targetRecord.fqn),
+                packageName: readOptionalString(targetResource.package_name),
+                name: readOptionalString(targetResource.name),
+                fqn: readOptionalStringArray(targetResource.fqn),
               },
             }
           : {}),
         ...(dependencyKind === 'source'
           ? {
               source: {
-                packageName: readOptionalString(targetRecord.package_name),
-                sourceName: readOptionalString(targetRecord.source_name),
-                name: readOptionalString(targetRecord.name),
+                packageName: readOptionalString(targetResource.package_name),
+                sourceName: readOptionalString(targetResource.source_name),
+                name: readOptionalString(targetResource.name),
               },
             }
           : {}),
@@ -309,7 +396,7 @@ function buildDependencyMetadata(
   };
 }
 
-function buildDependencyEndpoint(
+function buildRelationEndpoint(
   uniqueId: string,
   resource: ResourceRecord,
 ): Record<string, unknown> {
@@ -350,27 +437,41 @@ function buildDependencyEndpoint(
 }
 
 function collectManifestResources(
-  artifacts: DbtArtifacts,
+  manifest: DbtManifest,
 ): Map<string, DbtManifestResource> {
-  const resources = new Map<string, DbtManifestResource>();
+  return new Map(collectManifestResourceEntries(manifest));
+}
 
-  for (const [uniqueId, resource] of Object.entries(artifacts.manifest.nodes)) {
-    resources.set(uniqueId, resource);
+function collectManifestResourceEntries(
+  manifest: DbtManifest,
+): Array<[string, DbtManifestResource]> {
+  const manifestRecord = asRecord(manifest) ?? {};
+  const entries: Array<[string, DbtManifestResource]> = [];
+
+  for (const field of MANIFEST_RESOURCE_COLLECTION_FIELDS) {
+    const collection = readManifestResourceCollection(manifestRecord, field);
+    for (const [uniqueId, resource] of Object.entries(collection)) {
+      entries.push([uniqueId, resource]);
+    }
   }
 
-  for (const [uniqueId, resource] of Object.entries(
-    artifacts.manifest.sources ?? {},
-  )) {
-    resources.set(uniqueId, resource);
+  return entries.sort((left, right) => left[0].localeCompare(right[0]));
+}
+
+function readManifestResourceCollection(
+  manifest: ResourceRecord,
+  field: ManifestResourceCollectionField,
+): Record<string, DbtManifestResource> {
+  const collection = manifest[field];
+  const record = asRecord(collection);
+
+  if (!record) {
+    return {};
   }
 
-  for (const [uniqueId, resource] of Object.entries(
-    artifacts.manifest.exposures ?? {},
-  )) {
-    resources.set(uniqueId, resource);
-  }
-
-  return resources;
+  return Object.fromEntries(
+    Object.entries(record).filter((entry) => entry[1] !== undefined),
+  ) as Record<string, DbtManifestResource>;
 }
 
 function readDependsOnNodeIds(
@@ -497,12 +598,8 @@ function normalizeDbtManifestResource(
   const group = readOptionalString(record.group);
   const fqn = readStringArray(record.fqn);
   const fullyQualifiedName = fqn.length > 0 ? fqn.join('.') : undefined;
-
   const classification = deriveClassification(resourceMeta, resourceTags);
-  const kind = resourceKind(resourceType);
-  const rootPath = absoluteSourcePath
-    ? path.dirname(absoluteSourcePath)
-    : projectContext.projectDir;
+  const ownership = normalizeOwner(record.owner, group);
   const dbtMetadata = buildDbtResourceMetadata(record, {
     uniqueId,
     packageName,
@@ -527,26 +624,27 @@ function normalizeDbtManifestResource(
   }
 
   return {
-    kind,
-    path: absoluteSourcePath,
-    project: {
+    resourceType,
+    manifestRecord: record,
+    node: {
       id: uniqueId,
       name: resourceName,
-      root: rootPath,
-      type: kind,
+      kind: buildDbtNodeKind(resourceType),
+      technology: 'dbt',
+      sourceSystem: 'dbt',
+      root: absoluteSourcePath
+        ? path.dirname(absoluteSourcePath)
+        : projectContext.projectDir,
+      ...(absoluteSourcePath ? { path: absoluteSourcePath } : {}),
       tags: resourceTags,
-      ...(classification.domain ? { domain: classification.domain } : {}),
-      ...(classification.layer ? { layer: classification.layer } : {}),
-      ...(classification.scope ? { scope: classification.scope } : {}),
-      ...(normalizeOwner(record.owner, group)
-        ? { ownership: normalizeOwner(record.owner, group) }
-        : {}),
+      ...(classification ? { classification } : {}),
+      ...(ownership ? { ownership } : {}),
+      source: DBT_MANIFEST_SOURCE,
+      authority: 'discovered',
+      confidence: 1,
       metadata: {
         dbt: dbtMetadata,
       },
-    },
-    nodeMetadata: {
-      dbt: dbtMetadata,
     },
   };
 }
@@ -682,23 +780,22 @@ function collectIncompleteMetadataFields(
 function deriveClassification(
   meta: ResourceRecord,
   tags: readonly string[],
-): {
-  domain?: string;
-  layer?: string;
-  scope?: string;
-} {
+): GovernanceClassificationInput | undefined {
   const governanceMeta = asRecord(meta.governance);
   const scope =
     readOptionalString(governanceMeta?.scope ?? meta.scope) ?? inferScope(tags);
+  const domain = readOptionalString(governanceMeta?.domain ?? meta.domain);
+  const layer = readOptionalString(governanceMeta?.layer ?? meta.layer);
+
+  if (!domain && !layer && !scope && tags.length === 0) {
+    return undefined;
+  }
 
   return {
-    ...(readOptionalString(governanceMeta?.domain ?? meta.domain)
-      ? { domain: readOptionalString(governanceMeta?.domain ?? meta.domain) }
-      : {}),
-    ...(readOptionalString(governanceMeta?.layer ?? meta.layer)
-      ? { layer: readOptionalString(governanceMeta?.layer ?? meta.layer) }
-      : {}),
+    ...(domain ? { domain } : {}),
+    ...(layer ? { layer } : {}),
     ...(scope ? { scope } : {}),
+    ...(tags.length > 0 ? { tags: [...tags] } : {}),
   };
 }
 
@@ -758,18 +855,60 @@ function readContract(resource: ResourceRecord): unknown {
   );
 }
 
-function resourceKind(resourceType: string): GovernanceNodeInput['kind'] {
-  return resourceType === 'exposure' || resourceType === 'source'
-    ? 'resource'
-    : 'asset';
+function buildDbtProjectNodeId(projectName: string): string {
+  return `dbt.project.${projectName}`;
+}
+
+function buildDbtNodeKind(resourceType: string): GovernanceNodeInput['kind'] {
+  switch (resourceType) {
+    case 'model':
+      return 'dbt-model';
+    case 'seed':
+      return 'dbt-seed';
+    case 'snapshot':
+      return 'dbt-snapshot';
+    case 'source':
+      return 'dbt-source';
+    case 'exposure':
+      return 'dbt-exposure';
+    case 'test':
+      return 'dbt-test';
+    case 'metric':
+      return 'dbt-metric';
+    case 'semantic_model':
+      return 'dbt-semantic-model';
+    case 'saved_query':
+      return 'dbt-saved-query';
+    default:
+      return `dbt-${resourceType.replaceAll('_', '-')}`;
+  }
+}
+
+function buildDbtRelationKind(
+  sourceResourceType: string,
+  targetResourceType: string,
+): GovernanceRelationInput['kind'] {
+  if (sourceResourceType === 'exposure') {
+    return 'exposes';
+  }
+
+  if (sourceResourceType === 'test' || targetResourceType === 'test') {
+    return 'tests';
+  }
+
+  return 'lineage';
+}
+
+function buildDbtRelationId(
+  sourceNodeId: string,
+  targetNodeId: string,
+  relationKind: GovernanceRelationInput['kind'],
+): string {
+  return `dbt:${relationKind}:${sourceNodeId}->${targetNodeId}`;
 }
 
 function isSupportedResourceType(resourceType: string): boolean {
-  return (
-    SUPPORTED_NODE_RESOURCE_TYPES.has(resourceType) ||
-    SUPPORTED_SOURCE_RESOURCE_TYPES.has(resourceType) ||
-    SUPPORTED_EXPOSURE_RESOURCE_TYPES.has(resourceType)
-  );
+  return SUPPORTED_RESOURCE_TYPES.has(resourceType);
 }
 
 function isSkippedResource(resource: DbtManifestResource): boolean {
