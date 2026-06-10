@@ -11,6 +11,7 @@ interface DbtDiagnosticOptions {
   inputField?: DbtAdapterInputField;
   path?: string;
   dbtUniqueId?: string;
+  reference?: DbtAdapterDiagnostic['reference'];
   details?: Record<string, unknown>;
   severity?: DbtAdapterDiagnostic['severity'];
   kind?: DbtAdapterDiagnostic['kind'];
@@ -24,6 +25,7 @@ function createDiagnostic({
   inputField,
   path,
   dbtUniqueId,
+  reference,
   details,
   severity,
   kind,
@@ -40,6 +42,7 @@ function createDiagnostic({
     ...(inputField ? { inputField } : {}),
     ...(path ? { path } : {}),
     ...(dbtUniqueId ? { dbtUniqueId } : {}),
+    ...(reference ? { reference } : {}),
     ...(recommendation ? { recommendation } : {}),
     ...(details ? { details } : {}),
   };
@@ -285,11 +288,14 @@ export function incompleteDbtMetadataDiagnostic(
   return createDiagnostic({
     code: 'governance.dbt_adapter.incomplete_metadata',
     message:
-      'Normalized dbt resource is missing optional metadata that downstream extensions may use for dbt-aware analysis.',
+      'Normalized dbt node is missing optional metadata that downstream extensions may use for dbt-aware analysis.',
     severity: 'info',
     kind: 'observation',
     category: 'adapter',
     dbtUniqueId: uniqueId,
+    reference: {
+      nodeId: uniqueId,
+    },
     path,
     details: {
       uniqueId,
@@ -322,7 +328,7 @@ export function partialDbtNormalizationDiagnostic({
       invalidCount,
     },
     recommendation:
-      'Review skipped or invalid resource diagnostics to understand incomplete adapter coverage.',
+      'Review skipped or invalid node diagnostics to understand incomplete adapter coverage.',
   });
 }
 
@@ -332,17 +338,21 @@ export function unresolvedDbtDependencyTargetDiagnostic(
 ): DbtAdapterDiagnostic {
   return createDiagnostic({
     code: 'governance.dbt_adapter.unresolved_dependency_target',
-    message: `dbt dependency target "${targetUniqueId}" could not be resolved from manifest artifacts.`,
+    message: `dbt relation target node "${targetUniqueId}" could not be resolved from manifest artifacts.`,
     severity: 'warning',
     kind: 'warning',
     category: 'adapter',
     dbtUniqueId: sourceUniqueId,
+    reference: {
+      nodeId: sourceUniqueId,
+      relatedNodeIds: [sourceUniqueId, targetUniqueId],
+    },
     details: {
       sourceUniqueId,
       targetUniqueId,
     },
     recommendation:
-      'Ensure the manifest includes the referenced upstream resource or use matching artifact versions.',
+      'Ensure the manifest includes the referenced upstream node or use matching artifact versions.',
   });
 }
 
@@ -352,11 +362,15 @@ export function dependencyTargetNotNormalizedDiagnostic(
 ): DbtAdapterDiagnostic {
   return createDiagnostic({
     code: 'governance.dbt_adapter.dependency_target_not_normalized',
-    message: `dbt dependency target "${targetUniqueId}" was present in manifest artifacts but was not normalized as a governance node.`,
+    message: `dbt relation target node "${targetUniqueId}" was present in manifest artifacts but was not normalized as a governance node.`,
     severity: 'warning',
     kind: 'warning',
     category: 'adapter',
     dbtUniqueId: sourceUniqueId,
+    reference: {
+      nodeId: sourceUniqueId,
+      relatedNodeIds: [sourceUniqueId, targetUniqueId],
+    },
     details: {
       sourceUniqueId,
       targetUniqueId,
@@ -372,11 +386,14 @@ export function unsupportedDbtDependencyShapeDiagnostic(
 ): DbtAdapterDiagnostic {
   return createDiagnostic({
     code: 'governance.dbt_adapter.unsupported_dependency_shape',
-    message: `dbt dependency metadata for "${sourceUniqueId}" has unsupported shape at "${field}".`,
+    message: `dbt relation metadata for node "${sourceUniqueId}" has unsupported shape at "${field}".`,
     severity: 'warning',
     kind: 'warning',
     category: 'adapter',
     dbtUniqueId: sourceUniqueId,
+    reference: {
+      nodeId: sourceUniqueId,
+    },
     details: {
       sourceUniqueId,
       field,
@@ -400,7 +417,7 @@ export function partialDbtDependencyMappingDiagnostic({
   return createDiagnostic({
     code: 'governance.dbt_adapter.partial_dependency_mapping',
     message:
-      'dbt dependency mapping completed with unresolved or unsupported dependency metadata.',
+      'dbt relation mapping completed with unresolved or unsupported relation metadata.',
     severity: 'warning',
     kind: 'warning',
     category: 'adapter',
@@ -411,6 +428,6 @@ export function partialDbtDependencyMappingDiagnostic({
       unsupportedCount,
     },
     recommendation:
-      'Review dependency diagnostics to understand which manifest edges could not be mapped.',
+      'Review relation diagnostics to understand which manifest edges could not be mapped.',
   });
 }

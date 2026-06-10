@@ -15,7 +15,7 @@ const fixturesRoot = fileURLToPath(
 );
 
 describe('dbt adapter flow e2e', () => {
-  it('produces a Core-compatible workspace adapter result for a simple valid dbt project', () => {
+  it('produces a canonical workspace adapter result for a simple valid dbt project', () => {
     const flow = runValidAdapterFlow('simple-project');
     const result: GovernanceWorkspaceAdapterResult = flow.result;
 
@@ -23,21 +23,23 @@ describe('dbt adapter flow e2e', () => {
     expect(result.workspaceRoot).toBe(
       path.join(fixturesRoot, 'simple-project'),
     );
-    expect(result.projects).toEqual([
+    expect(result).not.toHaveProperty('projects');
+    expect(result).not.toHaveProperty('dependencies');
+    expect(result.nodes).toEqual([
+      expect.objectContaining({
+        id: 'dbt.project.simple_project',
+        name: 'simple_project',
+        kind: 'dbt-project',
+        technology: 'dbt',
+      }),
       expect.objectContaining({
         id: 'model.simple_project.hello_world',
         name: 'hello_world',
-        type: 'asset',
-      }),
-    ]);
-    expect(result.nodes).toEqual([
-      expect.objectContaining({
-        id: 'model.simple_project.hello_world',
-        kind: 'asset',
+        kind: 'dbt-model',
         technology: 'dbt',
       }),
     ]);
-    expect(result.dependencies).toEqual([]);
+    expect(result.relations).toEqual([]);
     expect(result.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -54,6 +56,7 @@ describe('dbt adapter flow e2e', () => {
 
     expect(result.nodes?.map((node) => node.id)).toEqual(
       expect.arrayContaining([
+        'dbt.project.layered_project',
         'model.layered_project.stg_orders',
         'model.layered_project.stg_customers',
         'model.layered_project.int_orders_enriched',
@@ -66,39 +69,47 @@ describe('dbt adapter flow e2e', () => {
       ]),
     );
 
-    expect(result.dependencies).toEqual(
+    expect(result.relations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          sourceProjectId: 'model.layered_project.stg_orders',
-          targetProjectId: 'source.layered_project.raw.orders',
+          sourceNodeId: 'model.layered_project.stg_orders',
+          targetNodeId: 'source.layered_project.raw.orders',
+          kind: 'lineage',
         }),
         expect.objectContaining({
-          sourceProjectId: 'model.layered_project.int_orders_enriched',
-          targetProjectId: 'model.layered_project.stg_orders',
+          sourceNodeId: 'model.layered_project.int_orders_enriched',
+          targetNodeId: 'model.layered_project.stg_orders',
+          kind: 'lineage',
         }),
         expect.objectContaining({
-          sourceProjectId: 'model.layered_project.int_orders_enriched',
-          targetProjectId: 'model.layered_project.stg_customers',
+          sourceNodeId: 'model.layered_project.int_orders_enriched',
+          targetNodeId: 'model.layered_project.stg_customers',
+          kind: 'lineage',
         }),
         expect.objectContaining({
-          sourceProjectId: 'model.layered_project.int_orders_enriched',
-          targetProjectId: 'seed.layered_project.country_codes',
+          sourceNodeId: 'model.layered_project.int_orders_enriched',
+          targetNodeId: 'seed.layered_project.country_codes',
+          kind: 'lineage',
         }),
         expect.objectContaining({
-          sourceProjectId: 'model.layered_project.fct_orders',
-          targetProjectId: 'model.layered_project.int_orders_enriched',
+          sourceNodeId: 'model.layered_project.fct_orders',
+          targetNodeId: 'model.layered_project.int_orders_enriched',
+          kind: 'lineage',
         }),
       ]),
     );
 
     expect(
-      result.dependencies?.filter(
-        (dependency) =>
-          dependency.sourceProjectId ===
-          'model.layered_project.int_orders_enriched',
+      result.relations?.filter(
+        (relation) =>
+          relation.sourceNodeId === 'model.layered_project.int_orders_enriched',
       ),
     ).toHaveLength(3);
-    expect(result.relations?.length).toBe(result.dependencies?.length);
+    expect(result.relations?.map((relation) => relation.id)).toEqual(
+      expect.arrayContaining([
+        'dbt:lineage:model.layered_project.fct_orders->model.layered_project.int_orders_enriched',
+      ]),
+    );
   });
 
   it('preserves metadata-rich dbt facts for downstream extensions without rereading artifacts', () => {
@@ -219,12 +230,16 @@ describe('dbt adapter flow e2e', () => {
     const { result } = runValidAdapterFlow('unresolved-dependency');
 
     expect(result.workspaceName).toBe('unresolved_dependency');
-    expect(result.dependencies).toEqual([]);
+    expect(result.relations).toEqual([]);
     expect(result.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          id: 'dbt.project.unresolved_dependency',
+          kind: 'dbt-project',
+        }),
+        expect.objectContaining({
           id: 'model.unresolved_dependency.orders',
-          kind: 'asset',
+          kind: 'dbt-model',
         }),
       ]),
     );
