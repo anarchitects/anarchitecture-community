@@ -1,13 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import type { GovernanceProjectInput } from '@anarchitects/governance-core';
-
 import { unresolvedImportDiagnostic } from './diagnostics.js';
 import { parseImportReferences } from './parse-imports.js';
 import { discoverTypeScriptSourceFiles } from './source-file-discovery.js';
 import type {
   TsConfigResolutionModel,
+  TypeScriptDiscoveredProject,
   TypeScriptImportEdge,
   TypeScriptImportGraph,
   TypeScriptSourceFileNode,
@@ -18,7 +17,7 @@ const RESOLVABLE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'] as const;
 
 export function buildTypeScriptImportGraph(options: {
   workspaceRoot: string;
-  projects: readonly GovernanceProjectInput[];
+  projects: readonly TypeScriptDiscoveredProject[];
   tsconfig?: TsConfigResolutionModel;
 }): TypeScriptImportGraph {
   const workspaceRoot = path.resolve(options.workspaceRoot);

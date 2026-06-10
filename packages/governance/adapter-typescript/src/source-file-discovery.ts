@@ -1,9 +1,10 @@
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
-import type { GovernanceProjectInput } from '@anarchitects/governance-core';
-
-import type { TypeScriptSourceFileNode } from './types.js';
+import type {
+  TypeScriptDiscoveredProject,
+  TypeScriptSourceFileNode,
+} from './types.js';
 
 const SOURCE_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRECTORY_NAMES = new Set([
@@ -16,7 +17,7 @@ const IGNORED_DIRECTORY_NAMES = new Set([
 
 export function discoverTypeScriptSourceFiles(
   workspaceRoot: string,
-  projects: readonly GovernanceProjectInput[],
+  projects: readonly TypeScriptDiscoveredProject[],
 ): TypeScriptSourceFileNode[] {
   const files: TypeScriptSourceFileNode[] = [];
   const seenFiles = new Set<string>();

@@ -20,7 +20,7 @@ import {
 } from './workspace-adapter.js';
 
 describe('createTypeScriptWorkspaceAdapter', () => {
-  it('implements the Core-owned adapter contract and emits canonical adapter results', () => {
+  it('implements the Core adapter contract with canonical nodes and relations only', () => {
     const workspaceRoot = materializeFixture('pnpm');
     const adapter = createTypeScriptWorkspaceAdapter({
       discoveryConfig: {
@@ -46,100 +46,78 @@ describe('createTypeScriptWorkspaceAdapter', () => {
 
     expect(result.workspaceName).toBe('@fixture/root');
     expect(result.workspaceRoot).toBe('.');
-    expect(result.projects).toEqual([
-      expect.objectContaining({
-        id: 'web',
-        root: 'apps/web',
-      }),
-      expect.objectContaining({
-        id: 'customer',
-        root: 'packages/customer',
-      }),
-      expect.objectContaining({
-        id: 'order',
-        root: 'packages/order',
-      }),
-    ]);
-    expect(result.dependencies).toEqual([
-      {
-        sourceProjectId: 'customer',
-        targetProjectId: 'order',
-        type: 'static',
-        sourceFile: 'packages/customer/src/index.ts',
-      },
-      {
-        sourceProjectId: 'web',
-        targetProjectId: 'customer',
-        type: 'static',
-        sourceFile: 'apps/web/src/index.ts',
-      },
-    ]);
-    expect(result.nodes).toEqual([
-      expect.objectContaining({
-        id: 'web',
-        name: 'web',
-        root: 'apps/web',
-        path: 'apps/web',
-        kind: 'application',
-        technology: 'typescript',
-        sourceSystem: 'typescript',
-        tags: expect.arrayContaining(['type:app']),
-        classification: expect.objectContaining({
+    expect(result).not.toHaveProperty('projects');
+    expect(result).not.toHaveProperty('dependencies');
+    expect(result.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'workspace:@fixture/root',
+          kind: 'package-manager-package',
+          sourceSystem: 'pnpm',
+        }),
+        expect.objectContaining({
+          id: 'web',
+          name: 'web',
+          root: 'apps/web',
+          path: 'apps/web',
+          kind: 'typescript-workspace-project',
+          technology: 'typescript',
+          sourceSystem: 'pnpm',
           tags: expect.arrayContaining(['type:app']),
+          classification: expect.objectContaining({
+            tags: expect.arrayContaining(['type:app']),
+          }),
         }),
-        metadata: expect.objectContaining({
-          projectType: 'application',
-          compatibilityProjectType: 'unknown',
+        expect.objectContaining({
+          id: 'customer',
+          root: 'packages/customer',
+          kind: 'typescript-workspace-project',
         }),
-      }),
-      expect.objectContaining({
-        id: 'customer',
-        root: 'packages/customer',
-        kind: 'library',
-        tags: expect.arrayContaining(['type:lib']),
-      }),
-      expect.objectContaining({
-        id: 'order',
-        root: 'packages/order',
-        kind: 'library',
-        tags: expect.arrayContaining(['type:lib']),
-      }),
-    ]);
-    expect(result.relations).toEqual([
-      expect.objectContaining({
-        id: 'legacy:customer->order:static:0',
-        sourceNodeId: 'customer',
-        targetNodeId: 'order',
-        kind: 'dependency',
-        metadata: expect.objectContaining({
-          dependencyType: 'static',
-          compatibilityDependencyType: 'static',
-          sourceFile: 'packages/customer/src/index.ts',
+        expect.objectContaining({
+          id: 'order',
+          root: 'packages/order',
+          kind: 'typescript-workspace-project',
         }),
-      }),
-      expect.objectContaining({
-        id: 'legacy:web->customer:static:1',
-        sourceNodeId: 'web',
-        targetNodeId: 'customer',
-        kind: 'dependency',
-        metadata: expect.objectContaining({
-          dependencyType: 'static',
-          compatibilityDependencyType: 'static',
-          sourceFile: 'apps/web/src/index.ts',
-        }),
-      }),
-    ]);
-    expect(result.nodes?.map((node) => node.id)).toEqual(
-      result.projects?.map((project) => project.id),
+      ]),
     );
-    expect(
-      result.relations?.map((relation) => ({
-        sourceProjectId: relation.sourceNodeId,
-        targetProjectId: relation.targetNodeId,
-        type: relation.metadata?.dependencyType,
-        sourceFile: relation.metadata?.sourceFile,
-      })),
-    ).toEqual(result.dependencies);
+    expect(result.relations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'typescript:workspace-member:workspace:@fixture/root->customer',
+          sourceNodeId: 'workspace:@fixture/root',
+          targetNodeId: 'customer',
+          kind: 'workspace-member',
+        }),
+        expect.objectContaining({
+          sourceNodeId: 'customer',
+          targetNodeId: 'order',
+          kind: 'import',
+          metadata: {
+            typescript: {
+              import: expect.objectContaining({
+                sourceFile: 'packages/customer/src/index.ts',
+                importKind: 'static-import',
+              }),
+            },
+          },
+        }),
+        expect.objectContaining({
+          sourceNodeId: 'web',
+          targetNodeId: 'customer',
+          kind: 'import',
+        }),
+      ]),
+    );
+    expect(result.capabilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'governance.typescript.workspace',
+        }),
+        expect.objectContaining({
+          id: 'governance.typescript.tsconfig',
+        }),
+      ]),
+    );
     expect(result.diagnostics).toEqual([]);
   });
 });
@@ -158,7 +136,7 @@ describe('generic Governance adapter exports', () => {
     });
   });
 
-  it('creates a compatible adapter without host-owned discovery defaults in the CLI', () => {
+  it('creates a canonical adapter without CLI-owned discovery defaults', () => {
     const workspaceRoot = materializeFixture('pnpm');
 
     const created = createGovernanceWorkspaceAdapter();
@@ -166,8 +144,9 @@ describe('generic Governance adapter exports', () => {
     const typedDefault: GovernanceWorkspaceAdapter<string> =
       governanceWorkspaceAdapter;
 
-    expect(typedCreated.loadWorkspace(workspaceRoot).projects).toEqual(
+    expect(typedCreated.loadWorkspace(workspaceRoot).nodes).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({ id: 'workspace:@fixture/root' }),
         expect.objectContaining({ id: 'web' }),
         expect.objectContaining({ id: 'customer' }),
         expect.objectContaining({ id: 'order' }),
@@ -176,19 +155,7 @@ describe('generic Governance adapter exports', () => {
     expect(typedDefault.id).toBe('governance-adapter:typescript');
   });
 
-  it('implements the optional Core-owned probe contract', () => {
-    const adapter = createGovernanceWorkspaceAdapter();
-
-    expect(adapter.probe).toBeTypeOf('function');
-
-    const result = adapter.probe?.(materializeFixture('pnpm'));
-    expect(result).toMatchObject({
-      supported: true,
-      confidence: 'high',
-    });
-  });
-
-  it('includes metadata diagnostics in loadWorkspace results and continues discovery', () => {
+  it('includes metadata diagnostics in canonical loadWorkspace results and continues discovery', () => {
     const workspaceRoot = materializeFixture('pnpm');
     writeJsonFile(path.join(workspaceRoot, 'packages', 'customer'), {
       name: '@fixture/customer',
@@ -200,7 +167,7 @@ describe('generic Governance adapter exports', () => {
     const adapter = createGovernanceWorkspaceAdapter();
     const result = adapter.loadWorkspace(workspaceRoot);
 
-    expect(result.projects).toEqual(
+    expect(result.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'web' }),
         expect.objectContaining({ id: 'customer' }),
@@ -220,7 +187,7 @@ describe('generic Governance adapter exports', () => {
     );
   });
 
-  it('passes package metadata config through createGovernanceWorkspaceAdapter to discovery', () => {
+  it('passes package metadata config through createGovernanceWorkspaceAdapter to canonical node metadata', () => {
     const workspaceRoot = materializeFixture('pnpm');
     writeJsonFile(path.join(workspaceRoot, 'packages', 'customer'), {
       name: '@fixture/customer',
@@ -242,19 +209,63 @@ describe('generic Governance adapter exports', () => {
     });
     const result = adapter.loadWorkspace(workspaceRoot);
 
-    expect(result.projects).toEqual(
+    expect(result.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'customer',
-          domain: 'booking',
-          layer: 'domain',
-          scope: 'booking',
-          metadata: expect.objectContaining({ owner: 'booking-team' }),
+          classification: expect.objectContaining({
+            domain: 'booking',
+            layer: 'domain',
+            scope: 'booking',
+          }),
+          ownership: expect.objectContaining({
+            team: 'booking-team',
+          }),
+          metadata: expect.objectContaining({
+            discovery: expect.objectContaining({ owner: 'booking-team' }),
+          }),
           tags: expect.arrayContaining([
             'domain:booking',
             'layer:domain',
             'scope:booking',
           ]),
+        }),
+      ]),
+    );
+  });
+
+  it('emits tsconfig nodes and path-mapping relations when tsconfig artifacts are present', () => {
+    const workspaceRoot = materializeTsconfigFixture('alias-baseurl');
+    const adapter = createGovernanceWorkspaceAdapter({
+      discoveryConfig: {
+        projects: [
+          { pattern: 'apps/*', name: '{segment:1}', tags: ['type:app'] },
+          { pattern: 'packages/*', name: '{segment:1}', tags: ['type:lib'] },
+        ],
+      },
+    });
+    const result = adapter.loadWorkspace(workspaceRoot);
+
+    expect(result.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'tsconfig:tsconfig.json',
+          kind: 'typescript-tsconfig',
+          technology: 'typescript',
+        }),
+      ]),
+    );
+    expect(result.relations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceNodeId: 'tsconfig:tsconfig.json',
+          targetNodeId: 'customer',
+          kind: 'path-mapping',
+        }),
+        expect.objectContaining({
+          sourceNodeId: 'tsconfig:tsconfig.json',
+          targetNodeId: 'order',
+          kind: 'path-mapping',
         }),
       ]),
     );
@@ -279,6 +290,24 @@ function materializeFixture(name: string): string {
   const sourceRoot = fixturePath(name);
   const root = mkdtempSync(
     path.join(tmpdir(), 'governance-typescript-workspace-adapter-'),
+  );
+  cpSync(sourceRoot, root, { recursive: true });
+  materializePackageJsonTemplates(root);
+  return root;
+}
+
+function materializeTsconfigFixture(name: string): string {
+  const sourceRoot = path.join(
+    specDir,
+    '..',
+    'tests',
+    'fixtures',
+    'typescript-adapter',
+    'tsconfig-alias-resolution',
+    name,
+  );
+  const root = mkdtempSync(
+    path.join(tmpdir(), 'governance-typescript-workspace-adapter-tsconfig-'),
   );
   cpSync(sourceRoot, root, { recursive: true });
   materializePackageJsonTemplates(root);

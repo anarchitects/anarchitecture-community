@@ -3,13 +3,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type {
-  GovernanceDependencyInput,
-  GovernanceProjectInput,
-} from '@anarchitects/governance-core';
-
 import { mapTypeScriptImportsToGovernanceDependencies } from './map-imports-to-projects.js';
-import type { TypeScriptImportGraph } from './types.js';
+import type {
+  TypeScriptDiscoveredProject,
+  TypeScriptImportGraph,
+} from './types.js';
 
 const specDir = fileURLToPath(new URL('.', import.meta.url));
 
@@ -39,8 +37,15 @@ describe('TypeScript import to project mapping', () => {
     });
 
     expect(result).toEqual({
-      dependencies: [
-        dependency('app', 'shared', 'static', 'apps/app/src/index.ts'),
+      relations: [
+        relation(
+          'app',
+          'shared',
+          'apps/app/src/index.ts',
+          '../../packages/shared/src/index',
+          'packages/shared/src/index.ts',
+          false,
+        ),
       ],
       diagnostics: [],
     });
@@ -70,12 +75,14 @@ describe('TypeScript import to project mapping', () => {
       ),
     });
 
-    expect(result.dependencies).toEqual([
-      dependency(
+    expect(result.relations).toEqual([
+      relation(
         'customer-domain',
         'shared',
-        'static',
         'libs/customer/domain/src/index.ts',
+        '@repo/shared',
+        'libs/shared/src/index.ts',
+        false,
       ),
     ]);
   });
@@ -107,8 +114,15 @@ describe('TypeScript import to project mapping', () => {
     });
 
     expect(result).toEqual({
-      dependencies: [
-        dependency('app', 'shared', 'static', 'apps/app/src/index.ts'),
+      relations: [
+        relation(
+          'app',
+          'shared',
+          'apps/app/src/index.ts',
+          '@repo/shared/subpath',
+          undefined,
+          true,
+        ),
       ],
       diagnostics: [],
     });
@@ -144,7 +158,7 @@ describe('TypeScript import to project mapping', () => {
     });
 
     expect(result).toEqual({
-      dependencies: [],
+      relations: [],
       diagnostics: [],
     });
   });
@@ -181,8 +195,15 @@ describe('TypeScript import to project mapping', () => {
       ),
     });
 
-    expect(result.dependencies).toEqual([
-      dependency('app', 'shared', 'static', 'apps/app/src/a.ts'),
+    expect(result.relations).toEqual([
+      relation(
+        'app',
+        'shared',
+        'apps/app/src/a.ts',
+        '@repo/shared',
+        'packages/shared/src/index.ts',
+        false,
+      ),
     ]);
   });
 
@@ -219,9 +240,23 @@ describe('TypeScript import to project mapping', () => {
       ),
     });
 
-    expect(result.dependencies).toEqual([
-      dependency('alpha', 'gamma', 'static', 'libs/alpha/src/index.ts'),
-      dependency('beta', 'gamma', 'static', 'libs/beta/src/index.ts'),
+    expect(result.relations).toEqual([
+      relation(
+        'alpha',
+        'gamma',
+        'libs/alpha/src/index.ts',
+        '@repo/gamma',
+        'libs/gamma/src/index.ts',
+        false,
+      ),
+      relation(
+        'beta',
+        'gamma',
+        'libs/beta/src/index.ts',
+        '@repo/gamma',
+        'libs/gamma/src/index.ts',
+        false,
+      ),
     ]);
   });
 
@@ -243,12 +278,12 @@ describe('TypeScript import to project mapping', () => {
     });
 
     expect(result).toEqual({
-      dependencies: [],
+      relations: [],
       diagnostics: [
         {
           code: 'governance.typescript_adapter.unresolved_internal_import',
           message:
-            'Internal import specifier "@repo/missing" from "apps/app/src/index.ts" could not be mapped to a discovered project.',
+            'Internal import specifier "@repo/missing" from "apps/app/src/index.ts" could not be mapped to a discovered governance node.',
           source: 'governance.typescript_adapter',
           path: '/apps~1app~1src~1index.ts/imports/@repo~1missing',
         },
@@ -264,12 +299,12 @@ describe('TypeScript import to project mapping', () => {
     });
 
     expect(result).toEqual({
-      dependencies: [],
+      relations: [],
       diagnostics: [
         {
           code: 'governance.typescript_adapter.source_file_outside_project',
           message:
-            'Source file "scripts/tools/check.ts" does not belong to a discovered project.',
+            'Source file "scripts/tools/check.ts" does not belong to a discovered governance node root.',
           source: 'governance.typescript_adapter',
           path: '/scripts~1tools~1check.ts',
         },
@@ -288,16 +323,16 @@ describe('TypeScript import to project mapping', () => {
     });
 
     expect(result).toEqual({
-      dependencies: [],
+      relations: [],
       diagnostics: [
         {
           code: 'governance.typescript_adapter.ambiguous_project_match',
           message:
-            'File "packages/shared/ui/src/index.ts" matched multiple discovered projects.',
+            'File "packages/shared/ui/src/index.ts" matched multiple discovered governance nodes.',
           source: 'governance.typescript_adapter',
           path: '/packages~1shared~1ui~1src~1index.ts',
           details: {
-            projectIds: ['shared-ui', 'shared'],
+            nodeIds: ['shared-ui', 'shared'],
           },
         },
       ],
@@ -329,7 +364,7 @@ function createWorkspace(files: Record<string, string>): string {
   return workspaceRoot;
 }
 
-function project(name: string, root: string): GovernanceProjectInput {
+function project(name: string, root: string): TypeScriptDiscoveredProject {
   return {
     id: name,
     name,
@@ -344,17 +379,37 @@ function sourceFile(filePath: string): { filePath: string } {
   return { filePath };
 }
 
-function dependency(
-  sourceProjectId: string,
-  targetProjectId: string,
-  type: string,
+function relation(
+  sourceNodeId: string,
+  targetNodeId: string,
   sourceFile: string,
-): GovernanceDependencyInput {
+  specifier: string,
+  resolvedFile?: string,
+  external = false,
+) {
   return {
-    sourceProjectId,
-    targetProjectId,
-    type,
-    sourceFile,
+    id: `typescript:import:${sourceNodeId}->${targetNodeId}:static-import:${specifier}`,
+    sourceNodeId,
+    targetNodeId,
+    kind: 'import',
+    source: {
+      id: 'typescript-import-graph',
+      name: 'TypeScript import graph',
+      type: 'analysis',
+    },
+    authority: 'discovered',
+    confidence: 1,
+    metadata: {
+      typescript: expect.objectContaining({
+        import: expect.objectContaining({
+          sourceFile,
+          specifier,
+          importKind: 'static-import',
+          external,
+          ...(resolvedFile ? { resolvedFile } : {}),
+        }),
+      }),
+    },
   };
 }
 

@@ -63,11 +63,11 @@ describe('TypeScript adapter tsconfig alias fixtures', () => {
         external: false,
       },
     ]);
-    expect(analysis.mapping.dependencies).toEqual([
-      dependency('web', 'customer', 'static', 'apps/web/src/main.ts'),
-      dependency('web', 'order', 'static', 'apps/web/src/main.ts'),
-      dependency('web', 'shared', 'static', 'apps/web/src/main.ts'),
-      dependency('web', 'shared-base', 'static', 'apps/web/src/main.ts'),
+    expect(analysis.mapping.relations).toEqual([
+      relation('web', 'customer', 'apps/web/src/main.ts'),
+      relation('web', 'order', 'apps/web/src/main.ts'),
+      relation('web', 'shared', 'apps/web/src/main.ts'),
+      relation('web', 'shared-base', 'apps/web/src/main.ts'),
     ]);
     expect(allDiagnostics(analysis)).toEqual([]);
   });
@@ -104,8 +104,8 @@ describe('TypeScript adapter tsconfig alias fixtures', () => {
         external: false,
       },
     ]);
-    expect(analysis.mapping.dependencies).toEqual([
-      dependency('web', 'shared', 'static', 'apps/web/src/main.ts'),
+    expect(analysis.mapping.relations).toEqual([
+      relation('web', 'shared', 'apps/web/src/main.ts'),
     ]);
     expect(allDiagnostics(analysis)).toEqual([]);
   });
@@ -145,8 +145,8 @@ describe('TypeScript adapter tsconfig alias fixtures', () => {
         external: false,
       },
     ]);
-    expect(analysis.mapping.dependencies).toEqual([
-      dependency('web', 'valid-core', 'static', 'apps/web/src/main.ts'),
+    expect(analysis.mapping.relations).toEqual([
+      relation('web', 'valid-core', 'apps/web/src/main.ts'),
     ]);
     expect(allDiagnostics(analysis)).toEqual(analysis.tsconfig.diagnostics);
   });
@@ -180,12 +180,12 @@ describe('TypeScript adapter tsconfig alias fixtures', () => {
         path: '/apps~1web~1src~1main.ts/imports/@app~1missing',
       },
     ]);
-    expect(analysis.mapping.dependencies).toEqual([]);
+    expect(analysis.mapping.relations).toEqual([]);
     expect(analysis.mapping.diagnostics).toEqual([
       {
         code: 'governance.typescript_adapter.unresolved_internal_import',
         message:
-          'Internal import specifier "@app/missing" from "apps/web/src/main.ts" could not be mapped to a discovered project.',
+          'Internal import specifier "@app/missing" from "apps/web/src/main.ts" could not be mapped to a discovered governance node.',
         source: 'governance.typescript_adapter',
         path: '/apps~1web~1src~1main.ts/imports/@app~1missing',
       },
@@ -252,18 +252,23 @@ function discoveryConfig() {
   };
 }
 
-function dependency(
-  sourceProjectId: string,
-  targetProjectId: string,
-  type: string,
+function relation(
+  sourceNodeId: string,
+  targetNodeId: string,
   sourceFile: string,
 ) {
-  return {
-    sourceProjectId,
-    targetProjectId,
-    type,
-    sourceFile,
-  };
+  return expect.objectContaining({
+    sourceNodeId,
+    targetNodeId,
+    kind: 'import',
+    metadata: {
+      typescript: {
+        import: expect.objectContaining({
+          sourceFile,
+        }),
+      },
+    },
+  });
 }
 
 function allDiagnostics(analysis: ReturnType<typeof analyzeFixture>) {
@@ -283,7 +288,7 @@ function summarizeAnalysis(analysis: ReturnType<typeof analyzeFixture>) {
       workspaceRoot: '<workspaceRoot>',
     },
     imports: analysis.graph.imports,
-    dependencies: analysis.mapping.dependencies,
+    relations: analysis.mapping.relations,
     diagnostics: allDiagnostics(analysis),
   };
 }
