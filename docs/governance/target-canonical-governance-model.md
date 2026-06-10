@@ -1,13 +1,29 @@
-# Target Canonical Governance Model
+# Historical Design: Target Canonical Governance Model
 
 Status:
-Architecture design for GitHub issue #206. This document defines the target direction for the canonical Governance Core model. It is documentation-only and does not implement the model.
+Historical design document for GitHub issue #206. This document is superseded
+by the canonical node/relation implementation completed through issues
+#301-#311 and is retained for design context only.
+
+## Current Release-Gate Decision
+
+The active Governance package model is:
+
+- `GovernanceWorkspace` with canonical `nodes` and `relations`
+- adapters emitting only canonical node/relation adapter output
+- runtime references using `nodeId`, `relationId`, `relatedNodeIds`, and
+  `relatedRelationIds`
+- no staged deprecation path for project/dependency compatibility contracts
+- no public Core compatibility workspace, project, or dependency contracts
+
+Use the package READMEs and release-gate checks as the active source of truth.
 
 ## Purpose
 
-This document designs the target canonical Governance Core model and architecture direction based on the review outputs from #203, #204, and #205.
+This document records the original design direction that informed the canonical
+Governance Core model based on the review outputs from #203, #204, and #205.
 
-The target direction is intended to guide:
+At the time of writing, the target direction was intended to guide:
 
 - #201 Phase 1 additive Core evolution
 - #202 Phase 2 adapter and host migration

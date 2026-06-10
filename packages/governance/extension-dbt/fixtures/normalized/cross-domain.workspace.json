@@ -2,15 +2,20 @@
   "id": "dbt-fixture-cross-domain",
   "name": "dbt Fixture Cross Domain",
   "root": "/virtual/dbt/cross-domain",
-  "projects": [
+  "nodes": [
     {
       "id": "model.cross_domain.finance_intermediate_orders",
       "name": "finance_intermediate_orders",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/intermediate/finance_intermediate_orders.sql",
-      "type": "library",
+      "path": "models/intermediate/finance_intermediate_orders.sql",
       "tags": [],
-      "domain": "finance",
-      "layer": "intermediate",
+      "classification": {
+        "domain": "finance",
+        "layer": "intermediate"
+      },
       "ownership": {
         "team": "finance-analytics",
         "source": "project-metadata"
@@ -54,11 +59,16 @@
     {
       "id": "model.cross_domain.sales_orders_mart",
       "name": "sales_orders_mart",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/sales_orders_mart.sql",
-      "type": "library",
+      "path": "models/marts/sales_orders_mart.sql",
       "tags": ["public"],
-      "domain": "sales",
-      "layer": "marts",
+      "classification": {
+        "domain": "sales",
+        "layer": "marts"
+      },
       "ownership": {
         "team": "sales-analytics",
         "source": "project-metadata"
@@ -101,11 +111,15 @@
       }
     }
   ],
-  "dependencies": [
+  "relations": [
     {
-      "source": "model.cross_domain.sales_orders_mart",
-      "target": "model.cross_domain.finance_intermediate_orders",
-      "type": "static"
+      "id": "dbt:lineage:model.cross_domain.sales_orders_mart->model.cross_domain.finance_intermediate_orders",
+      "sourceNodeId": "model.cross_domain.sales_orders_mart",
+      "targetNodeId": "model.cross_domain.finance_intermediate_orders",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     }
   ]
 }

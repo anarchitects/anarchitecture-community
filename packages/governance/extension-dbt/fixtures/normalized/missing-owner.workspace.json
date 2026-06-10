@@ -2,15 +2,20 @@
   "id": "dbt-fixture-missing-owner",
   "name": "dbt Fixture Missing Owner",
   "root": "/virtual/dbt/missing-owner",
-  "projects": [
+  "nodes": [
     {
       "id": "model.missing_owner.customer_mart",
       "name": "customer_mart",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/customer_mart.sql",
-      "type": "library",
+      "path": "models/marts/customer_mart.sql",
       "tags": ["public"],
-      "domain": "customer",
-      "layer": "marts",
+      "classification": {
+        "domain": "customer",
+        "layer": "marts"
+      },
       "metadata": {
         "dbt": {
           "identity": {
@@ -47,5 +52,5 @@
       }
     }
   ],
-  "dependencies": []
+  "relations": []
 }

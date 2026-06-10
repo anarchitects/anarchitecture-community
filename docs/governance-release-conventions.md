@@ -125,12 +125,26 @@ The release gate is expected to cover:
 - package manifest dependency rules
 - README readiness checks
 - `npm pack --dry-run` validation of packed artifacts
+- canonical contract scans that prevent legacy project/dependency contracts from
+  returning in production code
 
 That gate should pass for:
 
 - `@anarchitects/governance-core`
+- `@anarchitects/governance-adapter-dbt`
 - `@anarchitects/governance-adapter-typescript`
+- `@anarchitects/governance-extension-dbt`
+- `@anarchitects/governance-extension-typescript`
 - `@anarchitects/governance-cli`
+
+Representative release-gate scans:
+
+```bash
+rg "GovernanceProjectInput|GovernanceDependencyInput|GovernanceProject|GovernanceDependency|GovernanceCompatibilityWorkspace" packages/governance --glob '!**/*.md'
+rg "workspace\\.projects|workspace\\.dependencies" packages/governance --glob '!**/*.md'
+rg "projectId|targetProjectId|relatedProjectIds|affectedProjects|Violation\\.project" packages/governance --glob '!**/*.md'
+rg "projectOverrides|ProjectNameConventionOptions|ProjectRootConventionOptions" packages/governance --glob '!**/*.md'
+```
 
 ## Migration And Stabilization Guidance
 

@@ -10,12 +10,15 @@ process-friendly exit codes for local and CI usage.
 Use this package when you want to run Governance from a shell, CI job, or
 automation script without writing a custom host.
 
+Package boundaries follow
+[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md).
+
 ## Key Concepts
 
 - `agov assess` runs a Governance assessment and renders assessment artifacts.
 - `agov check` runs a Governance gate suitable for CI.
 - Inspection commands render focused slices such as metrics, violations,
-  recommendations, signals, dependencies, and workspace inventory.
+  recommendations, signals, dependency relations, and workspace inventory.
 - Validation commands check profile and workspace documents.
 - Adapter mode loads a concrete Governance adapter package by name.
 - Workspace document mode reads an existing workspace or adapter-result
@@ -31,58 +34,43 @@ After installation, the package exposes the `agov` executable.
 
 ## Quick Start
 
-Run an assessment from explicit workspace and profile files:
-
 ```bash
 npx agov assess --workspace ./governance.workspace.json --profile ./governance.profile.json
-```
-
-Run a CI gate:
-
-```bash
 npx agov check --workspace ./governance.workspace.json --profile ./governance.profile.json
-```
-
-Run with an installed adapter package:
-
-```bash
 npx agov assess --adapter @anarchitects/governance-adapter-typescript --root . --profile ./governance.profile.json
 ```
 
-## Architecture
+Manual workspace documents use canonical `nodes` and `relations`:
 
-```text
-agov command
-  -> CLI option and config resolution
-  -> Workspace document or adapter loading
-  -> Governance Core normalization and assessment
-  -> Optional extension registration
-  -> Command-specific output and exit code
+```json
+{
+  "id": "workspace",
+  "name": "workspace",
+  "root": ".",
+  "nodes": [
+    {
+      "id": "package:api",
+      "name": "api",
+      "kind": "service",
+      "technology": "typescript",
+      "sourceSystem": "pnpm",
+      "root": "packages/api",
+      "path": "packages/api",
+      "tags": [],
+      "metadata": {}
+    }
+  ],
+  "relations": [
+    {
+      "id": "ts:dependency:package:api->package:shared",
+      "sourceNodeId": "package:api",
+      "targetNodeId": "package:shared",
+      "kind": "dependency",
+      "metadata": {}
+    }
+  ]
+}
 ```
-
-The CLI is adapter-agnostic. Concrete adapter and extension packages are loaded
-by the host when requested or configured.
-
-## Responsibilities
-
-This package owns:
-
-- the `agov` executable
-- command parsing and option resolution
-- config-file discovery for CLI execution
-- workspace document loading and adapter loading
-- extension loading and registration orchestration
-- command output formatting for supported CLI formats
-- process exit-code behavior for governance gates and runtime failures
-
-This package does not own:
-
-- canonical Governance contracts or assessment semantics
-- TypeScript workspace discovery or other adapter extraction logic
-- technology-specific rules, metrics, or recommendations
-- report data contracts owned by Core
-- adapter package APIs
-- extension package APIs beyond loading and registration
 
 ## Public API
 
@@ -106,11 +94,10 @@ The root entrypoint also exports command option/result types, parser helpers,
 runtime option resolution helpers, exit-code constants, and CLI runtime error
 types.
 
-Import programmatic APIs from the package root:
-
 ```ts
 import {
   runAgovCheck,
+  type AgovCheckOptions,
   type AgovCheckResult,
 } from '@anarchitects/governance-cli';
 ```
@@ -135,59 +122,11 @@ agov signals --workspace ./governance.workspace.json --profile ./governance.prof
 agov dependencies --workspace ./governance.workspace.json --format json
 ```
 
-### Validation Commands
-
-```bash
-agov profile validate --profile ./governance.profile.json --format table
-agov workspace validate --workspace ./governance.workspace.json --format markdown
-```
-
-## Configuration
-
-Commands can receive input through explicit CLI flags, a config file, or
-conventional workspace/profile file discovery.
-
-Common options include:
-
-- `--config <path>`
-- `--profile <path>`
-- `--workspace <path>`
-- `--adapter <package>`
-- `--root <path>`
-- `--format <text|table|markdown|json>`
-- `--output <path>`
-
-Supported output formats are:
-
-- `text`
-- `table`
-- `markdown`
-- `json`
-
-Use `json` for automation and the other formats for human-readable output.
-
-## Extension Points
-
-The CLI can load adapter packages and register extension packages through
-Core-owned contracts. Adapter packages provide workspace facts. Extension
-packages provide optional technology-specific interpretation. The CLI composes
-them at runtime but does not own their semantics.
-
-## Related Packages
-
-- `@anarchitects/governance-core` owns canonical contracts, diagnostics,
-  normalization, and deterministic assessment helpers.
-- `@anarchitects/governance-adapter-typescript` is a concrete adapter for
-  TypeScript-oriented workspaces.
-- `@anarchitects/governance-extension-typescript` is the TypeScript extension
-  package.
-
 ## Compatibility
 
-The CLI accepts canonical graph data through `nodes` and `relations` and also
-supports project/dependency compatibility fields where adapters provide them.
-Focused report commands can apply filters to human-readable output without
-changing assessment or gate semantics.
+The CLI accepts canonical graph data through `nodes` and `relations`. The
+`dependencies` command remains user-facing terminology for dependency-kind
+relations, but the underlying workspace contract stays canonical.
 
 ## FAQ
 

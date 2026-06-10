@@ -15,37 +15,6 @@ import {
   buildDbtGovernanceSignals,
   evaluateDbtArchitectureViolations,
 } from './index.js';
-import {
-  createCompatibilityWorkspace,
-  type LegacyWorkspaceOwnership,
-} from './test-workspace.js';
-
-type FixtureWorkspaceProject = {
-  id: string;
-  name: string;
-  root: string;
-  type: 'application' | 'library' | 'tool' | 'unknown';
-  tags: string[];
-  domain?: string;
-  layer?: string;
-  ownership?: LegacyWorkspaceOwnership;
-  metadata: Record<string, unknown>;
-};
-
-type FixtureWorkspaceDependency = {
-  source: string;
-  target: string;
-  type: 'static' | 'dynamic' | 'implicit' | 'unknown';
-  sourceFile?: string;
-};
-
-type FixtureWorkspace = {
-  id: string;
-  name: string;
-  root: string;
-  projects: FixtureWorkspaceProject[];
-  dependencies: FixtureWorkspaceDependency[];
-};
 
 const fixturesRoot = fileURLToPath(
   new URL('../fixtures/normalized/', import.meta.url),
@@ -97,14 +66,14 @@ describe('dbt extension fixture smoke coverage', () => {
     };
   }
 
-  function loadFixture(fileName: string): FixtureWorkspace {
+  function loadFixture(fileName: string): GovernanceWorkspace {
     return JSON.parse(
       readFileSync(path.join(fixturesRoot, fileName), 'utf8'),
-    ) as FixtureWorkspace;
+    ) as GovernanceWorkspace;
   }
 
   function analyzeFixture(fileName: string) {
-    const workspace = createCompatibilityWorkspace(loadFixture(fileName));
+    const workspace = loadFixture(fileName);
     const profile = createProfile();
     const context = createContext(workspace);
     const diagnostics = buildDbtGovernanceDiagnostics({
@@ -185,7 +154,7 @@ describe('dbt extension fixture smoke coverage', () => {
     ]);
 
     for (const fixtureName of fixtureNames) {
-      const workspace = createCompatibilityWorkspace(loadFixture(fixtureName));
+      const workspace = loadFixture(fixtureName);
 
       expect(typeof workspace.id).toBe('string');
       expect(typeof workspace.name).toBe('string');

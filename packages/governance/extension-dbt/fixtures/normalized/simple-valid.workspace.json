@@ -2,15 +2,20 @@
   "id": "dbt-fixture-simple-valid",
   "name": "dbt Fixture Simple Valid",
   "root": "/virtual/dbt/simple-valid",
-  "projects": [
+  "nodes": [
     {
       "id": "source.simple_valid.raw.orders",
       "name": "raw_orders",
+      "kind": "dbt-source",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/sources/raw_orders.yml",
-      "type": "tool",
+      "path": "models/sources/raw_orders.yml",
       "tags": ["layer:staging"],
-      "domain": "finance",
-      "layer": "staging",
+      "classification": {
+        "domain": "finance",
+        "layer": "staging"
+      },
       "ownership": {
         "team": "finance-analytics",
         "contacts": ["@finance-analytics"],
@@ -55,11 +60,16 @@
     {
       "id": "model.simple_valid.stg_orders",
       "name": "stg_orders",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/staging/stg_orders.sql",
-      "type": "library",
+      "path": "models/staging/stg_orders.sql",
       "tags": [],
-      "domain": "finance",
-      "layer": "staging",
+      "classification": {
+        "domain": "finance",
+        "layer": "staging"
+      },
       "ownership": {
         "team": "finance-analytics",
         "contacts": ["@finance-analytics"],
@@ -104,11 +114,16 @@
     {
       "id": "model.simple_valid.orders_mart",
       "name": "orders_mart",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/orders_mart.sql",
-      "type": "library",
+      "path": "models/marts/orders_mart.sql",
       "tags": ["public"],
-      "domain": "finance",
-      "layer": "marts",
+      "classification": {
+        "domain": "finance",
+        "layer": "marts"
+      },
       "ownership": {
         "team": "finance-analytics",
         "contacts": ["@finance-analytics"],
@@ -153,11 +168,15 @@
       }
     }
   ],
-  "dependencies": [
+  "relations": [
     {
-      "source": "model.simple_valid.stg_orders",
-      "target": "source.simple_valid.raw.orders",
-      "type": "static"
+      "id": "dbt:lineage:model.simple_valid.stg_orders->source.simple_valid.raw.orders",
+      "sourceNodeId": "model.simple_valid.stg_orders",
+      "targetNodeId": "source.simple_valid.raw.orders",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     }
   ]
 }

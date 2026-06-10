@@ -39,16 +39,16 @@ They are intentionally small and reviewable:
 
 ## Contract Shape
 
-Each fixture file is a serialized legacy-compatible `GovernanceWorkspace`
+Each fixture file is a serialized canonical `GovernanceWorkspace`
 shape:
 
 - `id`
 - `name`
 - `root`
-- `projects`
-- `dependencies`
+- `nodes`
+- `relations`
 
-Projects preserve dbt metadata under the current adapter namespace:
+Nodes preserve dbt metadata under the adapter namespace:
 
 - `metadata.dbt.identity`
 - `metadata.dbt.resource`
