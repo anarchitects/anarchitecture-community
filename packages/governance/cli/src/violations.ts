@@ -18,7 +18,7 @@ export interface AgovViolationsSummary {
   bySeverity: Array<{ severity: string; count: number }>;
   byCategory: Array<{ category: string; count: number }>;
   byRule: Array<{ rule: string; count: number }>;
-  byProject: Array<{ project: string; count: number }>;
+  bySubject: Array<{ subject: string; count: number }>;
   bySourcePlugin: Array<{ sourcePlugin: string; count: number }>;
 }
 
@@ -101,7 +101,7 @@ function applyViolationFilters(
 
     if (
       filters?.project &&
-      readViolationProjectKey(violation) !== filters.project
+      readViolationSubjectKey(violation) !== filters.project
     ) {
       return false;
     }
@@ -130,8 +130,8 @@ function buildSummary(violations: Violation[]): AgovViolationsSummary {
     byRule: countBy(violations, (violation) => violation.ruleId).map(
       ([rule, count]) => ({ rule, count }),
     ),
-    byProject: countBy(violations, readViolationProjectKey).map(
-      ([project, count]) => ({ project, count }),
+    bySubject: countBy(violations, readViolationSubjectKey).map(
+      ([subject, count]) => ({ subject, count }),
     ),
     bySourcePlugin: countBy(
       violations,
@@ -172,11 +172,11 @@ function compareViolations(left: Violation, right: Violation): number {
     return byCategory;
   }
 
-  const byProject = readViolationProjectKey(left).localeCompare(
-    readViolationProjectKey(right),
+  const bySubject = readViolationSubjectKey(left).localeCompare(
+    readViolationSubjectKey(right),
   );
-  if (byProject !== 0) {
-    return byProject;
+  if (bySubject !== 0) {
+    return bySubject;
   }
 
   const byMessage = left.message.localeCompare(right.message);
@@ -200,6 +200,11 @@ function severityRank(severity: Violation['severity']): number {
   }
 }
 
-function readViolationProjectKey(violation: Violation): string {
-  return violation.subjectId ?? violation.reference?.nodeId ?? 'unknown';
+function readViolationSubjectKey(violation: Violation): string {
+  return (
+    violation.subjectId ??
+    violation.reference?.relationId ??
+    violation.reference?.nodeId ??
+    'unknown'
+  );
 }

@@ -1,15 +1,14 @@
 import {
   buildGovernanceWorkspace,
-  type GovernanceDependency,
-  type GovernanceProject,
+  type GovernanceNode,
+  type GovernanceRelation,
   type GovernanceWorkspaceAdapter,
   type GovernanceWorkspaceAdapterResult,
 } from '@anarchitects/governance-core';
 
 import { loadGenericWorkspaceAdapterResult } from './internal/manual-workspace/load-workspace.js';
-import { toCompatibilityWorkspace } from './workspace-compat.js';
 
-export type AgovDependencyType = GovernanceDependency['type'];
+export type AgovDependencyType = 'static' | 'dynamic' | 'implicit' | 'unknown';
 
 export interface AgovDependenciesFilters {
   source?: string;
@@ -25,33 +24,37 @@ export interface AgovDependenciesWorkspace {
 }
 
 export interface AgovDependencyEntry {
-  source: string;
-  target: string;
+  id: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  sourceNodeName?: string;
+  targetNodeName?: string;
+  kind: string;
   type: AgovDependencyType;
   sourceFile?: string;
 }
 
-export interface AgovDependenciesProject {
+export interface AgovDependenciesNode {
   id: string;
-  name: string;
-  root: string;
-  type: GovernanceProject['type'];
+  name?: string;
+  kind: string;
+  root?: string;
 }
 
 export interface AgovDependenciesSummary {
   totalDependencies: number;
   byType: Array<{ type: AgovDependencyType; count: number }>;
-  projectCount: number;
-  sourceProjectCount: number;
-  targetProjectCount: number;
+  nodeCount: number;
+  sourceNodeCount: number;
+  targetNodeCount: number;
   topOutgoing: Array<{
-    projectId: string;
-    projectName: string;
+    nodeId: string;
+    nodeName: string;
     count: number;
   }>;
   topIncoming: Array<{
-    projectId: string;
-    projectName: string;
+    nodeId: string;
+    nodeName: string;
     count: number;
   }>;
 }
@@ -60,7 +63,7 @@ export interface AgovDependenciesResult {
   command: 'dependencies';
   workspace: AgovDependenciesWorkspace;
   dependencies: AgovDependencyEntry[];
-  projects: AgovDependenciesProject[];
+  nodes: AgovDependenciesNode[];
   summary: AgovDependenciesSummary;
 }
 
@@ -86,17 +89,16 @@ export async function runAgovDependencies<TInput = unknown>(
   options: AgovDependenciesOptions<TInput>,
 ): Promise<AgovDependenciesResult> {
   const workspaceAdapterResult = resolveWorkspaceAdapterResult(options);
-  const workspace = toCompatibilityWorkspace(
-    buildGovernanceWorkspace(workspaceAdapterResult),
-  );
+  const workspace = buildGovernanceWorkspace(workspaceAdapterResult);
   const filteredDependencies = applyDependencyFilters(
-    workspace,
+    workspace.nodes,
+    workspace.relations,
     options.filters,
-  ).map(normalizeDependency);
-  const scopedProjects = collectReferencedProjects(
-    workspace.projects,
+  ).map((relation) => normalizeDependency(relation, workspace.nodes));
+  const scopedNodes = collectReferencedNodes(
+    workspace.nodes,
     filteredDependencies,
-  ).map(normalizeProject);
+  ).map(normalizeNode);
 
   return {
     command: 'dependencies',
@@ -106,8 +108,8 @@ export async function runAgovDependencies<TInput = unknown>(
       root: workspace.root,
     },
     dependencies: filteredDependencies,
-    projects: scopedProjects,
-    summary: buildSummary(filteredDependencies, scopedProjects),
+    nodes: scopedNodes,
+    summary: buildSummary(filteredDependencies, scopedNodes),
   };
 }
 
@@ -124,46 +126,50 @@ function resolveWorkspaceAdapterResult<TInput>(
 }
 
 function applyDependencyFilters(
-  workspace: ReturnType<typeof toCompatibilityWorkspace>,
+  nodes: GovernanceNode[],
+  relations: GovernanceRelation[],
   filters: AgovDependenciesFilters | undefined,
-): GovernanceDependency[] {
+): GovernanceRelation[] {
+  const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
+  const dependencyRelations = relations.filter(isDependencyRelation);
+
   if (!filters) {
-    return sortDependencies(workspace.dependencies);
+    return sortDependencies(dependencyRelations);
   }
 
-  const projectsById = new Map(
-    workspace.projects.map((project) => [project.id, project]),
-  );
-
   return sortDependencies(
-    workspace.dependencies.filter((dependency) => {
+    dependencyRelations.filter((relation) => {
+      const sourceNode = nodeById.get(relation.sourceNodeId);
+      const targetNode = nodeById.get(relation.targetNodeId);
+      const dependencyType = normalizeDependencyType(relation);
+
       if (
         filters.source &&
-        !matchesProjectFilter(projectsById, dependency.source, filters.source)
+        !matchesNodeFilter(sourceNode, relation.sourceNodeId, filters.source)
       ) {
         return false;
       }
 
       if (
         filters.target &&
-        !matchesProjectFilter(projectsById, dependency.target, filters.target)
+        !matchesNodeFilter(targetNode, relation.targetNodeId, filters.target)
       ) {
         return false;
       }
 
       if (
         filters.project &&
-        !matchesProjectFilter(
-          projectsById,
-          dependency.source,
+        !matchesNodeFilter(
+          sourceNode,
+          relation.sourceNodeId,
           filters.project,
         ) &&
-        !matchesProjectFilter(projectsById, dependency.target, filters.project)
+        !matchesNodeFilter(targetNode, relation.targetNodeId, filters.project)
       ) {
         return false;
       }
 
-      if (filters.type && dependency.type !== filters.type) {
+      if (filters.type && dependencyType !== filters.type) {
         return false;
       }
 
@@ -172,106 +178,108 @@ function applyDependencyFilters(
   );
 }
 
-function matchesProjectFilter(
-  projectsById: Map<string, GovernanceProject>,
-  projectId: string,
+function matchesNodeFilter(
+  node: GovernanceNode | undefined,
+  nodeId: string,
   expected: string,
 ): boolean {
-  if (projectId === expected) {
-    return true;
-  }
-
-  const project = projectsById.get(projectId);
-  return project?.name === expected;
+  return nodeId === expected || node?.name === expected;
 }
 
 function sortDependencies(
-  dependencies: GovernanceDependency[],
-): GovernanceDependency[] {
-  return [...dependencies].sort((left, right) => {
-    const bySource = left.source.localeCompare(right.source);
-    if (bySource !== 0) {
-      return bySource;
-    }
-
-    const byTarget = left.target.localeCompare(right.target);
-    if (byTarget !== 0) {
-      return byTarget;
-    }
-
-    const byType = left.type.localeCompare(right.type);
-    if (byType !== 0) {
-      return byType;
-    }
-
-    return (left.sourceFile ?? '').localeCompare(right.sourceFile ?? '');
+  relations: GovernanceRelation[],
+): GovernanceRelation[] {
+  return [...relations].sort((left, right) => {
+    return (
+      left.sourceNodeId.localeCompare(right.sourceNodeId) ||
+      left.targetNodeId.localeCompare(right.targetNodeId) ||
+      normalizeDependencyType(left).localeCompare(
+        normalizeDependencyType(right),
+      ) ||
+      left.id.localeCompare(right.id)
+    );
   });
 }
 
 function normalizeDependency(
-  dependency: GovernanceDependency,
+  relation: GovernanceRelation,
+  nodes: readonly GovernanceNode[],
 ): AgovDependencyEntry {
+  const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
+
   return {
-    source: dependency.source,
-    target: dependency.target,
-    type: dependency.type,
-    ...(dependency.sourceFile ? { sourceFile: dependency.sourceFile } : {}),
+    id: relation.id,
+    sourceNodeId: relation.sourceNodeId,
+    targetNodeId: relation.targetNodeId,
+    ...(nodeById.get(relation.sourceNodeId)?.name
+      ? { sourceNodeName: nodeById.get(relation.sourceNodeId)?.name }
+      : {}),
+    ...(nodeById.get(relation.targetNodeId)?.name
+      ? { targetNodeName: nodeById.get(relation.targetNodeId)?.name }
+      : {}),
+    kind: relation.kind,
+    type: normalizeDependencyType(relation),
+    ...(readStringMetadata(relation.metadata, 'sourceFile')
+      ? { sourceFile: readStringMetadata(relation.metadata, 'sourceFile') }
+      : {}),
   };
 }
 
-function collectReferencedProjects(
-  projects: GovernanceProject[],
+function collectReferencedNodes(
+  nodes: GovernanceNode[],
   dependencies: AgovDependencyEntry[],
-): GovernanceProject[] {
-  const referencedProjectIds = new Set<string>();
+): GovernanceNode[] {
+  const referencedNodeIds = new Set<string>();
 
   for (const dependency of dependencies) {
-    referencedProjectIds.add(dependency.source);
-    referencedProjectIds.add(dependency.target);
+    referencedNodeIds.add(dependency.sourceNodeId);
+    referencedNodeIds.add(dependency.targetNodeId);
   }
 
-  return [...projects]
-    .filter((project) => referencedProjectIds.has(project.id))
+  return [...nodes]
+    .filter((node) => referencedNodeIds.has(node.id))
     .sort((left, right) => {
-      const byName = left.name.localeCompare(right.name);
-      if (byName !== 0) {
-        return byName;
-      }
-
-      return left.id.localeCompare(right.id);
+      return (
+        (left.name ?? '').localeCompare(right.name ?? '') ||
+        left.id.localeCompare(right.id)
+      );
     });
 }
 
-function normalizeProject(project: GovernanceProject): AgovDependenciesProject {
+function normalizeNode(node: GovernanceNode): AgovDependenciesNode {
   return {
-    id: project.id,
-    name: project.name,
-    root: project.root,
-    type: project.type,
+    id: node.id,
+    ...(node.name ? { name: node.name } : {}),
+    kind: node.kind,
+    ...((node.root ?? node.path) ? { root: node.root ?? node.path } : {}),
   };
 }
 
 function buildSummary(
   dependencies: AgovDependencyEntry[],
-  projects: AgovDependenciesProject[],
+  nodes: AgovDependenciesNode[],
 ): AgovDependenciesSummary {
   const byTypeMap = countBy(dependencies, (dependency) => dependency.type);
-  const sourceCounts = countBy(dependencies, (dependency) => dependency.source);
-  const targetCounts = countBy(dependencies, (dependency) => dependency.target);
-  const projectsById = new Map(
-    projects.map((project) => [project.id, project]),
+  const sourceCounts = countBy(
+    dependencies,
+    (dependency) => dependency.sourceNodeId,
   );
+  const targetCounts = countBy(
+    dependencies,
+    (dependency) => dependency.targetNodeId,
+  );
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
 
   return {
     totalDependencies: dependencies.length,
     byType: [...byTypeMap.entries()]
       .map(([type, count]) => ({ type: type as AgovDependencyType, count }))
       .sort((left, right) => left.type.localeCompare(right.type)),
-    projectCount: projects.length,
-    sourceProjectCount: sourceCounts.size,
-    targetProjectCount: targetCounts.size,
-    topOutgoing: toTopProjectCounts(sourceCounts, projectsById),
-    topIncoming: toTopProjectCounts(targetCounts, projectsById),
+    nodeCount: nodes.length,
+    sourceNodeCount: sourceCounts.size,
+    targetNodeCount: targetCounts.size,
+    topOutgoing: toTopNodeCounts(sourceCounts, nodesById),
+    topIncoming: toTopNodeCounts(targetCounts, nodesById),
   };
 }
 
@@ -289,22 +297,44 @@ function countBy<T>(
   return counts;
 }
 
-function toTopProjectCounts(
-  countsByProject: Map<string, number>,
-  projectsById: Map<string, AgovDependenciesProject>,
-): Array<{ projectId: string; projectName: string; count: number }> {
-  return [...countsByProject.entries()]
-    .map(([projectId, count]) => ({
-      projectId,
-      projectName: projectsById.get(projectId)?.name ?? projectId,
+function toTopNodeCounts(
+  counts: Map<string, number>,
+  nodesById: Map<string, AgovDependenciesNode>,
+): Array<{ nodeId: string; nodeName: string; count: number }> {
+  return [...counts.entries()]
+    .map(([nodeId, count]) => ({
+      nodeId,
+      nodeName: nodesById.get(nodeId)?.name ?? nodeId,
       count,
     }))
     .sort((left, right) => {
-      const byCount = right.count - left.count;
-      if (byCount !== 0) {
-        return byCount;
-      }
-
-      return left.projectId.localeCompare(right.projectId);
+      return (
+        right.count - left.count ||
+        left.nodeName.localeCompare(right.nodeName) ||
+        left.nodeId.localeCompare(right.nodeId)
+      );
     });
+}
+
+function isDependencyRelation(relation: GovernanceRelation): boolean {
+  return relation.kind === 'dependency';
+}
+
+function normalizeDependencyType(
+  relation: GovernanceRelation,
+): AgovDependencyType {
+  const type = readStringMetadata(relation.metadata, 'dependencyType');
+  if (type === 'static' || type === 'dynamic' || type === 'implicit') {
+    return type;
+  }
+
+  return 'unknown';
+}
+
+function readStringMetadata(
+  metadata: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = metadata[key];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

@@ -2,12 +2,10 @@ import type {
   GovernanceAssessment,
   GovernanceExceptionFinding,
 } from '@anarchitects/governance-core';
-import { toCompatibilityWorkspace } from '../../workspace-compat.js';
 
 const TOP_ISSUES_LIMIT = 10;
 
 export function renderCliReport(assessment: GovernanceAssessment): string {
-  const compatibilityWorkspace = toCompatibilityWorkspace(assessment.workspace);
   const lines: string[] = [];
 
   lines.push(`Nx Governance - ${assessment.profile}`);
@@ -17,8 +15,8 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
       assessment.health.status,
     )}, ${assessment.health.grade})`,
   );
-  lines.push(`Projects: ${compatibilityWorkspace.projects.length}`);
-  lines.push(`Dependencies: ${compatibilityWorkspace.dependencies.length}`);
+  lines.push(`Nodes: ${assessment.workspace.nodes.length}`);
+  lines.push(`Relations: ${assessment.workspace.relations.length}`);
   lines.push(`Violations: ${assessment.violations.length}`);
 
   lines.push('');
@@ -162,12 +160,12 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
     lines.push('Top Issues:');
     for (const issue of assessment.topIssues.slice(0, TOP_ISSUES_LIMIT)) {
       const ruleIdSuffix = issue.ruleId ? ` :: ${issue.ruleId}` : '';
-      const projectsSuffix =
+      const subjectsSuffix =
         issue.subjects.length > 0
-          ? ` :: projects=${issue.subjects.join(',')}`
+          ? ` :: subjects=${issue.subjects.join(',')}`
           : '';
       lines.push(
-        `- [${issue.severity}] ${issue.type} (${issue.source}) x${issue.count}${ruleIdSuffix}${projectsSuffix} :: ${issue.message}`,
+        `- [${issue.severity}] ${issue.type} (${issue.source}) x${issue.count}${ruleIdSuffix}${subjectsSuffix} :: ${issue.message}`,
       );
     }
   }

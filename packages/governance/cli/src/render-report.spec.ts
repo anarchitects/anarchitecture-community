@@ -168,8 +168,8 @@ describe('agov command report rendering', () => {
             workspaceId: 'diagnostic-workspace',
             workspaceName: 'diagnostic-workspace',
             workspaceRoot: '.',
-            projects: [],
-            dependencies: [],
+            nodes: [],
+            relations: [],
             diagnostics: [
               {
                 code: 'governance.adapter.partial_extraction',
@@ -292,8 +292,8 @@ describe('agov command report rendering', () => {
       },
       summary: {
         status: 'valid',
-        projectCount: expect.any(Number),
-        dependencyCount: expect.any(Number),
+        nodeCount: expect.any(Number),
+        relationCount: expect.any(Number),
       },
     });
   });
@@ -334,14 +334,14 @@ describe('agov command report rendering', () => {
     expect(Object.keys(parsed)).toEqual([
       'command',
       'dependencies',
-      'projects',
+      'nodes',
       'summary',
       'workspace',
     ]);
     expect(parsed).toMatchObject({
       command: 'dependencies',
       dependencies: expect.any(Array),
-      projects: expect.any(Array),
+      nodes: expect.any(Array),
       summary: {
         totalDependencies: expect.any(Number),
         byType: expect.any(Array),
@@ -388,9 +388,7 @@ describe('agov command report rendering', () => {
     expect(Object.keys(parsed)).toEqual([
       'adapter',
       'command',
-      'dependencies',
       'nodes',
-      'projects',
       'relations',
       'summary',
       'workspace',
@@ -418,8 +416,6 @@ describe('agov command report rendering', () => {
     const parsed = JSON.parse(renderAgovInspectJson(inspectResult)) as {
       nodes: Array<{ id: string; kind: string }>;
       relations: Array<{ sourceNodeId: string; targetNodeId: string }>;
-      projects: unknown[];
-      dependencies: unknown[];
     };
     const textRendered = renderAgovInspectReport(inspectResult, 'text');
 
@@ -439,8 +435,6 @@ describe('agov command report rendering', () => {
         targetNodeId: 'dbt.model.orders',
       }),
     ]);
-    expect(parsed.projects).toEqual([]);
-    expect(parsed.dependencies).toEqual([]);
     expect(textRendered).toContain('Nodes');
     expect(textRendered).toContain('Relations');
     expect(textRendered).toContain('kind=model');
@@ -758,8 +752,6 @@ function createCanonicalGraphAdapter(): GovernanceWorkspaceAdapter<string> {
         workspaceId: 'canonical-reporting',
         workspaceName: 'canonical-reporting',
         workspaceRoot: '.',
-        projects: [],
-        dependencies: [],
         nodes: [
           {
             id: 'dbt.model.orders',
