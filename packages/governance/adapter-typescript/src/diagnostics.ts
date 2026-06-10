@@ -380,7 +380,7 @@ export function unresolvedInternalImportDiagnostic(
 export function ambiguousProjectMatchDiagnostic(
   path: string,
   filePath: string,
-  projectIds: readonly string[],
+  nodeIds: readonly string[],
 ): TypeScriptWorkspaceDetectionDiagnostic {
   return {
     code: 'governance.typescript_adapter.ambiguous_project_match',
@@ -388,7 +388,7 @@ export function ambiguousProjectMatchDiagnostic(
     source: DIAGNOSTIC_SOURCE,
     path,
     details: {
-      nodeIds: [...projectIds],
+      nodeIds: [...nodeIds],
     },
   };
 }

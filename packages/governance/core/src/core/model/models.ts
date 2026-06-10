@@ -60,50 +60,6 @@ export interface GovernanceRelation {
   metadata: Record<string, unknown>;
 }
 
-export interface GovernanceCompatibilityWorkspace extends GovernanceWorkspace {
-  projects: GovernanceProject[];
-  dependencies: GovernanceDependency[];
-}
-
-/**
- * Compatibility representation of a project-oriented governable item.
- *
- * @deprecated Prefer canonical node contracts for new multi-technology
- * integrations. `GovernanceProject` remains supported as the compatibility
- * assessment view.
- */
-export interface GovernanceProject {
-  id: string;
-  name: string;
-  root: string;
-  type: 'application' | 'library' | 'tool' | 'unknown';
-  tags: string[];
-  domain?: string;
-  layer?: string;
-  ownership?: Ownership;
-  metadata: Record<string, unknown>;
-}
-
-/**
- * Compatibility representation of a project-to-project dependency.
- *
- * @deprecated Prefer canonical relation contracts for new multi-technology
- * integrations. `GovernanceDependency` remains supported as the compatibility
- * assessment view.
- */
-export interface GovernanceDependency {
-  source: string;
-  target: string;
-  type: 'static' | 'dynamic' | 'implicit' | 'unknown';
-  sourceFile?: string;
-}
-
-export interface Ownership {
-  team?: string;
-  contacts?: string[];
-  source: 'project-metadata' | 'codeowners' | 'merged' | 'none';
-}
-
 export interface GovernanceRuntimeReference {
   nodeId?: string;
   relationId?: string;

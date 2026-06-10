@@ -9,7 +9,7 @@ export interface AgovViolationsFilters {
   severity?: AgovViolationSeverity;
   rule?: string;
   category?: string;
-  project?: string;
+  subject?: string;
   sourcePlugin?: string;
 }
 
@@ -77,7 +77,7 @@ function hasViolationFilters(
     filters?.severity ||
       filters?.rule ||
       filters?.category ||
-      filters?.project ||
+      filters?.subject ||
       filters?.sourcePlugin,
   );
 }
@@ -100,8 +100,8 @@ function applyViolationFilters(
     }
 
     if (
-      filters?.project &&
-      readViolationSubjectKey(violation) !== filters.project
+      filters?.subject &&
+      readViolationSubjectKey(violation) !== filters.subject
     ) {
       return false;
     }

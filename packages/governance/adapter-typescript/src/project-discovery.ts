@@ -136,7 +136,7 @@ export function discoverTypeScriptProjects(
       diagnostics.push(...extractedMetadata.diagnostics);
 
       projects.push(
-        createGovernanceProject({
+        createDiscoveredProject({
           root: match,
           name: name.value,
           tags: tags.tags,
@@ -166,7 +166,7 @@ export function discoverTypeScriptProjects(
   };
 }
 
-function createGovernanceProject({
+function createDiscoveredProject({
   root,
   name,
   tags,

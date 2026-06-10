@@ -12,7 +12,7 @@ import {
 import { loadGenericWorkspaceAdapterResult } from './internal/manual-workspace/load-workspace.js';
 
 export interface AgovInspectFilters {
-  project?: string;
+  node?: string;
   domain?: string;
   layer?: string;
   type?: string;
@@ -154,9 +154,9 @@ function applyInspectFilters(
 
   const nodes = workspace.nodes.filter((node) => {
     if (
-      filters.project &&
-      node.id !== filters.project &&
-      node.name !== filters.project
+      filters.node &&
+      node.id !== filters.node &&
+      node.name !== filters.node
     ) {
       return false;
     }

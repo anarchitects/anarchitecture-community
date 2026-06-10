@@ -1,6 +1,5 @@
 export * from './adapter/index.js';
 export * from './ai/index.js';
-export * from './compatibility/index.js';
 export * from './diagnostics/index.js';
 export * from './evaluation/index.js';
 export * from './graph/index.js';

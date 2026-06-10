@@ -13,7 +13,7 @@ export type AgovDependencyType = 'static' | 'dynamic' | 'implicit' | 'unknown';
 export interface AgovDependenciesFilters {
   source?: string;
   target?: string;
-  project?: string;
+  node?: string;
   type?: AgovDependencyType;
 }
 
@@ -158,13 +158,9 @@ function applyDependencyFilters(
       }
 
       if (
-        filters.project &&
-        !matchesNodeFilter(
-          sourceNode,
-          relation.sourceNodeId,
-          filters.project,
-        ) &&
-        !matchesNodeFilter(targetNode, relation.targetNodeId, filters.project)
+        filters.node &&
+        !matchesNodeFilter(sourceNode, relation.sourceNodeId, filters.node) &&
+        !matchesNodeFilter(targetNode, relation.targetNodeId, filters.node)
       ) {
         return false;
       }

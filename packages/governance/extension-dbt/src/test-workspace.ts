@@ -1,38 +1,54 @@
 import type {
-  GovernanceDependency,
   GovernanceNode,
-  GovernanceProject,
   GovernanceRelation,
   GovernanceWorkspace,
 } from '@anarchitects/governance-core';
 
-export type LegacyWorkspaceDependency = GovernanceDependency & {
+export type LegacyWorkspaceOwnership = NonNullable<GovernanceNode['ownership']>;
+
+export type LegacyWorkspaceDependency = {
+  source: string;
+  target: string;
+  type: 'static' | 'dynamic' | 'implicit' | 'unknown';
+  sourceFile?: string;
   metadata?: Record<string, unknown>;
+};
+
+export type LegacyWorkspaceProject = {
+  id: string;
+  name: string;
+  root: string;
+  type: 'application' | 'library' | 'tool' | 'unknown';
+  tags: string[];
+  domain?: string;
+  layer?: string;
+  ownership?: LegacyWorkspaceOwnership;
+  metadata: Record<string, unknown>;
 };
 
 export type LegacyWorkspaceInput = {
   id: string;
   name: string;
   root: string;
-  projects: GovernanceProject[];
+  projects: LegacyWorkspaceProject[];
   dependencies: LegacyWorkspaceDependency[];
 };
 
 export function createCompatibilityWorkspace(
-  workspace: LegacyWorkspaceInput,
+  legacyWorkspace: LegacyWorkspaceInput,
 ): GovernanceWorkspace {
   return {
-    id: workspace.id,
-    name: workspace.name,
-    root: workspace.root,
-    nodes: workspace.projects.map((project) => projectToNode(project)),
-    relations: workspace.dependencies.map((dependency, index) =>
+    id: legacyWorkspace.id,
+    name: legacyWorkspace.name,
+    root: legacyWorkspace.root,
+    nodes: legacyWorkspace.projects.map((project) => projectToNode(project)),
+    relations: legacyWorkspace.dependencies.map((dependency, index) =>
       dependencyToRelation(dependency, index),
     ),
   };
 }
 
-function projectToNode(project: GovernanceProject): GovernanceNode {
+function projectToNode(project: LegacyWorkspaceProject): GovernanceNode {
   return {
     id: project.id,
     name: project.name,
@@ -74,7 +90,7 @@ function dependencyToRelation(
   };
 }
 
-function normalizeNodeKind(project: GovernanceProject): string {
+function normalizeNodeKind(project: LegacyWorkspaceProject): string {
   const resourceType = readStringMetadata(project.metadata, [
     'dbt',
     'identity',

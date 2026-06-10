@@ -24,8 +24,8 @@ describe('agov shared command resolution', () => {
     writeJson(path.join(cwd, 'workspace.json'), {
       schemaVersion: 1,
       workspace: { name: 'demo', root: '.' },
-      projects: [],
-      dependencies: [],
+      nodes: [],
+      relations: [],
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
@@ -99,7 +99,9 @@ describe('agov shared command resolution', () => {
     expect(withoutCommand(recommendationsResolved)).toEqual(
       withoutCommand(checkResolved),
     );
-    expect(withoutCommand(signalsResolved)).toEqual(withoutCommand(checkResolved));
+    expect(withoutCommand(signalsResolved)).toEqual(
+      withoutCommand(checkResolved),
+    );
   });
 
   it('keeps config discovery behavior for both commands', () => {
@@ -108,8 +110,8 @@ describe('agov shared command resolution', () => {
     writeJson(path.join(cwd, 'workspace.json'), {
       schemaVersion: 1,
       workspace: { name: 'demo', root: '.' },
-      projects: [],
-      dependencies: [],
+      nodes: [],
+      relations: [],
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
@@ -156,8 +158,8 @@ describe('agov shared command resolution', () => {
     writeJson(path.join(cwd, 'workspace.json'), {
       schemaVersion: 1,
       workspace: { name: 'demo', root: '.' },
-      projects: [],
-      dependencies: [],
+      nodes: [],
+      relations: [],
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
@@ -305,8 +307,8 @@ describe('agov shared command resolution', () => {
     writeJson(path.join(cwd, 'workspace.json'), {
       schemaVersion: 1,
       workspace: { name: 'demo', root: '.' },
-      projects: [],
-      dependencies: [],
+      nodes: [],
+      relations: [],
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
@@ -382,8 +384,8 @@ describe('agov shared command resolution', () => {
     writeJson(path.join(cwd, 'workspace.json'), {
       schemaVersion: 1,
       workspace: { name: 'demo', root: '.' },
-      projects: [],
-      dependencies: [],
+      nodes: [],
+      relations: [],
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',

@@ -69,7 +69,7 @@ export type GovernanceDriftClassification =
 /**
  * Describes when a rule is meaningful without hardcoding a technology or host.
  * Hosts may use this contract for future rule selection; the current engine
- * keeps evaluating the supplied rules in order for backward compatibility.
+ * keeps evaluating the supplied rules in order.
  */
 export interface GovernanceRuleApplicability {
   perspectiveIds?: string[];

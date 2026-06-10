@@ -10,22 +10,6 @@ export interface GovernanceWorkspaceAdapterResult {
   workspaceId?: string;
   workspaceName?: string;
   workspaceRoot?: string;
-  /**
-   * Compatibility output for project-oriented consumers.
-   *
-   * @deprecated New adapters should emit `nodes` as the primary canonical
-   * inventory model and keep `projects` only when compatibility consumers need
-   * project/dependency views.
-   */
-  projects?: GovernanceProjectInput[];
-  /**
-   * Compatibility output for project dependency-oriented consumers.
-   *
-   * @deprecated New adapters should emit `relations` as the primary canonical
-   * relation model and keep `dependencies` only when compatibility consumers
-   * need project/dependency views.
-   */
-  dependencies?: GovernanceDependencyInput[];
   nodes?: GovernanceNodeInput[];
   relations?: GovernanceRelationInput[];
   capabilities?: GovernanceCapability[];
@@ -128,8 +112,7 @@ export interface GovernanceClassificationInput {
 
 /**
  * Adapter-facing representation of a governed item before canonical
- * normalization. It is intentionally technology-neutral and additive to the
- * existing project compatibility input.
+ * normalization. It is intentionally technology-neutral.
  */
 export interface GovernanceNodeInput {
   id: string;
@@ -152,8 +135,7 @@ export interface GovernanceNodeInput {
 
 /**
  * Adapter-facing representation of a relationship between governed nodes
- * before canonical normalization. Legacy project dependencies remain supported
- * through GovernanceDependencyInput.
+ * before canonical normalization.
  */
 export interface GovernanceRelationInput {
   id?: string;
@@ -165,42 +147,6 @@ export interface GovernanceRelationInput {
   evidence?: GovernanceEvidence[];
   authority?: GovernanceAuthority;
   confidence?: GovernanceConfidence;
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * Adapter-facing compatibility representation of a code/project inventory
- * item.
- *
- * @deprecated Prefer `GovernanceNodeInput` for new adapter output. Keep this
- * contract populated only for compatibility with project/dependency consumers.
- */
-export interface GovernanceProjectInput {
-  id: string;
-  name?: string;
-  root?: string;
-  type?: string;
-  domain?: string;
-  layer?: string;
-  scope?: string;
-  tags?: string[];
-  ownership?: GovernanceOwnershipInput;
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * Adapter-facing compatibility representation of a project-to-project
- * dependency.
- *
- * @deprecated Prefer `GovernanceRelationInput` for new adapter output. Keep
- * this contract populated only for compatibility with project/dependency
- * consumers.
- */
-export interface GovernanceDependencyInput {
-  sourceProjectId: string;
-  targetProjectId: string;
-  type?: string;
-  sourceFile?: string;
   metadata?: Record<string, unknown>;
 }
 

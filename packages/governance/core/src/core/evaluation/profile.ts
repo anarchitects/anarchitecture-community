@@ -12,7 +12,7 @@ export const DEFAULT_HEALTH_STATUS_THRESHOLDS: HealthStatusThresholds = {
 
 export type AllowedLayerDependencies = Record<string, string[]>;
 
-export interface GovernanceProjectOverride {
+export interface GovernanceNodeOverride {
   domain?: string;
   layer?: string;
   ownershipTeam?: string;
@@ -63,7 +63,7 @@ export interface GovernanceScoringProfile {
   metricWeights: Record<Measurement['id'], number>;
 }
 
-export interface GovernanceProfileCompatibility {
+export interface GovernanceProfileSourceMetadata {
   boundaryPolicySource: GovernanceProfile['boundaryPolicySource'];
 }
 
@@ -108,8 +108,8 @@ export interface NormalizedGovernanceProfile {
   rules: Record<string, GovernanceRuleConfig>;
   scoring: GovernanceScoringProfile;
   exceptions: GovernanceException[];
-  projectOverrides: Record<string, GovernanceProjectOverride>;
-  compatibility: GovernanceProfileCompatibility;
+  projectOverrides: Record<string, GovernanceNodeOverride>;
+  profileSource: GovernanceProfileSourceMetadata;
 }
 
 export interface ProfileOverrides {
@@ -124,7 +124,7 @@ export interface ProfileOverrides {
   };
   metrics?: Partial<Record<string, number>>;
   exceptions?: GovernanceException[];
-  projectOverrides: Record<string, GovernanceProjectOverride>;
+  projectOverrides: Record<string, GovernanceNodeOverride>;
 }
 
 export function deriveAllowedLayerDependenciesFromLayerOrder(
@@ -144,7 +144,7 @@ export function normalizeGovernanceProfile(
   const allowedLayerDependencies =
     profile.allowedLayerDependencies ??
     deriveAllowedLayerDependenciesFromLayerOrder(profile.layers);
-  const compatibilityRules: Record<string, GovernanceRuleConfig> = {
+  const defaultRules: Record<string, GovernanceRuleConfig> = {
     'domain-boundary': {
       enabled: true,
       severity: 'error',
@@ -175,12 +175,12 @@ export function normalizeGovernanceProfile(
     Object.entries(profile.rules ?? {}).map(([ruleId, ruleConfig]) => [
       ruleId,
       {
-        ...(compatibilityRules[ruleId] ?? {}),
+        ...(defaultRules[ruleId] ?? {}),
         ...ruleConfig,
         ...(ruleConfig.options !== undefined
           ? { options: ruleConfig.options }
-          : compatibilityRules[ruleId]?.options !== undefined
-            ? { options: compatibilityRules[ruleId]?.options }
+          : defaultRules[ruleId]?.options !== undefined
+            ? { options: defaultRules[ruleId]?.options }
             : {}),
       } satisfies GovernanceRuleConfig,
     ]),
@@ -190,7 +190,7 @@ export function normalizeGovernanceProfile(
     name: profile.name,
     description: profile.description,
     rules: {
-      ...compatibilityRules,
+      ...defaultRules,
       ...explicitRules,
     },
     scoring: {
@@ -199,7 +199,7 @@ export function normalizeGovernanceProfile(
     },
     exceptions: options.exceptions ?? [],
     projectOverrides: options.projectOverrides ?? {},
-    compatibility: {
+    profileSource: {
       boundaryPolicySource: profile.boundaryPolicySource,
     },
   };

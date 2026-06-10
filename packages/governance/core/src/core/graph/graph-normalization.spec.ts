@@ -324,20 +324,6 @@ describe('Governance graph normalization', () => {
 
   it('does not fall back to legacy project and dependency inputs', () => {
     const workspace = buildGovernanceWorkspace({
-      projects: [
-        {
-          id: 'legacy-project',
-          name: 'Legacy Project',
-          root: 'packages/legacy',
-        },
-      ],
-      dependencies: [
-        {
-          sourceProjectId: 'legacy-project',
-          targetProjectId: 'legacy-project',
-          type: 'static',
-        },
-      ],
       workspace: {
         id: 'nested',
         name: 'Nested',
@@ -362,7 +348,7 @@ describe('Governance graph normalization', () => {
           },
         ],
       } as unknown as GovernanceWorkspaceAdapterResult['workspace'],
-    });
+    } as unknown as GovernanceWorkspaceAdapterResult);
 
     expect(workspace.nodes).toEqual([]);
     expect(workspace.relations).toEqual([]);

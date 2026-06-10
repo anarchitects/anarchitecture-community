@@ -143,7 +143,7 @@ export const ownershipPresenceRule: SynchronousGovernanceRule = {
 };
 
 export const projectNameConventionRule: SynchronousGovernanceRule = {
-  // Keep the legacy rule id stable for profile compatibility while
+  // Keep the legacy rule id stable while
   // evaluating canonical nodes directly.
   id: 'project-name-convention',
   name: 'Node Name Convention',

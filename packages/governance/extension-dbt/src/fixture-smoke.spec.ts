@@ -6,7 +6,6 @@ import type {
   GovernanceExtensionHostContext,
   GovernanceProfile,
   GovernanceWorkspace,
-  Ownership,
 } from '@anarchitects/governance-core';
 
 import {
@@ -16,7 +15,10 @@ import {
   buildDbtGovernanceSignals,
   evaluateDbtArchitectureViolations,
 } from './index.js';
-import { createCompatibilityWorkspace } from './test-workspace.js';
+import {
+  createCompatibilityWorkspace,
+  type LegacyWorkspaceOwnership,
+} from './test-workspace.js';
 
 type FixtureWorkspaceProject = {
   id: string;
@@ -26,7 +28,7 @@ type FixtureWorkspaceProject = {
   tags: string[];
   domain?: string;
   layer?: string;
-  ownership?: Ownership;
+  ownership?: LegacyWorkspaceOwnership;
   metadata: Record<string, unknown>;
 };
 

@@ -1140,7 +1140,7 @@ function parseAgovDependenciesArgs(
     }
 
     if (arg === '--project') {
-      filters.project = readRequiredOptionValue(args, index, '--project');
+      filters.node = readRequiredOptionValue(args, index, '--project');
       index += 1;
       continue;
     }
@@ -1335,7 +1335,7 @@ function parseAgovViolationsArgs(args: string[]): ParsedAgovViolationsOptions {
     }
 
     if (arg === '--project') {
-      filters.project = readRequiredOptionValue(args, index, '--project');
+      filters.subject = readRequiredOptionValue(args, index, '--project');
       index += 1;
       continue;
     }
@@ -1427,7 +1427,7 @@ function parseAgovInspectArgs(args: string[]): ParsedAgovInspectOptions {
     }
 
     if (arg === '--project') {
-      filters.project = readRequiredOptionValue(args, index, '--project');
+      filters.node = readRequiredOptionValue(args, index, '--project');
       index += 1;
       continue;
     }
@@ -2364,8 +2364,7 @@ async function loadInferredGovernanceExtensions(
   try {
     loadedModule = await environment.moduleLoader(extensionPackage);
   } catch {
-    // Inferred extensions are optional for compatibility with existing
-    // adapter-only installations.
+    // Inferred extensions are optional for existing adapter-only installations.
     return {};
   }
 
@@ -2849,9 +2848,9 @@ function renderAgovDependenciesHelp(): string {
     '  --root <path>       Adapter input root. Defaults to the current working directory.',
     '  --format <value>    Output format: table, markdown, text, or json. Defaults to text.',
     '  --output <path>     Write command output to a file instead of stdout.',
-    '  --source <value>    Filter by source project id or name.',
-    '  --target <value>    Filter by target project id or name.',
-    '  --project <value>   Filter by source or target project id or name.',
+    '  --source <value>    Filter by source node id or name.',
+    '  --target <value>    Filter by target node id or name.',
+    '  --project <value>   Filter by source or target node id or name.',
     '  --type <value>      Filter by dependency type: static, dynamic, implicit, unknown.',
     '',
     'Conventions:',
@@ -3036,7 +3035,7 @@ function renderAgovViolationsHelp(): string {
     '  --severity <value>       Filter by severity: error, warning, info.',
     '  --rule <value>           Filter by rule id.',
     '  --category <value>       Filter by category.',
-    '  --project <value>        Filter by project id.',
+    '  --project <value>        Filter by subject id.',
     '  --source-plugin <value>  Filter by source plugin id.',
     '',
     'Conventions:',
@@ -3066,10 +3065,10 @@ function renderAgovInspectHelp(): string {
     '  --root <path>       Adapter input root. Defaults to the current working directory.',
     '  --format <value>    Output format: table, markdown, text, or json. Defaults to text.',
     '  --output <path>     Write command output to a file instead of stdout.',
-    '  --project <value>   Filter to a single project by id or name.',
-    '  --domain <value>    Filter to projects in a single domain.',
-    '  --layer <value>     Filter to projects in a single layer.',
-    '  --type <value>      Filter to projects of a single type.',
+    '  --project <value>   Filter to a single node by id or name.',
+    '  --domain <value>    Filter to nodes in a single domain.',
+    '  --layer <value>     Filter to nodes in a single layer.',
+    '  --type <value>      Filter to nodes of a single type.',
     '',
     'Conventions:',
     '  Config:   agov.config.json, governance.config.json',

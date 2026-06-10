@@ -15,19 +15,22 @@ describe('Governance CLI adapter dependency boundary', () => {
           workspaceId: input.workspaceName,
           workspaceName: input.workspaceName,
           workspaceRoot: '.',
-          projects: [
+          nodes: [
             {
               id: 'customer-domain',
               name: 'customer-domain',
+              kind: 'library',
               root: 'src/customer/domain',
-              type: 'library',
-              domain: 'customer',
-              layer: 'domain',
+              path: 'src/customer/domain',
               tags: ['scope:customer', 'layer:domain', 'type:library'],
+              classification: {
+                domain: 'customer',
+                layer: 'domain',
+              },
               metadata: {},
             },
           ],
-          dependencies: [],
+          relations: [],
         };
       },
     };
