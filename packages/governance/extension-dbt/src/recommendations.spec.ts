@@ -1,11 +1,11 @@
 import {
   DefaultGovernanceCapabilityRegistry,
-  type GovernanceCompatibilityWorkspace,
   type GovernanceDiagnostic,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
   type GovernanceSignal,
   type Measurement,
+  type GovernanceWorkspace,
   type Ownership,
   type Violation,
 } from '@anarchitects/governance-core';
@@ -67,7 +67,7 @@ describe('dbt governance recommendations', () => {
   function createWorkspace(
     projects: TestWorkspaceProject[],
     dependencies: TestWorkspaceDependency[] = [],
-  ): GovernanceCompatibilityWorkspace {
+  ): GovernanceWorkspace {
     return createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',
@@ -78,7 +78,7 @@ describe('dbt governance recommendations', () => {
   }
 
   function createContext(
-    workspace: GovernanceCompatibilityWorkspace,
+    workspace: GovernanceWorkspace,
   ): GovernanceExtensionHostContext {
     return {
       workspaceRoot: workspace.root,
@@ -90,7 +90,7 @@ describe('dbt governance recommendations', () => {
   }
 
   function createRecommendationInput(
-    workspace: GovernanceCompatibilityWorkspace,
+    workspace: GovernanceWorkspace,
     overrides: Partial<DbtGovernanceRecommendationProviderInput> = {},
   ): DbtGovernanceRecommendationProviderInput {
     return {
@@ -218,27 +218,26 @@ describe('dbt governance recommendations', () => {
     id: string;
     code: string;
     nodeId?: string;
-    sourceProjectId?: string;
-    targetProjectId?: string;
-    relatedProjectIds?: string[];
+    sourceNodeId?: string;
+    targetNodeId?: string;
+    relatedNodeIds?: string[];
+    relationId?: string;
     dependencyKey?: string;
     dbtUniqueId?: string;
   }): GovernanceSignal {
+    const sourceNodeId = options.nodeId ?? options.sourceNodeId;
+    const targetNodeId = options.targetNodeId;
+
     return {
       id: options.id,
       type: options.code,
-      ...(options.nodeId
-        ? { nodeId: options.nodeId }
-        : options.sourceProjectId
-          ? { nodeId: options.sourceProjectId }
-          : {}),
+      ...(sourceNodeId ? { nodeId: sourceNodeId } : {}),
+      ...(options.relationId ? { relationId: options.relationId } : {}),
       relatedNodeIds:
-        options.relatedProjectIds ??
-        [
-          options.nodeId,
-          options.sourceProjectId,
-          options.targetProjectId,
-        ].filter((value): value is string => Boolean(value)),
+        options.relatedNodeIds ??
+        [sourceNodeId, targetNodeId].filter((value): value is string =>
+          Boolean(value),
+        ),
       severity: 'warning',
       category: 'boundary',
       message: options.code,
@@ -257,20 +256,22 @@ describe('dbt governance recommendations', () => {
   function createViolation(options: {
     id: string;
     ruleId: string;
-    project: string;
-    targetProjectId?: string;
+    nodeId: string;
+    targetNodeId?: string;
+    relationId?: string;
   }): Violation {
     return {
       id: options.id,
       ruleId: options.ruleId,
-      subjectId: options.project,
+      subjectId: options.relationId ?? options.nodeId,
       severity: 'error',
       category: 'boundary',
       message: options.ruleId,
       reference: {
-        nodeId: options.project,
-        ...(options.targetProjectId
-          ? { relatedNodeIds: [options.project, options.targetProjectId] }
+        nodeId: options.nodeId,
+        ...(options.relationId ? { relationId: options.relationId } : {}),
+        ...(options.targetNodeId
+          ? { relatedNodeIds: [options.nodeId, options.targetNodeId] }
           : {}),
       },
     };
@@ -278,18 +279,18 @@ describe('dbt governance recommendations', () => {
 
   function createMeasurement(options: {
     id: string;
-    countedResourceIds?: string[];
+    countedNodeIds?: string[];
   }): Measurement {
     return {
       id: options.id,
       name: options.id,
       family: 'architecture',
-      value: options.countedResourceIds?.length ?? 0,
-      score: options.countedResourceIds?.length ?? 0,
-      maxScore: options.countedResourceIds?.length ?? 0,
+      value: options.countedNodeIds?.length ?? 0,
+      score: options.countedNodeIds?.length ?? 0,
+      maxScore: options.countedNodeIds?.length ?? 0,
       unit: 'count',
       metadata: {
-        countedResourceIds: options.countedResourceIds ?? [],
+        countedNodeIds: options.countedNodeIds ?? [],
       },
     };
   }
@@ -335,7 +336,7 @@ describe('dbt governance recommendations', () => {
             createViolation({
               id: 'violation-owner',
               ruleId: 'dbt/critical-models-require-owner',
-              project: project.id,
+              nodeId: project.id,
             }),
           ],
         }),
@@ -407,7 +408,7 @@ describe('dbt governance recommendations', () => {
           createViolation({
             id: 'violation-tests',
             ruleId: 'dbt/critical-models-require-tests',
-            project: project.id,
+            nodeId: project.id,
           }),
         ],
       }),
@@ -467,6 +468,7 @@ describe('dbt governance recommendations', () => {
       domain: 'finance',
     });
     const workspace = createWorkspace([source, target]);
+    const relationId = `dbt:lineage:${source.id}->${target.id}`;
 
     const recommendations = buildDbtGovernanceRecommendations(
       createRecommendationInput(workspace, {
@@ -478,8 +480,9 @@ describe('dbt governance recommendations', () => {
           createViolation({
             id: 'violation-cross-domain',
             ruleId: 'dbt/cross-domain-dependencies-require-approval',
-            project: source.id,
-            targetProjectId: target.id,
+            nodeId: source.id,
+            targetNodeId: target.id,
+            relationId,
           }),
         ],
       }),
@@ -491,7 +494,7 @@ describe('dbt governance recommendations', () => {
       title: 'Review cross-domain dbt dependency',
       priority: 'high',
       reference: expect.objectContaining({
-        relationId: `${source.id}->${target.id}`,
+        relationId,
         nodeId: source.id,
         relatedNodeIds: expect.arrayContaining([source.id, target.id]),
       }),
@@ -523,7 +526,7 @@ describe('dbt governance recommendations', () => {
         measurements: [
           createMeasurement({
             id: 'dbt-hotspot-count',
-            countedResourceIds: [project.id],
+            countedNodeIds: [project.id],
           }),
         ],
       }),
@@ -533,10 +536,10 @@ describe('dbt governance recommendations', () => {
       findRecommendation(recommendations, 'REDUCE_HIGH_FAN_IN'),
     ).toMatchObject({
       title: 'Reduce dbt fan-in',
-      measurementIds: ['dbt-hotspot-count'],
+      signalIds: ['signal-fan-in'],
       metadata: expect.objectContaining({
         code: 'REDUCE_HIGH_FAN_IN',
-        triggerMeasurementIds: ['dbt-hotspot-count'],
+        triggerSignalIds: ['signal-fan-in'],
       }),
     });
   });
@@ -553,6 +556,7 @@ describe('dbt governance recommendations', () => {
       domain: 'finance',
     });
     const workspace = createWorkspace([source, target]);
+    const relationId = `dbt:lineage:${source.id}->${target.id}`;
 
     const recommendations = buildDbtGovernanceRecommendations(
       createRecommendationInput(workspace, {
@@ -564,9 +568,10 @@ describe('dbt governance recommendations', () => {
           createSignal({
             id: 'signal-layer',
             code: 'DBT_LAYER_BYPASS_CANDIDATE',
-            sourceProjectId: source.id,
-            targetProjectId: target.id,
-            relatedProjectIds: [source.id, target.id],
+            sourceNodeId: source.id,
+            targetNodeId: target.id,
+            relatedNodeIds: [source.id, target.id],
+            relationId,
             dependencyKey: `${source.id}->${target.id}`,
             dbtUniqueId: source.id,
           }),
@@ -575,8 +580,9 @@ describe('dbt governance recommendations', () => {
           createViolation({
             id: 'violation-layer',
             ruleId: 'dbt/no-disallowed-layer-dependency',
-            project: source.id,
-            targetProjectId: target.id,
+            nodeId: source.id,
+            targetNodeId: target.id,
+            relationId,
           }),
         ],
       }),
@@ -588,7 +594,7 @@ describe('dbt governance recommendations', () => {
       title: 'Fix dbt layer dependency',
       priority: 'high',
       reference: expect.objectContaining({
-        relationId: `${source.id}->${target.id}`,
+        relationId,
       }),
       metadata: expect.objectContaining({
         code: 'FIX_LAYER_DEPENDENCY',

@@ -10,13 +10,12 @@ import type {
   DbtGovernanceDiagnosticProvider,
   DbtGovernanceDiagnosticProviderInput,
 } from './contracts.js';
+import { getDbtNodes, toResolverInput } from './dbt-graph.js';
 import {
   resolveDbtGovernanceMetadata,
   type DbtGovernanceMetadataResolution,
-  type DbtGovernanceMetadataResolverInput,
   type DbtMetadataResolution,
 } from './resolvers.js';
-import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_GOVERNANCE_DIAGNOSTIC_SOURCE = 'governance.dbt_extension';
 
@@ -58,17 +57,6 @@ export interface DbtGovernanceExtensionDiagnostic extends GovernanceDiagnostic {
 
 export interface DbtGovernanceDiagnosticsProviderOptions {
   includeSkippedRuleDiagnostics?: boolean;
-}
-
-interface DbtProjectLike {
-  id: string;
-  name?: string;
-  root?: string;
-  tags?: readonly string[];
-  domain?: string;
-  layer?: string;
-  ownership?: unknown;
-  metadata?: Record<string, unknown>;
 }
 
 interface CreateDiagnosticOptions {
@@ -125,9 +113,9 @@ function resolveMetadataResolutions(
     return input.metadataResolutions;
   }
 
-  return toCompatibilityWorkspace(input.workspace).projects
-    .filter((project) => hasDbtMetadata(project.metadata))
-    .map((project) => resolveDbtGovernanceMetadata(toResolverInput(project)));
+  return getDbtNodes(input.workspace).map((node) =>
+    resolveDbtGovernanceMetadata(toResolverInput(node)),
+  );
 }
 
 function buildDiagnosticsForResolution(
@@ -144,7 +132,7 @@ function buildDiagnosticsForResolution(
     resolution.layer,
     'layer',
     'Layer metadata could not be resolved from normalized dbt governance input.',
-    'Populate project.layer, metadata.dbt.resource.meta.layer, or a supported layer tag/path convention.',
+    'Populate node.classification.layer, metadata.dbt.resource.meta.layer, or a supported layer tag/path convention.',
   );
   appendUnresolvedMetadataDiagnostic(
     diagnostics,
@@ -152,7 +140,7 @@ function buildDiagnosticsForResolution(
     resolution.domain,
     'domain',
     'Domain metadata could not be resolved from normalized dbt governance input.',
-    'Populate project.domain or metadata.dbt.resource.meta.domain, or provide a runtime-configured domain resolver convention.',
+    'Populate node.classification.domain or metadata.dbt.resource.meta.domain, or provide a runtime-configured domain resolver convention.',
   );
   appendUnresolvedMetadataDiagnostic(
     diagnostics,
@@ -160,7 +148,7 @@ function buildDiagnosticsForResolution(
     resolution.owner,
     'owner',
     'Owner metadata is missing, so dbt governance interpretation remains incomplete.',
-    'Populate project.ownership.team, metadata.dbt.resource.owner, metadata.dbt.resource.group, or metadata.dbt.resource.meta.owner.',
+    'Populate node.ownership.team, metadata.dbt.resource.owner, metadata.dbt.resource.group, or metadata.dbt.resource.meta.owner.',
   );
 
   appendInvalidMetadataDiagnostic(
@@ -390,7 +378,7 @@ function appendSkippedRuleDiagnostic(
       message:
         'Metadata-dependent governance analysis is partial because required dbt governance metadata is missing.',
       recommendation:
-        'Populate the missing metadata fields so downstream governance checks can run deterministically.',
+        'Populate the missing node metadata fields so downstream governance checks can run deterministically.',
       severity: 'warning',
       kind: 'observation',
       details: {
@@ -438,29 +426,4 @@ function createDiagnostic({
       ...(field ? { field } : {}),
     },
   };
-}
-
-function hasDbtMetadata(
-  metadata: unknown,
-): metadata is Record<string, unknown> {
-  return isRecord(metadata) && isRecord(metadata.dbt);
-}
-
-function toResolverInput(
-  project: DbtProjectLike,
-): DbtGovernanceMetadataResolverInput {
-  return {
-    id: project.id,
-    name: project.name,
-    root: project.root,
-    tags: project.tags,
-    domain: project.domain,
-    layer: project.layer,
-    ownership: isRecord(project.ownership) ? project.ownership : undefined,
-    metadata: project.metadata,
-  };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }

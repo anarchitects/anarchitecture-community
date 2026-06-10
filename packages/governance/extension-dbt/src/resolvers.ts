@@ -1,5 +1,3 @@
-import type { Ownership } from '@anarchitects/governance-core';
-
 export const DBT_METADATA_RESOLUTION_STATUSES = [
   'resolved',
   'unresolved',
@@ -18,7 +16,7 @@ export interface DbtGovernanceMetadataResolverInput {
   tags?: readonly string[];
   domain?: string;
   layer?: string;
-  ownership?: Ownership | Record<string, unknown>;
+  ownership?: unknown;
   metadata?: Record<string, unknown>;
 }
 
@@ -124,7 +122,7 @@ export function resolveDbtLayer(
     explicitValid,
     explicitInvalid,
     input.layer,
-    'project.layer',
+    'node.classification.layer',
   );
   collectStringCandidate(
     explicitValid,
@@ -186,7 +184,7 @@ export function resolveDbtDomain(
     explicitValid,
     explicitInvalid,
     input.domain,
-    'project.domain',
+    'node.classification.domain',
   );
   collectStringCandidate(
     explicitValid,
@@ -239,7 +237,7 @@ export function resolveDbtOwner(
     normalizedValid,
     normalizedInvalid,
     readOwnershipTeam(input.ownership),
-    'project.ownership.team',
+    'node.ownership.team',
   );
   collectOwnerCandidate(
     metadataValid,

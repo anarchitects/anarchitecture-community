@@ -4,11 +4,19 @@ import {
   type GovernanceDiagnostic,
   type GovernanceExtensionRulePack,
   type GovernanceProfile,
+  type GovernanceRelation,
   type GovernanceSignal,
   type Violation,
 } from '@anarchitects/governance-core';
 
 import type { DbtGovernanceRulePackInput } from './contracts.js';
+import {
+  getDbtDependencyRelations,
+  getDbtNodes,
+  toRelationKey,
+  toRelationReference,
+  toResolverInput,
+} from './dbt-graph.js';
 import { buildDbtGovernanceDiagnostics } from './diagnostics.js';
 import {
   buildDbtGovernanceSignals,
@@ -17,9 +25,7 @@ import {
 import {
   resolveDbtGovernanceMetadata,
   type DbtGovernanceMetadataResolution,
-  type DbtGovernanceMetadataResolverInput,
 } from './resolvers.js';
-import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_BASIC_ARCHITECTURE_RULE_PACK_ID = 'dbt-architecture-basic';
 
@@ -75,24 +81,6 @@ interface ResolvedDbtArchitectureContext {
   options: Required<DbtArchitectureRulePackOptions>;
 }
 
-interface DbtProjectLike {
-  id: string;
-  name?: string;
-  root?: string;
-  tags?: readonly string[];
-  domain?: string;
-  layer?: string;
-  ownership?: unknown;
-  metadata?: Record<string, unknown>;
-}
-
-interface DbtDependencyLike {
-  source: string;
-  target: string;
-  type?: string;
-  metadata?: Record<string, unknown>;
-}
-
 interface RuleConfig<TOptions> {
   enabled: boolean;
   severity: Violation['severity'];
@@ -137,7 +125,7 @@ export function evaluateDbtArchitectureViolations(
   input: DbtGovernanceRulePackInput,
   options: DbtArchitectureRulePackOptions = {},
 ): Violation[] {
-  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
+  const dependencyRelations = getDbtDependencyRelations(input.workspace);
   const context = resolveDbtArchitectureContext(input, options);
   const resolutionById = new Map(
     context.metadataResolutions.map((resolution) => [
@@ -147,21 +135,16 @@ export function evaluateDbtArchitectureViolations(
   );
   const violations: Violation[] = [];
 
-  for (const dependency of compatibilityWorkspace.dependencies) {
-    const source = resolutionById.get(dependency.source);
-    const target = resolutionById.get(dependency.target);
+  for (const relation of dependencyRelations) {
+    const source = resolutionById.get(relation.sourceNodeId);
+    const target = resolutionById.get(relation.targetNodeId);
 
     violations.push(
-      ...evaluateNoDisallowedLayerDependency(
-        context,
-        dependency,
-        source,
-        target,
-      ),
-      ...evaluateNoMartToMartDependency(context, dependency, source, target),
+      ...evaluateNoDisallowedLayerDependency(context, relation, source, target),
+      ...evaluateNoMartToMartDependency(context, relation, source, target),
       ...evaluateCrossDomainDependenciesRequireApproval(
         context,
-        dependency,
+        relation,
         source,
         target,
       ),
@@ -186,15 +169,12 @@ function resolveDbtArchitectureContext(
   input: DbtGovernanceRulePackInput,
   options: DbtArchitectureRulePackOptions,
 ): ResolvedDbtArchitectureContext {
-  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
   const metadataResolutions =
     input.metadataResolutions && input.metadataResolutions.length > 0
       ? input.metadataResolutions
-      : compatibilityWorkspace.projects
-          .filter((project) => hasDbtMetadata(project.metadata))
-          .map((project) =>
-            resolveDbtGovernanceMetadata(toResolverInput(project)),
-          );
+      : getDbtNodes(input.workspace).map((node) =>
+          resolveDbtGovernanceMetadata(toResolverInput(node)),
+        );
 
   const diagnostics =
     input.diagnostics && input.diagnostics.length > 0
@@ -268,7 +248,7 @@ function resolveDbtArchitectureContext(
 
 function evaluateNoDisallowedLayerDependency(
   context: ResolvedDbtArchitectureContext,
-  dependency: DbtDependencyLike,
+  relation: GovernanceRelation,
   source: DbtGovernanceMetadataResolution | undefined,
   target: DbtGovernanceMetadataResolution | undefined,
 ): Violation[] {
@@ -308,39 +288,31 @@ function evaluateNoDisallowedLayerDependency(
   return [
     createViolation({
       ruleId: 'dbt/no-disallowed-layer-dependency',
-      subjectId: source.governanceNodeId,
+      subjectId: relation.id,
       severity: config.severity,
       category: 'boundary',
       message: `dbt layer dependency violation: ${source.governanceNodeId} (${sourceLayer}) depends on ${target.governanceNodeId} (${targetLayer}).`,
       details: {
         sourceLayer,
         targetLayer,
-        dependencyType: dependency.type,
+        dependencyType: relation.kind,
         allowedUpstreamLayers: allowedTargets,
-        supportingSignalIds: getDependencySignalIds(
-          context.signals,
-          dependency,
-          ['DBT_LAYER_DEPENDENCY_DETECTED', 'DBT_LAYER_DIRECTION_CANDIDATE'],
-        ),
+        supportingSignalIds: getDependencySignalIds(context.signals, relation, [
+          'DBT_LAYER_DEPENDENCY_DETECTED',
+          'DBT_LAYER_DIRECTION_CANDIDATE',
+        ]),
       },
       recommendation:
         'Refactor the dependency so the source layer only depends on configured upstream layers, or update the dbt rule configuration when intentional.',
-      reference: {
-        nodeId: source.governanceNodeId,
-        relatedNodeIds: [source.governanceNodeId, target.governanceNodeId],
-      },
-      identityParts: [
-        'no-disallowed-layer-dependency',
-        source.governanceNodeId,
-        target.governanceNodeId,
-      ],
+      reference: toRelationReference(relation),
+      identityParts: ['no-disallowed-layer-dependency', relation.id],
     }),
   ];
 }
 
 function evaluateNoMartToMartDependency(
   context: ResolvedDbtArchitectureContext,
-  dependency: DbtDependencyLike,
+  relation: GovernanceRelation,
   source: DbtGovernanceMetadataResolution | undefined,
   target: DbtGovernanceMetadataResolution | undefined,
 ): Violation[] {
@@ -378,7 +350,7 @@ function evaluateNoMartToMartDependency(
   return [
     createViolation({
       ruleId: 'dbt/no-mart-to-mart-dependency',
-      subjectId: source.governanceNodeId,
+      subjectId: relation.id,
       severity: config.severity,
       category: 'boundary',
       message: `dbt mart-to-mart dependency detected: ${source.governanceNodeId} depends on ${target.governanceNodeId}.`,
@@ -386,24 +358,15 @@ function evaluateNoMartToMartDependency(
         sourceLayer,
         targetLayer,
         martLayers: [...martLayers],
-        dependencyType: dependency.type,
-        supportingSignalIds: getDependencySignalIds(
-          context.signals,
-          dependency,
-          ['DBT_LAYER_DEPENDENCY_DETECTED'],
-        ),
+        dependencyType: relation.kind,
+        supportingSignalIds: getDependencySignalIds(context.signals, relation, [
+          'DBT_LAYER_DEPENDENCY_DETECTED',
+        ]),
       },
       recommendation:
         'Refactor shared marts behind an intermediate or staging layer, or reconfigure mart layers when the architecture intentionally treats them differently.',
-      reference: {
-        nodeId: source.governanceNodeId,
-        relatedNodeIds: [source.governanceNodeId, target.governanceNodeId],
-      },
-      identityParts: [
-        'no-mart-to-mart-dependency',
-        source.governanceNodeId,
-        target.governanceNodeId,
-      ],
+      reference: toRelationReference(relation),
+      identityParts: ['no-mart-to-mart-dependency', relation.id],
     }),
   ];
 }
@@ -653,7 +616,7 @@ function evaluatePublicModelsRequireContract(
 
 function evaluateCrossDomainDependenciesRequireApproval(
   context: ResolvedDbtArchitectureContext,
-  dependency: DbtDependencyLike,
+  relation: GovernanceRelation,
   source: DbtGovernanceMetadataResolution | undefined,
   target: DbtGovernanceMetadataResolution | undefined,
 ): Violation[] {
@@ -690,7 +653,7 @@ function evaluateCrossDomainDependenciesRequireApproval(
   }
 
   const matchedApprovalPath = approvalPaths.find((path) =>
-    readBooleanishPath(dependency.metadata, path),
+    readBooleanishPath(relation.metadata, path),
   );
   if (matchedApprovalPath) {
     return [];
@@ -699,7 +662,7 @@ function evaluateCrossDomainDependenciesRequireApproval(
   return [
     createViolation({
       ruleId: 'dbt/cross-domain-dependencies-require-approval',
-      subjectId: source.governanceNodeId,
+      subjectId: relation.id,
       severity: config.severity,
       category: 'boundary',
       message: `Cross-domain dbt dependency ${source.governanceNodeId} (${sourceDomain}) -> ${target.governanceNodeId} (${targetDomain}) has no approval metadata.`,
@@ -707,22 +670,16 @@ function evaluateCrossDomainDependenciesRequireApproval(
         sourceDomain,
         targetDomain,
         checkedApprovalMetadataPaths: approvalPaths,
-        supportingSignalIds: getDependencySignalIds(
-          context.signals,
-          dependency,
-          ['DBT_CROSS_DOMAIN_DEPENDENCY_DETECTED'],
-        ),
+        supportingSignalIds: getDependencySignalIds(context.signals, relation, [
+          'DBT_CROSS_DOMAIN_DEPENDENCY_DETECTED',
+        ]),
       },
       recommendation:
         'Add explicit approval metadata for intentional cross-domain dbt dependencies or refactor the dependency to remain within the domain boundary.',
-      reference: {
-        nodeId: source.governanceNodeId,
-        relatedNodeIds: [source.governanceNodeId, target.governanceNodeId],
-      },
+      reference: toRelationReference(relation),
       identityParts: [
         'cross-domain-dependencies-require-approval',
-        source.governanceNodeId,
-        target.governanceNodeId,
+        relation.id,
       ],
     }),
   ];
@@ -837,17 +794,18 @@ function getNodeSignalIds(
 
 function getDependencySignalIds(
   signals: readonly GovernanceSignal[],
-  dependency: DbtDependencyLike,
+  relation: GovernanceRelation,
   codes: readonly DbtGovernanceSignalCode[],
 ): string[] {
-  const dependencyKey = `${dependency.source}->${dependency.target}`;
+  const dependencyKey = toRelationKey(relation);
   const codeSet = new Set(codes);
 
   return signals
     .filter((signal) => {
       const code = asSignalCode(signal.metadata?.code);
       return (
-        asString(signal.metadata?.dependencyKey) === dependencyKey &&
+        (signal.relationId === relation.id ||
+          asString(signal.metadata?.dependencyKey) === dependencyKey) &&
         code !== undefined &&
         codeSet.has(code)
       );
@@ -897,27 +855,6 @@ function readPathValue(value: unknown, path: readonly string[]): unknown {
   }
 
   return current;
-}
-
-function toResolverInput(
-  project: DbtProjectLike,
-): DbtGovernanceMetadataResolverInput {
-  return {
-    id: project.id,
-    name: project.name,
-    root: project.root,
-    tags: project.tags,
-    domain: project.domain,
-    layer: project.layer,
-    ownership: asRecord(project.ownership),
-    metadata: project.metadata,
-  };
-}
-
-function hasDbtMetadata(
-  metadata: unknown,
-): metadata is Record<string, unknown> {
-  return Boolean(asRecord(asRecord(metadata)?.dbt));
 }
 
 function asSignalCode(value: unknown): DbtGovernanceSignalCode | undefined {

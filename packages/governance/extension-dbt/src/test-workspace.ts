@@ -1,8 +1,9 @@
 import type {
-  GovernanceCompatibilityWorkspace,
   GovernanceDependency,
+  GovernanceNode,
   GovernanceProject,
   GovernanceRelation,
+  GovernanceWorkspace,
 } from '@anarchitects/governance-core';
 
 export type LegacyWorkspaceDependency = GovernanceDependency & {
@@ -19,29 +20,38 @@ export type LegacyWorkspaceInput = {
 
 export function createCompatibilityWorkspace(
   workspace: LegacyWorkspaceInput,
-): GovernanceCompatibilityWorkspace {
+): GovernanceWorkspace {
   return {
-    ...workspace,
-    nodes: workspace.projects.map((project) => ({
-      id: project.id,
-      name: project.name,
-      kind: normalizeNodeKind(project.type),
-      root: project.root,
-      tags: [...project.tags],
-      ...(project.domain || project.layer
-        ? {
-            classification: {
-              ...(project.domain ? { domain: project.domain } : {}),
-              ...(project.layer ? { layer: project.layer } : {}),
-            },
-          }
-        : {}),
-      ...(project.ownership ? { ownership: project.ownership } : {}),
-      metadata: { ...project.metadata },
-    })),
+    id: workspace.id,
+    name: workspace.name,
+    root: workspace.root,
+    nodes: workspace.projects.map((project) => projectToNode(project)),
     relations: workspace.dependencies.map((dependency, index) =>
       dependencyToRelation(dependency, index),
     ),
+  };
+}
+
+function projectToNode(project: GovernanceProject): GovernanceNode {
+  return {
+    id: project.id,
+    name: project.name,
+    kind: normalizeNodeKind(project),
+    technology: 'dbt',
+    sourceSystem: 'dbt',
+    root: project.root,
+    path: project.root,
+    tags: [...project.tags],
+    ...(project.domain || project.layer
+      ? {
+          classification: {
+            ...(project.domain ? { domain: project.domain } : {}),
+            ...(project.layer ? { layer: project.layer } : {}),
+          },
+        }
+      : {}),
+    ...(project.ownership ? { ownership: project.ownership } : {}),
+    metadata: { ...project.metadata },
   };
 }
 
@@ -49,11 +59,13 @@ function dependencyToRelation(
   dependency: LegacyWorkspaceDependency,
   index: number,
 ): GovernanceRelation {
+  const relationKind = normalizeRelationKind(dependency);
+
   return {
-    id: `compat:${dependency.source}->${dependency.target}:dependency:${index}`,
+    id: buildRelationId(dependency, relationKind, index),
     sourceNodeId: dependency.source,
     targetNodeId: dependency.target,
-    kind: 'dependency',
+    kind: relationKind,
     metadata: {
       dependencyType: dependency.type,
       ...(dependency.sourceFile ? { sourceFile: dependency.sourceFile } : {}),
@@ -62,11 +74,66 @@ function dependencyToRelation(
   };
 }
 
-function normalizeNodeKind(
-  type: GovernanceProject['type'],
+function normalizeNodeKind(project: GovernanceProject): string {
+  const resourceType = readStringMetadata(project.metadata, [
+    'dbt',
+    'identity',
+    'resourceType',
+  ]);
+  if (resourceType) {
+    return `dbt-${resourceType.replaceAll('_', '-')}`;
+  }
+
+  if (project.id.startsWith('model.')) return 'dbt-model';
+  if (project.id.startsWith('source.')) return 'dbt-source';
+  if (project.id.startsWith('seed.')) return 'dbt-seed';
+  if (project.id.startsWith('snapshot.')) return 'dbt-snapshot';
+  if (project.id.startsWith('exposure.')) return 'dbt-exposure';
+  if (project.type === 'application') return 'dbt-project';
+  if (project.type === 'tool') return 'dbt-source';
+  return 'dbt-model';
+}
+
+function normalizeRelationKind(dependency: LegacyWorkspaceDependency): string {
+  return (
+    readStringMetadata(dependency.metadata ?? {}, [
+      'dbt',
+      'lineage',
+      'relationKind',
+    ]) ?? 'lineage'
+  );
+}
+
+function buildRelationId(
+  dependency: LegacyWorkspaceDependency,
+  relationKind: string,
+  index: number,
 ): string {
-  if (type === 'application') return 'application';
-  if (type === 'library') return 'library';
-  if (type === 'tool') return 'tool';
-  return 'unknown';
+  if (relationKind === 'lineage' || relationKind === 'dependency') {
+    return `dbt:${relationKind}:${dependency.source}->${dependency.target}`;
+  }
+
+  return `dbt:${relationKind}:${dependency.source}->${dependency.target}:${index}`;
+}
+
+function readStringMetadata(
+  metadata: Record<string, unknown>,
+  path: readonly string[],
+): string | undefined {
+  let current: unknown = metadata;
+
+  for (const segment of path) {
+    if (
+      typeof current !== 'object' ||
+      current === null ||
+      !(segment in current)
+    ) {
+      return undefined;
+    }
+    current = current[segment as keyof typeof current];
+  }
+
+  return typeof current === 'string' && current.length > 0
+    ? current
+    : undefined;
 }

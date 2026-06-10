@@ -1,6 +1,5 @@
 import {
   DefaultGovernanceCapabilityRegistry,
-  type GovernanceCompatibilityWorkspace,
   type GovernanceExtensionHostContext,
   type GovernanceProfile,
   type GovernanceWorkspace,
@@ -61,7 +60,7 @@ describe('dbt governance diagnostics', () => {
 
   function createWorkspace(
     projects: TestWorkspaceProject[] = [],
-  ): GovernanceCompatibilityWorkspace {
+  ): GovernanceWorkspace {
     return createCompatibilityWorkspace({
       id: 'workspace',
       name: 'workspace',

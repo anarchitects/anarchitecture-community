@@ -12,6 +12,7 @@ import type {
   DbtGovernanceRecommendationProvider,
   DbtGovernanceRecommendationProviderInput,
 } from './contracts.js';
+import { getDbtNodes, normalizeIds, toResolverInput } from './dbt-graph.js';
 import { buildDbtGovernanceDiagnostics } from './diagnostics.js';
 import { buildDbtGovernanceMetrics } from './metrics.js';
 import { evaluateDbtArchitectureViolations } from './rule-pack.js';
@@ -19,9 +20,7 @@ import { buildDbtGovernanceSignals } from './signals.js';
 import {
   resolveDbtGovernanceMetadata,
   type DbtGovernanceMetadataResolution,
-  type DbtGovernanceMetadataResolverInput,
 } from './resolvers.js';
-import { toCompatibilityWorkspace } from './workspace-compat.js';
 
 export const DBT_GOVERNANCE_RECOMMENDATION_CODES = [
   'ADD_OWNER',
@@ -54,17 +53,6 @@ export interface DbtGovernanceExtensionRecommendation extends Recommendation {
   metadata?: DbtGovernanceRecommendationMetadata;
 }
 
-interface DbtProjectLike {
-  id: string;
-  name?: string;
-  root?: string;
-  tags?: readonly string[];
-  domain?: string;
-  layer?: string;
-  ownership?: unknown;
-  metadata?: Record<string, unknown>;
-}
-
 interface RecommendationContext {
   metadataResolutions: readonly DbtGovernanceMetadataResolution[];
   diagnostics: readonly GovernanceDiagnostic[];
@@ -83,9 +71,11 @@ interface RecommendationDraft {
   governanceNodeId?: string;
   dbtUniqueId?: string;
   dependencyKey?: string;
-  sourceProjectId?: string;
-  targetProjectId?: string;
-  relatedProjectIds: string[];
+  relationId?: string;
+  sourceNodeId?: string;
+  targetNodeId?: string;
+  relatedNodeIds: string[];
+  relatedRelationIds: string[];
   triggerDiagnosticCodes: string[];
   triggerDiagnosticIds: string[];
   triggerSignalCodes: string[];
@@ -135,15 +125,12 @@ export function buildDbtGovernanceRecommendations(
 function resolveRecommendationContext(
   input: DbtGovernanceRecommendationProviderInput,
 ): RecommendationContext {
-  const compatibilityWorkspace = toCompatibilityWorkspace(input.workspace);
   const metadataResolutions =
     input.metadataResolutions && input.metadataResolutions.length > 0
       ? input.metadataResolutions
-      : compatibilityWorkspace.projects
-          .filter((project) => hasDbtMetadata(project.metadata))
-          .map((project) =>
-            resolveDbtGovernanceMetadata(toResolverInput(project)),
-          );
+      : getDbtNodes(input.workspace).map((node) =>
+          resolveDbtGovernanceMetadata(toResolverInput(node)),
+        );
   const diagnostics =
     input.diagnostics.length > 0
       ? input.diagnostics
@@ -229,7 +216,7 @@ function buildAddOwnerRecommendations(
         reason:
           'Owner metadata is missing, which weakens dbt accountability and governance interpretation.',
         description:
-          'Add owner metadata using project.ownership.team, metadata.dbt.resource.owner, metadata.dbt.resource.group, or metadata.dbt.resource.meta.owner.',
+          'Add owner metadata using node.ownership.team, metadata.dbt.resource.owner, metadata.dbt.resource.group, or metadata.dbt.resource.meta.owner.',
         category: 'ownership',
         governanceNodeId: nodeId,
         dbtUniqueId: resolutionByNodeId.get(nodeId)?.dbtUniqueId,
@@ -256,7 +243,7 @@ function buildAddOwnerRecommendations(
         reason:
           'Owner metadata is missing, which weakens dbt accountability and governance interpretation.',
         description:
-          'Add owner metadata using project.ownership.team, metadata.dbt.resource.owner, metadata.dbt.resource.group, or metadata.dbt.resource.meta.owner.',
+          'Add owner metadata using node.ownership.team, metadata.dbt.resource.owner, metadata.dbt.resource.group, or metadata.dbt.resource.meta.owner.',
         category: 'ownership',
         governanceNodeId: signal.nodeId,
         dbtUniqueId:
@@ -525,7 +512,7 @@ function buildReviewCrossDomainDependencyRecommendations(
   context: RecommendationContext,
   resolutionByNodeId: Map<string, DbtGovernanceMetadataResolution>,
 ): RecommendationDraft[] {
-  const byDependencyKey = new Map<string, RecommendationDraft>();
+  const byRelationId = new Map<string, RecommendationDraft>();
 
   for (const signal of context.signals) {
     if (signal.metadata?.code !== 'DBT_CROSS_DOMAIN_DEPENDENCY_DETECTED') {
@@ -533,15 +520,18 @@ function buildReviewCrossDomainDependencyRecommendations(
     }
 
     const dependencyKey = readDependencyKeyFromSignal(signal);
-    if (!dependencyKey) {
+    const relationId = readSignalRelationId(signal);
+    const sourceNodeId = readSignalSourceNodeId(signal);
+    const targetNodeId = readSignalTargetNodeId(signal);
+    const identityKey = relationId ?? dependencyKey;
+
+    if (!identityKey) {
       continue;
     }
 
-    const sourceSignalNodeId = readSignalSourceProjectId(signal);
-
     upsertDraft(
-      byDependencyKey,
-      dependencyKey,
+      byRelationId,
+      identityKey,
       createDependencyRecommendationDraft({
         code: 'REVIEW_CROSS_DOMAIN_DEPENDENCY',
         title: 'Review cross-domain dbt dependency',
@@ -551,12 +541,14 @@ function buildReviewCrossDomainDependencyRecommendations(
         description:
           'Review whether the cross-domain dependency is intentional, approved, and still aligned with the domain policy.',
         category: 'dependency',
+        relationId,
         dependencyKey,
-        sourceProjectId: readSignalSourceProjectId(signal),
-        targetProjectId: readSignalTargetProjectId(signal),
-        relatedProjectIds: signal.relatedNodeIds ?? [],
-        dbtUniqueId: sourceSignalNodeId
-          ? resolutionByNodeId.get(sourceSignalNodeId)?.dbtUniqueId
+        sourceNodeId,
+        targetNodeId,
+        relatedNodeIds: signal.relatedNodeIds ?? [],
+        relatedRelationIds: signal.relationId ? [signal.relationId] : [],
+        dbtUniqueId: sourceNodeId
+          ? resolutionByNodeId.get(sourceNodeId)?.dbtUniqueId
           : undefined,
         signal,
       }),
@@ -568,23 +560,26 @@ function buildReviewCrossDomainDependencyRecommendations(
       continue;
     }
 
-    const sourceProjectId = readViolationNodeId(violation);
-    const targetProjectId = readViolationTargetNodeId(violation);
+    const sourceNodeId = readViolationNodeId(violation);
+    const targetNodeId = readViolationTargetNodeId(violation);
+    const relationId = violation.reference?.relationId;
     const dependencyKey =
-      sourceProjectId && targetProjectId
-        ? `${sourceProjectId}->${targetProjectId}`
+      sourceNodeId && targetNodeId
+        ? `${sourceNodeId}->${targetNodeId}`
         : undefined;
-    if (!dependencyKey) {
+    const identityKey = relationId ?? dependencyKey;
+
+    if (!identityKey) {
       continue;
     }
 
-    if (!sourceProjectId) {
+    if (!sourceNodeId) {
       continue;
     }
 
     upsertDraft(
-      byDependencyKey,
-      dependencyKey,
+      byRelationId,
+      identityKey,
       createDependencyRecommendationDraft({
         code: 'REVIEW_CROSS_DOMAIN_DEPENDENCY',
         title: 'Review cross-domain dbt dependency',
@@ -594,20 +589,19 @@ function buildReviewCrossDomainDependencyRecommendations(
         description:
           'Review, approve, or redesign the cross-domain dependency so it matches the configured domain policy.',
         category: 'dependency',
+        relationId,
         dependencyKey,
-        sourceProjectId,
-        targetProjectId,
-        relatedProjectIds: normalizeRelatedProjectIds([
-          sourceProjectId,
-          targetProjectId,
-        ]),
-        dbtUniqueId: resolutionByNodeId.get(sourceProjectId)?.dbtUniqueId,
+        sourceNodeId,
+        targetNodeId,
+        relatedNodeIds: normalizeIds([sourceNodeId, targetNodeId]),
+        relatedRelationIds: relationId ? [relationId] : [],
+        dbtUniqueId: resolutionByNodeId.get(sourceNodeId)?.dbtUniqueId,
         violation,
       }),
     );
   }
 
-  return [...byDependencyKey.values()];
+  return [...byRelationId.values()];
 }
 
 function buildReduceHighFanInRecommendations(
@@ -620,7 +614,7 @@ function buildReduceHighFanInRecommendations(
   );
   const hotspotMeasurementNodes = readStringArray(
     hotspotMeasurement?.metadata,
-    'countedResourceIds',
+    'countedNodeIds',
   );
 
   for (const signal of context.signals) {
@@ -694,7 +688,7 @@ function buildFixLayerDependencyRecommendations(
   context: RecommendationContext,
   resolutionByNodeId: Map<string, DbtGovernanceMetadataResolution>,
 ): RecommendationDraft[] {
-  const byDependencyKey = new Map<string, RecommendationDraft>();
+  const byRelationId = new Map<string, RecommendationDraft>();
 
   for (const signal of context.signals) {
     if (signal.metadata?.code !== 'DBT_LAYER_BYPASS_CANDIDATE') {
@@ -702,15 +696,18 @@ function buildFixLayerDependencyRecommendations(
     }
 
     const dependencyKey = readDependencyKeyFromSignal(signal);
-    if (!dependencyKey) {
+    const relationId = readSignalRelationId(signal);
+    const sourceNodeId = readSignalSourceNodeId(signal);
+    const targetNodeId = readSignalTargetNodeId(signal);
+    const identityKey = relationId ?? dependencyKey;
+
+    if (!identityKey) {
       continue;
     }
 
-    const sourceSignalNodeId = readSignalSourceProjectId(signal);
-
     upsertDraft(
-      byDependencyKey,
-      dependencyKey,
+      byRelationId,
+      identityKey,
       createDependencyRecommendationDraft({
         code: 'FIX_LAYER_DEPENDENCY',
         title: 'Fix dbt layer dependency',
@@ -720,12 +717,14 @@ function buildFixLayerDependencyRecommendations(
         description:
           'Align the dependency with the configured layer policy or refactor through the expected intermediate layer.',
         category: 'boundary',
+        relationId,
         dependencyKey,
-        sourceProjectId: readSignalSourceProjectId(signal),
-        targetProjectId: readSignalTargetProjectId(signal),
-        relatedProjectIds: signal.relatedNodeIds ?? [],
-        dbtUniqueId: sourceSignalNodeId
-          ? resolutionByNodeId.get(sourceSignalNodeId)?.dbtUniqueId
+        sourceNodeId,
+        targetNodeId,
+        relatedNodeIds: signal.relatedNodeIds ?? [],
+        relatedRelationIds: signal.relationId ? [signal.relationId] : [],
+        dbtUniqueId: sourceNodeId
+          ? resolutionByNodeId.get(sourceNodeId)?.dbtUniqueId
           : undefined,
         signal,
       }),
@@ -737,23 +736,26 @@ function buildFixLayerDependencyRecommendations(
       continue;
     }
 
-    const sourceProjectId = readViolationNodeId(violation);
-    const targetProjectId = readViolationTargetNodeId(violation);
+    const sourceNodeId = readViolationNodeId(violation);
+    const targetNodeId = readViolationTargetNodeId(violation);
+    const relationId = violation.reference?.relationId;
     const dependencyKey =
-      sourceProjectId && targetProjectId
-        ? `${sourceProjectId}->${targetProjectId}`
+      sourceNodeId && targetNodeId
+        ? `${sourceNodeId}->${targetNodeId}`
         : undefined;
-    if (!dependencyKey) {
+    const identityKey = relationId ?? dependencyKey;
+
+    if (!identityKey) {
       continue;
     }
 
-    if (!sourceProjectId) {
+    if (!sourceNodeId) {
       continue;
     }
 
     upsertDraft(
-      byDependencyKey,
-      dependencyKey,
+      byRelationId,
+      identityKey,
       createDependencyRecommendationDraft({
         code: 'FIX_LAYER_DEPENDENCY',
         title: 'Fix dbt layer dependency',
@@ -762,20 +764,19 @@ function buildFixLayerDependencyRecommendations(
         description:
           'Refactor the dependency so the source model depends only on allowed upstream layers, or update the rule config when intentional.',
         category: 'boundary',
+        relationId,
         dependencyKey,
-        sourceProjectId,
-        targetProjectId,
-        relatedProjectIds: normalizeRelatedProjectIds([
-          sourceProjectId,
-          targetProjectId,
-        ]),
-        dbtUniqueId: resolutionByNodeId.get(sourceProjectId)?.dbtUniqueId,
+        sourceNodeId,
+        targetNodeId,
+        relatedNodeIds: normalizeIds([sourceNodeId, targetNodeId]),
+        relatedRelationIds: relationId ? [relationId] : [],
+        dbtUniqueId: resolutionByNodeId.get(sourceNodeId)?.dbtUniqueId,
         violation,
       }),
     );
   }
 
-  return [...byDependencyKey.values()];
+  return [...byRelationId.values()];
 }
 
 function createNodeRecommendationDraft(input: {
@@ -801,7 +802,8 @@ function createNodeRecommendationDraft(input: {
     category: input.category,
     governanceNodeId: input.governanceNodeId,
     dbtUniqueId: input.dbtUniqueId,
-    relatedProjectIds: [input.governanceNodeId],
+    relatedNodeIds: [input.governanceNodeId],
+    relatedRelationIds: [],
     triggerDiagnosticCodes: input.diagnostic?.code
       ? [input.diagnostic.code]
       : [],
@@ -828,10 +830,12 @@ function createDependencyRecommendationDraft(input: {
   reason: string;
   description: string;
   category: string;
-  dependencyKey: string;
-  sourceProjectId?: string;
-  targetProjectId?: string;
-  relatedProjectIds: string[];
+  relationId?: string;
+  dependencyKey?: string;
+  sourceNodeId?: string;
+  targetNodeId?: string;
+  relatedNodeIds: string[];
+  relatedRelationIds: string[];
   dbtUniqueId?: string;
   signal?: GovernanceSignal;
   violation?: Violation;
@@ -843,10 +847,12 @@ function createDependencyRecommendationDraft(input: {
     reason: input.reason,
     description: input.description,
     category: input.category,
+    relationId: input.relationId,
     dependencyKey: input.dependencyKey,
-    sourceProjectId: input.sourceProjectId,
-    targetProjectId: input.targetProjectId,
-    relatedProjectIds: normalizeRelatedProjectIds(input.relatedProjectIds),
+    sourceNodeId: input.sourceNodeId,
+    targetNodeId: input.targetNodeId,
+    relatedNodeIds: normalizeIds(input.relatedNodeIds),
+    relatedRelationIds: normalizeIds(input.relatedRelationIds),
     dbtUniqueId: input.dbtUniqueId,
     triggerDiagnosticCodes: [],
     triggerDiagnosticIds: [],
@@ -896,14 +902,19 @@ function upsertDraft(
     existing.triggerMeasurementIds,
     incoming.triggerMeasurementIds,
   );
-  existing.relatedProjectIds = mergeStrings(
-    existing.relatedProjectIds,
-    incoming.relatedProjectIds,
+  existing.relatedNodeIds = mergeStrings(
+    existing.relatedNodeIds,
+    incoming.relatedNodeIds,
+  );
+  existing.relatedRelationIds = mergeStrings(
+    existing.relatedRelationIds,
+    incoming.relatedRelationIds,
   );
   existing.dbtUniqueId ??= incoming.dbtUniqueId;
   existing.governanceNodeId ??= incoming.governanceNodeId;
-  existing.sourceProjectId ??= incoming.sourceProjectId;
-  existing.targetProjectId ??= incoming.targetProjectId;
+  existing.relationId ??= incoming.relationId;
+  existing.sourceNodeId ??= incoming.sourceNodeId;
+  existing.targetNodeId ??= incoming.targetNodeId;
   existing.dependencyKey ??= incoming.dependencyKey;
 }
 
@@ -946,12 +957,13 @@ function createRecommendation(
     category: draft.category,
     reference: {
       ...(draft.governanceNodeId ? { nodeId: draft.governanceNodeId } : {}),
-      ...(draft.dependencyKey ? { relationId: draft.dependencyKey } : {}),
-      ...(draft.sourceProjectId
-        ? { nodeId: draft.sourceProjectId }
+      ...(draft.sourceNodeId ? { nodeId: draft.sourceNodeId } : {}),
+      ...(draft.relationId ? { relationId: draft.relationId } : {}),
+      ...(draft.relatedNodeIds.length > 0
+        ? { relatedNodeIds: draft.relatedNodeIds }
         : {}),
-      ...(draft.relatedProjectIds.length > 0
-        ? { relatedNodeIds: draft.relatedProjectIds }
+      ...(draft.relatedRelationIds.length > 0
+        ? { relatedRelationIds: draft.relatedRelationIds }
         : {}),
     },
     ...(draft.triggerSignalIds.length > 0
@@ -1006,21 +1018,19 @@ function recommendationIdentityKey(
   const code =
     'code' in draft ? draft.code : (asString(metadata?.code) ?? draft.title);
   const relationId =
-    'dependencyKey' in draft ? draft.dependencyKey : reference?.relationId;
+    'relationId' in draft ? draft.relationId : reference?.relationId;
   const nodeId =
-    'governanceNodeId' in draft
-      ? draft.governanceNodeId
-      : reference?.nodeId;
-  const targetProjectId =
-    'targetProjectId' in draft
-      ? draft.targetProjectId
+    'governanceNodeId' in draft ? draft.governanceNodeId : reference?.nodeId;
+  const targetNodeId =
+    'targetNodeId' in draft
+      ? draft.targetNodeId
       : readTargetNodeIdFromReference(reference);
 
   return [
     code,
     relationId ?? '',
     nodeId ?? '',
-    targetProjectId ?? '',
+    targetNodeId ?? '',
     draft.reason,
   ]
     .join('|')
@@ -1093,8 +1103,8 @@ function readDependencyKeyFromSignal(
     return explicitKey;
   }
 
-  const sourceNodeId = readSignalSourceProjectId(signal);
-  const targetNodeId = readSignalTargetProjectId(signal);
+  const sourceNodeId = readSignalSourceNodeId(signal);
+  const targetNodeId = readSignalTargetNodeId(signal);
   if (sourceNodeId && targetNodeId) {
     return `${sourceNodeId}->${targetNodeId}`;
   }
@@ -1110,7 +1120,7 @@ function readStringArray(value: unknown, key: string): string[] {
 }
 
 function readViolationNodeId(violation: Violation): string | undefined {
-  return violation.subjectId ?? violation.reference?.nodeId;
+  return violation.reference?.nodeId ?? violation.subjectId;
 }
 
 function readViolationTargetNodeId(violation: Violation): string | undefined {
@@ -1120,13 +1130,17 @@ function readViolationTargetNodeId(violation: Violation): string | undefined {
   );
 }
 
-function readSignalSourceProjectId(signal: GovernanceSignal): string | undefined {
+function readSignalSourceNodeId(signal: GovernanceSignal): string | undefined {
   return signal.nodeId;
 }
 
-function readSignalTargetProjectId(signal: GovernanceSignal): string | undefined {
+function readSignalTargetNodeId(signal: GovernanceSignal): string | undefined {
   const sourceNodeId = signal.nodeId;
   return signal.relatedNodeIds?.find((nodeId) => nodeId !== sourceNodeId);
+}
+
+function readSignalRelationId(signal: GovernanceSignal): string | undefined {
+  return signal.relationId;
 }
 
 function readTargetNodeIdFromReference(
@@ -1140,35 +1154,6 @@ function readTargetNodeIdFromReference(
     reference.relatedNodeIds?.find((nodeId) => nodeId !== reference.nodeId) ??
     ''
   );
-}
-
-function normalizeRelatedProjectIds(
-  values: readonly (string | undefined)[],
-): string[] {
-  return [
-    ...new Set(values.filter((value): value is string => Boolean(value))),
-  ].sort();
-}
-
-function hasDbtMetadata(
-  metadata: unknown,
-): metadata is Record<string, unknown> {
-  return Boolean(asRecord(asRecord(metadata)?.dbt));
-}
-
-function toResolverInput(
-  project: DbtProjectLike,
-): DbtGovernanceMetadataResolverInput {
-  return {
-    id: project.id,
-    name: project.name,
-    root: project.root,
-    tags: project.tags,
-    domain: project.domain,
-    layer: project.layer,
-    ownership: asRecord(project.ownership),
-    metadata: project.metadata,
-  };
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
