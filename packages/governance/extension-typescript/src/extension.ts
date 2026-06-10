@@ -3,6 +3,16 @@ import type {
   GovernanceExtensionHost,
 } from '@anarchitects/governance-core';
 
+import type { TypeScriptGovernanceExtensionContributions } from './contracts.js';
+import { typescriptGovernanceDiagnosticsProvider } from './diagnostics.js';
+import { typescriptGovernanceMetricProvider } from './metrics.js';
+import { typescriptGovernanceRecommendationProvider } from './recommendations.js';
+import { typescriptGovernanceSignalProvider } from './signals.js';
+import {
+  registerTypeScriptGovernanceExtensionContributions,
+  type TypeScriptGovernanceExtensionOptions,
+} from './contracts.js';
+
 export const TYPESCRIPT_GOVERNANCE_EXTENSION_ID =
   'governance-extension:typescript';
 
@@ -21,10 +31,7 @@ export const typescriptGovernanceExtensionMetadata: TypeScriptGovernanceExtensio
     technology: 'typescript',
     responsibilities: [
       'TypeScript-specific governance interpretation',
-      'Future TypeScript-specific rules',
-      'Future TypeScript-specific metrics',
-      'Future TypeScript-specific recommendations',
-      'Future TypeScript-specific enrichers',
+      'Interpreting canonical TypeScript and package-manager graph data',
     ],
     nonResponsibilities: [
       'TypeScript workspace extraction',
@@ -43,18 +50,47 @@ export const governanceTypeScriptExtension: GovernanceExtensionDefinition = {
   register: registerTypeScriptGovernanceExtension,
 };
 
-export function createTypeScriptGovernanceExtension(): GovernanceExtensionDefinition {
+export function createTypeScriptGovernanceExtension(
+  options: TypeScriptGovernanceExtensionOptions = {},
+): GovernanceExtensionDefinition {
+  if (!options.contributions && !options.version) {
+    return {
+      ...governanceTypeScriptExtension,
+    };
+  }
+
   return {
-    ...governanceTypeScriptExtension,
+    id: governanceTypeScriptExtension.id,
+    name: governanceTypeScriptExtension.name,
+    ...(options.version ? { version: options.version } : {}),
+    register: (host) =>
+      registerTypeScriptGovernanceExtension(host, options.contributions),
   };
 }
 
 export function registerTypeScriptGovernanceExtension(
   host: GovernanceExtensionHost,
+  contributions: TypeScriptGovernanceExtensionContributions = {},
 ): void {
-  void host;
-  // #237 establishes the package boundary. #238 and #239 found no existing
-  // TypeScript-specific Core contributions to register here yet.
+  registerTypeScriptGovernanceExtensionContributions(host, {
+    ...contributions,
+    signalProviders: [
+      typescriptGovernanceSignalProvider,
+      ...(contributions.signalProviders ?? []),
+    ],
+    metricProviders: [
+      typescriptGovernanceMetricProvider,
+      ...(contributions.metricProviders ?? []),
+    ],
+    diagnosticProviders: [
+      typescriptGovernanceDiagnosticsProvider,
+      ...(contributions.diagnosticProviders ?? []),
+    ],
+    recommendationProviders: [
+      typescriptGovernanceRecommendationProvider,
+      ...(contributions.recommendationProviders ?? []),
+    ],
+  });
 }
 
 export default governanceTypeScriptExtension;

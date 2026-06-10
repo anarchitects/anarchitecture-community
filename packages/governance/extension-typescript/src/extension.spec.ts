@@ -7,7 +7,13 @@ import {
 import {
   TYPESCRIPT_GOVERNANCE_EXTENSION_ID,
   createTypeScriptGovernanceExtension,
+  getTypeScriptGovernanceDiagnosticProviders,
+  getTypeScriptGovernanceRecommendationProviders,
   governanceTypeScriptExtension,
+  typescriptGovernanceDiagnosticsProvider,
+  typescriptGovernanceMetricProvider,
+  typescriptGovernanceRecommendationProvider,
+  typescriptGovernanceSignalProvider,
   typescriptGovernanceExtensionMetadata,
 } from './index.js';
 
@@ -45,10 +51,8 @@ describe('TypeScript Governance extension', () => {
       id: TYPESCRIPT_GOVERNANCE_EXTENSION_ID,
       technology: 'typescript',
       responsibilities: expect.arrayContaining([
-        'Future TypeScript-specific rules',
-        'Future TypeScript-specific metrics',
-        'Future TypeScript-specific recommendations',
-        'Future TypeScript-specific enrichers',
+        'TypeScript-specific governance interpretation',
+        'Interpreting canonical TypeScript and package-manager graph data',
       ]),
       nonResponsibilities: expect.arrayContaining([
         'TypeScript workspace extraction',
@@ -60,7 +64,7 @@ describe('TypeScript Governance extension', () => {
     });
   });
 
-  it('does not duplicate generic Core rules, signals, or metrics during TypeScript extension registration', async () => {
+  it('registers built-in canonical TypeScript signal, metric, diagnostic, and recommendation providers', async () => {
     const result = await registerLoadedGovernanceExtensionsWithDiagnostics(
       context,
       [
@@ -75,8 +79,32 @@ describe('TypeScript Governance extension', () => {
     expect(result.diagnostics).toEqual([]);
     expect(result.registry.enrichers).toEqual([]);
     expect(result.registry.rulePacks).toEqual([]);
-    expect(result.registry.signalProviders).toEqual([]);
-    expect(result.registry.metricProviders).toEqual([]);
+    expect(result.registry.signalProviders).toHaveLength(1);
+    expect(result.registry.signalProviders[0]?.contribution).toBe(
+      typescriptGovernanceSignalProvider,
+    );
+    expect(result.registry.metricProviders).toHaveLength(1);
+    expect(result.registry.metricProviders[0]?.contribution).toBe(
+      typescriptGovernanceMetricProvider,
+    );
+    expect(
+      getTypeScriptGovernanceDiagnosticProviders({
+        context,
+        registerRulePack: () => undefined,
+        registerSignalProvider: () => undefined,
+        registerMetricProvider: () => undefined,
+        registerEnricher: () => undefined,
+      }),
+    ).toEqual([typescriptGovernanceDiagnosticsProvider]);
+    expect(
+      getTypeScriptGovernanceRecommendationProviders({
+        context,
+        registerRulePack: () => undefined,
+        registerSignalProvider: () => undefined,
+        registerMetricProvider: () => undefined,
+        registerEnricher: () => undefined,
+      }),
+    ).toEqual([typescriptGovernanceRecommendationProvider]);
   });
 
   it('creates independent extension definitions for future hosts', () => {
