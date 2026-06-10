@@ -2,15 +2,20 @@
   "id": "dbt-fixture-layered",
   "name": "dbt Fixture Layered",
   "root": "/virtual/dbt/layered",
-  "projects": [
+  "nodes": [
     {
       "id": "source.layered.raw.customers",
       "name": "raw_customers",
+      "kind": "dbt-source",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/sources/raw_customers.yml",
-      "type": "tool",
+      "path": "models/sources/raw_customers.yml",
       "tags": ["layer:staging"],
-      "domain": "customer",
-      "layer": "staging",
+      "classification": {
+        "domain": "customer",
+        "layer": "staging"
+      },
       "ownership": {
         "team": "customer-analytics",
         "source": "project-metadata"
@@ -54,11 +59,16 @@
     {
       "id": "model.layered.stg_customers",
       "name": "stg_customers",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/staging/stg_customers.sql",
-      "type": "library",
+      "path": "models/staging/stg_customers.sql",
       "tags": [],
-      "domain": "customer",
-      "layer": "staging",
+      "classification": {
+        "domain": "customer",
+        "layer": "staging"
+      },
       "ownership": {
         "team": "customer-analytics",
         "source": "project-metadata"
@@ -102,11 +112,16 @@
     {
       "id": "model.layered.int_customer_orders",
       "name": "int_customer_orders",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/intermediate/int_customer_orders.sql",
-      "type": "library",
+      "path": "models/intermediate/int_customer_orders.sql",
       "tags": [],
-      "domain": "customer",
-      "layer": "intermediate",
+      "classification": {
+        "domain": "customer",
+        "layer": "intermediate"
+      },
       "ownership": {
         "team": "customer-analytics",
         "source": "project-metadata"
@@ -150,11 +165,16 @@
     {
       "id": "model.layered.customer_orders_mart",
       "name": "customer_orders_mart",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/customer_orders_mart.sql",
-      "type": "library",
+      "path": "models/marts/customer_orders_mart.sql",
       "tags": ["public"],
-      "domain": "customer",
-      "layer": "marts",
+      "classification": {
+        "domain": "customer",
+        "layer": "marts"
+      },
       "ownership": {
         "team": "customer-analytics",
         "source": "project-metadata"
@@ -200,21 +220,33 @@
       }
     }
   ],
-  "dependencies": [
+  "relations": [
     {
-      "source": "model.layered.stg_customers",
-      "target": "source.layered.raw.customers",
-      "type": "static"
+      "id": "dbt:lineage:model.layered.stg_customers->source.layered.raw.customers",
+      "sourceNodeId": "model.layered.stg_customers",
+      "targetNodeId": "source.layered.raw.customers",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     },
     {
-      "source": "model.layered.int_customer_orders",
-      "target": "model.layered.stg_customers",
-      "type": "static"
+      "id": "dbt:lineage:model.layered.int_customer_orders->model.layered.stg_customers",
+      "sourceNodeId": "model.layered.int_customer_orders",
+      "targetNodeId": "model.layered.stg_customers",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     },
     {
-      "source": "model.layered.customer_orders_mart",
-      "target": "model.layered.int_customer_orders",
-      "type": "static"
+      "id": "dbt:lineage:model.layered.customer_orders_mart->model.layered.int_customer_orders",
+      "sourceNodeId": "model.layered.customer_orders_mart",
+      "targetNodeId": "model.layered.int_customer_orders",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     }
   ]
 }

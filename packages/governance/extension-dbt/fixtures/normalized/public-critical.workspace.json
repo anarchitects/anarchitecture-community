@@ -2,15 +2,20 @@
   "id": "dbt-fixture-public-critical",
   "name": "dbt Fixture Public Critical",
   "root": "/virtual/dbt/public-critical",
-  "projects": [
+  "nodes": [
     {
       "id": "model.public_critical.customer_public_mart",
       "name": "customer_public_mart",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/customer_public_mart.sql",
-      "type": "library",
+      "path": "models/marts/customer_public_mart.sql",
       "tags": ["public"],
-      "domain": "customer",
-      "layer": "marts",
+      "classification": {
+        "domain": "customer",
+        "layer": "marts"
+      },
       "ownership": {
         "team": "customer-analytics",
         "source": "project-metadata"
@@ -56,11 +61,16 @@
     {
       "id": "model.public_critical.customer_critical_missing_tests",
       "name": "customer_critical_missing_tests",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/intermediate/customer_critical_missing_tests.sql",
-      "type": "library",
+      "path": "models/intermediate/customer_critical_missing_tests.sql",
       "tags": [],
-      "domain": "customer",
-      "layer": "intermediate",
+      "classification": {
+        "domain": "customer",
+        "layer": "intermediate"
+      },
       "ownership": {
         "team": "customer-analytics",
         "source": "project-metadata"
@@ -105,11 +115,16 @@
     {
       "id": "model.public_critical.customer_staging_bad",
       "name": "customer_staging_bad",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/staging/customer_staging_bad.sql",
-      "type": "library",
+      "path": "models/staging/customer_staging_bad.sql",
       "tags": [],
-      "domain": "customer",
-      "layer": "staging",
+      "classification": {
+        "domain": "customer",
+        "layer": "staging"
+      },
       "ownership": {
         "team": "customer-analytics",
         "source": "project-metadata"
@@ -151,11 +166,15 @@
       }
     }
   ],
-  "dependencies": [
+  "relations": [
     {
-      "source": "model.public_critical.customer_staging_bad",
-      "target": "model.public_critical.customer_public_mart",
-      "type": "static"
+      "id": "dbt:lineage:model.public_critical.customer_staging_bad->model.public_critical.customer_public_mart",
+      "sourceNodeId": "model.public_critical.customer_staging_bad",
+      "targetNodeId": "model.public_critical.customer_public_mart",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     }
   ]
 }

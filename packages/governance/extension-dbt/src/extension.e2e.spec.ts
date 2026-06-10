@@ -27,37 +27,6 @@ import {
   type DbtGovernanceSignalProviderInput,
 } from './index.js';
 import { toResolverInput } from './dbt-graph.js';
-import {
-  createCompatibilityWorkspace,
-  type LegacyWorkspaceOwnership,
-} from './test-workspace.js';
-
-type FixtureWorkspaceProject = {
-  id: string;
-  name: string;
-  root: string;
-  type: 'application' | 'library' | 'tool' | 'unknown';
-  tags: string[];
-  domain?: string;
-  layer?: string;
-  ownership?: LegacyWorkspaceOwnership;
-  metadata: Record<string, unknown>;
-};
-
-type FixtureWorkspaceDependency = {
-  source: string;
-  target: string;
-  type: 'static' | 'dynamic' | 'implicit' | 'unknown';
-  sourceFile?: string;
-};
-
-type FixtureWorkspace = {
-  id: string;
-  name: string;
-  root: string;
-  projects: FixtureWorkspaceProject[];
-  dependencies: FixtureWorkspaceDependency[];
-};
 
 const fixturesRoot = fileURLToPath(
   new URL('../fixtures/normalized/', import.meta.url),
@@ -103,20 +72,18 @@ describe('dbt Governance extension end-to-end flow', () => {
     };
   }
 
-  function loadFixture(fileName: string): FixtureWorkspace {
+  function loadFixture(fileName: string): GovernanceWorkspace {
     return JSON.parse(
       readFileSync(path.join(fixturesRoot, fileName), 'utf8'),
-    ) as FixtureWorkspace;
+    ) as GovernanceWorkspace;
   }
 
   async function runExtensionFlow(options: {
     fixtureName: string;
-    workspace?: FixtureWorkspace;
+    workspace?: GovernanceWorkspace;
     profile?: GovernanceProfile;
   }) {
-    const workspace = createCompatibilityWorkspace(
-      options.workspace ?? loadFixture(options.fixtureName),
-    );
+    const workspace = options.workspace ?? loadFixture(options.fixtureName);
     const profile = options.profile ?? createProfile();
     const context = createContext(workspace);
     const metadataResolutions = workspace.nodes
@@ -380,22 +347,22 @@ describe('dbt Governance extension end-to-end flow', () => {
 
   it('surfaces invalid criticality diagnostics when normalized metadata is malformed', async () => {
     const fixture = loadFixture('simple-valid.workspace.json');
-    const mutatedWorkspace: FixtureWorkspace = {
+    const mutatedWorkspace: GovernanceWorkspace = {
       ...fixture,
-      projects: fixture.projects.map((project) =>
-        project.id === 'model.simple_valid.orders_mart'
+      nodes: fixture.nodes.map((node) =>
+        node.id === 'model.simple_valid.orders_mart'
           ? {
-              ...project,
+              ...node,
               metadata: {
-                ...project.metadata,
+                ...node.metadata,
                 dbt: {
-                  ...(project.metadata.dbt as Record<string, unknown>),
+                  ...(node.metadata.dbt as Record<string, unknown>),
                   resource: {
-                    ...((project.metadata.dbt as Record<string, unknown>)
+                    ...((node.metadata.dbt as Record<string, unknown>)
                       .resource as Record<string, unknown>),
                     meta: {
                       ...(((
-                        (project.metadata.dbt as Record<string, unknown>)
+                        (node.metadata.dbt as Record<string, unknown>)
                           .resource as Record<string, unknown>
                       ).meta as Record<string, unknown>) ?? {}),
                       criticality: ['high'],
@@ -404,7 +371,7 @@ describe('dbt Governance extension end-to-end flow', () => {
                 },
               },
             }
-          : project,
+          : node,
       ),
     };
 

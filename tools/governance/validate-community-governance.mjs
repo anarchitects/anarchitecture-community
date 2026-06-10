@@ -39,11 +39,38 @@ const packages = [
     allowedGovernanceDeps: [],
     requiredReadmeTerms: [
       '@anarchitects/governance-core',
-      'GovernanceWorkspaceAdapter',
       'GovernanceWorkspaceAdapterProbeResult',
       'GovernanceWorkspaceAdapterResult',
       'buildGovernanceAssessment',
       'registerLoadedGovernanceExtensions',
+      'GovernanceNodeInput',
+      'GovernanceRelationInput',
+      'GovernanceRuntimeReference',
+      'nodes',
+      'relations',
+    ],
+  },
+  {
+    projectName: 'governance-adapter-dbt',
+    packageName: '@anarchitects/governance-adapter-dbt',
+    root: join(workspaceRoot, 'packages/governance/adapter-dbt'),
+    sourceIndexPath: join(
+      workspaceRoot,
+      'packages/governance/adapter-dbt/src/index.ts',
+    ),
+    readmePath: join(
+      workspaceRoot,
+      'packages/governance/adapter-dbt/README.md',
+    ),
+    allowedGovernanceDeps: ['@anarchitects/governance-core'],
+    requiredReadmeTerms: [
+      '@anarchitects/governance-adapter-dbt',
+      'normalizeDbtArtifacts',
+      'DbtAdapterResult',
+      'GovernanceWorkspaceAdapterResult',
+      'nodes',
+      'relations',
+      'metadata.dbt',
     ],
   },
   {
@@ -66,6 +93,56 @@ const packages = [
       'detectTypeScriptWorkspace',
       'parsePackageManagerWorkspace',
       'parseTsConfigResolution',
+      'nodes',
+      'relations',
+    ],
+  },
+  {
+    projectName: 'governance-extension-dbt',
+    packageName: '@anarchitects/governance-extension-dbt',
+    root: join(workspaceRoot, 'packages/governance/extension-dbt'),
+    sourceIndexPath: join(
+      workspaceRoot,
+      'packages/governance/extension-dbt/src/index.ts',
+    ),
+    readmePath: join(
+      workspaceRoot,
+      'packages/governance/extension-dbt/README.md',
+    ),
+    allowedGovernanceDeps: ['@anarchitects/governance-core'],
+    requiredReadmeTerms: [
+      '@anarchitects/governance-extension-dbt',
+      'dbtGovernanceExtension',
+      'workspace.nodes',
+      'workspace.relations',
+      'nodeId',
+      'relationId',
+      'relatedNodeIds',
+      'relatedRelationIds',
+    ],
+  },
+  {
+    projectName: 'governance-extension-typescript',
+    packageName: '@anarchitects/governance-extension-typescript',
+    root: join(workspaceRoot, 'packages/governance/extension-typescript'),
+    sourceIndexPath: join(
+      workspaceRoot,
+      'packages/governance/extension-typescript/src/index.ts',
+    ),
+    readmePath: join(
+      workspaceRoot,
+      'packages/governance/extension-typescript/README.md',
+    ),
+    allowedGovernanceDeps: ['@anarchitects/governance-core'],
+    requiredReadmeTerms: [
+      '@anarchitects/governance-extension-typescript',
+      'governanceTypeScriptExtension',
+      'workspace.nodes',
+      'workspace.relations',
+      'nodeId',
+      'relationId',
+      'relatedNodeIds',
+      'relatedRelationIds',
     ],
   },
   {
@@ -85,6 +162,8 @@ const packages = [
       'AgovCheckResult',
       'agov',
       '@anarchitects/governance-core',
+      'nodes',
+      'relations',
     ],
   },
 ];
@@ -97,6 +176,7 @@ const commands = {
     validateAdrLinks();
     validateExportMetadata();
     validateSourceBoundaries();
+    validateCanonicalContractScans();
     return validatePackedArtifacts();
   },
   prerequisites() {
@@ -153,6 +233,21 @@ function validatePrerequisites() {
     join(
       workspaceRoot,
       'packages/governance/adapter-typescript/src/workspace-adapter.ts',
+    ),
+  );
+  assertExists(
+    join(
+      workspaceRoot,
+      'packages/governance/adapter-dbt/src/normalize-dbt-artifacts.ts',
+    ),
+  );
+  assertExists(
+    join(workspaceRoot, 'packages/governance/extension-dbt/src/index.ts'),
+  );
+  assertExists(
+    join(
+      workspaceRoot,
+      'packages/governance/extension-typescript/src/index.ts',
     ),
   );
   assertExists(join(workspaceRoot, 'packages/governance/cli/src/check.ts'));
@@ -230,6 +325,15 @@ function validateManifests() {
 }
 
 function validateReadmes() {
+  const forbiddenReadmePatterns = [
+    /GovernanceProjectInput/,
+    /GovernanceDependencyInput/,
+    /GovernanceProject\b/,
+    /GovernanceDependency\b/,
+    /workspace\.projects/,
+    /workspace\.dependencies/,
+  ];
+
   for (const pkg of packages) {
     const readme = readFileSync(pkg.readmePath, 'utf8');
 
@@ -242,6 +346,13 @@ function validateReadmes() {
       assert(
         readme.includes(term),
         `${pkg.packageName} README is missing expected public API term "${term}".`,
+      );
+    }
+
+    for (const pattern of forbiddenReadmePatterns) {
+      assert(
+        !pattern.test(readme),
+        `${pkg.packageName} README still contains a legacy contract term: ${pattern}`,
       );
     }
 
@@ -314,7 +425,10 @@ function validateExportMetadata() {
 
 function validateSourceBoundaries() {
   validateCoreSourceBoundaries();
+  validateDbtAdapterSourceBoundaries();
   validateAdapterSourceBoundaries();
+  validateDbtExtensionSourceBoundaries();
+  validateTypeScriptExtensionSourceBoundaries();
   validateCliSourceBoundaries();
 }
 
@@ -353,6 +467,61 @@ function validateAdapterSourceBoundaries() {
   );
 }
 
+function validateDbtAdapterSourceBoundaries() {
+  const sourceRoot = join(workspaceRoot, 'packages/governance/adapter-dbt/src');
+  const forbiddenPatterns = [
+    /from ['"]@anarchitects\/governance-cli(?:\/|['"])/,
+    /from ['"]@nx\//,
+    /from ['"]nx['"]/,
+    /anarchitecture-plugins/,
+    /@anarchitects\/governance-core\//,
+  ];
+
+  validateSourceFiles(sourceRoot, forbiddenPatterns, 'Governance dbt adapter');
+}
+
+function validateDbtExtensionSourceBoundaries() {
+  const sourceRoot = join(
+    workspaceRoot,
+    'packages/governance/extension-dbt/src',
+  );
+  const forbiddenPatterns = [
+    /from ['"]@anarchitects\/governance-cli(?:\/|['"])/,
+    /from ['"]@anarchitects\/governance-adapter-[^'"]+(?:\/|['"])/,
+    /from ['"]@nx\//,
+    /from ['"]nx['"]/,
+    /anarchitecture-plugins/,
+    /@anarchitects\/governance-core\//,
+  ];
+
+  validateSourceFiles(
+    sourceRoot,
+    forbiddenPatterns,
+    'Governance dbt extension',
+  );
+}
+
+function validateTypeScriptExtensionSourceBoundaries() {
+  const sourceRoot = join(
+    workspaceRoot,
+    'packages/governance/extension-typescript/src',
+  );
+  const forbiddenPatterns = [
+    /from ['"]@anarchitects\/governance-cli(?:\/|['"])/,
+    /from ['"]@anarchitects\/governance-adapter-[^'"]+(?:\/|['"])/,
+    /from ['"]@nx\//,
+    /from ['"]nx['"]/,
+    /anarchitecture-plugins/,
+    /@anarchitects\/governance-core\//,
+  ];
+
+  validateSourceFiles(
+    sourceRoot,
+    forbiddenPatterns,
+    'Governance TypeScript extension',
+  );
+}
+
 function validateCliSourceBoundaries() {
   const sourceRoot = join(workspaceRoot, 'packages/governance/cli/src');
   const forbiddenPatterns = [
@@ -379,6 +548,35 @@ function validateSourceFiles(sourceRoot, forbiddenPatterns, label) {
         !pattern.test(source),
         `${label} contains a forbidden boundary pattern in ${relativePath(filePath)}: ${pattern}`,
       );
+    }
+  }
+}
+
+function validateCanonicalContractScans() {
+  const productionRoots = [
+    'packages/governance/core/src',
+    'packages/governance/adapter-dbt/src',
+    'packages/governance/adapter-typescript/src',
+    'packages/governance/extension-dbt/src',
+    'packages/governance/extension-typescript/src',
+    'packages/governance/cli/src',
+  ].map((relative) => join(workspaceRoot, relative));
+  const forbiddenPatterns = [
+    /GovernanceProjectInput|GovernanceDependencyInput|GovernanceProject|GovernanceDependency|GovernanceCompatibilityWorkspace/,
+    /workspace\.projects|workspace\.dependencies/,
+    /\bprojectId\b|\btargetProjectId\b|\brelatedProjectIds\b|\baffectedProjects\b|Violation\.project/,
+    /\bprojectOverrides\b|\bProjectNameConventionOptions\b|\bProjectRootConventionOptions\b/,
+  ];
+
+  for (const sourceRoot of productionRoots) {
+    for (const filePath of collectImplementationFiles(sourceRoot)) {
+      const source = readFileSync(filePath, 'utf8');
+      for (const pattern of forbiddenPatterns) {
+        assert(
+          !pattern.test(source),
+          `Canonical contract scan failed in ${relativePath(filePath)}: ${pattern}`,
+        );
+      }
     }
   }
 }

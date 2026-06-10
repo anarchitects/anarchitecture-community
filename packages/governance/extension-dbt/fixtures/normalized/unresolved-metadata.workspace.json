@@ -2,12 +2,15 @@
   "id": "dbt-fixture-unresolved-metadata",
   "name": "dbt Fixture Unresolved Metadata",
   "root": "/virtual/dbt/unresolved-metadata",
-  "projects": [
+  "nodes": [
     {
       "id": "model.unresolved_metadata.orphan_model",
       "name": "orphan_model",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/unknown/orphan_model.sql",
-      "type": "library",
+      "path": "models/unknown/orphan_model.sql",
       "tags": [],
       "ownership": {
         "team": "platform-analytics",
@@ -47,5 +50,5 @@
       }
     }
   ],
-  "dependencies": []
+  "relations": []
 }

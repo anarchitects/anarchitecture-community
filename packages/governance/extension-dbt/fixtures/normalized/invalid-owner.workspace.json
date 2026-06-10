@@ -2,15 +2,20 @@
   "id": "dbt-fixture-invalid-owner",
   "name": "dbt Fixture Invalid Owner",
   "root": "/virtual/dbt/invalid-owner",
-  "projects": [
+  "nodes": [
     {
       "id": "model.invalid_owner.customer_mart",
       "name": "customer_mart",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/customer_mart.sql",
-      "type": "library",
+      "path": "models/marts/customer_mart.sql",
       "tags": [],
-      "domain": "customer",
-      "layer": "marts",
+      "classification": {
+        "domain": "customer",
+        "layer": "marts"
+      },
       "metadata": {
         "dbt": {
           "identity": {
@@ -46,5 +51,5 @@
       }
     }
   ],
-  "dependencies": []
+  "relations": []
 }

@@ -2,15 +2,20 @@
   "id": "dbt-fixture-missing-docs-tests-contracts",
   "name": "dbt Fixture Missing Docs Tests Contracts",
   "root": "/virtual/dbt/missing-docs-tests-contracts",
-  "projects": [
+  "nodes": [
     {
       "id": "model.missing_quality.customer_mart",
       "name": "customer_mart",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/customer_mart.sql",
-      "type": "library",
+      "path": "models/marts/customer_mart.sql",
       "tags": ["public"],
-      "domain": "customer",
-      "layer": "marts",
+      "classification": {
+        "domain": "customer",
+        "layer": "marts"
+      },
       "ownership": {
         "team": "customer-analytics",
         "source": "project-metadata"
@@ -52,5 +57,5 @@
       }
     }
   ],
-  "dependencies": []
+  "relations": []
 }

@@ -2,15 +2,20 @@
   "id": "dbt-fixture-hotspot",
   "name": "dbt Fixture Hotspot",
   "root": "/virtual/dbt/hotspot",
-  "projects": [
+  "nodes": [
     {
       "id": "model.hotspot.feed_a",
       "name": "feed_a",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/staging/feed_a.sql",
-      "type": "library",
+      "path": "models/staging/feed_a.sql",
       "tags": [],
-      "domain": "finance",
-      "layer": "staging",
+      "classification": {
+        "domain": "finance",
+        "layer": "staging"
+      },
       "ownership": {
         "team": "finance-analytics",
         "source": "project-metadata"
@@ -54,11 +59,16 @@
     {
       "id": "model.hotspot.feed_b",
       "name": "feed_b",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/staging/feed_b.sql",
-      "type": "library",
+      "path": "models/staging/feed_b.sql",
       "tags": [],
-      "domain": "finance",
-      "layer": "staging",
+      "classification": {
+        "domain": "finance",
+        "layer": "staging"
+      },
       "ownership": {
         "team": "finance-analytics",
         "source": "project-metadata"
@@ -102,11 +112,16 @@
     {
       "id": "model.hotspot.feed_c",
       "name": "feed_c",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/staging/feed_c.sql",
-      "type": "library",
+      "path": "models/staging/feed_c.sql",
       "tags": [],
-      "domain": "finance",
-      "layer": "staging",
+      "classification": {
+        "domain": "finance",
+        "layer": "staging"
+      },
       "ownership": {
         "team": "finance-analytics",
         "source": "project-metadata"
@@ -150,11 +165,16 @@
     {
       "id": "model.hotspot.shared_hub",
       "name": "shared_hub",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/intermediate/shared_hub.sql",
-      "type": "library",
+      "path": "models/intermediate/shared_hub.sql",
       "tags": [],
-      "domain": "finance",
-      "layer": "intermediate",
+      "classification": {
+        "domain": "finance",
+        "layer": "intermediate"
+      },
       "ownership": {
         "team": "finance-analytics",
         "source": "project-metadata"
@@ -198,11 +218,16 @@
     {
       "id": "model.hotspot.consumer_a",
       "name": "consumer_a",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/consumer_a.sql",
-      "type": "library",
+      "path": "models/marts/consumer_a.sql",
       "tags": [],
-      "domain": "finance",
-      "layer": "marts",
+      "classification": {
+        "domain": "finance",
+        "layer": "marts"
+      },
       "ownership": {
         "team": "finance-analytics",
         "source": "project-metadata"
@@ -246,11 +271,16 @@
     {
       "id": "model.hotspot.consumer_b",
       "name": "consumer_b",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/consumer_b.sql",
-      "type": "library",
+      "path": "models/marts/consumer_b.sql",
       "tags": [],
-      "domain": "finance",
-      "layer": "marts",
+      "classification": {
+        "domain": "finance",
+        "layer": "marts"
+      },
       "ownership": {
         "team": "finance-analytics",
         "source": "project-metadata"
@@ -294,11 +324,16 @@
     {
       "id": "model.hotspot.consumer_c",
       "name": "consumer_c",
+      "kind": "dbt-model",
+      "technology": "dbt",
+      "sourceSystem": "dbt",
       "root": "models/marts/consumer_c.sql",
-      "type": "library",
+      "path": "models/marts/consumer_c.sql",
       "tags": [],
-      "domain": "finance",
-      "layer": "marts",
+      "classification": {
+        "domain": "finance",
+        "layer": "marts"
+      },
       "ownership": {
         "team": "finance-analytics",
         "source": "project-metadata"
@@ -340,36 +375,60 @@
       }
     }
   ],
-  "dependencies": [
+  "relations": [
     {
-      "source": "model.hotspot.feed_a",
-      "target": "model.hotspot.shared_hub",
-      "type": "static"
+      "id": "dbt:lineage:model.hotspot.feed_a->model.hotspot.shared_hub",
+      "sourceNodeId": "model.hotspot.feed_a",
+      "targetNodeId": "model.hotspot.shared_hub",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     },
     {
-      "source": "model.hotspot.feed_b",
-      "target": "model.hotspot.shared_hub",
-      "type": "static"
+      "id": "dbt:lineage:model.hotspot.feed_b->model.hotspot.shared_hub",
+      "sourceNodeId": "model.hotspot.feed_b",
+      "targetNodeId": "model.hotspot.shared_hub",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     },
     {
-      "source": "model.hotspot.feed_c",
-      "target": "model.hotspot.shared_hub",
-      "type": "static"
+      "id": "dbt:lineage:model.hotspot.feed_c->model.hotspot.shared_hub",
+      "sourceNodeId": "model.hotspot.feed_c",
+      "targetNodeId": "model.hotspot.shared_hub",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     },
     {
-      "source": "model.hotspot.shared_hub",
-      "target": "model.hotspot.consumer_a",
-      "type": "static"
+      "id": "dbt:lineage:model.hotspot.shared_hub->model.hotspot.consumer_a",
+      "sourceNodeId": "model.hotspot.shared_hub",
+      "targetNodeId": "model.hotspot.consumer_a",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     },
     {
-      "source": "model.hotspot.shared_hub",
-      "target": "model.hotspot.consumer_b",
-      "type": "static"
+      "id": "dbt:lineage:model.hotspot.shared_hub->model.hotspot.consumer_b",
+      "sourceNodeId": "model.hotspot.shared_hub",
+      "targetNodeId": "model.hotspot.consumer_b",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     },
     {
-      "source": "model.hotspot.shared_hub",
-      "target": "model.hotspot.consumer_c",
-      "type": "static"
+      "id": "dbt:lineage:model.hotspot.shared_hub->model.hotspot.consumer_c",
+      "sourceNodeId": "model.hotspot.shared_hub",
+      "targetNodeId": "model.hotspot.consumer_c",
+      "kind": "lineage",
+      "metadata": {
+        "dependencyType": "static"
+      }
     }
   ]
 }
