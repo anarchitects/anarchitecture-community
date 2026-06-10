@@ -104,7 +104,7 @@ describe('normalizeGovernanceProfile', () => {
     });
   });
 
-  it('preserves exceptions and project overrides from compatibility inputs', () => {
+  it('preserves exceptions and node overrides', () => {
     const exceptions: GovernanceException[] = [
       {
         id: 'policy-exception',
@@ -122,7 +122,7 @@ describe('normalizeGovernanceProfile', () => {
         },
       },
     ];
-    const projectOverrides: Record<string, GovernanceNodeOverride> = {
+    const nodeOverrides: Record<string, GovernanceNodeOverride> = {
       'booking-feature': {
         domain: 'booking',
         documentation: true,
@@ -131,10 +131,10 @@ describe('normalizeGovernanceProfile', () => {
 
     const normalized = normalizeGovernanceProfile(baseProfile, {
       exceptions,
-      projectOverrides,
+      nodeOverrides,
     });
 
     expect(normalized.exceptions).toEqual(exceptions);
-    expect(normalized.projectOverrides).toEqual(projectOverrides);
+    expect(normalized.nodeOverrides).toEqual(nodeOverrides);
   });
 });

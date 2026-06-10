@@ -127,7 +127,7 @@ describe('loadStandaloneGovernanceProfile', () => {
         },
       },
       exceptions: [],
-      projectOverrides: {},
+      nodeOverrides: {},
       profileSource: {
         boundaryPolicySource: 'profile',
       },
@@ -161,18 +161,91 @@ describe('loadStandaloneGovernanceProfile', () => {
         {
           code: 'governance.profile.unsupported_nx_runtime_profile',
           message:
-            'Nx Governance runtime profile files are not supported by the standalone CLI. Use a standalone profile with an explicit "name" field and without Nx-only override fields such as "projectOverrides", "exceptions", or legacy metric weight keys.',
+            'Nx Governance runtime profile files are not supported by the standalone CLI. Use a standalone profile with an explicit "name" field and without Nx-only override fields such as "nodeOverrides", "exceptions", or legacy metric weight keys.',
           path: '/',
         },
         {
           code: 'governance.profile.unknown_field',
-          message: 'Unknown field "projectOverrides" is not allowed.',
-          path: '/projectOverrides',
+          message: 'Unknown field "nodeOverrides" is not allowed.',
+          path: '/nodeOverrides',
         },
         {
           code: 'governance.profile.missing_required_field',
           message: 'Profile name is required.',
           path: '/name',
+        },
+      ]);
+    }
+  });
+
+  it('rejects legacy projectOverrides as an unknown field', () => {
+    expect(() =>
+      validateStandaloneGovernanceProfile({
+        name: 'legacy-overrides',
+        boundaryPolicySource: 'profile',
+        layers: ['app'],
+        allowedDomainDependencies: {
+          '*': [],
+        },
+        ownership: {
+          required: false,
+          metadataField: 'ownership',
+        },
+        health: {
+          statusThresholds: {
+            goodMinScore: 85,
+            warningMinScore: 70,
+          },
+        },
+        metrics: {
+          'architectural-entropy': 1,
+          'dependency-complexity': 1,
+          'domain-integrity': 1,
+          'ownership-coverage': 1,
+          'documentation-completeness': 1,
+          'layer-integrity': 1,
+        },
+        projectOverrides: {},
+      }),
+    ).toThrow(StandaloneGovernanceProfileValidationError);
+
+    try {
+      validateStandaloneGovernanceProfile({
+        name: 'legacy-overrides',
+        boundaryPolicySource: 'profile',
+        layers: ['app'],
+        allowedDomainDependencies: {
+          '*': [],
+        },
+        ownership: {
+          required: false,
+          metadataField: 'ownership',
+        },
+        health: {
+          statusThresholds: {
+            goodMinScore: 85,
+            warningMinScore: 70,
+          },
+        },
+        metrics: {
+          'architectural-entropy': 1,
+          'dependency-complexity': 1,
+          'domain-integrity': 1,
+          'ownership-coverage': 1,
+          'documentation-completeness': 1,
+          'layer-integrity': 1,
+        },
+        projectOverrides: {},
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(StandaloneGovernanceProfileValidationError);
+      expect(
+        (error as StandaloneGovernanceProfileValidationError).issues,
+      ).toEqual([
+        {
+          code: 'governance.profile.unknown_field',
+          message: 'Unknown field "projectOverrides" is not allowed.',
+          path: '/projectOverrides',
         },
       ]);
     }

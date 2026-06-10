@@ -67,12 +67,12 @@ export interface GovernanceProfileSourceMetadata {
   boundaryPolicySource: GovernanceProfile['boundaryPolicySource'];
 }
 
-export interface ProjectNameConventionOptions {
+export interface NodeNameConventionOptions {
   pattern: string;
   message?: string;
 }
 
-export interface ProjectRootConventionOptions {
+export interface NodeRootConventionOptions {
   patterns: string[];
   message?: string;
   requireRoot?: boolean;
@@ -108,7 +108,7 @@ export interface NormalizedGovernanceProfile {
   rules: Record<string, GovernanceRuleConfig>;
   scoring: GovernanceScoringProfile;
   exceptions: GovernanceException[];
-  projectOverrides: Record<string, GovernanceNodeOverride>;
+  nodeOverrides: Record<string, GovernanceNodeOverride>;
   profileSource: GovernanceProfileSourceMetadata;
 }
 
@@ -124,7 +124,7 @@ export interface ProfileOverrides {
   };
   metrics?: Partial<Record<string, number>>;
   exceptions?: GovernanceException[];
-  projectOverrides: Record<string, GovernanceNodeOverride>;
+  nodeOverrides: Record<string, GovernanceNodeOverride>;
 }
 
 export function deriveAllowedLayerDependenciesFromLayerOrder(
@@ -137,9 +137,7 @@ export function deriveAllowedLayerDependenciesFromLayerOrder(
 
 export function normalizeGovernanceProfile(
   profile: GovernanceProfile,
-  options: Partial<
-    Pick<ProfileOverrides, 'exceptions' | 'projectOverrides'>
-  > = {},
+  options: Partial<Pick<ProfileOverrides, 'exceptions' | 'nodeOverrides'>> = {},
 ): NormalizedGovernanceProfile {
   const allowedLayerDependencies =
     profile.allowedLayerDependencies ??
@@ -198,7 +196,7 @@ export function normalizeGovernanceProfile(
       metricWeights: profile.metrics,
     },
     exceptions: options.exceptions ?? [],
-    projectOverrides: options.projectOverrides ?? {},
+    nodeOverrides: options.nodeOverrides ?? {},
     profileSource: {
       boundaryPolicySource: profile.boundaryPolicySource,
     },
