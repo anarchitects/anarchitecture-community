@@ -23,7 +23,11 @@ export type KnownGovernanceSignalType =
   | 'conformance-violation'
   | 'domain-boundary-violation'
   | 'layer-boundary-violation'
-  | 'ownership-gap';
+  | 'ownership-gap'
+  | 'node-name-convention-violation'
+  | 'tag-convention-violation'
+  | 'missing-domain-violation'
+  | 'missing-layer-violation';
 
 export type GovernanceSignalSeverity = 'info' | 'warning' | 'error';
 

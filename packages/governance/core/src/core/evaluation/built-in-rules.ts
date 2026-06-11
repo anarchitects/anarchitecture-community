@@ -15,6 +15,7 @@ import {
   type GovernanceLayerBoundaryRuleOptions,
   type GovernanceOwnershipPresenceRuleOptions,
 } from './profile.js';
+import { isAllowedDomainDependency } from './domain-dependency-policy.js';
 import type {
   GovernanceRule,
   GovernanceRuleApplicability,
@@ -461,7 +462,7 @@ function evaluateDomainBoundaryRelation(
     !sourceDomain ||
     !targetDomain ||
     sourceDomain === targetDomain ||
-    isDomainDependencyAllowed(
+    isAllowedDomainDependency(
       options.allowedDependencies,
       sourceDomain,
       targetDomain,
@@ -970,24 +971,6 @@ function compareRelations(
     left.sourceNodeId.localeCompare(right.sourceNodeId) ||
     left.targetNodeId.localeCompare(right.targetNodeId)
   );
-}
-
-function isDomainDependencyAllowed(
-  allowedDependencies: Record<string, string[]>,
-  sourceDomain: string,
-  targetDomain: string,
-): boolean {
-  const direct = allowedDependencies[sourceDomain];
-  if (direct && (direct.includes(targetDomain) || direct.includes('*'))) {
-    return true;
-  }
-
-  const wildcard = allowedDependencies['*'];
-  if (wildcard && (wildcard.includes(targetDomain) || wildcard.includes('*'))) {
-    return true;
-  }
-
-  return false;
 }
 
 function isLayerDependencyAllowed(

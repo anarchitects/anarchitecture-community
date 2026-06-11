@@ -127,6 +127,33 @@ describe('Core built-in policy rules', () => {
     ]);
   });
 
+  it('does not report a domain violation for allowed domain dependencies', () => {
+    const workspace = createWorkspace(baseNodes, [
+      {
+        id: 'relation:booking-feature->shared-data',
+        sourceNodeId: 'booking-feature',
+        targetNodeId: 'shared-data',
+        kind: 'dependency',
+        metadata: {
+          dependencyType: 'static',
+        },
+      },
+    ]);
+
+    const result = evaluateSync(domainBoundaryRule, {
+      workspace,
+      profile: {
+        ...baseProfile,
+        allowedDomainDependencies: {
+          booking: ['shared'],
+          shared: [],
+        },
+      },
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+
   it('reports a layer violation for disallowed layer dependencies over canonical relations', () => {
     const workspace = createWorkspace(baseNodes, [
       {
