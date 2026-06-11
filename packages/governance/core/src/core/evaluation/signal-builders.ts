@@ -8,6 +8,7 @@ import type {
   GovernanceSignalSource,
   GovernanceSignalType,
 } from './signals.js';
+import { isAllowedDomainDependency } from './domain-dependency-policy.js';
 
 export interface GovernanceGraphSnapshotProject {
   id: string;
@@ -47,8 +48,13 @@ export interface GovernanceConformanceSnapshot {
 
 export interface BuildGovernanceSignalsOptions {
   graphSnapshot: GovernanceGraphSnapshot;
+  graphSignalOptions?: BuildGovernanceGraphSignalsOptions;
   conformanceSnapshot?: GovernanceConformanceSnapshot;
   policyViolations?: Violation[];
+}
+
+export interface BuildGovernanceGraphSignalsOptions {
+  allowedDomainDependencies?: Record<string, string[]>;
 }
 
 interface SignalDraft {
@@ -82,6 +88,7 @@ const SEVERITY_SORT_ORDER: Record<GovernanceSignalSeverity, number> = {
 
 export function buildGovernanceGraphSignals(
   snapshot: GovernanceGraphSnapshot,
+  options: BuildGovernanceGraphSignalsOptions = {},
 ): GovernanceSignal[] {
   const nodesById = new Map(
     snapshot.nodes.map((node) => [node.id, node] as const),
@@ -91,6 +98,7 @@ export function buildGovernanceGraphSignals(
   for (const relation of snapshot.relations) {
     const sourceNode = nodesById.get(relation.sourceNodeId);
     const targetNode = nodesById.get(relation.targetNodeId);
+    const dependencyRelation = isDependencyRelation(relation);
     const sourceDomain = normalizeText(sourceNode?.domain);
     const targetDomain = normalizeText(targetNode?.domain);
     const relatedNodeIds = normalizeRelatedIds([
@@ -121,7 +129,18 @@ export function buildGovernanceGraphSignals(
       }),
     );
 
-    if (sourceDomain && targetDomain && sourceDomain !== targetDomain) {
+    if (
+      dependencyRelation &&
+      sourceDomain &&
+      targetDomain &&
+      sourceDomain !== targetDomain &&
+      !isAllowedCrossDomainDependencySignal(
+        relation,
+        sourceDomain,
+        targetDomain,
+        options,
+      )
+    ) {
       signals.push(
         finalizeSignal({
           type: 'cross-domain-dependency',
@@ -140,7 +159,7 @@ export function buildGovernanceGraphSignals(
           createdAt: snapshot.extractedAt,
         }),
       );
-    } else if (!sourceDomain || !targetDomain) {
+    } else if (dependencyRelation && (!sourceDomain || !targetDomain)) {
       signals.push(
         finalizeSignal({
           type: 'missing-domain-context',
@@ -192,7 +211,10 @@ export function buildGovernanceSignals(
   options: BuildGovernanceSignalsOptions,
 ): GovernanceSignal[] {
   return mergeGovernanceSignals(
-    buildGovernanceGraphSignals(options.graphSnapshot),
+    buildGovernanceGraphSignals(
+      options.graphSnapshot,
+      options.graphSignalOptions,
+    ),
     options.conformanceSnapshot
       ? buildGovernanceConformanceSignals(options.conformanceSnapshot)
       : [],
@@ -296,6 +318,25 @@ function mapViolationToPolicySignal(
   ];
 }
 
+function isAllowedCrossDomainDependencySignal(
+  relation: GovernanceGraphSnapshotRelation,
+  sourceDomain: string,
+  targetDomain: string,
+  options: BuildGovernanceGraphSignalsOptions,
+): boolean {
+  const allowedDomainDependencies = options.allowedDomainDependencies;
+
+  if (!allowedDomainDependencies || !isDependencyRelation(relation)) {
+    return false;
+  }
+
+  return isAllowedDomainDependency(
+    allowedDomainDependencies,
+    sourceDomain,
+    targetDomain,
+  );
+}
+
 function mapPolicyRuleToSignalDescriptor(ruleId: string): {
   type: GovernanceSignalType;
   category: GovernanceSignalCategory;
@@ -315,6 +356,26 @@ function mapPolicyRuleToSignalDescriptor(ruleId: string): {
       return {
         type: 'ownership-gap',
         category: 'ownership',
+      };
+    case 'project-name-convention':
+      return {
+        type: 'node-name-convention-violation',
+        category: 'convention',
+      };
+    case 'tag-convention':
+      return {
+        type: 'tag-convention-violation',
+        category: 'metadata',
+      };
+    case 'missing-domain':
+      return {
+        type: 'missing-domain-violation',
+        category: 'metadata',
+      };
+    case 'missing-layer':
+      return {
+        type: 'missing-layer-violation',
+        category: 'metadata',
       };
     default:
       return null;
@@ -405,6 +466,13 @@ function normalizeText(value: unknown): string | undefined {
 
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
+}
+
+function isDependencyRelation(
+  relation: GovernanceGraphSnapshotRelation,
+): boolean {
+  const kind = normalizeText(relation.kind);
+  return kind === undefined || kind === 'dependency';
 }
 
 function compareSignals(

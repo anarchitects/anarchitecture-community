@@ -36,6 +36,10 @@ const TYPE_ORDER: GovernanceSignalType[] = [
   'domain-boundary-violation',
   'layer-boundary-violation',
   'ownership-gap',
+  'node-name-convention-violation',
+  'tag-convention-violation',
+  'missing-domain-violation',
+  'missing-layer-violation',
 ];
 const FAMILY_ORDER: GovernanceMetricFamily[] = [
   'architecture',

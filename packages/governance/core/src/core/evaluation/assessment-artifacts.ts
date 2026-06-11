@@ -35,6 +35,10 @@ import type {
 } from '../model/models.js';
 import type { GovernanceException } from '../diagnostics/exceptions.js';
 import type { GovernanceProfile } from './profile.js';
+import {
+  normalizeGovernanceProfile,
+  type GovernanceDomainBoundaryRuleOptions,
+} from './profile.js';
 import { evaluateGovernancePolicies } from './built-in-rules.js';
 import {
   buildGovernanceConformanceSignals,
@@ -117,9 +121,15 @@ export async function buildGovernanceAssessmentArtifacts(
     ...exceptionApplication.activePolicyViolations,
     ...extensionViolations,
   ];
+  const normalizedProfile = normalizeGovernanceProfile(input.profile);
+  const domainBoundaryOptions = normalizedProfile.rules['domain-boundary']
+    ?.options as GovernanceDomainBoundaryRuleOptions | undefined;
 
   const graphSignals = buildGovernanceGraphSignals(
     input.graphSnapshot ?? buildGraphSnapshotFromWorkspace(enrichedWorkspace),
+    {
+      allowedDomainDependencies: domainBoundaryOptions?.allowedDependencies,
+    },
   );
   const policySignals = buildGovernancePolicySignals(
     exceptionApplication.activePolicyViolations,
