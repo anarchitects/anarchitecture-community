@@ -87,6 +87,9 @@ describe('assessment artifact assembly', () => {
     });
 
     expect(artifacts.violations).toEqual([]);
+    expect(artifacts.signals.some((signal) => signal.severity === 'info')).toBe(
+      true,
+    );
     expect(
       artifacts.signals.some(
         (signal) =>
@@ -94,13 +97,7 @@ describe('assessment artifact assembly', () => {
           signal.severity === 'warning',
       ),
     ).toBe(false);
-    expect(
-      artifacts.assessment.topIssues.some(
-        (issue) =>
-          issue.type === 'cross-domain-dependency' ||
-          issue.type === 'domain-boundary-violation',
-      ),
-    ).toBe(false);
+    expect(artifacts.assessment.topIssues).toEqual([]);
   });
 
   it('keeps violations, signals, and assessment aligned for disallowed cross-domain dependencies', async () => {

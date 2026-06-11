@@ -314,6 +314,10 @@ export function buildTopIssues(
   const groups = new Map<string, TopIssueGroup>();
 
   for (const signal of signals) {
+    if (!isTopIssueSignal(signal)) {
+      continue;
+    }
+
     const key = buildGroupKey(signal);
     const existing = groups.get(key);
 
@@ -346,6 +350,10 @@ export function buildTopIssues(
   return [...groups.values()]
     .map((group) => group.issue)
     .sort(compareTopIssues);
+}
+
+function isTopIssueSignal(signal: GovernanceSignal): boolean {
+  return signal.severity === 'warning' || signal.severity === 'error';
 }
 
 function buildGroupKey(signal: GovernanceSignal): string {
