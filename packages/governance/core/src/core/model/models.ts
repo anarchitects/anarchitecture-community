@@ -272,6 +272,8 @@ export interface GovernanceTopIssue {
   sourcePluginId?: string;
 }
 
+export type GovernanceTopSignal = GovernanceTopIssue;
+
 export interface GovernanceExceptionSummary {
   declaredCount: number;
   matchedCount: number;
@@ -341,6 +343,7 @@ export interface GovernanceAssessment {
   signalBreakdown: SignalBreakdown;
   metricBreakdown: MetricBreakdown;
   topIssues: GovernanceTopIssue[];
+  topSignals?: GovernanceTopSignal[];
   health: HealthScore;
   recommendations: Recommendation[];
   metadata?: Record<string, unknown>;

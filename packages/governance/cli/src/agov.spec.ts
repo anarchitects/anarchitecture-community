@@ -74,6 +74,7 @@ describe('agov executable command surface', () => {
     expect(io.out).toContain('agov assess');
     expect(io.out).toContain('--config <path>');
     expect(io.out).toContain('--adapter <package>');
+    expect(io.out).toContain('--include-top-signals');
     expect(io.err).toBe('');
   });
 
@@ -1757,6 +1758,48 @@ describe('agov executable command surface', () => {
     expect(JSON.parse(io.out)).toMatchObject({
       command: 'assess',
       success: true,
+    });
+  });
+
+  it('supports opt-in top signals in assess output', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-assess-top-signals-');
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFailingFixtureProfile(path.join(cwd, 'profile.json'));
+
+    expect(
+      await runAgovCli(
+        [
+          'assess',
+          '--workspace',
+          './workspace.json',
+          '--profile',
+          './profile.json',
+          '--include-top-signals',
+          '--format',
+          'json',
+        ],
+        io,
+        undefined,
+        createEnvironment({ cwd }),
+      ),
+    ).toBe(AGOV_EXIT_GOVERNANCE_FAILURE);
+
+    expect(JSON.parse(io.out)).toMatchObject({
+      command: 'assess',
+      success: false,
+      assessment: {
+        topIssues: [
+          expect.objectContaining({ severity: 'error' }),
+          expect.objectContaining({ severity: 'warning' }),
+        ],
+        topSignals: [
+          expect.objectContaining({ severity: 'info' }),
+          expect.objectContaining({ severity: 'warning' }),
+          expect.objectContaining({ severity: 'error' }),
+        ],
+      },
     });
   });
 

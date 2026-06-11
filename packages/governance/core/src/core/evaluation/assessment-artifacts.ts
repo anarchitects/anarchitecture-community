@@ -53,6 +53,7 @@ import type { GovernanceSignal } from './signals.js';
 
 export interface BuildGovernanceAssessmentArtifactsInput {
   profile: GovernanceProfile;
+  includeTopSignals?: boolean;
   workspaceAdapterResult?: GovernanceWorkspaceAdapterResult;
   workspace?: GovernanceWorkspace;
   warnings?: string[];
@@ -195,6 +196,7 @@ export async function buildGovernanceAssessmentArtifacts(
     workspace: enrichedWorkspace,
     profile: input.profile.name,
     warnings: input.warnings ?? [],
+    includeTopSignals: input.includeTopSignals,
     exceptions:
       input.exceptions && input.exceptions.length > 0
         ? buildGovernanceExceptionReport(exceptionApplication)

@@ -3,6 +3,7 @@ import type {
   GovernanceExceptionReport,
   GovernanceMetricFamily,
   GovernanceTopIssue,
+  GovernanceTopSignal,
   Measurement,
   MetricBreakdown,
   Recommendation,
@@ -28,6 +29,7 @@ export type GovernanceAssessmentReportType =
 export interface GovernanceAssessmentInput {
   workspace: GovernanceWorkspace;
   profile: string;
+  includeTopSignals?: boolean;
   warnings?: string[];
   exceptions: GovernanceExceptionReport;
   violations: Violation[];
@@ -106,6 +108,12 @@ const TOP_ISSUE_SEVERITY_ORDER: Record<GovernanceSignalSeverity, number> = {
   info: 2,
 };
 
+const TOP_SIGNAL_SEVERITY_ORDER: Record<GovernanceSignalSeverity, number> = {
+  info: 0,
+  warning: 1,
+  error: 2,
+};
+
 interface TopIssueGroup {
   issue: GovernanceTopIssue;
 }
@@ -141,6 +149,9 @@ export function buildGovernanceAssessment(
     signalBreakdown: buildSignalBreakdown(filteredSignals),
     metricBreakdown: buildMetricBreakdown(filteredMeasurements),
     topIssues: buildTopIssues(filteredSignals),
+    ...(input.includeTopSignals
+      ? { topSignals: buildTopSignals(filteredSignals) }
+      : {}),
     health: input.health,
     recommendations: [...(input.recommendations ?? [])],
     ...(input.metadata ? { metadata: { ...input.metadata } } : {}),
@@ -311,10 +322,23 @@ export function buildMetricBreakdown(
 export function buildTopIssues(
   signals: GovernanceSignal[],
 ): GovernanceTopIssue[] {
+  return buildTopSignalGroups(signals, isTopIssueSignal).sort(compareTopIssues);
+}
+
+export function buildTopSignals(
+  signals: GovernanceSignal[],
+): GovernanceTopSignal[] {
+  return buildTopSignalGroups(signals).sort(compareTopSignals);
+}
+
+function buildTopSignalGroups(
+  signals: GovernanceSignal[],
+  predicate?: (signal: GovernanceSignal) => boolean,
+): GovernanceTopSignal[] {
   const groups = new Map<string, TopIssueGroup>();
 
   for (const signal of signals) {
-    if (!isTopIssueSignal(signal)) {
+    if (predicate && !predicate(signal)) {
       continue;
     }
 
@@ -347,9 +371,7 @@ export function buildTopIssues(
     });
   }
 
-  return [...groups.values()]
-    .map((group) => group.issue)
-    .sort(compareTopIssues);
+  return [...groups.values()].map((group) => group.issue);
 }
 
 function isTopIssueSignal(signal: GovernanceSignal): boolean {
@@ -434,6 +456,38 @@ function compareTopIssues(
     TOP_ISSUE_SOURCE_ORDER[a.source] - TOP_ISSUE_SOURCE_ORDER[b.source];
   if (sourceOrder !== 0) {
     return sourceOrder;
+  }
+
+  const subjectsOrder = a.subjects
+    .join(',')
+    .localeCompare(b.subjects.join(','));
+  if (subjectsOrder !== 0) {
+    return subjectsOrder;
+  }
+
+  return a.message.localeCompare(b.message);
+}
+
+function compareTopSignals(
+  a: GovernanceTopSignal,
+  b: GovernanceTopSignal,
+): number {
+  const sourceOrder =
+    TOP_ISSUE_SOURCE_ORDER[a.source] - TOP_ISSUE_SOURCE_ORDER[b.source];
+  if (sourceOrder !== 0) {
+    return sourceOrder;
+  }
+
+  const severityOrder =
+    TOP_SIGNAL_SEVERITY_ORDER[a.severity] -
+    TOP_SIGNAL_SEVERITY_ORDER[b.severity];
+  if (severityOrder !== 0) {
+    return severityOrder;
+  }
+
+  const typeOrder = a.type.localeCompare(b.type);
+  if (typeOrder !== 0) {
+    return typeOrder;
   }
 
   const subjectsOrder = a.subjects

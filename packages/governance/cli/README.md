@@ -109,7 +109,13 @@ import {
 ```bash
 agov assess --workspace ./governance.workspace.json --profile ./governance.profile.json
 agov check --workspace ./governance.workspace.json --profile ./governance.profile.json
+agov assess --workspace ./governance.workspace.json --profile ./governance.profile.json --include-top-signals
 ```
+
+`Top Issues` stays focused on actionable `warning` and `error` findings. Use
+`agov assess --include-top-signals` when you want a separate `Top Signals`
+section that can include `info`-level telemetry for architecture inspection or
+debugging.
 
 ### Inspection Commands
 
