@@ -112,6 +112,7 @@ describe('agov command report rendering', () => {
         extensionDiagnostics: expect.any(Array),
       },
     });
+    expect(parsed.assessment).not.toHaveProperty('topSignals');
   });
 
   it('delegates low-level formatting to shared primitives', async () => {
@@ -157,6 +158,60 @@ describe('agov command report rendering', () => {
     const tableRendered = renderAgovCheckReport(assessResult, 'table');
 
     expect(textRendered).toBe(tableRendered);
+  });
+
+  it('keeps top signals out of default assess rendering', async () => {
+    const assessResult = await runAgovAssess({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/passing-profile.json',
+      ),
+    });
+
+    const textRendered = renderAgovCheckReport(assessResult, 'text');
+
+    expect(assessResult.assessment.topIssues).toEqual([]);
+    expect(assessResult.assessment).not.toHaveProperty('topSignals');
+    expect(textRendered).not.toContain('Top Signals:');
+  });
+
+  it('renders opt-in top signals as a separate section and JSON field', async () => {
+    const assessResult = await runAgovAssess({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+      includeTopSignals: true,
+    });
+
+    const parsed = JSON.parse(renderAgovCheckJson(assessResult)) as {
+      assessment: {
+        topIssues: Array<{ type: string; severity: string }>;
+        topSignals?: Array<{ type: string; severity: string }>;
+      };
+    };
+    const textRendered = renderAgovCheckReport(assessResult, 'text');
+
+    expect(parsed.assessment.topIssues.map((issue) => issue.severity)).toEqual([
+      'error',
+      'warning',
+    ]);
+    expect(
+      parsed.assessment.topSignals?.map(
+        (signal) => `${signal.severity}:${signal.type}`,
+      ),
+    ).toEqual([
+      'info:structural-dependency',
+      'warning:cross-domain-dependency',
+      'error:domain-boundary-violation',
+    ]);
+    expect(textRendered).toContain('Top Signals:');
+    expect(textRendered).toContain('[info] structural-dependency');
+    expect(textRendered).toContain('Top Issues:');
   });
 
   it('renders canonical diagnostics in JSON and text outputs', async () => {

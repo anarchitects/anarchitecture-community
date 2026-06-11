@@ -100,6 +100,43 @@ describe('assessment artifact assembly', () => {
     expect(artifacts.assessment.topIssues).toEqual([]);
   });
 
+  it('includes top signals only when explicitly requested', async () => {
+    const artifacts = await buildGovernanceAssessmentArtifacts({
+      workspace: createWorkspace(
+        [
+          createNode('booking-domain', 'booking'),
+          createNode('shared-kernel', 'shared'),
+        ],
+        [
+          createDependencyRelation(
+            'relation:booking-domain->shared-kernel',
+            'booking-domain',
+            'shared-kernel',
+          ),
+        ],
+      ),
+      profile: {
+        ...testProfile,
+        allowedDomainDependencies: {
+          booking: ['shared'],
+          shared: [],
+        },
+        ownership: {
+          required: false,
+          metadataField: 'ownership',
+        },
+      },
+      includeTopSignals: true,
+      exceptions: [],
+      asOf: new Date('2026-05-23'),
+    });
+
+    expect(artifacts.assessment.topIssues).toEqual([]);
+    expect(
+      artifacts.assessment.topSignals?.map((signal) => signal.type),
+    ).toEqual(['structural-dependency']);
+  });
+
   it('keeps violations, signals, and assessment aligned for disallowed cross-domain dependencies', async () => {
     const artifacts = await buildGovernanceAssessmentArtifacts({
       workspace: createWorkspace(

@@ -21,6 +21,7 @@ export type {
   GovernanceRuntimeReference,
   GovernanceScore,
   GovernanceTopIssue,
+  GovernanceTopSignal,
   GovernanceWorkspace,
   HealthExplainability,
   HealthMetricHotspot,

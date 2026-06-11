@@ -211,6 +211,7 @@ export type ParsedAgovCheckOptions = ParsedAgovAssessmentOptions & {
 
 export type ParsedAgovAssessOptions = ParsedAgovAssessmentOptions & {
   command: 'assess';
+  includeTopSignals?: boolean;
 };
 
 export type ParsedAgovMetricsOptions = ParsedAgovAssessmentOptions & {
@@ -312,6 +313,7 @@ export type AgovResolvedCheckCommand = AgovResolvedAssessmentCommand & {
 
 export type AgovResolvedAssessCommand = AgovResolvedAssessmentCommand & {
   command: 'assess';
+  includeTopSignals?: boolean;
 };
 
 export type AgovResolvedMetricsCommand = AgovResolvedAssessmentCommand & {
@@ -402,7 +404,7 @@ export interface AgovResolvedWorkspaceValidateCommand {
 }
 
 export type AgovAssessmentRuntimeOptions<TInput = unknown> =
-  AgovCheckOptions<TInput>;
+  AgovAssessOptions<TInput>;
 
 export const AGOV_EXIT_SUCCESS = 0;
 export const AGOV_EXIT_GOVERNANCE_FAILURE = 1;
@@ -1511,6 +1513,7 @@ function parseAgovAssessmentArgs(
   let rootPath: string | undefined;
   let format: AgovOutputFormat | undefined;
   let outputPath: string | undefined;
+  let includeTopSignals: boolean | undefined;
   let showHelp = false;
 
   for (let index = 0; index < args.length; index += 1) {
@@ -1577,6 +1580,11 @@ function parseAgovAssessmentArgs(
       continue;
     }
 
+    if (command === 'assess' && arg === '--include-top-signals') {
+      includeTopSignals = true;
+      continue;
+    }
+
     if (
       command === 'metrics' &&
       (arg === '--family' || arg === '--metric' || arg === '--weakest')
@@ -1625,6 +1633,7 @@ function parseAgovAssessmentArgs(
     rootPath,
     format,
     outputPath,
+    ...(command === 'assess' && includeTopSignals ? { includeTopSignals } : {}),
     showHelp,
   };
 }
@@ -1657,7 +1666,14 @@ export function resolveAgovAssessCommand(
   options: ParsedAgovAssessOptions,
   environment: Pick<AgovCliEnvironment, 'cwd'>,
 ): AgovResolvedAssessCommand {
-  return resolveAgovAssessmentCommand(options, environment);
+  const resolved = resolveAgovAssessmentCommand(options, environment);
+  return {
+    ...resolved,
+    command: 'assess',
+    ...(options.includeTopSignals
+      ? { includeTopSignals: options.includeTopSignals }
+      : {}),
+  };
 }
 
 export function resolveAgovMetricsCommand(
@@ -1849,6 +1865,9 @@ export function resolveAgovAssessmentCommand(
     ...resolved,
     command: options.command,
     profilePath,
+    ...('includeTopSignals' in options && options.includeTopSignals
+      ? { includeTopSignals: options.includeTopSignals }
+      : {}),
   };
 }
 
@@ -2098,6 +2117,9 @@ export async function resolveAgovRuntimeOptions(
       return {
         profilePath: command.profilePath,
         workspacePath: command.workspacePath,
+        ...(command.command === 'assess' && command.includeTopSignals
+          ? { includeTopSignals: command.includeTopSignals }
+          : {}),
         ...('filters' in command && command.filters
           ? { filters: command.filters }
           : {}),
@@ -2122,6 +2144,9 @@ export async function resolveAgovRuntimeOptions(
         profilePath: command.profilePath,
         workspaceAdapter: resolvedAdapter.adapter,
         workspaceAdapterInput: command.rootPath,
+        ...(command.command === 'assess' && command.includeTopSignals
+          ? { includeTopSignals: command.includeTopSignals }
+          : {}),
         ...(await loadInferredGovernanceExtensions(
           resolvedAdapter.packageName,
           environment,
@@ -2142,6 +2167,9 @@ export async function resolveAgovRuntimeOptions(
       profilePath: command.profilePath,
       workspaceAdapter,
       workspaceAdapterInput: command.rootPath,
+      ...(command.command === 'assess' && command.includeTopSignals
+        ? { includeTopSignals: command.includeTopSignals }
+        : {}),
       ...(await loadInferredGovernanceExtensions(
         command.adapterPackage,
         environment,
@@ -2908,6 +2936,7 @@ function renderAgovAssessHelp(): string {
     '  --adapter <package> Dynamically load a concrete adapter package.',
     '  --root <path>       Adapter input root. Defaults to the current working directory.',
     '  --format <value>    Output format: table, markdown, text, or json. Defaults to text.',
+    '  --include-top-signals Render a separate Top Signals section including info-level telemetry.',
     '  --output <path>     Write command output to a file instead of stdout.',
     '',
     'Conventions:',

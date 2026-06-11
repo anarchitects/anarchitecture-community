@@ -1,6 +1,7 @@
 import {
   buildGovernanceAssessment,
   buildTopIssues,
+  buildTopSignals,
   type GovernanceAssessment,
   type GovernanceSignal,
   type HealthScore,
@@ -184,6 +185,7 @@ describe('buildGovernanceAssessment', () => {
       'domain-boundary-violation',
       'ownership-gap',
     ]);
+    expect(assessment).not.toHaveProperty('topSignals');
     expect(
       JSON.parse(JSON.stringify(assessment)) as GovernanceAssessment,
     ).toEqual(assessment);
@@ -217,6 +219,23 @@ describe('buildGovernanceAssessment', () => {
     });
 
     expect(assessment.topIssues).toEqual([]);
+  });
+
+  it('includes top signals only when explicitly requested', () => {
+    const assessment = buildGovernanceAssessment({
+      ...baseAssessmentInput,
+      includeTopSignals: true,
+    });
+
+    expect(assessment.topIssues.map((issue) => issue.type)).toEqual([
+      'domain-boundary-violation',
+      'ownership-gap',
+    ]);
+    expect(assessment.topSignals?.map((signal) => signal.type)).toEqual([
+      'structural-dependency',
+      'ownership-gap',
+      'domain-boundary-violation',
+    ]);
   });
 });
 
@@ -330,6 +349,77 @@ describe('buildTopIssues', () => {
       'domain-boundary-violation',
       'cross-domain-dependency',
       'missing-domain-context',
+    ]);
+  });
+});
+
+describe('buildTopSignals', () => {
+  function createSignal(
+    overrides: Partial<GovernanceSignal> = {},
+  ): GovernanceSignal {
+    return {
+      id: 'signal',
+      type: 'structural-dependency',
+      nodeId: 'booking-ui',
+      relatedNodeIds: ['booking-ui', 'platform-shell'],
+      severity: 'info',
+      category: 'dependency',
+      message: 'Dependency: booking-ui -> platform-shell.',
+      source: 'graph',
+      createdAt: '2026-05-13T09:02:00.000Z',
+      ...overrides,
+    };
+  }
+
+  it('includes info-level telemetry when requested', () => {
+    expect(
+      buildTopSignals([
+        createSignal(),
+        createSignal({
+          id: 'warning-signal',
+          type: 'cross-domain-dependency',
+          severity: 'warning',
+          category: 'boundary',
+          message: 'Cross-domain dependency.',
+        }),
+      ]).map((signal) => signal.severity),
+    ).toEqual(['info', 'warning']);
+  });
+
+  it('keeps deterministic ordering across info, warning, and error signals', () => {
+    expect(
+      buildTopSignals([
+        createSignal({
+          id: 'error-signal',
+          type: 'domain-boundary-violation',
+          severity: 'error',
+          category: 'boundary',
+          source: 'policy',
+          message: 'Policy boundary violation.',
+        }),
+        createSignal({
+          id: 'warning-signal',
+          type: 'cross-domain-dependency',
+          severity: 'warning',
+          category: 'boundary',
+          message: 'Cross-domain dependency.',
+        }),
+        createSignal({
+          id: 'info-signal-b',
+          nodeId: 'booking-domain',
+          relatedNodeIds: ['booking-domain', 'shared-kernel'],
+          message: 'Dependency: booking-domain -> shared-kernel.',
+        }),
+        createSignal({
+          id: 'info-signal-a',
+          message: 'Dependency: booking-ui -> platform-shell.',
+        }),
+      ]).map((signal) => `${signal.source}:${signal.severity}:${signal.type}`),
+    ).toEqual([
+      'graph:info:structural-dependency',
+      'graph:info:structural-dependency',
+      'graph:warning:cross-domain-dependency',
+      'policy:error:domain-boundary-violation',
     ]);
   });
 });

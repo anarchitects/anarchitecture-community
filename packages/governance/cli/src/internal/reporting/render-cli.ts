@@ -4,6 +4,7 @@ import type {
 } from '@anarchitects/governance-core';
 
 const TOP_ISSUES_LIMIT = 10;
+const TOP_SIGNALS_LIMIT = 10;
 
 export function renderCliReport(assessment: GovernanceAssessment): string {
   const lines: string[] = [];
@@ -166,6 +167,21 @@ export function renderCliReport(assessment: GovernanceAssessment): string {
           : '';
       lines.push(
         `- [${issue.severity}] ${issue.type} (${issue.source}) x${issue.count}${ruleIdSuffix}${subjectsSuffix} :: ${issue.message}`,
+      );
+    }
+  }
+
+  if (assessment.topSignals && assessment.topSignals.length > 0) {
+    lines.push('');
+    lines.push('Top Signals:');
+    for (const signal of assessment.topSignals.slice(0, TOP_SIGNALS_LIMIT)) {
+      const ruleIdSuffix = signal.ruleId ? ` :: ${signal.ruleId}` : '';
+      const subjectsSuffix =
+        signal.subjects.length > 0
+          ? ` :: subjects=${signal.subjects.join(',')}`
+          : '';
+      lines.push(
+        `- [${signal.severity}] ${signal.type} (${signal.source}) x${signal.count}${ruleIdSuffix}${subjectsSuffix} :: ${signal.message}`,
       );
     }
   }
