@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/governance-extension-dbt",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "dbt Governance extension package boundary for future governance interpretation over normalized adapter output.",
   "license": "Apache-2.0",
   "type": "module",
@@ -62,6 +62,6 @@
     }
   },
   "dependencies": {
-    "@anarchitects/governance-core": "^0.1.2"
+    "@anarchitects/governance-core": "^0.2.0"
   }
 }
