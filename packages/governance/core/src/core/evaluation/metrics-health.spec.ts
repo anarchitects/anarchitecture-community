@@ -2,6 +2,7 @@ import {
   buildGovernanceRecommendations,
   calculateGovernanceHealth,
   calculateGovernanceMetrics,
+  evaluateGovernancePolicies,
   type GovernanceNode,
   type GovernanceSignal,
   type GovernanceWorkspace,
@@ -297,6 +298,94 @@ describe('metrics and health', () => {
       grade: 'D',
     });
     expect(recommendations[0]?.id).toBe('reduce-cross-domain-dependencies');
+  });
+
+  it('keeps documentation completeness aligned with documentation-gap violations', () => {
+    const workspace = createWorkspace(
+      [
+        {
+          id: 'documented-node',
+          name: 'documented-node',
+          kind: 'library',
+          classification: {
+            domain: 'booking',
+            layer: 'ui',
+          },
+          tags: ['domain:booking', 'layer:ui'],
+          ownership: {
+            team: 'booking-team',
+            source: 'project-metadata',
+          },
+          metadata: {
+            documentation: true,
+          },
+        },
+        {
+          id: 'undocumented-node',
+          name: 'undocumented-node',
+          kind: 'library',
+          classification: {
+            domain: 'booking',
+            layer: 'domain',
+          },
+          tags: ['domain:booking', 'layer:domain'],
+          ownership: {
+            team: 'booking-team',
+            source: 'project-metadata',
+          },
+          metadata: {},
+        },
+      ],
+      [],
+    );
+    const profile = {
+      name: 'docs-profile',
+      boundaryPolicySource: 'profile' as const,
+      layers: ['ui', 'domain'],
+      allowedDomainDependencies: {
+        booking: ['booking'],
+      },
+      ownership: {
+        required: false,
+        metadataField: 'ownership',
+      },
+      health: {
+        statusThresholds: {
+          goodMinScore: 85,
+          warningMinScore: 70,
+        },
+      },
+      metrics: {},
+    };
+
+    const metrics = calculateGovernanceMetrics({
+      workspace,
+      signals: [],
+      profile,
+    });
+    const documentationGapViolations = evaluateGovernancePolicies({
+      workspace,
+      profile,
+    }).filter((violation) => violation.ruleId === 'documentation-gap');
+
+    expect(
+      findMeasurement(metrics, 'documentation-completeness'),
+    ).toMatchObject({
+      value: 0.5,
+      score: 50,
+      metadata: {
+        nodeCount: 2,
+        documentedNodeCount: 1,
+      },
+    });
+    expect(documentationGapViolations).toEqual([
+      expect.objectContaining({
+        subjectId: 'undocumented-node',
+        reference: {
+          nodeId: 'undocumented-node',
+        },
+      }),
+    ]);
   });
 });
 

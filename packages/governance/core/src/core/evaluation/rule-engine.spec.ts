@@ -372,6 +372,7 @@ describe('Core rule engine contracts', () => {
       'domain-boundary',
       'layer-boundary',
       'ownership-presence',
+      'documentation-gap',
       'project-name-convention',
       'tag-convention',
       'missing-domain',

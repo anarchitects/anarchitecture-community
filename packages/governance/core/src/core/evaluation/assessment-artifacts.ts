@@ -166,6 +166,7 @@ export async function buildGovernanceAssessmentArtifacts(
   const coreMeasurements = calculateGovernanceMetrics({
     workspace: enrichedWorkspace,
     signals,
+    profile: input.profile,
   });
   const extensionMeasurements =
     registry && context

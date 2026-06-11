@@ -157,6 +157,38 @@ Hosts can pass normalized workspaces into Core helpers to produce findings,
 signals, measurements, recommendations, health scores, and complete assessment
 artifacts.
 
+### Built-in Documentation Semantics
+
+Core includes a built-in `documentation-gap` rule. It evaluates canonical
+`GovernanceNode` metadata and emits deterministic node-referenced warning
+violations when required documentation metadata is missing.
+
+By default, documentation presence is determined from `metadata.documentation`
+and a node counts as documented when that value is `true` or `'true'`. The
+`documentation-completeness` metric uses the same predicate, so low
+documentation scores and `documentation-gap` findings stay aligned.
+
+Hosts can configure the rule through the normal profile rule map:
+
+```ts
+const profile = {
+  // ...
+  rules: {
+    'documentation-gap': {
+      enabled: true,
+      severity: 'warning',
+      options: {
+        metadataKeys: ['documentation'],
+        requireAny: true,
+      },
+    },
+  },
+};
+```
+
+Set `enabled: false` to suppress `documentation-gap` findings without disabling
+the underlying documentation completeness metric.
+
 ### Extensions
 
 Hosts register extension definitions through Core runtime helpers. Extensions

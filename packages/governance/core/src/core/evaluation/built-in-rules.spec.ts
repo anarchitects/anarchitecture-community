@@ -1,5 +1,6 @@
 import {
   coreBuiltInRulePack,
+  documentationGapRule,
   domainBoundaryRule,
   evaluateRulePack,
   layerBoundaryRule,
@@ -51,7 +52,9 @@ describe('Core built-in policy rules', () => {
         team: 'booking-team',
         source: 'project-metadata',
       },
-      metadata: {},
+      metadata: {
+        documentation: true,
+      },
     },
     {
       id: 'payments-ui',
@@ -67,7 +70,9 @@ describe('Core built-in policy rules', () => {
         team: 'payments-team',
         source: 'project-metadata',
       },
-      metadata: {},
+      metadata: {
+        documentation: true,
+      },
     },
     {
       id: 'shared-data',
@@ -82,7 +87,9 @@ describe('Core built-in policy rules', () => {
       ownership: {
         source: 'none',
       },
-      metadata: {},
+      metadata: {
+        documentation: true,
+      },
     },
   ];
 
@@ -212,6 +219,97 @@ describe('Core built-in policy rules', () => {
         },
       }),
     ]);
+  });
+
+  it('reports documentation gaps on undocumented canonical nodes', () => {
+    const workspace = createWorkspace(
+      [
+        {
+          ...baseNodes[0],
+          metadata: {},
+        },
+      ],
+      [],
+    );
+
+    const result = evaluateSync(documentationGapRule, {
+      workspace,
+      profile: baseProfile,
+    });
+    expect(result.violations).toHaveLength(1);
+    const violation = (result.violations ?? [])[0]!;
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        ruleId: 'documentation-gap',
+        subjectId: 'booking-feature',
+        severity: 'warning',
+        category: 'documentation',
+        reference: {
+          nodeId: 'booking-feature',
+        },
+      }),
+    ]);
+    expect(violation).not.toHaveProperty('projectId');
+    expect(violation).not.toHaveProperty('affectedProjects');
+  });
+
+  it('does not report documentation gaps for documented canonical nodes', () => {
+    const result = evaluateSync(documentationGapRule, {
+      workspace: createWorkspace([baseNodes[0]], []),
+      profile: baseProfile,
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  it('supports disabling and severity override for documentation-gap', async () => {
+    const workspace = createWorkspace(
+      [
+        {
+          ...baseNodes[0],
+          metadata: {},
+        },
+      ],
+      [],
+    );
+
+    const disabled = await evaluateRulePack(coreBuiltInRulePack, {
+      workspace,
+      profile: {
+        ...baseProfile,
+        rules: {
+          'documentation-gap': {
+            enabled: false,
+          },
+        },
+      },
+    });
+    const overridden = await evaluateRulePack(coreBuiltInRulePack, {
+      workspace,
+      profile: {
+        ...baseProfile,
+        rules: {
+          'documentation-gap': {
+            enabled: true,
+            severity: 'error',
+          },
+        },
+      },
+    });
+
+    expect(
+      disabled.violations.some(
+        (violation) => violation.ruleId === 'documentation-gap',
+      ),
+    ).toBe(false);
+    expect(
+      overridden.violations.find(
+        (violation) => violation.ruleId === 'documentation-gap',
+      ),
+    ).toMatchObject({
+      severity: 'error',
+    });
   });
 
   it('evaluates name, tag, missing-domain, and missing-layer rules from canonical node data', async () => {

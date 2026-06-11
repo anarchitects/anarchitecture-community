@@ -172,8 +172,15 @@ describe('agov command report rendering', () => {
 
     const textRendered = renderAgovCheckReport(assessResult, 'text');
 
-    expect(assessResult.assessment.topIssues).toEqual([]);
+    expect(assessResult.assessment.topIssues).toHaveLength(2);
+    expect(
+      assessResult.assessment.topIssues.map(
+        (issue) => `${issue.severity}:${issue.type}`,
+      ),
+    ).toEqual(['warning:documentation-gap', 'warning:documentation-gap']);
     expect(assessResult.assessment).not.toHaveProperty('topSignals');
+    expect(textRendered).toContain('Top Issues:');
+    expect(textRendered).toContain('[warning] documentation-gap');
     expect(textRendered).not.toContain('Top Signals:');
   });
 
@@ -196,9 +203,15 @@ describe('agov command report rendering', () => {
     };
     const textRendered = renderAgovCheckReport(assessResult, 'text');
 
-    expect(parsed.assessment.topIssues.map((issue) => issue.severity)).toEqual([
-      'error',
-      'warning',
+    expect(
+      parsed.assessment.topIssues.map(
+        (issue) => `${issue.severity}:${issue.type}`,
+      ),
+    ).toEqual([
+      'error:domain-boundary-violation',
+      'warning:cross-domain-dependency',
+      'warning:documentation-gap',
+      'warning:documentation-gap',
     ]);
     expect(
       parsed.assessment.topSignals?.map(
@@ -207,10 +220,13 @@ describe('agov command report rendering', () => {
     ).toEqual([
       'info:structural-dependency',
       'warning:cross-domain-dependency',
+      'warning:documentation-gap',
+      'warning:documentation-gap',
       'error:domain-boundary-violation',
     ]);
     expect(textRendered).toContain('Top Signals:');
     expect(textRendered).toContain('[info] structural-dependency');
+    expect(textRendered).toContain('[warning] documentation-gap');
     expect(textRendered).toContain('Top Issues:');
   });
 

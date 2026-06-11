@@ -357,6 +357,11 @@ function mapPolicyRuleToSignalDescriptor(ruleId: string): {
         type: 'ownership-gap',
         category: 'ownership',
       };
+    case 'documentation-gap':
+      return {
+        type: 'documentation-gap',
+        category: 'documentation',
+      };
     case 'project-name-convention':
       return {
         type: 'node-name-convention-violation',

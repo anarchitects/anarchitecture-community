@@ -4,7 +4,12 @@ import type {
   GovernanceWorkspace,
   Measurement,
 } from '../model/models.js';
+import type { GovernanceProfile } from './profile.js';
 import type { GovernanceSignal } from './signals.js';
+import {
+  isGovernanceNodeDocumented,
+  resolveDocumentationPresenceOptions,
+} from './documentation.js';
 
 interface SignalAggregate {
   type: GovernanceSignal['type'];
@@ -15,12 +20,16 @@ interface SignalAggregate {
 export interface CalculateGovernanceMetricsInput {
   workspace: GovernanceWorkspace;
   signals: GovernanceSignal[];
+  profile?: GovernanceProfile;
 }
 
 export function calculateGovernanceMetrics(
   input: CalculateGovernanceMetricsInput,
 ): Measurement[] {
   const { workspace, signals } = input;
+  const documentationPresenceOptions = resolveDocumentationPresenceOptions(
+    input.profile,
+  );
   const nodes = getApplicableNodes(workspace);
   const dependencyRelations = getDependencyRelations(workspace);
   const nodeCount = nodes.length || 1;
@@ -39,7 +48,9 @@ export function calculateGovernanceMetrics(
     (aggregate) => aggregate.type === 'domain-boundary-violation',
   );
   const ownedNodes = nodes.filter(hasNodeOwnership).length;
-  const documentedNodes = nodes.filter(hasNodeDocumentation).length;
+  const documentedNodes = nodes.filter((node) =>
+    isGovernanceNodeDocumented(node, documentationPresenceOptions),
+  ).length;
 
   return [
     makeScore(
@@ -142,11 +153,6 @@ function hasNodeOwnership(node: GovernanceNode): boolean {
       node.ownership?.technicalOwner ||
       node.ownership?.businessOwner,
   );
-}
-
-function hasNodeDocumentation(node: GovernanceNode): boolean {
-  const documentation = node.metadata.documentation;
-  return documentation === true || documentation === 'true';
 }
 
 function makeScore(

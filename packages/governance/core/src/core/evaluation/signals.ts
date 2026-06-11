@@ -24,6 +24,7 @@ export type KnownGovernanceSignalType =
   | 'domain-boundary-violation'
   | 'layer-boundary-violation'
   | 'ownership-gap'
+  | 'documentation-gap'
   | 'node-name-convention-violation'
   | 'tag-convention-violation'
   | 'missing-domain-violation'

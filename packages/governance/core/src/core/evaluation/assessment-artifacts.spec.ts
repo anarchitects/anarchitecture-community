@@ -263,6 +263,52 @@ describe('assessment artifact assembly', () => {
       'tag-convention-violation',
     ]);
   });
+
+  it('surfaces documentation-gap in assessment top issues when documentation completeness is weak', async () => {
+    const artifacts = await buildGovernanceAssessmentArtifacts({
+      workspace: createWorkspace(
+        [
+          {
+            ...createNode('undocumented-node', 'booking'),
+            metadata: {},
+          },
+        ],
+        [],
+      ),
+      profile: {
+        ...testProfile,
+        ownership: {
+          required: false,
+          metadataField: 'ownership',
+        },
+      },
+      exceptions: [],
+      asOf: new Date('2026-05-23'),
+    });
+
+    expect(
+      artifacts.measurements.find(
+        (measurement) => measurement.id === 'documentation-completeness',
+      ),
+    ).toMatchObject({
+      score: 0,
+    });
+    expect(
+      artifacts.violations.find(
+        (violation) => violation.ruleId === 'documentation-gap',
+      ),
+    ).toMatchObject({
+      subjectId: 'undocumented-node',
+      reference: {
+        nodeId: 'undocumented-node',
+      },
+    });
+    expect(
+      artifacts.assessment.topIssues.some(
+        (issue) => issue.type === 'documentation-gap',
+      ),
+    ).toBe(true);
+  });
 });
 
 function createWorkspace(
