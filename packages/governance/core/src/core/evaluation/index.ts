@@ -2,6 +2,7 @@ export * from './assessment.js';
 export * from './assessment-artifacts.js';
 export * from './built-in-rule-pack.js';
 export * from './built-in-rules.js';
+export * from './documentation.js';
 export * from './health.js';
 export * from './metrics.js';
 export * from './profile.js';

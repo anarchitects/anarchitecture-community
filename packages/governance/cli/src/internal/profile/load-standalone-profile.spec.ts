@@ -104,6 +104,14 @@ describe('loadStandaloneGovernanceProfile', () => {
             metadataField: 'ownership',
           },
         },
+        'documentation-gap': {
+          enabled: true,
+          severity: 'warning',
+          options: {
+            metadataKeys: ['documentation'],
+            requireAny: true,
+          },
+        },
         'project-name-convention': {
           enabled: true,
           severity: 'info',

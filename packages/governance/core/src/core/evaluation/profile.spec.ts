@@ -60,6 +60,14 @@ describe('normalizeGovernanceProfile', () => {
         usesExplicitDependencies: false,
       },
     });
+    expect(normalized.rules['documentation-gap']).toEqual({
+      enabled: true,
+      severity: 'warning',
+      options: {
+        metadataKeys: ['documentation'],
+        requireAny: true,
+      },
+    });
     expect(normalized.scoring).toEqual({
       statusThresholds: {
         goodMinScore: 90,

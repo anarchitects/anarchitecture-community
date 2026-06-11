@@ -67,6 +67,7 @@ const SIGNAL_TYPE_ORDER: KnownGovernanceSignalType[] = [
   'domain-boundary-violation',
   'layer-boundary-violation',
   'ownership-gap',
+  'documentation-gap',
   'node-name-convention-violation',
   'tag-convention-violation',
   'missing-domain-violation',
@@ -96,10 +97,11 @@ const TOP_ISSUE_TYPE_ORDER: Record<KnownGovernanceSignalType, number> = {
   'domain-boundary-violation': 5,
   'layer-boundary-violation': 6,
   'ownership-gap': 7,
-  'node-name-convention-violation': 8,
-  'tag-convention-violation': 9,
-  'missing-domain-violation': 10,
-  'missing-layer-violation': 11,
+  'documentation-gap': 8,
+  'node-name-convention-violation': 9,
+  'tag-convention-violation': 10,
+  'missing-domain-violation': 11,
+  'missing-layer-violation': 12,
 };
 
 const TOP_ISSUE_SEVERITY_ORDER: Record<GovernanceSignalSeverity, number> = {

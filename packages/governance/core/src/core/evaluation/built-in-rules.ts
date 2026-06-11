@@ -5,6 +5,7 @@ import type {
   Violation,
 } from '../model/models.js';
 import {
+  type DocumentationPresenceOptions,
   deriveAllowedLayerDependenciesFromLayerOrder,
   normalizeGovernanceProfile,
   type MissingDomainOptions,
@@ -16,6 +17,10 @@ import {
   type GovernanceOwnershipPresenceRuleOptions,
 } from './profile.js';
 import { isAllowedDomainDependency } from './domain-dependency-policy.js';
+import {
+  getDocumentationPresence,
+  resolveDocumentationPresenceOptions,
+} from './documentation.js';
 import type {
   GovernanceRule,
   GovernanceRuleApplicability,
@@ -277,10 +282,42 @@ export const missingLayerRule: SynchronousGovernanceRule = {
   },
 };
 
+export const documentationGapRule: SynchronousGovernanceRule = {
+  id: 'documentation-gap',
+  name: 'Documentation Gap',
+  description: 'Requires documentation metadata on canonical nodes.',
+  category: 'documentation',
+  defaultSeverity: 'warning',
+  evaluate({ workspace, profile }) {
+    if (!profile) {
+      return {};
+    }
+
+    const normalizedProfile = normalizeGovernanceProfile(profile);
+    const ruleConfig = normalizedProfile.rules[documentationGapRule.id];
+    if (ruleConfig?.enabled === false) {
+      return {};
+    }
+
+    const options =
+      (ruleConfig?.options as DocumentationPresenceOptions | undefined) ??
+      resolveDocumentationPresenceOptions(profile);
+    const severity =
+      ruleConfig?.severity ?? documentationGapRule.defaultSeverity;
+
+    return {
+      violations: getApplicableNodes(workspace, documentationGapRule).flatMap(
+        (node) => evaluateDocumentationGap(node, options, severity),
+      ),
+    };
+  },
+};
+
 export const coreBuiltInPolicyRules: GovernanceRule[] = [
   domainBoundaryRule,
   layerBoundaryRule,
   ownershipPresenceRule,
+  documentationGapRule,
   projectNameConventionRule,
   tagConventionRule,
   missingDomainRule,
@@ -355,6 +392,7 @@ export function evaluateCoreBuiltInPolicyViolations(
   }
 
   for (const rule of [
+    documentationGapRule,
     projectNameConventionRule,
     tagConventionRule,
     missingDomainRule,
@@ -752,6 +790,40 @@ function evaluateMissingLayer(
       },
       recommendation:
         'Populate the node layer through adapter normalization, metadata, or canonical classification.',
+    },
+  ];
+}
+
+function evaluateDocumentationGap(
+  node: GovernanceNode,
+  options: DocumentationPresenceOptions,
+  severity: Violation['severity'],
+): Violation[] {
+  const documentationPresence = getDocumentationPresence(node, options);
+  if (documentationPresence.documented) {
+    return [];
+  }
+
+  return [
+    {
+      id: `${node.id}:documentation-gap`,
+      ruleId: documentationGapRule.id,
+      subjectId: node.id,
+      severity,
+      category: 'documentation',
+      message: `Missing documentation metadata for node ${getNodeName(node)}.`,
+      reference: {
+        nodeId: node.id,
+      },
+      details: {
+        metadataKeys: [...(options.metadataKeys ?? [])].sort((left, right) =>
+          left.localeCompare(right),
+        ),
+        requireAny: options.requireAny ?? true,
+        matchedMetadataKeys: documentationPresence.matchingMetadataKeys,
+      },
+      recommendation:
+        'Populate the configured documentation metadata on the node.',
     },
   ];
 }

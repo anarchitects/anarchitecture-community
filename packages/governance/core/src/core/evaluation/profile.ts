@@ -168,6 +168,14 @@ export function normalizeGovernanceProfile(
         metadataField: profile.ownership.metadataField,
       } satisfies GovernanceOwnershipPresenceRuleOptions,
     },
+    'documentation-gap': {
+      enabled: true,
+      severity: 'warning',
+      options: {
+        metadataKeys: ['documentation'],
+        requireAny: true,
+      } satisfies DocumentationPresenceOptions,
+    },
   };
   const explicitRules = Object.fromEntries(
     Object.entries(profile.rules ?? {}).map(([ruleId, ruleConfig]) => [

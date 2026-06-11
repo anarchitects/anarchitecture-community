@@ -1790,15 +1790,46 @@ describe('agov executable command surface', () => {
       command: 'assess',
       success: false,
       assessment: {
-        topIssues: [
-          expect.objectContaining({ severity: 'error' }),
-          expect.objectContaining({ severity: 'warning' }),
-        ],
-        topSignals: [
-          expect.objectContaining({ severity: 'info' }),
-          expect.objectContaining({ severity: 'warning' }),
-          expect.objectContaining({ severity: 'error' }),
-        ],
+        topIssues: expect.arrayContaining([
+          expect.objectContaining({
+            severity: 'error',
+            type: 'domain-boundary-violation',
+          }),
+          expect.objectContaining({
+            severity: 'warning',
+            type: 'documentation-gap',
+            subjects: ['customer-domain'],
+          }),
+          expect.objectContaining({
+            severity: 'warning',
+            type: 'documentation-gap',
+            subjects: ['order-domain'],
+          }),
+        ]),
+        topSignals: expect.arrayContaining([
+          expect.objectContaining({
+            severity: 'info',
+            type: 'structural-dependency',
+          }),
+          expect.objectContaining({
+            severity: 'warning',
+            type: 'cross-domain-dependency',
+          }),
+          expect.objectContaining({
+            severity: 'warning',
+            type: 'documentation-gap',
+            subjects: ['customer-domain'],
+          }),
+          expect.objectContaining({
+            severity: 'warning',
+            type: 'documentation-gap',
+            subjects: ['order-domain'],
+          }),
+          expect.objectContaining({
+            severity: 'error',
+            type: 'domain-boundary-violation',
+          }),
+        ]),
       },
     });
   });

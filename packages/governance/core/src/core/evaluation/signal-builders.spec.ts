@@ -203,6 +203,18 @@ describe('signal builders', () => {
   it('maps the remaining built-in core policy violations into policy signals', () => {
     const policySignals = buildGovernancePolicySignals([
       {
+        id: 'policy-documentation-gap',
+        ruleId: 'documentation-gap',
+        subjectId: 'booking-ui',
+        severity: 'warning',
+        category: 'documentation',
+        message: 'Missing documentation.',
+        reference: {
+          nodeId: 'booking-ui',
+          relatedNodeIds: ['booking-ui'],
+        },
+      } satisfies Violation,
+      {
         id: 'policy-missing-domain',
         ruleId: 'missing-domain',
         subjectId: 'booking-ui',
@@ -253,6 +265,7 @@ describe('signal builders', () => {
     ]);
 
     expect(policySignals.map((signal) => signal.type)).toEqual([
+      'documentation-gap',
       'missing-domain-violation',
       'missing-layer-violation',
       'node-name-convention-violation',
