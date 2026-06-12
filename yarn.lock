@@ -35,6 +35,7 @@ __metadata:
   resolution: "@anarchitects/governance-adapter-typescript@workspace:packages/governance/adapter-typescript"
   dependencies:
     "@anarchitects/governance-core": "npm:^0.3.0"
+    "@anarchitects/governance-extension-typescript": "npm:^0.1.2"
     minimatch: "npm:^10.1.1"
     typescript: "npm:~5.9.2"
     yaml: "npm:^2.8.1"
@@ -66,7 +67,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@anarchitects/governance-extension-typescript@workspace:packages/governance/extension-typescript":
+"@anarchitects/governance-extension-typescript@npm:^0.1.2, @anarchitects/governance-extension-typescript@workspace:packages/governance/extension-typescript":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-extension-typescript@workspace:packages/governance/extension-typescript"
   dependencies:

@@ -13,6 +13,7 @@ import type {
 } from './contracts.js';
 import {
   getDependencyRelations,
+  getPackageManagerMetadata,
   readStringMetadata,
   toNodeReference,
   toRelationReference,
@@ -90,9 +91,9 @@ export function buildTypeScriptGovernanceRecommendations(
         title: 'Add package metadata to TypeScript node',
         priority: 'medium',
         reason:
-          'The TypeScript workspace project is missing canonical package-manager metadata.',
+          'The TypeScript workspace project is missing TypeScript package facts.',
         description:
-          'Populate metadata.packageManager.packageJson on the affected node so extension analysis can rely on canonical package facts.',
+          'Populate the TypeScript extension expansion packageJson on the affected node so extension analysis can rely on package facts.',
         category: 'configuration',
         reference: toNodeReference(diagnostic.reference.nodeId),
         signalIds: [],
@@ -155,8 +156,7 @@ export function buildTypeScriptGovernanceRecommendations(
         reason:
           'A TypeScript workspace dependency points to an external package rather than another governed node.',
         description: `Review dependency usage for "${
-          readStringMetadata(relation.metadata, [
-            'packageManager',
+          readStringMetadata(getPackageManagerMetadata(relation), [
             'packageName',
           ]) ?? relation.targetNodeId
         }" and decide whether it should remain external or become governed workspace scope.`,

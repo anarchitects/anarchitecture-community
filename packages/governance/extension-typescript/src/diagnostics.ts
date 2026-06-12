@@ -10,6 +10,8 @@ import type {
   TypeScriptGovernanceDiagnosticProviderInput,
 } from './contracts.js';
 import {
+  getPackageManagerMetadata,
+  getTypeScriptMetadata,
   getImportRelations,
   getPathMappingRelations,
   getTsconfigNodes,
@@ -48,7 +50,7 @@ export interface TypeScriptGovernanceExtensionDiagnostic
   details?: TypeScriptGovernanceDiagnosticDetails;
 }
 
-export type TypeScriptGovernanceDiagnosticsProviderOptions = object
+export type TypeScriptGovernanceDiagnosticsProviderOptions = object;
 
 interface CreateDiagnosticOptions {
   code: TypeScriptGovernanceDiagnosticCode;
@@ -79,8 +81,7 @@ export function buildTypeScriptGovernanceDiagnostics(
   const diagnostics: TypeScriptGovernanceExtensionDiagnostic[] = [];
 
   for (const node of getTypeScriptProjectNodes(input.workspace)) {
-    const packageJson = readRecordMetadata(node.metadata, [
-      'packageManager',
+    const packageJson = readRecordMetadata(getPackageManagerMetadata(node), [
       'packageJson',
     ]);
 
@@ -91,9 +92,9 @@ export function buildTypeScriptGovernanceDiagnostics(
     diagnostics.push(
       createDiagnostic({
         code: 'TYPESCRIPT_PROJECT_PACKAGE_METADATA_MISSING',
-        message: `TypeScript node "${node.id}" is missing package-manager package metadata.`,
+        message: `TypeScript node "${node.id}" is missing TypeScript package facts.`,
         recommendation:
-          'Attach metadata.packageManager.packageJson when emitting workspace project nodes.',
+          'Populate the TypeScript extension expansion with packageJson when emitting workspace project nodes.',
         severity: 'warning',
         kind: 'observation',
         category: 'configuration',
@@ -106,8 +107,7 @@ export function buildTypeScriptGovernanceDiagnostics(
   }
 
   for (const relation of getImportRelations(input.workspace)) {
-    const importMetadata = readRecordMetadata(relation.metadata, [
-      'typescript',
+    const importMetadata = readRecordMetadata(getTypeScriptMetadata(relation), [
       'import',
     ]);
     const missingFields: string[] = [];
@@ -126,9 +126,9 @@ export function buildTypeScriptGovernanceDiagnostics(
     diagnostics.push(
       createDiagnostic({
         code: 'TYPESCRIPT_IMPORT_METADATA_INCOMPLETE',
-        message: `TypeScript relation "${relation.id}" is missing canonical import metadata: ${missingFields.join(', ')}.`,
+        message: `TypeScript relation "${relation.id}" is missing TypeScript import facts: ${missingFields.join(', ')}.`,
         recommendation:
-          'Populate metadata.typescript.import.sourceFile and metadata.typescript.import.specifier for import relations.',
+          'Populate the TypeScript extension expansion import.sourceFile and import.specifier for import relations.',
         severity: 'warning',
         kind: 'observation',
         category: 'configuration',
@@ -143,8 +143,7 @@ export function buildTypeScriptGovernanceDiagnostics(
 
   const aliasesByTsconfigId = new Map<string, Set<string>>();
   for (const relation of getPathMappingRelations(input.workspace)) {
-    const alias = readStringMetadata(relation.metadata, [
-      'typescript',
+    const alias = readStringMetadata(getTypeScriptMetadata(relation), [
       'pathMapping',
       'alias',
     ]);
@@ -158,8 +157,7 @@ export function buildTypeScriptGovernanceDiagnostics(
   }
 
   for (const node of getTsconfigNodes(input.workspace)) {
-    const aliases = readRecordMetadata(node.metadata, [
-      'typescript',
+    const aliases = readRecordMetadata(getTypeScriptMetadata(node), [
       'tsconfig',
       'pathAliases',
     ]);

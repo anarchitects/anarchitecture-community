@@ -391,7 +391,7 @@ function relation(
     id: `typescript:import:${sourceNodeId}->${targetNodeId}:static-import:${specifier}`,
     sourceNodeId,
     targetNodeId,
-    kind: 'import',
+    kind: 'dependency',
     source: {
       id: 'typescript-import-graph',
       name: 'TypeScript import graph',
@@ -399,17 +399,22 @@ function relation(
     },
     authority: 'discovered',
     confidence: 1,
-    metadata: {
-      typescript: expect.objectContaining({
-        import: expect.objectContaining({
-          sourceFile,
-          specifier,
-          importKind: 'static-import',
-          external,
-          ...(resolvedFile ? { resolvedFile } : {}),
+    extensions: expect.objectContaining({
+      'governance-extension:typescript': expect.objectContaining({
+        data: expect.objectContaining({
+          kind: 'relation',
+          relationKind: 'import',
+          import: expect.objectContaining({
+            sourceFile,
+            specifier,
+            importKind: 'static-import',
+            external,
+            ...(resolvedFile ? { resolvedFile } : {}),
+          }),
         }),
       }),
-    },
+    }),
+    metadata: {},
   };
 }
 

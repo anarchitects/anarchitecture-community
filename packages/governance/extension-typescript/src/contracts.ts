@@ -44,6 +44,10 @@ export interface TypeScriptGovernanceWorkspaceExpansionData {
   kind: 'workspace';
   technology: 'typescript';
   packageManager?: string;
+  workspacePatterns?: string[];
+  workspacePackageName?: string;
+  packageJsonPath?: string;
+  packageJson?: Record<string, unknown>;
   projectNodeIds?: string[];
   tsconfigNodeIds?: string[];
 }
@@ -56,8 +60,25 @@ export interface TypeScriptGovernanceNodeExpansionData {
     | 'tsconfig'
     | 'package-manager-package'
     | 'unknown';
+  packageManager?: string;
   packageName?: string;
-  tsconfigPath?: string;
+  packageJsonPath?: string;
+  packageJson?: Record<string, unknown>;
+  workspaceProject?: {
+    id: string;
+    type?: string;
+    projectRoot?: string;
+  };
+  tsconfig?: {
+    configFile: string;
+    baseUrl?: string;
+    pathAliases?: Record<string, string[]>;
+  };
+  packageManagerPackage?: {
+    external?: boolean;
+    workspace?: boolean;
+    packageName?: string;
+  };
 }
 
 export interface TypeScriptGovernanceRelationExpansionData {
@@ -66,10 +87,32 @@ export interface TypeScriptGovernanceRelationExpansionData {
   relationKind:
     | 'import'
     | 'path-alias'
+    | 'workspace-member'
     | 'tsconfig-extends'
     | 'package-dependency'
     | 'unknown';
   importSpecifiers?: string[];
+  import?: {
+    sourceFile?: string;
+    specifier?: string;
+    importKind?: string;
+    external?: boolean;
+    resolvedFile?: string;
+  };
+  pathMapping?: {
+    alias: string;
+    target: string;
+    tsconfig: string;
+  };
+  workspaceMember?: {
+    projectRoot: string;
+  };
+  packageDependency?: {
+    packageManager?: string;
+    dependencyType?: string;
+    packageName?: string;
+    specifier?: string;
+  };
 }
 
 export interface TypeScriptGovernanceRuntimeContextExpansionData {
@@ -300,6 +343,15 @@ export function validateTypeScriptGovernanceModelExpansion(
 
   switch (data.kind) {
     case 'workspace':
+      if (data.packageJson !== undefined && !isRecord(data.packageJson)) {
+        issues.push({
+          code: 'typescript.expansion.invalid_workspace_package_json',
+          severity: 'error',
+          message:
+            'TypeScript workspace expansion packageJson must be an object when present.',
+          path: '/data/packageJson',
+        });
+      }
       validateOptionalStringArray(
         data.projectNodeIds,
         '/data/projectNodeIds',
@@ -310,6 +362,11 @@ export function validateTypeScriptGovernanceModelExpansion(
         '/data/tsconfigNodeIds',
         issues,
       );
+      validateOptionalStringArray(
+        data.workspacePatterns,
+        '/data/workspacePatterns',
+        issues,
+      );
       break;
     case 'node':
       validateEnum(
@@ -318,6 +375,48 @@ export function validateTypeScriptGovernanceModelExpansion(
         '/data/nodeKind',
         issues,
       );
+      if (data.packageJson !== undefined && !isRecord(data.packageJson)) {
+        issues.push({
+          code: 'typescript.expansion.invalid_node_package_json',
+          severity: 'error',
+          message:
+            'TypeScript node expansion packageJson must be an object when present.',
+          path: '/data/packageJson',
+        });
+      }
+      if (
+        data.workspaceProject !== undefined &&
+        !isRecord(data.workspaceProject)
+      ) {
+        issues.push({
+          code: 'typescript.expansion.invalid_workspace_project',
+          severity: 'error',
+          message:
+            'TypeScript node expansion workspaceProject must be an object when present.',
+          path: '/data/workspaceProject',
+        });
+      }
+      if (data.tsconfig !== undefined && !isRecord(data.tsconfig)) {
+        issues.push({
+          code: 'typescript.expansion.invalid_tsconfig',
+          severity: 'error',
+          message:
+            'TypeScript node expansion tsconfig must be an object when present.',
+          path: '/data/tsconfig',
+        });
+      }
+      if (
+        data.packageManagerPackage !== undefined &&
+        !isRecord(data.packageManagerPackage)
+      ) {
+        issues.push({
+          code: 'typescript.expansion.invalid_package_manager_package',
+          severity: 'error',
+          message:
+            'TypeScript node expansion packageManagerPackage must be an object when present.',
+          path: '/data/packageManagerPackage',
+        });
+      }
       break;
     case 'relation':
       validateEnum(
@@ -325,6 +424,7 @@ export function validateTypeScriptGovernanceModelExpansion(
         [
           'import',
           'path-alias',
+          'workspace-member',
           'tsconfig-extends',
           'package-dependency',
           'unknown',
@@ -337,6 +437,48 @@ export function validateTypeScriptGovernanceModelExpansion(
         '/data/importSpecifiers',
         issues,
       );
+      if (data.import !== undefined && !isRecord(data.import)) {
+        issues.push({
+          code: 'typescript.expansion.invalid_import',
+          severity: 'error',
+          message:
+            'TypeScript relation expansion import must be an object when present.',
+          path: '/data/import',
+        });
+      }
+      if (data.pathMapping !== undefined && !isRecord(data.pathMapping)) {
+        issues.push({
+          code: 'typescript.expansion.invalid_path_mapping',
+          severity: 'error',
+          message:
+            'TypeScript relation expansion pathMapping must be an object when present.',
+          path: '/data/pathMapping',
+        });
+      }
+      if (
+        data.workspaceMember !== undefined &&
+        !isRecord(data.workspaceMember)
+      ) {
+        issues.push({
+          code: 'typescript.expansion.invalid_workspace_member',
+          severity: 'error',
+          message:
+            'TypeScript relation expansion workspaceMember must be an object when present.',
+          path: '/data/workspaceMember',
+        });
+      }
+      if (
+        data.packageDependency !== undefined &&
+        !isRecord(data.packageDependency)
+      ) {
+        issues.push({
+          code: 'typescript.expansion.invalid_package_dependency',
+          severity: 'error',
+          message:
+            'TypeScript relation expansion packageDependency must be an object when present.',
+          path: '/data/packageDependency',
+        });
+      }
       break;
     case 'runtime-context':
       if (data.config !== undefined && !isRecord(data.config)) {

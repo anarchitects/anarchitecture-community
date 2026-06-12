@@ -13,7 +13,8 @@ JavaScript, or mixed monorepo without depending on a framework-specific project
 graph.
 
 Package boundaries follow
-[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md).
+[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
+[ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
 
 ## Key Concepts
 
@@ -52,7 +53,7 @@ if (probe.supported) {
 
   console.log(result.nodes);
   console.log(result.relations);
-  console.log(result.metadata);
+  console.log(result.extensions);
 }
 ```
 
@@ -85,10 +86,22 @@ The adapter emits:
 - `GovernanceWorkspaceAdapterResult.relations`
 - `GovernanceWorkspaceAdapterResult.capabilities`
 - `GovernanceWorkspaceAdapterResult.diagnostics`
-- `GovernanceWorkspaceAdapterResult.metadata`
+- `GovernanceWorkspaceAdapterResult.extensions`
 
-TypeScript and package-manager details stay under namespaced metadata such as
-`metadata.typescript` and `metadata.packageManager`.
+Canonical governance facts are emitted as first-class Core fields when they are
+genuinely generic:
+
+- `classification.domain`
+- `classification.layer`
+- `classification.scope`
+- `ownership`
+- canonical node and relation kinds such as `project`, `resource`,
+  `dependency`, and `traceability`
+
+TypeScript-specific extraction facts are emitted through the
+`governance-extension:typescript` model expansion surface owned by
+`@anarchitects/governance-extension-typescript`. The adapter does not keep
+TypeScript semantics in canonical metadata as the primary contract surface.
 
 ## Usage
 
@@ -183,6 +196,17 @@ Projection precedence is deterministic:
   inferred from discovery tags.
 - Package governance metadata still wins over discovery-derived defaults for
   `domain`, `layer`, `scope`, and ownership when both are present.
+
+### Normalization Boundary
+
+The adapter owns extraction and deterministic normalization only.
+
+- Generic governance facts map into canonical Core fields.
+- TypeScript-specific facts such as `tsconfig`, import evidence, package
+  manager dependency details, and path alias resolution map into the
+  TypeScript extension expansion surface.
+- Adapter-specific extraction config remains adapter/host-owned and does not
+  expand the canonical Governance profile.
 
 ## Related Packages
 

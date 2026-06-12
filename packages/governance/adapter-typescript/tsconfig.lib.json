@@ -14,6 +14,9 @@
   "references": [
     {
       "path": "../core/tsconfig.lib.json"
+    },
+    {
+      "path": "../extension-typescript/tsconfig.lib.json"
     }
   ],
   "exclude": [

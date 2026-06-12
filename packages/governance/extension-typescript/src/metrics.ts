@@ -8,6 +8,7 @@ import {
   findNodeById,
   getDependencyRelations,
   getImportRelations,
+  getPackageManagerMetadata,
   getPathMappingRelations,
   getTsconfigNodes,
   getTypeScriptProjectNodes,
@@ -68,8 +69,10 @@ export function buildTypeScriptGovernanceMetrics(
   const externalDependencyRelations = getDependencyRelations(input.workspace)
     .filter((relation) =>
       readBooleanMetadata(
-        findNodeById(input.workspace, relation.targetNodeId)?.metadata,
-        ['packageManager', 'external'],
+        getPackageManagerMetadata(
+          findNodeById(input.workspace, relation.targetNodeId),
+        ),
+        ['external'],
       ),
     )
     .sort((left, right) => left.id.localeCompare(right.id));
