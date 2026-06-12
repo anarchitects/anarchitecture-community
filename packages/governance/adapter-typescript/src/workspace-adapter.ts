@@ -8,7 +8,6 @@ import type {
   GovernanceDiagnosticKind,
   GovernanceDiagnosticSeverity,
   GovernanceNodeInput,
-  GovernanceOwnershipInput,
   GovernanceRelationInput,
   GovernanceWorkspaceAdapter,
   GovernanceWorkspaceAdapterProbeResult,
@@ -256,7 +255,6 @@ function buildProjectNode(
 ): GovernanceNodeInput {
   const root = project.root ?? '';
   const packageMetadata = packageMetadataMap.get(project.id);
-  const owner = readOptionalString(project.metadata?.owner);
 
   return {
     id: project.id,
@@ -270,7 +268,7 @@ function buildProjectNode(
     ...(buildProjectClassification(project)
       ? { classification: buildProjectClassification(project) }
       : {}),
-    ...(owner ? { ownership: buildOwnership(owner) } : {}),
+    ...(project.ownership ? { ownership: project.ownership } : {}),
     source: TYPESCRIPT_ADAPTER_SOURCE,
     authority: 'discovered',
     confidence: 1,
@@ -317,13 +315,6 @@ function buildProjectClassification(project: TypeScriptDiscoveredProject) {
     ...(project.layer ? { layer: project.layer } : {}),
     ...(project.scope ? { scope: project.scope } : {}),
     ...(tags.length > 0 ? { tags } : {}),
-  };
-}
-
-function buildOwnership(owner: string): GovernanceOwnershipInput {
-  return {
-    team: owner,
-    source: 'package.json',
   };
 }
 

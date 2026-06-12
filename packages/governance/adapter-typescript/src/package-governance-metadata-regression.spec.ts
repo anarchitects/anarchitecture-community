@@ -12,6 +12,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  buildGovernanceAssessmentArtifacts,
+  type GovernanceProfile,
+} from '@anarchitects/governance-core';
+
 import { discoverTypeScriptProjects } from './project-discovery.js';
 import {
   DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
@@ -45,7 +50,10 @@ describe('package governance metadata regression coverage', () => {
             layer: 'domain',
             scope: 'booking',
           }),
-          ownership: expect.objectContaining({ team: 'booking-team' }),
+          ownership: expect.objectContaining({
+            team: 'booking-team',
+            source: 'project-metadata',
+          }),
           tags: ['domain:booking', 'layer:domain', 'scope:booking'],
         }),
       ]),
@@ -95,14 +103,17 @@ describe('package governance metadata regression coverage', () => {
             layer: 'domain',
             scope: 'booking',
           }),
-          ownership: expect.objectContaining({ team: 'booking-team' }),
+          ownership: expect.objectContaining({
+            team: 'booking-team',
+            source: 'project-metadata',
+          }),
           tags: ['domain:booking', 'layer:domain', 'scope:booking'],
         }),
       ]),
     );
   });
 
-  it('applies precedence to tags deterministically and keeps owner metadata-only', () => {
+  it('applies precedence to tags deterministically and maps owner to canonical ownership', () => {
     const workspaceRoot = mkdtempSync(
       path.join(tmpdir(), 'governance-typescript-metadata-regression-'),
     );
@@ -151,13 +162,69 @@ describe('package governance metadata regression coverage', () => {
         layer: 'domain',
         scope: 'booking',
         tags: ['type:lib', 'domain:booking', 'layer:domain', 'scope:booking'],
-        metadata: {
-          owner: 'booking-team',
+        ownership: {
+          team: 'booking-team',
+          source: 'project-metadata',
         },
+        metadata: {},
       },
     ]);
     expect(discovered.projects[0]?.tags).not.toContain('owner:booking-team');
     expect(discovered.diagnostics).toEqual([]);
+  });
+
+  it('prevents ownership-gap assessment output for package governance.owner declarations', async () => {
+    const workspaceRoot = createWorkspaceWithPackageOwner('customer');
+    const adapterResult =
+      createGovernanceWorkspaceAdapter().loadWorkspace(workspaceRoot);
+    const artifacts = await buildGovernanceAssessmentArtifacts({
+      workspaceAdapterResult: adapterResult,
+      profile: {
+        name: 'ownership-required',
+        boundaryPolicySource: 'profile',
+        layers: [],
+        allowedDomainDependencies: {
+          '*': [],
+        },
+        ownership: {
+          required: true,
+          metadataField: 'ownership',
+        },
+        health: {
+          statusThresholds: {
+            goodMinScore: 85,
+            warningMinScore: 70,
+          },
+        },
+        metrics: {} as GovernanceProfile['metrics'],
+      },
+      exceptions: [],
+      asOf: new Date('2026-06-12T00:00:00.000Z'),
+    });
+
+    expect(adapterResult.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'customer',
+          ownership: expect.objectContaining({
+            team: 'booking-team',
+            source: 'project-metadata',
+          }),
+        }),
+      ]),
+    );
+    expect(artifacts.violations).not.toContainEqual(
+      expect.objectContaining({
+        ruleId: 'ownership-presence',
+        subjectId: 'customer',
+      }),
+    );
+    expect(artifacts.signals).not.toContainEqual(
+      expect.objectContaining({
+        type: 'ownership-gap',
+        nodeId: 'customer',
+      }),
+    );
   });
 
   it('includes metadata diagnostics and continues discovery', () => {
@@ -305,4 +372,32 @@ function writeJsonFile(root: string, value: Record<string, unknown>): void {
     JSON.stringify({ ...current, ...value }),
     'utf8',
   );
+}
+
+function createWorkspaceWithPackageOwner(packageName: string): string {
+  const workspaceRoot = mkdtempSync(
+    path.join(tmpdir(), 'governance-typescript-owner-workspace-'),
+  );
+
+  writeFileSync(
+    path.join(workspaceRoot, 'package.json'),
+    JSON.stringify(
+      {
+        name: '@fixture/workspace',
+        private: true,
+        workspaces: ['packages/*'],
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  );
+  writeJsonFile(path.join(workspaceRoot, 'packages', packageName), {
+    name: `@fixture/${packageName}`,
+    governance: {
+      owner: 'booking-team',
+    },
+  });
+
+  return workspaceRoot;
 }
