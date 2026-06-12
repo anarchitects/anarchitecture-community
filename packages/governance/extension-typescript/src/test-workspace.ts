@@ -18,7 +18,6 @@ export function createTypeScriptProfile(
     allowedDomainDependencies: {},
     ownership: {
       required: false,
-      metadataField: 'ownership.team',
     },
     health: {
       statusThresholds: {

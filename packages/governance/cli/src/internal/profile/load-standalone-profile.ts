@@ -34,7 +34,7 @@ const NX_RUNTIME_PROFILE_LEGACY_METRIC_FIELDS = new Set([
   'documentationCompletenessWeight',
   'layerIntegrityWeight',
 ]);
-const OWNERSHIP_FIELDS = new Set(['required', 'metadataField']);
+const OWNERSHIP_FIELDS = new Set(['required']);
 const HEALTH_FIELDS = new Set(['statusThresholds']);
 const HEALTH_STATUS_THRESHOLD_FIELDS = new Set([
   'goodMinScore',
@@ -613,20 +613,12 @@ function validateOwnership(
     );
   }
 
-  const metadataField = validateRequiredTrimmedString(
-    record.metadataField,
-    `${pointer}/metadataField`,
-    issues,
-    'ownership.metadataField',
-  );
-
-  if (typeof required !== 'boolean' || !metadataField) {
+  if (typeof required !== 'boolean') {
     return undefined;
   }
 
   return {
     required,
-    metadataField,
   };
 }
 

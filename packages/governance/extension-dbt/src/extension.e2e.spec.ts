@@ -47,7 +47,6 @@ describe('dbt Governance extension end-to-end flow', () => {
       },
       ownership: {
         required: true,
-        metadataField: 'ownership.team',
       },
       health: {
         statusThresholds: {

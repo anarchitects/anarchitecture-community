@@ -50,7 +50,6 @@ describe('dbt governance signals', () => {
       },
       ownership: {
         required: true,
-        metadataField: 'ownership.team',
       },
       health: {
         statusThresholds: {

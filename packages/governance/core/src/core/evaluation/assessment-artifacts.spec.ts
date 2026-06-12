@@ -17,7 +17,6 @@ const testProfile: GovernanceProfile = {
   },
   ownership: {
     required: true,
-    metadataField: 'ownership',
   },
   health: {
     statusThresholds: {
@@ -79,7 +78,6 @@ describe('assessment artifact assembly', () => {
         },
         ownership: {
           required: false,
-          metadataField: 'ownership',
         },
       },
       exceptions: [],
@@ -123,7 +121,6 @@ describe('assessment artifact assembly', () => {
         },
         ownership: {
           required: false,
-          metadataField: 'ownership',
         },
       },
       includeTopSignals: true,
@@ -160,7 +157,6 @@ describe('assessment artifact assembly', () => {
         },
         ownership: {
           required: false,
-          metadataField: 'ownership',
         },
       },
       exceptions: [],
@@ -208,7 +204,6 @@ describe('assessment artifact assembly', () => {
         ...testProfile,
         ownership: {
           required: false,
-          metadataField: 'ownership',
         },
         rules: {
           'project-name-convention': {
@@ -279,7 +274,6 @@ describe('assessment artifact assembly', () => {
         ...testProfile,
         ownership: {
           required: false,
-          metadataField: 'ownership',
         },
       },
       exceptions: [],

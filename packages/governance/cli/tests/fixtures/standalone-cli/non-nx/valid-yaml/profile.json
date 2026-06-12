@@ -9,8 +9,7 @@
     "*": []
   },
   "ownership": {
-    "required": false,
-    "metadataField": "ownership"
+    "required": false
   },
   "health": {
     "statusThresholds": {

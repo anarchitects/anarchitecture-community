@@ -50,7 +50,6 @@ describe('dbt architecture basic rule pack', () => {
       },
       ownership: {
         required: true,
-        metadataField: 'ownership.team',
       },
       health: {
         statusThresholds: {

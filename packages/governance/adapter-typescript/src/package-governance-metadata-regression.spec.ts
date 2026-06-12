@@ -188,7 +188,6 @@ describe('package governance metadata regression coverage', () => {
         },
         ownership: {
           required: true,
-          metadataField: 'ownership',
         },
         health: {
           statusThresholds: {

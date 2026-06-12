@@ -29,7 +29,6 @@ export interface GovernanceProfile {
   allowedDomainDependencies: Record<string, string[]>;
   ownership: {
     required: boolean;
-    metadataField: string;
   };
   health: {
     statusThresholds: HealthStatusThresholds;
@@ -55,7 +54,6 @@ export interface GovernanceLayerBoundaryRuleOptions {
 
 export interface GovernanceOwnershipPresenceRuleOptions {
   required: boolean;
-  metadataField: string;
 }
 
 export interface GovernanceScoringProfile {
@@ -165,7 +163,6 @@ export function normalizeGovernanceProfile(
       severity: 'warning',
       options: {
         required: profile.ownership.required,
-        metadataField: profile.ownership.metadataField,
       } satisfies GovernanceOwnershipPresenceRuleOptions,
     },
     'documentation-gap': {
