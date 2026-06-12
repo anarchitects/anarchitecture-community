@@ -26,7 +26,6 @@ describe('Core built-in policy rules', () => {
     },
     ownership: {
       required: true,
-      metadataField: 'ownership',
     },
     health: {
       statusThresholds: {

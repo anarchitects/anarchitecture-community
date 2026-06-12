@@ -24,7 +24,7 @@ host-side metric helper in
 | `architectural-entropy`      | Generic        | Governance Core | Aggregates generic graph, conformance, and policy signals. It does not inspect TypeScript source, imports, `tsconfig`, or path aliases.         |
 | `dependency-complexity`      | Generic        | Governance Core | Counts project-to-project dependencies in the current compatibility workspace model. It is project/dependency-oriented but not TypeScript-only. |
 | `domain-integrity`           | Generic        | Governance Core | Uses generic domain-boundary signal weights. It is based on declared domain metadata rather than TypeScript module semantics.                   |
-| `ownership-coverage`         | Generic        | Governance Core | Counts projects with generic ownership metadata. It is not tied to TypeScript extraction.                                                       |
+| `ownership-coverage`         | Generic        | Governance Core | Counts projects with canonical ownership. It is not tied to TypeScript extraction.                                                              |
 | `documentation-completeness` | Generic        | Governance Core | Counts projects with generic documentation metadata. It is not tied to TypeScript extraction.                                                   |
 | `layer-integrity`            | Generic        | Governance Core | Uses generic layer-boundary signal weights. It is based on declared layer metadata rather than TypeScript module semantics.                     |
 

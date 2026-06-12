@@ -17,7 +17,6 @@ describe('normalizeGovernanceProfile', () => {
     },
     ownership: {
       required: true,
-      metadataField: 'ownership',
     },
     health: {
       statusThresholds: {

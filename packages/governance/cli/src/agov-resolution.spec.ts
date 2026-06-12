@@ -32,7 +32,7 @@ describe('agov shared command resolution', () => {
       boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
-      ownership: { required: false, metadataField: 'ownership' },
+      ownership: { required: false },
       health: { statusThresholds: { goodMinScore: 85, warningMinScore: 70 } },
       metrics: {
         'architectural-entropy': 1,
@@ -118,7 +118,7 @@ describe('agov shared command resolution', () => {
       boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
-      ownership: { required: false, metadataField: 'ownership' },
+      ownership: { required: false },
       health: { statusThresholds: { goodMinScore: 85, warningMinScore: 70 } },
       metrics: {
         'architectural-entropy': 1,
@@ -166,7 +166,7 @@ describe('agov shared command resolution', () => {
       boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
-      ownership: { required: false, metadataField: 'ownership' },
+      ownership: { required: false },
       health: { statusThresholds: { goodMinScore: 85, warningMinScore: 70 } },
       metrics: {
         'architectural-entropy': 1,
@@ -216,7 +216,7 @@ describe('agov shared command resolution', () => {
       boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
-      ownership: { required: false, metadataField: 'ownership' },
+      ownership: { required: false },
       health: { statusThresholds: { goodMinScore: 85, warningMinScore: 70 } },
       metrics: {
         'architectural-entropy': 1,
@@ -261,7 +261,7 @@ describe('agov shared command resolution', () => {
       boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
-      ownership: { required: false, metadataField: 'ownership' },
+      ownership: { required: false },
       health: { statusThresholds: { goodMinScore: 85, warningMinScore: 70 } },
       metrics: {
         'architectural-entropy': 1,
@@ -315,7 +315,7 @@ describe('agov shared command resolution', () => {
       boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
-      ownership: { required: false, metadataField: 'ownership' },
+      ownership: { required: false },
       health: { statusThresholds: { goodMinScore: 85, warningMinScore: 70 } },
       metrics: {
         'architectural-entropy': 1,
@@ -392,7 +392,7 @@ describe('agov shared command resolution', () => {
       boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
-      ownership: { required: false, metadataField: 'ownership' },
+      ownership: { required: false },
       health: { statusThresholds: { goodMinScore: 85, warningMinScore: 70 } },
       metrics: {
         'architectural-entropy': 1,

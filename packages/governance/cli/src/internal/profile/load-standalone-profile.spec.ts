@@ -47,7 +47,6 @@ describe('loadStandaloneGovernanceProfile', () => {
       },
       ownership: {
         required: true,
-        metadataField: 'ownership',
       },
       health: {
         statusThresholds: {
@@ -101,7 +100,6 @@ describe('loadStandaloneGovernanceProfile', () => {
           severity: 'warning',
           options: {
             required: true,
-            metadataField: 'ownership',
           },
         },
         'documentation-gap': {
@@ -197,7 +195,6 @@ describe('loadStandaloneGovernanceProfile', () => {
         },
         ownership: {
           required: false,
-          metadataField: 'ownership',
         },
         health: {
           statusThresholds: {
@@ -227,7 +224,6 @@ describe('loadStandaloneGovernanceProfile', () => {
         },
         ownership: {
           required: false,
-          metadataField: 'ownership',
         },
         health: {
           statusThresholds: {
@@ -420,11 +416,6 @@ describe('loadStandaloneGovernanceProfile', () => {
           path: '/ownership/required',
         },
         {
-          code: 'governance.profile.missing_required_field',
-          message: 'ownership.metadataField is required.',
-          path: '/ownership/metadataField',
-        },
-        {
           code: 'governance.profile.invalid_value',
           message:
             'health.statusThresholds.warningMinScore must be less than or equal to goodMinScore.',
@@ -455,7 +446,6 @@ describe('loadStandaloneGovernanceProfile', () => {
       },
       ownership: {
         required: true,
-        metadataField: ' ownership ',
       },
       health: {
         statusThresholds: {
@@ -502,7 +492,6 @@ describe('loadStandaloneGovernanceProfile', () => {
       },
       ownership: {
         required: true,
-        metadataField: 'ownership',
       },
       health: {
         statusThresholds: {
@@ -515,6 +504,77 @@ describe('loadStandaloneGovernanceProfile', () => {
         'ownership-coverage': 0.3,
       },
     });
+  });
+
+  it('rejects ownership.metadataField as an unknown field', () => {
+    expect(() =>
+      validateStandaloneGovernanceProfile({
+        name: 'unknown-ownership-field',
+        boundaryPolicySource: 'profile',
+        layers: ['app'],
+        allowedDomainDependencies: {
+          '*': [],
+        },
+        ownership: {
+          required: true,
+          metadataField: 'ownership',
+        },
+        health: {
+          statusThresholds: {
+            goodMinScore: 85,
+            warningMinScore: 70,
+          },
+        },
+        metrics: {
+          'architectural-entropy': 1,
+          'dependency-complexity': 1,
+          'domain-integrity': 1,
+          'ownership-coverage': 1,
+          'documentation-completeness': 1,
+          'layer-integrity': 1,
+        },
+      }),
+    ).toThrow(StandaloneGovernanceProfileValidationError);
+
+    try {
+      validateStandaloneGovernanceProfile({
+        name: 'unknown-ownership-field',
+        boundaryPolicySource: 'profile',
+        layers: ['app'],
+        allowedDomainDependencies: {
+          '*': [],
+        },
+        ownership: {
+          required: true,
+          metadataField: 'ownership',
+        },
+        health: {
+          statusThresholds: {
+            goodMinScore: 85,
+            warningMinScore: 70,
+          },
+        },
+        metrics: {
+          'architectural-entropy': 1,
+          'dependency-complexity': 1,
+          'domain-integrity': 1,
+          'ownership-coverage': 1,
+          'documentation-completeness': 1,
+          'layer-integrity': 1,
+        },
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(StandaloneGovernanceProfileValidationError);
+      expect(
+        (error as StandaloneGovernanceProfileValidationError).issues,
+      ).toEqual([
+        {
+          code: 'governance.profile.unknown_field',
+          message: 'Unknown field "metadataField" is not allowed.',
+          path: '/ownership/metadataField',
+        },
+      ]);
+    }
   });
 });
 

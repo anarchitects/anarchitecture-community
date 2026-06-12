@@ -347,7 +347,6 @@ describe('metrics and health', () => {
       },
       ownership: {
         required: false,
-        metadataField: 'ownership',
       },
       health: {
         statusThresholds: {

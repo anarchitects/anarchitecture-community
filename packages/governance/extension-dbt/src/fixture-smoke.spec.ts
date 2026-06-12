@@ -35,7 +35,6 @@ describe('dbt extension fixture smoke coverage', () => {
       },
       ownership: {
         required: true,
-        metadataField: 'ownership.team',
       },
       health: {
         statusThresholds: {

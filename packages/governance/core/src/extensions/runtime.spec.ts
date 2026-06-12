@@ -41,7 +41,6 @@ describe('governance extension runtime', () => {
     allowedDomainDependencies: {},
     ownership: {
       required: false,
-      metadataField: 'ownership',
     },
     health: {
       statusThresholds: {

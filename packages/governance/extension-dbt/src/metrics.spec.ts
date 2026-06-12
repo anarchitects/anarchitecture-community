@@ -48,7 +48,6 @@ describe('dbt governance metrics', () => {
       },
       ownership: {
         required: true,
-        metadataField: 'ownership.team',
       },
       health: {
         statusThresholds: {

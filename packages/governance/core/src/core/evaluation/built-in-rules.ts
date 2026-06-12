@@ -112,8 +112,7 @@ export const layerBoundaryRule: SynchronousGovernanceRule = {
 export const ownershipPresenceRule: SynchronousGovernanceRule = {
   id: 'ownership-presence',
   name: 'Ownership Presence',
-  description:
-    'Requires ownership metadata or CODEOWNERS coverage when profiles demand it.',
+  description: 'Requires canonical ownership data when profiles demand it.',
   category: 'ownership',
   defaultSeverity: 'warning',
   evaluate({ workspace, profile }) {
@@ -131,7 +130,6 @@ export const ownershipPresenceRule: SynchronousGovernanceRule = {
       | GovernanceOwnershipPresenceRuleOptions
       | undefined) ?? {
       required: profile.ownership.required,
-      metadataField: profile.ownership.metadataField,
     };
     const severity =
       ruleConfig?.severity ?? ownershipPresenceRule.defaultSeverity;
@@ -361,7 +359,6 @@ export function evaluateCoreBuiltInPolicyViolations(
     | GovernanceOwnershipPresenceRuleOptions
     | undefined) ?? {
     required: profile.ownership.required,
-    metadataField: profile.ownership.metadataField,
   };
   const ownershipSeverity =
     ownershipRuleConfig?.severity ?? ownershipPresenceRule.defaultSeverity;
@@ -610,12 +607,11 @@ function evaluateOwnershipPresence(
       subjectId: node.id,
       severity,
       category: 'ownership',
-      message: `Node ${getNodeName(node)} has no ownership metadata or CODEOWNERS mapping.`,
+      message: `Node ${getNodeName(node)} has no canonical ownership data.`,
       reference: {
         nodeId: node.id,
       },
-      recommendation:
-        'Add ownership metadata in node configuration or ensure CODEOWNERS covers the node root.',
+      recommendation: 'Add canonical ownership data to the node.',
     },
   ];
 }

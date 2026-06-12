@@ -303,7 +303,7 @@ Codebase-oriented parts:
 - boundary rules are explicitly project-to-project dependency rules
 - domain and layer are first-class policy axes
 - recommendations use refactoring and dependency language
-- ownership messaging mentions project metadata and CODEOWNERS coverage
+- ownership messaging should align on canonical ownership wording
 
 ## Current Profiles And Configuration
 
@@ -319,7 +319,6 @@ Profile contracts live in `packages/governance/core/src/core/profile.ts`. CLI st
 - optional `allowedLayerDependencies`
 - required `allowedDomainDependencies`
 - `ownership.required`
-- `ownership.metadataField`
 - `health.statusThresholds`
 - metric weights by measurement id
 
