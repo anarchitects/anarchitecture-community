@@ -37,6 +37,11 @@ const DEPENDENCY_RELATION_APPLICABILITY = {
   relationKinds: ['dependency'],
 } satisfies GovernanceRuleApplicability;
 
+const NON_PROJECT_LIKE_NODE_KINDS = new Set([
+  'package-manager-package',
+  'typescript-tsconfig',
+]);
+
 export const domainBoundaryRule: SynchronousGovernanceRule = {
   id: 'domain-boundary',
   name: 'Domain Boundary',
@@ -139,9 +144,10 @@ export const ownershipPresenceRule: SynchronousGovernanceRule = {
     }
 
     return {
-      violations: getApplicableNodes(workspace, ownershipPresenceRule).flatMap(
-        (node) => evaluateOwnershipPresence(workspace, node, severity),
-      ),
+      violations: getApplicableProjectLikeNodes(
+        workspace,
+        ownershipPresenceRule,
+      ).flatMap((node) => evaluateOwnershipPresence(workspace, node, severity)),
     };
   },
 };
@@ -175,7 +181,7 @@ export const projectNameConventionRule: SynchronousGovernanceRule = {
       ruleConfig.severity ?? projectNameConventionRule.defaultSeverity;
 
     return {
-      violations: getApplicableNodes(
+      violations: getApplicableProjectLikeNodes(
         workspace,
         projectNameConventionRule,
       ).flatMap((node) =>
@@ -215,8 +221,11 @@ export const tagConventionRule: SynchronousGovernanceRule = {
       : undefined;
 
     return {
-      violations: getApplicableNodes(workspace, tagConventionRule).flatMap(
-        (node) => evaluateTagConvention(node, options, valuePattern, severity),
+      violations: getApplicableProjectLikeNodes(
+        workspace,
+        tagConventionRule,
+      ).flatMap((node) =>
+        evaluateTagConvention(node, options, valuePattern, severity),
       ),
     };
   },
@@ -244,9 +253,10 @@ export const missingDomainRule: SynchronousGovernanceRule = {
     const severity = ruleConfig.severity ?? missingDomainRule.defaultSeverity;
 
     return {
-      violations: getApplicableNodes(workspace, missingDomainRule).flatMap(
-        (node) => evaluateMissingDomain(node, severity),
-      ),
+      violations: getApplicableProjectLikeNodes(
+        workspace,
+        missingDomainRule,
+      ).flatMap((node) => evaluateMissingDomain(node, severity)),
     };
   },
 };
@@ -273,9 +283,10 @@ export const missingLayerRule: SynchronousGovernanceRule = {
     const severity = ruleConfig.severity ?? missingLayerRule.defaultSeverity;
 
     return {
-      violations: getApplicableNodes(workspace, missingLayerRule).flatMap(
-        (node) => evaluateMissingLayer(node, severity),
-      ),
+      violations: getApplicableProjectLikeNodes(
+        workspace,
+        missingLayerRule,
+      ).flatMap((node) => evaluateMissingLayer(node, severity)),
     };
   },
 };
@@ -304,9 +315,10 @@ export const documentationGapRule: SynchronousGovernanceRule = {
       ruleConfig?.severity ?? documentationGapRule.defaultSeverity;
 
     return {
-      violations: getApplicableNodes(workspace, documentationGapRule).flatMap(
-        (node) => evaluateDocumentationGap(node, options, severity),
-      ),
+      violations: getApplicableProjectLikeNodes(
+        workspace,
+        documentationGapRule,
+      ).flatMap((node) => evaluateDocumentationGap(node, options, severity)),
     };
   },
 };
@@ -921,6 +933,15 @@ function getApplicableNodes(
     .sort(compareNodes);
 }
 
+function getApplicableProjectLikeNodes(
+  workspace: GovernanceWorkspace,
+  rule: GovernanceRule,
+): GovernanceNode[] {
+  return getApplicableNodes(workspace, rule).filter(
+    isProjectLikeGovernanceNode,
+  );
+}
+
 function getApplicableRelations(
   workspace: GovernanceWorkspace,
   rule: GovernanceRule,
@@ -992,6 +1013,10 @@ function matchesNodeApplicability(
   }
 
   return true;
+}
+
+function isProjectLikeGovernanceNode(node: GovernanceNode): boolean {
+  return !NON_PROJECT_LIKE_NODE_KINDS.has(node.kind);
 }
 
 function matchesRelationApplicability(
