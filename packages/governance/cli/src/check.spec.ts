@@ -1,3 +1,6 @@
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import * as governanceCore from '@anarchitects/governance-core';
@@ -221,10 +224,57 @@ describe('agov check/assess assessment pipeline', () => {
       ]),
     );
   });
+
+  it('uses context-appropriate ownership gap wording for standalone TypeScript adapter assessment', async () => {
+    const result = await runAgovAssess({
+      workspaceAdapter: createCanonicalGraphAdapter(),
+      workspaceAdapterInput: '.',
+      profilePath: createOwnershipRequiredProfilePath(),
+    });
+
+    const ownershipViolations = result.assessment.violations.filter(
+      (violation) => violation.ruleId === 'ownership-presence',
+    );
+
+    expect(ownershipViolations.length).toBeGreaterThan(0);
+    expect(
+      ownershipViolations.every(
+        (violation) =>
+          violation.message.endsWith(
+            'has no canonical ownership metadata or configuration.',
+          ) && !violation.message.includes('CODEOWNERS'),
+      ),
+    ).toBe(true);
+  });
 });
 
 function fixturePath(relativePath: string): string {
   return fileURLToPath(new URL(relativePath, import.meta.url));
+}
+
+function createOwnershipRequiredProfilePath(): string {
+  const directory = mkdtempSync(path.join(tmpdir(), 'agov-ownership-profile-'));
+  const profilePath = path.join(directory, 'profile.json');
+  const baseProfile = JSON.parse(
+    readFileSync(
+      fixturePath('../tests/fixtures/standalone-cli/passing-profile.json'),
+      'utf8',
+    ),
+  ) as Record<string, unknown>;
+
+  writeFileSync(
+    profilePath,
+    JSON.stringify({
+      ...baseProfile,
+      name: 'ownership-required',
+      ownership: {
+        required: true,
+      },
+    }),
+    'utf8',
+  );
+
+  return profilePath;
 }
 
 function createCanonicalGraphAdapter(): GovernanceWorkspaceAdapter<string> {
