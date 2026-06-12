@@ -26,6 +26,12 @@ import {
   unsupportedDbtDependencyShapeDiagnostic,
   unsupportedDbtResourceShapeDiagnostic,
 } from './diagnostics.js';
+import {
+  buildDbtProjectNodeExpansion,
+  buildDbtRelationExpansion,
+  buildDbtResourceNodeExpansion,
+  buildDbtWorkspaceExpansion,
+} from './extension-normalization.js';
 
 const SUPPORTED_RESOURCE_TYPES = new Set([
   'model',
@@ -162,39 +168,16 @@ export function normalizeDbtArtifacts(
     nodes,
     relations,
     diagnostics: [...projectContext.diagnostics, ...diagnostics],
+    extensions: {
+      'governance-extension:dbt': buildDbtWorkspaceExpansion(
+        projectContext,
+        artifacts,
+        nodes.map((node) => node.id),
+      ),
+    },
     metadata: {
       adapter: 'dbt',
       paths: projectContext.artifactPaths,
-      dbt: {
-        project: {
-          name: artifacts.projectConfig.name,
-          ...(artifacts.projectConfig.version !== undefined
-            ? { version: artifacts.projectConfig.version }
-            : {}),
-          ...(artifacts.projectConfig.configVersion !== undefined
-            ? { configVersion: artifacts.projectConfig.configVersion }
-            : {}),
-          ...(artifacts.projectConfig.profile
-            ? { profile: artifacts.projectConfig.profile }
-            : {}),
-        },
-        manifest: {
-          projectName: artifacts.manifest.metadata.project_name,
-          dbtSchemaVersion: artifacts.manifest.metadata.dbt_schema_version,
-          ...(artifacts.manifest.metadata.dbt_version
-            ? { dbtVersion: artifacts.manifest.metadata.dbt_version }
-            : {}),
-          ...(artifacts.manifest.metadata.adapter_type
-            ? { adapterType: artifacts.manifest.metadata.adapter_type }
-            : {}),
-          ...(artifacts.manifest.metadata.generated_at
-            ? { generatedAt: artifacts.manifest.metadata.generated_at }
-            : {}),
-          ...(artifacts.manifest.metadata.invocation_id
-            ? { invocationId: artifacts.manifest.metadata.invocation_id }
-            : {}),
-        },
-      },
     },
   };
 }
@@ -203,10 +186,52 @@ function buildDbtProjectNode(
   projectContext: DbtProjectContext,
   artifacts: DbtArtifacts,
 ): GovernanceNodeInput {
+  const dbtMetadata = {
+    identity: {
+      projectName: artifacts.projectConfig.name,
+      resourceType: 'project',
+    },
+    project: {
+      name: artifacts.projectConfig.name,
+      ...(artifacts.projectConfig.version !== undefined
+        ? { version: artifacts.projectConfig.version }
+        : {}),
+      ...(artifacts.projectConfig.configVersion !== undefined
+        ? { configVersion: artifacts.projectConfig.configVersion }
+        : {}),
+      ...(artifacts.projectConfig.profile
+        ? { profile: artifacts.projectConfig.profile }
+        : {}),
+      ...(artifacts.projectConfig.modelPaths
+        ? { modelPaths: artifacts.projectConfig.modelPaths }
+        : {}),
+      ...(artifacts.projectConfig.seedPaths
+        ? { seedPaths: artifacts.projectConfig.seedPaths }
+        : {}),
+      ...(artifacts.projectConfig.snapshotPaths
+        ? { snapshotPaths: artifacts.projectConfig.snapshotPaths }
+        : {}),
+      ...(artifacts.projectConfig.analysisPaths
+        ? { analysisPaths: artifacts.projectConfig.analysisPaths }
+        : {}),
+      ...(artifacts.projectConfig.macroPaths
+        ? { macroPaths: artifacts.projectConfig.macroPaths }
+        : {}),
+      ...(artifacts.projectConfig.testPaths
+        ? { testPaths: artifacts.projectConfig.testPaths }
+        : {}),
+    },
+    relation: {
+      projectDir: projectContext.projectDir,
+      dbtProjectPath: projectContext.dbtProjectPath,
+      manifestPath: projectContext.artifactPaths.manifestPath,
+    },
+  } satisfies Record<string, unknown>;
+
   return {
     id: buildDbtProjectNodeId(artifacts.projectConfig.name),
     name: artifacts.projectConfig.name,
-    kind: 'dbt-project',
+    kind: 'project',
     technology: 'dbt',
     sourceSystem: 'dbt',
     root: projectContext.projectDir,
@@ -215,53 +240,10 @@ function buildDbtProjectNode(
     source: DBT_PROJECT_SOURCE,
     authority: 'documented',
     confidence: 1,
-    metadata: {
-      dbt: {
-        identity: {
-          projectName: artifacts.projectConfig.name,
-          resourceType: 'project',
-        },
-        project: {
-          name: artifacts.projectConfig.name,
-          ...(artifacts.projectConfig.version !== undefined
-            ? { version: artifacts.projectConfig.version }
-            : {}),
-          ...(artifacts.projectConfig.configVersion !== undefined
-            ? { configVersion: artifacts.projectConfig.configVersion }
-            : {}),
-          ...(artifacts.projectConfig.profile
-            ? { profile: artifacts.projectConfig.profile }
-            : {}),
-          ...(artifacts.projectConfig.modelPaths
-            ? { modelPaths: artifacts.projectConfig.modelPaths }
-            : {}),
-          ...(artifacts.projectConfig.seedPaths
-            ? { seedPaths: artifacts.projectConfig.seedPaths }
-            : {}),
-          ...(artifacts.projectConfig.snapshotPaths
-            ? { snapshotPaths: artifacts.projectConfig.snapshotPaths }
-            : {}),
-          ...(artifacts.projectConfig.analysisPaths
-            ? { analysisPaths: artifacts.projectConfig.analysisPaths }
-            : {}),
-          ...(artifacts.projectConfig.macroPaths
-            ? { macroPaths: artifacts.projectConfig.macroPaths }
-            : {}),
-          ...(artifacts.projectConfig.testPaths
-            ? { testPaths: artifacts.projectConfig.testPaths }
-            : {}),
-        },
-        manifest: {
-          projectName: artifacts.manifest.metadata.project_name,
-          dbtSchemaVersion: artifacts.manifest.metadata.dbt_schema_version,
-        },
-        paths: {
-          projectDir: projectContext.projectDir,
-          dbtProjectPath: projectContext.dbtProjectPath,
-          manifestPath: projectContext.artifactPaths.manifestPath,
-        },
-      },
+    extensions: {
+      'governance-extension:dbt': buildDbtProjectNodeExpansion(dbtMetadata),
     },
+    metadata: {},
   };
 }
 
@@ -328,21 +310,28 @@ function mapDbtRelations(
         sourceResource.resourceType,
         targetResource.resourceType,
       );
+      const relationMetadata = buildRelationMetadata(
+        sourceUniqueId,
+        sourceResource.manifestRecord,
+        targetUniqueId,
+        targetResource.manifestRecord,
+        relationKind,
+      );
       relations.push({
         id: buildDbtRelationId(sourceUniqueId, targetUniqueId, relationKind),
         sourceNodeId: sourceUniqueId,
         targetNodeId: targetUniqueId,
-        kind: relationKind,
+        kind: toCanonicalRelationKind(relationKind),
         source: DBT_MANIFEST_SOURCE,
         authority: 'discovered',
         confidence: 1,
-        metadata: buildRelationMetadata(
-          sourceUniqueId,
-          sourceResource.manifestRecord,
-          targetUniqueId,
-          targetResource.manifestRecord,
-          relationKind,
-        ),
+        extensions: {
+          'governance-extension:dbt': buildDbtRelationExpansion(
+            relationKind,
+            relationMetadata.dbt as Record<string, unknown>,
+          ),
+        },
+        metadata: {},
       });
     }
   }
@@ -629,7 +618,7 @@ function normalizeDbtManifestResource(
     node: {
       id: uniqueId,
       name: resourceName,
-      kind: buildDbtNodeKind(resourceType),
+      kind: toCanonicalNodeKind(resourceType),
       technology: 'dbt',
       sourceSystem: 'dbt',
       root: absoluteSourcePath
@@ -642,9 +631,13 @@ function normalizeDbtManifestResource(
       source: DBT_MANIFEST_SOURCE,
       authority: 'discovered',
       confidence: 1,
-      metadata: {
-        dbt: dbtMetadata,
+      extensions: {
+        'governance-extension:dbt': buildDbtResourceNodeExpansion(
+          resourceType,
+          dbtMetadata,
+        ),
       },
+      metadata: {},
     },
   };
 }
@@ -859,35 +852,16 @@ function buildDbtProjectNodeId(projectName: string): string {
   return `dbt.project.${projectName}`;
 }
 
-function buildDbtNodeKind(resourceType: string): GovernanceNodeInput['kind'] {
-  switch (resourceType) {
-    case 'model':
-      return 'dbt-model';
-    case 'seed':
-      return 'dbt-seed';
-    case 'snapshot':
-      return 'dbt-snapshot';
-    case 'source':
-      return 'dbt-source';
-    case 'exposure':
-      return 'dbt-exposure';
-    case 'test':
-      return 'dbt-test';
-    case 'metric':
-      return 'dbt-metric';
-    case 'semantic_model':
-      return 'dbt-semantic-model';
-    case 'saved_query':
-      return 'dbt-saved-query';
-    default:
-      return `dbt-${resourceType.replaceAll('_', '-')}`;
-  }
+function toCanonicalNodeKind(
+  _resourceType: string,
+): GovernanceNodeInput['kind'] {
+  return 'resource';
 }
 
 function buildDbtRelationKind(
   sourceResourceType: string,
   targetResourceType: string,
-): GovernanceRelationInput['kind'] {
+): 'lineage' | 'exposes' | 'tests' {
   if (sourceResourceType === 'exposure') {
     return 'exposes';
   }
@@ -897,6 +871,12 @@ function buildDbtRelationKind(
   }
 
   return 'lineage';
+}
+
+function toCanonicalRelationKind(
+  relationKind: 'lineage' | 'exposes' | 'tests',
+): GovernanceRelationInput['kind'] {
+  return relationKind === 'tests' ? 'traceability' : 'dependency';
 }
 
 function buildDbtRelationId(

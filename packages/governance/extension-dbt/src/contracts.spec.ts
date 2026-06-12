@@ -1,5 +1,6 @@
 import {
   DefaultGovernanceCapabilityRegistry,
+  getGovernanceExtensionModelExpansion,
   registerLoadedGovernanceExtensionsWithDiagnostics,
   type GovernanceDiagnostic,
   type GovernanceExtensionHostContext,
@@ -12,16 +13,22 @@ import {
 } from '@anarchitects/governance-core';
 
 import {
+  DBT_GOVERNANCE_EXPANSION_CONTRACT_VERSION,
+  DBT_GOVERNANCE_EXTENSION_ID,
+  attachDbtGovernanceModelExpansion,
   DBT_GOVERNANCE_DIAGNOSTIC_PROVIDER_CAPABILITY_PREFIX,
   DBT_GOVERNANCE_RECOMMENDATION_PROVIDER_CAPABILITY_PREFIX,
+  createDbtGovernanceModelExpansion,
   createDbtGovernanceExtension,
   dbtArchitectureBasicRulePack,
   dbtGovernanceDiagnosticsProvider,
   dbtGovernanceMetricProvider,
   dbtGovernanceRecommendationProvider,
   dbtGovernanceSignalProvider,
+  getDbtGovernanceModelExpansion,
   getDbtGovernanceDiagnosticProviders,
   getDbtGovernanceRecommendationProviders,
+  validateDbtGovernanceModelExpansion,
 } from './index.js';
 import { createCompatibilityWorkspace } from './test-workspace.js';
 
@@ -192,6 +199,82 @@ describe('dbt Governance extension contracts', () => {
     expect(getDbtGovernanceRecommendationProviders(discoveryHost)).toEqual([
       dbtGovernanceRecommendationProvider,
       recommendationProvider,
+    ]);
+  });
+
+  it('attaches versioned dbt expansion data to canonical carriers', () => {
+    const workspace = attachDbtGovernanceModelExpansion(
+      createCompatibilityWorkspace({
+        id: 'workspace',
+        name: 'workspace',
+        root: '/repo',
+        projects: [],
+        dependencies: [],
+      }),
+      {
+        kind: 'workspace',
+        technology: 'dbt',
+        projectName: 'analytics',
+        projectNodeIds: ['model.analytics.orders'],
+      },
+    );
+
+    expect(getDbtGovernanceModelExpansion(workspace)).toEqual({
+      extensionId: DBT_GOVERNANCE_EXTENSION_ID,
+      contractVersion: DBT_GOVERNANCE_EXPANSION_CONTRACT_VERSION,
+      data: {
+        kind: 'workspace',
+        technology: 'dbt',
+        projectName: 'analytics',
+        projectNodeIds: ['model.analytics.orders'],
+      },
+    });
+    expect(
+      getGovernanceExtensionModelExpansion(
+        workspace,
+        DBT_GOVERNANCE_EXTENSION_ID,
+      ),
+    ).toEqual(getDbtGovernanceModelExpansion(workspace));
+  });
+
+  it('validates dbt-owned expansion envelopes and leaves deep semantics to the extension', () => {
+    const validExpansion = createDbtGovernanceModelExpansion({
+      kind: 'runtime-context',
+      technology: 'dbt',
+      config: {
+        adapter: {
+          artifactDir: 'target',
+        },
+      },
+      expectedFacts: ['manifest', 'catalog'],
+    });
+
+    expect(validateDbtGovernanceModelExpansion(validExpansion)).toEqual([]);
+    expect(
+      validateDbtGovernanceModelExpansion({
+        extensionId: DBT_GOVERNANCE_EXTENSION_ID,
+        contractVersion: '999',
+        data: {
+          kind: 'node',
+          technology: 'dbt',
+          nodeKind: 'unsupported',
+          resourceType: 'model',
+        },
+      }),
+    ).toEqual([
+      {
+        code: 'dbt.expansion.unsupported_contract_version',
+        severity: 'error',
+        message:
+          'dbt governance model expansion contractVersion is not supported.',
+        path: '/contractVersion',
+      },
+      {
+        code: 'dbt.expansion.invalid_enum_value',
+        severity: 'error',
+        message: 'Expected one of project, resource, unknown.',
+        path: '/data/nodeKind',
+      },
     ]);
   });
 });

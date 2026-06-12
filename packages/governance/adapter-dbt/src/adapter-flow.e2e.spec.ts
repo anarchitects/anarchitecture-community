@@ -29,13 +29,13 @@ describe('dbt adapter flow e2e', () => {
       expect.objectContaining({
         id: 'dbt.project.simple_project',
         name: 'simple_project',
-        kind: 'dbt-project',
+        kind: 'project',
         technology: 'dbt',
       }),
       expect.objectContaining({
         id: 'model.simple_project.hello_world',
         name: 'hello_world',
-        kind: 'dbt-model',
+        kind: 'resource',
         technology: 'dbt',
       }),
     ]);
@@ -74,27 +74,27 @@ describe('dbt adapter flow e2e', () => {
         expect.objectContaining({
           sourceNodeId: 'model.layered_project.stg_orders',
           targetNodeId: 'source.layered_project.raw.orders',
-          kind: 'lineage',
+          kind: 'dependency',
         }),
         expect.objectContaining({
           sourceNodeId: 'model.layered_project.int_orders_enriched',
           targetNodeId: 'model.layered_project.stg_orders',
-          kind: 'lineage',
+          kind: 'dependency',
         }),
         expect.objectContaining({
           sourceNodeId: 'model.layered_project.int_orders_enriched',
           targetNodeId: 'model.layered_project.stg_customers',
-          kind: 'lineage',
+          kind: 'dependency',
         }),
         expect.objectContaining({
           sourceNodeId: 'model.layered_project.int_orders_enriched',
           targetNodeId: 'seed.layered_project.country_codes',
-          kind: 'lineage',
+          kind: 'dependency',
         }),
         expect.objectContaining({
           sourceNodeId: 'model.layered_project.fct_orders',
           targetNodeId: 'model.layered_project.int_orders_enriched',
-          kind: 'lineage',
+          kind: 'dependency',
         }),
       ]),
     );
@@ -122,46 +122,51 @@ describe('dbt adapter flow e2e', () => {
     );
 
     expect(orderNode).toMatchObject({
-      metadata: {
-        dbt: {
-          identity: {
-            uniqueId: 'model.metadata_rich.orders',
+      extensions: {
+        'governance-extension:dbt': expect.objectContaining({
+          data: expect.objectContaining({
             resourceType: 'model',
-          },
-          resource: {
-            materialization: 'table',
-            group: 'finance',
-            owner: {
-              name: 'finance-platform',
-              email: 'finance@example.com',
-            },
-            tags: ['finance', 'published', 'scope:analytics'],
-          },
-          relation: {
-            relationName: '"analytics"."marts"."orders"',
-          },
-          validation: {
-            tests: ['unique:order_id', 'not_null:order_id'],
-            contract: {
-              enforced: true,
-            },
-          },
-          documentation: {
-            hasDescription: true,
-            docsShow: true,
-          },
-        },
+            identity: expect.objectContaining({
+              uniqueId: 'model.metadata_rich.orders',
+              resourceType: 'model',
+            }),
+            resource: expect.objectContaining({
+              materialization: 'table',
+              group: 'finance',
+              owner: {
+                name: 'finance-platform',
+                email: 'finance@example.com',
+              },
+              tags: ['finance', 'published', 'scope:analytics'],
+            }),
+            relation: expect.objectContaining({
+              relationName: '"analytics"."marts"."orders"',
+            }),
+            validation: expect.objectContaining({
+              tests: ['unique:order_id', 'not_null:order_id'],
+              contract: {
+                enforced: true,
+              },
+            }),
+            documentation: expect.objectContaining({
+              hasDescription: true,
+              docsShow: true,
+            }),
+          }),
+        }),
       },
     });
 
     expect(undocumentedNode).toMatchObject({
-      metadata: {
-        dbt: {
-          documentation: {
-            hasDescription: false,
-            hasDocs: false,
-          },
-        },
+      extensions: {
+        'governance-extension:dbt': expect.objectContaining({
+          data: expect.objectContaining({
+            documentation: {
+              hasDescription: false,
+              hasDocs: false,
+            },
+          }),
+        }),
       },
     });
 
@@ -235,11 +240,11 @@ describe('dbt adapter flow e2e', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: 'dbt.project.unresolved_dependency',
-          kind: 'dbt-project',
+          kind: 'project',
         }),
         expect.objectContaining({
           id: 'model.unresolved_dependency.orders',
-          kind: 'dbt-model',
+          kind: 'resource',
         }),
       ]),
     );

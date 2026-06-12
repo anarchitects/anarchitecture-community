@@ -133,7 +133,7 @@ export interface DbtArtifactLoadResult {
   diagnostics: DbtAdapterDiagnostic[];
 }
 
-export interface DbtAdapterResultMetadata extends DbtAdapterMetadataEnvelope {
+export interface DbtAdapterResultMetadata extends Record<string, unknown> {
   adapter: 'dbt';
   validationMode?: DbtAdapterValidationMode;
   paths?: ResolvedDbtArtifactPaths;

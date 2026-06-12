@@ -4,12 +4,13 @@
 
 `@anarchitects/governance-extension-dbt` interprets canonical dbt workspace
 data from `@anarchitects/governance-core`. It consumes `workspace.nodes` and
-`workspace.relations`, reads dbt-specific facts from namespaced metadata such
-as `metadata.dbt`, and emits deterministic diagnostics, signals, rule results,
-measurements, and recommendations.
+`workspace.relations`, reads dbt-specific facts from the
+`governance-extension:dbt` model expansion contract, and emits deterministic
+diagnostics, signals, rule results, measurements, and recommendations.
 
 Package boundaries follow
-[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md).
+[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
+[ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
 
 ## Public API
 
@@ -55,8 +56,10 @@ fields such as:
 
 - `node.technology === 'dbt'`
 - `node.sourceSystem === 'dbt'`
-- dbt node kinds such as `dbt-model`, `dbt-source`, and `dbt-test`
-- dbt metadata under `node.metadata.dbt` and `relation.metadata.dbt`
+- the dbt extension-owned expansion envelope on workspace, node, and relation
+  carriers
+- legacy metadata fallback only where required for compatibility fixtures and
+  tests
 
 ## Canonical Output
 
@@ -115,8 +118,35 @@ await registerLoadedGovernanceExtensionsWithDiagnostics(context, [
 ## Related Packages
 
 - `@anarchitects/governance-core` owns the canonical node/relation contracts.
-- `@anarchitects/governance-adapter-dbt` emits the dbt nodes and relations
-  consumed by this extension.
+- `@anarchitects/governance-adapter-dbt` emits canonical nodes/relations plus
+  the dbt expansion data consumed by this extension.
+
+## Boundary Guidance
+
+This extension owns:
+
+- dbt-specific model expansion validation and versioning
+- dbt-specific metadata resolution
+- dbt-specific diagnostics, signals, rule packs, metrics, and recommendations
+- interpretation of normalized dbt artifact facts
+
+This extension does not own:
+
+- raw dbt artifact loading
+- runtime composition
+- dbt host concerns such as command UX, CI orchestration, or reporting shells
+
+Future `@anarchitects/governance-runtime-dbt` should compose Core, the dbt
+adapter, and this extension. Future dbt host packages should own dbt-native
+execution flow and route:
+
+- canonical governance profile config
+- dbt adapter config
+- dbt extension config
+- runtime invocation context
+
+The canonical Core profile remains policy-only. dbt-specific adapter and
+extension settings belong outside that profile.
 
 ## License
 

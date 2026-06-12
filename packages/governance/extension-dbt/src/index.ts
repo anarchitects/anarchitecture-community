@@ -1,5 +1,8 @@
 export {
   DBT_GOVERNANCE_EXTENSION_ID,
+  DBT_GOVERNANCE_EXPANSION_CONTRACT_VERSION,
+} from './constants.js';
+export {
   createDbtGovernanceExtension,
   dbtGovernanceExtension,
   dbtGovernanceExtensionMetadata,
@@ -10,15 +13,22 @@ export {
 export {
   DBT_GOVERNANCE_DIAGNOSTIC_PROVIDER_CAPABILITY_PREFIX,
   DBT_GOVERNANCE_RECOMMENDATION_PROVIDER_CAPABILITY_PREFIX,
+  attachDbtGovernanceModelExpansion,
   collectDbtGovernanceDiagnostics,
   collectDbtGovernanceMeasurements,
   collectDbtGovernanceSignals,
   collectDbtGovernanceRecommendations,
+  createDbtGovernanceModelExpansion,
+  getDbtGovernanceModelExpansion,
   getDbtGovernanceDiagnosticProviders,
   getDbtGovernanceRecommendationProviders,
   isDbtGovernanceDiagnosticProviderCapability,
   isDbtGovernanceRecommendationProviderCapability,
   registerDbtGovernanceExtensionContributions,
+  validateDbtGovernanceModelExpansion,
+  type DbtGovernanceModelExpansion,
+  type DbtGovernanceModelExpansionData,
+  type DbtGovernanceNodeExpansionData,
   type DbtGovernanceDiagnosticProvider,
   type DbtGovernanceDiagnosticProviderInput,
   type DbtGovernanceExtensionContributions,
@@ -29,9 +39,12 @@ export {
   type DbtGovernanceProviderCapabilityData,
   type DbtGovernanceRecommendationProvider,
   type DbtGovernanceRecommendationProviderInput,
+  type DbtGovernanceRelationExpansionData,
   type DbtGovernanceRulePackInput,
   type DbtGovernanceSignalProvider,
   type DbtGovernanceSignalProviderInput,
+  type DbtGovernanceRuntimeContextExpansionData,
+  type DbtGovernanceWorkspaceExpansionData,
 } from './contracts.js';
 export {
   DBT_GOVERNANCE_DIAGNOSTIC_CODES,
