@@ -313,7 +313,6 @@ Profile contracts live in `packages/governance/core/src/core/profile.ts`. CLI st
 
 - `name`
 - optional `description`
-- `boundaryPolicySource`: `profile` or `eslint`
 - `layers`
 - optional `rules`
 - optional `allowedLayerDependencies`
@@ -352,7 +351,6 @@ Technology-neutral parts:
 
 Codebase-oriented and Nx-influenced parts:
 
-- `boundaryPolicySource` includes `eslint`
 - layers and layer dependency order are first-class
 - allowed domain dependencies are required
 - project overrides are project-specific
@@ -675,7 +673,6 @@ The following areas are specifically TypeScript/Nx-influenced:
 - TypeScript adapter project discovery from package-manager workspace package roots
 - TypeScript adapter import graph based on relative imports, package-name imports, path aliases, `baseUrl`, re-exports, and dynamic imports
 - TypeScript adapter metadata extraction from package-level `package.json#governance`
-- `boundaryPolicySource` includes `eslint`
 - standalone CLI profile validation explicitly rejects Nx runtime-only profile fields
 - package docs and ADRs repeatedly frame Nx isolation as a boundary requirement
 - manual workspace schema mirrors current project/dependency enums and classification tag conventions

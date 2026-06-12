@@ -38,7 +38,6 @@ describe('dbt Governance extension end-to-end flow', () => {
   ): GovernanceProfile {
     return {
       name: 'dbt',
-      boundaryPolicySource: 'profile',
       layers: ['staging', 'intermediate', 'marts'],
       allowedDomainDependencies: {
         customer: ['customer'],

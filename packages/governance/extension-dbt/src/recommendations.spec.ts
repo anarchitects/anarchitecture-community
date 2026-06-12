@@ -45,7 +45,6 @@ describe('dbt governance recommendations', () => {
   ): GovernanceProfile {
     return {
       name: 'dbt',
-      boundaryPolicySource: 'profile',
       layers: ['staging', 'intermediate', 'marts'],
       allowedDomainDependencies: {
         finance: ['finance'],

@@ -13,7 +13,6 @@ export function createTypeScriptProfile(
 ): GovernanceProfile {
   return {
     name: 'typescript',
-    boundaryPolicySource: 'profile',
     layers: [],
     allowedDomainDependencies: {},
     ownership: {

@@ -19,7 +19,6 @@ import {
 describe('Core built-in policy rules', () => {
   const baseProfile: GovernanceProfile = {
     name: 'test-profile',
-    boundaryPolicySource: 'profile',
     layers: ['app', 'feature', 'ui', 'data-access', 'util'],
     allowedDomainDependencies: {
       '*': [],

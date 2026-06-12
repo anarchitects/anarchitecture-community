@@ -29,7 +29,6 @@ describe('agov shared command resolution', () => {
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
-      boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
       ownership: { required: false },
@@ -115,7 +114,6 @@ describe('agov shared command resolution', () => {
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
-      boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
       ownership: { required: false },
@@ -163,7 +161,6 @@ describe('agov shared command resolution', () => {
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
-      boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
       ownership: { required: false },
@@ -213,7 +210,6 @@ describe('agov shared command resolution', () => {
 
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
-      boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
       ownership: { required: false },
@@ -258,7 +254,6 @@ describe('agov shared command resolution', () => {
 
     writeJson(path.join(cwd, 'governance.profile.json'), {
       name: 'demo-profile',
-      boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
       ownership: { required: false },
@@ -312,7 +307,6 @@ describe('agov shared command resolution', () => {
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
-      boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
       ownership: { required: false },
@@ -389,7 +383,6 @@ describe('agov shared command resolution', () => {
     });
     writeJson(path.join(cwd, 'profile.json'), {
       name: 'demo-profile',
-      boundaryPolicySource: 'profile',
       layers: ['domain'],
       allowedDomainDependencies: { '*': [] },
       ownership: { required: false },

@@ -4099,7 +4099,6 @@ function writeFailingFixtureProfile(filePath: string): void {
 
 function writeInvalidFixtureProfile(filePath: string): void {
   writeJson(filePath, {
-    boundaryPolicySource: 'profile',
     layers: [],
   });
 }

@@ -1,7 +1,6 @@
 {
   "name": "standalone-demo",
   "description": "Standalone Governance CLI profile fixture",
-  "boundaryPolicySource": "profile",
   "layers": ["app", "domain", "infra"],
   "rules": {
     "project-name-convention": {

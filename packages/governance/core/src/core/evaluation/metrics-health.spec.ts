@@ -335,7 +335,6 @@ describe('metrics and health', () => {
     );
     const profile = {
       name: 'docs-profile',
-      boundaryPolicySource: 'profile' as const,
       layers: ['ui', 'domain'],
       allowedDomainDependencies: {
         booking: ['booking'],

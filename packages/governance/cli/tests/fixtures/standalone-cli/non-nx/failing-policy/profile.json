@@ -1,7 +1,6 @@
 {
   "name": "fixture-failing-policy",
   "description": "Non-Nx standalone CLI failing policy fixture profile",
-  "boundaryPolicySource": "profile",
   "layers": ["domain"],
   "allowedDomainDependencies": {
     "customer": [],

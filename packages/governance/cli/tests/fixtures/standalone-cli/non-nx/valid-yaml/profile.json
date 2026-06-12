@@ -1,7 +1,6 @@
 {
   "name": "fixture-valid-yaml",
   "description": "Non-Nx standalone CLI YAML fixture profile",
-  "boundaryPolicySource": "profile",
   "layers": ["domain"],
   "allowedDomainDependencies": {
     "customer": ["order"],

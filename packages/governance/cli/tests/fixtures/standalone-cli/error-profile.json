@@ -1,7 +1,6 @@
 {
   "name": "check-error",
   "description": "Standalone agov check error threshold fixture",
-  "boundaryPolicySource": "profile",
   "layers": ["domain"],
   "allowedDomainDependencies": {
     "customer": [],

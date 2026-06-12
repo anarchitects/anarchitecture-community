@@ -16,7 +16,8 @@ Use this package when you are building:
   concrete adapter or CLI
 
 Package boundaries follow
-[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md).
+[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
+[ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
 
 ## Key Concepts
 
@@ -31,6 +32,8 @@ Package boundaries follow
 - `GovernanceWorkspaceAdapterResult` is the adapter result shape consumed by
   normalization helpers and hosts.
 - `GovernanceDiagnostic` represents adapter-owned or host-owned diagnostics.
+- `GovernanceProfile` is a canonical policy contract only. Adapter config,
+  extension config, and host runtime config stay outside Core.
 
 ## Installation
 
@@ -142,6 +145,25 @@ This package does not own:
 - report rendering or dashboard presentation
 - extension package implementations
 - host-specific configuration discovery
+- adapter-specific extraction or normalization configuration
+- extension-specific interpretation configuration
+
+## Boundary Model
+
+Core owns the canonical baseline model and generic Governance semantics. The
+canonical `GovernanceProfile` is intentionally limited to policy that applies
+across ecosystems, such as layer order, allowed dependencies, ownership
+requirements, health thresholds, and metric weights.
+
+Adapters discover source-system facts and normalize only genuinely canonical
+facts into Core contracts. Extensions own any explicit model expansion beyond
+the canonical baseline. Hosts orchestrate those layers and route configuration
+to the right owner instead of collapsing adapter or extension options into the
+Core profile.
+
+When technology-specific or source-specific facts still need to travel through
+Core contracts, they should remain opaque in `metadata`, capability payloads,
+or extension host `options` until a stable generic Core contract exists.
 
 ## Usage
 
@@ -193,7 +215,9 @@ the underlying documentation completeness metric.
 
 Hosts register extension definitions through Core runtime helpers. Extensions
 consume public Core contracts only and should emit canonical node/relation
-references.
+references. Extension-owned expansion data may ride along in metadata,
+capabilities, and host-routed extension options, but its schema and semantics
+remain owned by the extension rather than Core.
 
 ## Related Packages
 

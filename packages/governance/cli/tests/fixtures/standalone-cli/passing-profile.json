@@ -1,7 +1,6 @@
 {
   "name": "check-pass",
   "description": "Passing standalone agov check profile fixture",
-  "boundaryPolicySource": "profile",
   "layers": ["domain"],
   "allowedDomainDependencies": {
     "customer": ["order"],

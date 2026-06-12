@@ -1,7 +1,6 @@
 {
   "name": "fixture-invalid-workspace",
   "description": "Non-Nx standalone CLI invalid workspace fixture profile",
-  "boundaryPolicySource": "profile",
   "layers": ["domain"],
   "allowedDomainDependencies": {
     "customer": ["order"],

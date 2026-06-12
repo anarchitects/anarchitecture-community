@@ -848,8 +848,7 @@ function evaluateMissingDomain(
       reference: {
         nodeId: node.id,
       },
-      recommendation:
-        'Populate the node domain through adapter normalization, metadata, or canonical classification.',
+      recommendation: 'Populate canonical domain classification for the node.',
     },
   ];
 }
@@ -873,8 +872,7 @@ function evaluateMissingLayer(
       reference: {
         nodeId: node.id,
       },
-      recommendation:
-        'Populate the node layer through adapter normalization, metadata, or canonical classification.',
+      recommendation: 'Populate canonical layer classification for the node.',
     },
   ];
 }
