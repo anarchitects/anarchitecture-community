@@ -418,6 +418,100 @@ describe('Core built-in policy rules', () => {
     );
   });
 
+  it('scopes node-level governance rules to project-like nodes', async () => {
+    const workspace = createWorkspace(
+      [
+        {
+          id: 'booking-feature',
+          name: 'BookingFeature',
+          kind: 'library',
+          root: 'libs/booking/feature',
+          classification: {},
+          tags: [],
+          ownership: {
+            source: 'none',
+          },
+          metadata: {},
+        },
+        {
+          id: 'workspace-root',
+          name: 'WorkspaceRoot',
+          kind: 'package-manager-package',
+          root: '.',
+          path: 'package.json',
+          tags: [],
+          metadata: {},
+        },
+        {
+          id: 'tsconfig:tsconfig.base.json',
+          name: 'TsconfigBase',
+          kind: 'typescript-tsconfig',
+          root: '.',
+          path: 'tsconfig.base.json',
+          tags: [],
+          metadata: {},
+        },
+      ],
+      [],
+    );
+
+    const result = await evaluateRulePack(coreBuiltInRulePack, {
+      workspace,
+      profile: {
+        ...baseProfile,
+        rules: {
+          'project-name-convention': {
+            enabled: true,
+            options: {
+              pattern: '^[a-z-]+$',
+            },
+          },
+          'tag-convention': {
+            enabled: true,
+            options: {
+              requiredPrefixes: ['domain'],
+            },
+          },
+          'missing-domain': {
+            enabled: true,
+            options: {
+              required: true,
+            },
+          },
+          'missing-layer': {
+            enabled: true,
+            options: {
+              required: true,
+            },
+          },
+        },
+      },
+    });
+
+    const projectNodeViolations = result.violations
+      .filter((violation) => violation.reference?.nodeId === 'booking-feature')
+      .map((violation) => violation.ruleId)
+      .sort();
+    const infrastructureNodeIds = new Set([
+      'workspace-root',
+      'tsconfig:tsconfig.base.json',
+    ]);
+
+    expect(projectNodeViolations).toEqual([
+      'documentation-gap',
+      'missing-domain',
+      'missing-layer',
+      'ownership-presence',
+      'project-name-convention',
+      'tag-convention',
+    ]);
+    expect(
+      result.violations.filter((violation) =>
+        infrastructureNodeIds.has(violation.reference?.nodeId ?? ''),
+      ),
+    ).toEqual([]);
+  });
+
   it('does not require legacy compatibility workspace views', async () => {
     const workspace = createWorkspace(baseNodes, baseRelations);
 
