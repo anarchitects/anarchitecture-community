@@ -213,9 +213,39 @@ describe('Core built-in policy rules', () => {
         ruleId: 'ownership-presence',
         subjectId: 'shared-data',
         category: 'ownership',
+        message:
+          'Node shared-data has no canonical ownership metadata or configuration.',
+        recommendation:
+          'Add canonical ownership metadata or configuration for the node.',
         reference: {
           nodeId: 'shared-data',
         },
+      }),
+    ]);
+  });
+
+  it('mentions CODEOWNERS only when an ownership capability advertises it', () => {
+    const result = evaluateSync(ownershipPresenceRule, {
+      workspace: createWorkspace(baseNodes, baseRelations, [
+        {
+          id: 'capability:ownership',
+          data: {
+            source: 'codeowners',
+          },
+        },
+      ]),
+      profile: baseProfile,
+    });
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        ruleId: 'ownership-presence',
+        subjectId: 'shared-data',
+        category: 'ownership',
+        message:
+          'Node shared-data has no canonical ownership data from the active ownership sources (CODEOWNERS).',
+        recommendation:
+          'Add canonical ownership metadata or configuration, or ensure an active ownership source covers the node (CODEOWNERS).',
       }),
     ]);
   });
@@ -466,6 +496,7 @@ describe('Core built-in policy rules', () => {
 function createWorkspace(
   nodes: GovernanceNode[],
   relations: GovernanceRelation[],
+  capabilities: GovernanceWorkspace['capabilities'] = [],
 ): GovernanceWorkspace {
   return {
     id: 'workspace',
@@ -473,6 +504,7 @@ function createWorkspace(
     root: '.',
     nodes,
     relations,
+    capabilities,
   };
 }
 

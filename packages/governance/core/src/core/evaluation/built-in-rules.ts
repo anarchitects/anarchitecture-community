@@ -140,7 +140,7 @@ export const ownershipPresenceRule: SynchronousGovernanceRule = {
 
     return {
       violations: getApplicableNodes(workspace, ownershipPresenceRule).flatMap(
-        (node) => evaluateOwnershipPresence(node, severity),
+        (node) => evaluateOwnershipPresence(workspace, node, severity),
       ),
     };
   },
@@ -384,7 +384,9 @@ export function evaluateCoreBuiltInPolicyViolations(
   }
   if (ownershipEnabled && ownershipOptions.required) {
     for (const node of getApplicableNodes(workspace, ownershipPresenceRule)) {
-      violations.push(...evaluateOwnershipPresence(node, ownershipSeverity));
+      violations.push(
+        ...evaluateOwnershipPresence(workspace, node, ownershipSeverity),
+      );
     }
   }
 
@@ -593,6 +595,7 @@ function evaluateLayerBoundaryRelation(
 }
 
 function evaluateOwnershipPresence(
+  workspace: GovernanceWorkspace,
   node: GovernanceNode,
   severity: Violation['severity'],
 ): Violation[] {
@@ -607,12 +610,86 @@ function evaluateOwnershipPresence(
       subjectId: node.id,
       severity,
       category: 'ownership',
-      message: `Node ${getNodeName(node)} has no canonical ownership data.`,
+      message: buildOwnershipPresenceMessage(workspace, node),
       reference: {
         nodeId: node.id,
       },
-      recommendation: 'Add canonical ownership data to the node.',
+      recommendation: buildOwnershipPresenceRecommendation(workspace),
     },
+  ];
+}
+
+function buildOwnershipPresenceMessage(
+  workspace: GovernanceWorkspace,
+  node: GovernanceNode,
+): string {
+  const ownershipSources = getActiveOwnershipSourceLabels(workspace);
+
+  if (ownershipSources.length === 0) {
+    return `Node ${getNodeName(node)} has no canonical ownership metadata or configuration.`;
+  }
+
+  return `Node ${getNodeName(node)} has no canonical ownership data from the active ownership sources (${ownershipSources.join(', ')}).`;
+}
+
+function buildOwnershipPresenceRecommendation(
+  workspace: GovernanceWorkspace,
+): string {
+  const ownershipSources = getActiveOwnershipSourceLabels(workspace);
+
+  if (ownershipSources.length === 0) {
+    return 'Add canonical ownership metadata or configuration for the node.';
+  }
+
+  return `Add canonical ownership metadata or configuration, or ensure an active ownership source covers the node (${ownershipSources.join(', ')}).`;
+}
+
+function getActiveOwnershipSourceLabels(
+  workspace: GovernanceWorkspace,
+): string[] {
+  const labels = new Set<string>();
+
+  for (const capability of workspace.capabilities ?? []) {
+    if (capability.id !== 'capability:ownership') {
+      continue;
+    }
+
+    for (const source of normalizeOwnershipCapabilitySources(capability.data)) {
+      if (source === 'codeowners') {
+        labels.add('CODEOWNERS');
+        continue;
+      }
+
+      if (source === 'project-metadata') {
+        labels.add('project metadata');
+        continue;
+      }
+
+      labels.add(source);
+    }
+  }
+
+  return [...labels].sort((left, right) => left.localeCompare(right));
+}
+
+function normalizeOwnershipCapabilitySources(data: unknown): string[] {
+  if (!data || typeof data !== 'object') {
+    return [];
+  }
+
+  const record = data as Record<string, unknown>;
+  const rawSources = [
+    record.source,
+    ...(Array.isArray(record.sources) ? record.sources : []),
+  ];
+
+  return [
+    ...new Set(
+      rawSources
+        .filter((source): source is string => typeof source === 'string')
+        .map((source) => source.trim().toLowerCase())
+        .filter((source) => source.length > 0),
+    ),
   ];
 }
 
