@@ -12,7 +12,8 @@ Use this package when a Governance host should load TypeScript-specific
 extension contributions separately from TypeScript workspace extraction.
 
 Package boundaries follow
-[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md).
+[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
+[ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
 
 ## Key Concepts
 
@@ -25,6 +26,8 @@ Package boundaries follow
 - The extension consumes canonical `workspace.nodes` and `workspace.relations`
   and emits canonical references such as `nodeId`, `relationId`,
   `relatedNodeIds`, and `relatedRelationIds`.
+- The extension owns a versioned TypeScript model expansion contract for
+  workspace, node, relation, and runtime-context data.
 
 ## Installation
 
@@ -40,8 +43,11 @@ The package publishes one root entrypoint:
 
 ```ts
 import {
+  TYPESCRIPT_GOVERNANCE_EXPANSION_CONTRACT_VERSION,
   TYPESCRIPT_GOVERNANCE_EXTENSION_ID,
+  attachTypeScriptGovernanceModelExpansion,
   createTypeScriptGovernanceExtension,
+  createTypeScriptGovernanceModelExpansion,
   governanceTypeScriptExtension,
   registerTypeScriptGovernanceExtension,
   typescriptGovernanceExtensionMetadata,
@@ -88,6 +94,65 @@ references:
   },
 }
 ```
+
+### TypeScript-Owned Model Expansions
+
+This package owns the TypeScript expansion envelope attached through Core's
+generic `extensions` carrier:
+
+```ts
+const workspace = attachTypeScriptGovernanceModelExpansion(
+  {
+    id: 'workspace',
+    name: 'workspace',
+    root: '.',
+    nodes: [],
+    relations: [],
+  },
+  {
+    kind: 'workspace',
+    technology: 'typescript',
+    packageManager: 'pnpm',
+    projectNodeIds: ['package:checkout'],
+    tsconfigNodeIds: ['tsconfig:root'],
+  },
+);
+```
+
+The owned envelope is:
+
+```ts
+{
+  extensionId: 'governance-extension:typescript',
+  contractVersion: '1',
+  data: {
+    kind: 'workspace' | 'node' | 'relation' | 'runtime-context',
+    technology: 'typescript',
+    // extension-owned fields
+  },
+}
+```
+
+Validation and versioning rules:
+
+- Core validates only the generic carrier shape.
+- This package validates the TypeScript `data` contract through
+  `validateTypeScriptGovernanceModelExpansion(...)`.
+- `contractVersion` is extension-owned and currently
+  `TYPESCRIPT_GOVERNANCE_EXPANSION_CONTRACT_VERSION`.
+- Future incompatible TypeScript expansion changes must increment the contract
+  version in this package instead of changing Core.
+
+Ownership split:
+
+- Canonical facts such as ownership, domain, layer, and scope remain Core
+  inputs when they are genuinely architectural.
+- TypeScript-specific facts such as tsconfig inheritance, path alias details,
+  import parsing artifacts, and host signal toggles belong to this extension's
+  owned contract.
+- Hosts route runtime config separately through extension options or
+  `GovernanceExtensionHostContext.options`; that config does not belong in the
+  canonical Governance profile.
 
 ## Related Packages
 

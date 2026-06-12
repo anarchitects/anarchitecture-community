@@ -16,6 +16,7 @@ import type {
   GovernanceRelationInput,
   GovernanceSource,
 } from '../adapter/adapter.js';
+import type { GovernanceExtensionModelExpansionMap } from '../../extensions/model-expansions.js';
 
 export interface GovernanceWorkspace {
   id: string;
@@ -25,6 +26,9 @@ export interface GovernanceWorkspace {
   relations: GovernanceRelation[];
   capabilities?: GovernanceCapability[];
   diagnostics?: GovernanceDiagnostic[];
+  // Extension-owned model expansions are namespaced by extension id and remain
+  // opaque to Core unless a generic Core contract explicitly says otherwise.
+  extensions?: GovernanceExtensionModelExpansionMap;
   // Hosts, adapters, and extensions may attach runtime data here. Core does
   // not treat arbitrary metadata as canonical policy input.
   metadata?: Record<string, unknown>;
@@ -46,6 +50,7 @@ export interface GovernanceNode {
   evidence?: GovernanceNodeInput['evidence'];
   authority?: GovernanceNodeInput['authority'];
   confidence?: GovernanceNodeInput['confidence'];
+  extensions?: GovernanceExtensionModelExpansionMap;
   // Extensions may persist owned expansion data here, but Core only interprets
   // metadata when an explicit generic contract defines semantics for it.
   metadata: Record<string, unknown>;
@@ -61,6 +66,7 @@ export interface GovernanceRelation {
   evidence?: GovernanceRelationInput['evidence'];
   authority?: GovernanceRelationInput['authority'];
   confidence?: GovernanceRelationInput['confidence'];
+  extensions?: GovernanceExtensionModelExpansionMap;
   // Relation metadata is opaque by default and stays extension-owned unless a
   // canonical Core contract says otherwise.
   metadata: Record<string, unknown>;
@@ -352,6 +358,9 @@ export interface GovernanceAssessment {
   topSignals?: GovernanceTopSignal[];
   health: HealthScore;
   recommendations: Recommendation[];
+  // Assessment-level extension context remains extension-owned and may be used
+  // by hosts or extensions for serializable, versioned non-canonical data.
+  extensions?: GovernanceExtensionModelExpansionMap;
   metadata?: Record<string, unknown>;
 }
 

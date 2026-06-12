@@ -20,6 +20,16 @@ describe('governance extension runtime', () => {
       output: 'cli',
       reportType: 'health',
     },
+    extensions: {
+      'governance-extension:typescript': {
+        extensionId: 'governance-extension:typescript',
+        contractVersion: '1',
+        data: {
+          kind: 'runtime-context',
+          technology: 'typescript',
+        },
+      },
+    },
     inventory: {
       id: 'workspace',
       name: 'workspace',
@@ -107,6 +117,7 @@ describe('governance extension runtime', () => {
     expect(receivedContext).toEqual(baseContext);
     expect(Object.isFrozen(receivedContext)).toBe(true);
     expect(Object.isFrozen(receivedContext?.options)).toBe(true);
+    expect(Object.isFrozen(receivedContext?.extensions)).toBe(true);
   });
 
   it('lets extensions declare capability requirements and query host capabilities', async () => {

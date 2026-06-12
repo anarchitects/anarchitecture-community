@@ -75,6 +75,11 @@ export class GovernanceExtensionHost
     this.context = Object.freeze({
       ...context,
       options: Object.freeze({ ...context.options }),
+      ...(context.extensions
+        ? {
+            extensions: Object.freeze({ ...context.extensions }),
+          }
+        : {}),
     });
     this.pluginId = pluginId;
   }

@@ -162,8 +162,9 @@ to the right owner instead of collapsing adapter or extension options into the
 Core profile.
 
 When technology-specific or source-specific facts still need to travel through
-Core contracts, they should remain opaque in `metadata`, capability payloads,
-or extension host `options` until a stable generic Core contract exists.
+Core contracts, they should remain opaque in versioned extension-owned
+expansion envelopes, capability payloads, or extension host `options` until a
+stable generic Core contract exists.
 
 ## Usage
 
@@ -218,6 +219,40 @@ consume public Core contracts only and should emit canonical node/relation
 references. Extension-owned expansion data may ride along in metadata,
 capabilities, and host-routed extension options, but its schema and semantics
 remain owned by the extension rather than Core.
+
+### Extension-Owned Model Expansions
+
+Core provides a generic `extensions` carrier on canonical workspaces, nodes,
+relations, runtime contexts, and assessments. Each entry is keyed by extension
+id and carries a deterministic envelope:
+
+```ts
+{
+  extensions: {
+    'governance-extension:typescript': {
+      extensionId: 'governance-extension:typescript',
+      contractVersion: '1',
+      data: {
+        kind: 'node',
+        technology: 'typescript',
+      },
+    },
+  },
+}
+```
+
+Core owns only the carrier shape and attachment helpers. Each extension owns:
+
+- the schema of `data`
+- validation rules and diagnostics for that schema
+- contract versioning and migrations
+- any interpretation semantics attached to the expansion
+
+Adapters may populate extension-owned expansions when they discover
+technology-specific facts, but they do not own the meaning of those facts.
+Hosts may route extension-specific runtime config separately through
+`GovernanceExtensionHostContext.options` and, when useful, through
+assessment-level `extensions`.
 
 ## Related Packages
 

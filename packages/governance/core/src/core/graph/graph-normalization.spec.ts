@@ -16,6 +16,16 @@ describe('Governance graph normalization', () => {
           name: 'Service A',
           kind: 'service',
           tags: ['customer-facing'],
+          extensions: {
+            'governance-extension:typescript': {
+              extensionId: 'governance-extension:typescript',
+              contractVersion: '1',
+              data: {
+                kind: 'node',
+                technology: 'typescript',
+              },
+            },
+          },
           metadata: {
             area: 'checkout',
           },
@@ -26,6 +36,16 @@ describe('Governance graph normalization', () => {
           sourceNodeId: 'service-a',
           targetNodeId: 'service-a',
           kind: 'traceability',
+          extensions: {
+            'governance-extension:typescript': {
+              extensionId: 'governance-extension:typescript',
+              contractVersion: '1',
+              data: {
+                kind: 'relation',
+                technology: 'typescript',
+              },
+            },
+          },
           metadata: {
             source: 'fixture',
           },
@@ -38,6 +58,16 @@ describe('Governance graph normalization', () => {
           message: 'canonical graph',
         },
       ],
+      extensions: {
+        'governance-extension:typescript': {
+          extensionId: 'governance-extension:typescript',
+          contractVersion: '1',
+          data: {
+            kind: 'workspace',
+            technology: 'typescript',
+          },
+        },
+      },
       metadata: {
         owner: 'governance-core',
       },
@@ -55,6 +85,16 @@ describe('Governance graph normalization', () => {
           name: 'Service A',
           kind: 'service',
           tags: ['customer-facing'],
+          extensions: {
+            'governance-extension:typescript': {
+              extensionId: 'governance-extension:typescript',
+              contractVersion: '1',
+              data: {
+                kind: 'node',
+                technology: 'typescript',
+              },
+            },
+          },
           metadata: {
             area: 'checkout',
           },
@@ -66,6 +106,16 @@ describe('Governance graph normalization', () => {
           sourceNodeId: 'service-a',
           targetNodeId: 'service-a',
           kind: 'traceability',
+          extensions: {
+            'governance-extension:typescript': {
+              extensionId: 'governance-extension:typescript',
+              contractVersion: '1',
+              data: {
+                kind: 'relation',
+                technology: 'typescript',
+              },
+            },
+          },
           metadata: {
             source: 'fixture',
           },
@@ -78,6 +128,16 @@ describe('Governance graph normalization', () => {
           message: 'canonical graph',
         },
       ],
+      extensions: {
+        'governance-extension:typescript': {
+          extensionId: 'governance-extension:typescript',
+          contractVersion: '1',
+          data: {
+            kind: 'workspace',
+            technology: 'typescript',
+          },
+        },
+      },
       metadata: {
         owner: 'governance-core',
       },

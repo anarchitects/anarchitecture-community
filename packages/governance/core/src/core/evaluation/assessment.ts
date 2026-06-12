@@ -19,6 +19,7 @@ import type {
   GovernanceSignalType,
   KnownGovernanceSignalType,
 } from './signals.js';
+import type { GovernanceExtensionModelExpansionMap } from '../../extensions/model-expansions.js';
 
 export type GovernanceAssessmentReportType =
   | 'health'
@@ -41,6 +42,7 @@ export interface GovernanceAssessmentInput {
   recommendations?: Recommendation[];
   scope?: GovernanceAssessment['scope'];
   perspectives?: GovernanceAssessment['perspectives'];
+  extensions?: GovernanceExtensionModelExpansionMap;
   metadata?: GovernanceAssessment['metadata'];
   reportType?: GovernanceAssessmentReportType;
 }
@@ -156,6 +158,7 @@ export function buildGovernanceAssessment(
       : {}),
     health: input.health,
     recommendations: [...(input.recommendations ?? [])],
+    ...(input.extensions ? { extensions: { ...input.extensions } } : {}),
     ...(input.metadata ? { metadata: { ...input.metadata } } : {}),
   };
 }

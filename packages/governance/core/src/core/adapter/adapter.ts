@@ -3,6 +3,7 @@ import type {
   GovernanceWorkspace,
 } from '../model/models.js';
 import { buildGovernanceNormalizedGraph } from '../graph/internal-normalization.js';
+import type { GovernanceExtensionModelExpansionMap } from '../../extensions/model-expansions.js';
 
 export interface GovernanceWorkspaceAdapterResult {
   workspace?: GovernanceWorkspace;
@@ -13,6 +14,7 @@ export interface GovernanceWorkspaceAdapterResult {
   relations?: GovernanceRelationInput[];
   capabilities?: GovernanceCapability[];
   diagnostics?: GovernanceDiagnostic[];
+  extensions?: GovernanceExtensionModelExpansionMap;
   metadata?: Record<string, unknown>;
 }
 
@@ -129,6 +131,7 @@ export interface GovernanceNodeInput {
   evidence?: GovernanceEvidence[];
   authority?: GovernanceAuthority;
   confidence?: GovernanceConfidence;
+  extensions?: GovernanceExtensionModelExpansionMap;
   // Adapter-specific or extension-owned expansion data can be attached here.
   // Core keeps metadata opaque unless a generic canonical contract says
   // otherwise.
@@ -149,6 +152,7 @@ export interface GovernanceRelationInput {
   evidence?: GovernanceEvidence[];
   authority?: GovernanceAuthority;
   confidence?: GovernanceConfidence;
+  extensions?: GovernanceExtensionModelExpansionMap;
   // Relation metadata may carry source-specific facts, but Core only interprets
   // it through explicit generic contracts.
   metadata?: Record<string, unknown>;
@@ -226,6 +230,8 @@ export function buildGovernanceWorkspace(
     adapterResult.capabilities ?? adapterResult.workspace?.capabilities;
   const diagnostics =
     adapterResult.diagnostics ?? adapterResult.workspace?.diagnostics;
+  const extensions =
+    adapterResult.extensions ?? adapterResult.workspace?.extensions;
   const metadata = adapterResult.metadata ?? adapterResult.workspace?.metadata;
 
   return {
@@ -239,6 +245,7 @@ export function buildGovernanceWorkspace(
     relations: graph.relations,
     ...(capabilities !== undefined ? { capabilities } : {}),
     ...(diagnostics !== undefined ? { diagnostics } : {}),
+    ...(extensions !== undefined ? { extensions } : {}),
     ...(metadata !== undefined ? { metadata } : {}),
   };
 }

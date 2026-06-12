@@ -9,6 +9,7 @@ import type {
   GovernanceCapabilityRegistry,
   GovernanceCapabilityRequirement,
 } from './capabilities.js';
+import type { GovernanceExtensionModelExpansionMap } from './model-expansions.js';
 
 export interface GovernanceExtensionHostContext {
   // Kept as a portable host-provided string. Core does not read from the
@@ -18,6 +19,9 @@ export interface GovernanceExtensionHostContext {
   // Opaque extension-owned configuration routed by the host. Canonical profile
   // policy does not belong here, and Core does not interpret these options.
   options: Readonly<Record<string, unknown>>;
+  // Hosts may attach extension-owned runtime context here using the same
+  // versioned envelope model used for canonical subjects.
+  extensions?: GovernanceExtensionModelExpansionMap;
   inventory: GovernanceWorkspace;
   // Hosts compose adapter, extension, profile, and execution concerns through
   // Core-owned capabilities. Adapters should not import extension packages.
