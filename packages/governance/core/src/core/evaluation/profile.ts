@@ -22,7 +22,6 @@ export interface GovernanceNodeOverride {
 export interface GovernanceProfile {
   name: string;
   description?: string;
-  boundaryPolicySource: 'profile' | 'eslint';
   layers: string[];
   rules?: Record<string, GovernanceRuleConfig>;
   allowedLayerDependencies?: AllowedLayerDependencies;
@@ -59,10 +58,6 @@ export interface GovernanceOwnershipPresenceRuleOptions {
 export interface GovernanceScoringProfile {
   statusThresholds: HealthStatusThresholds;
   metricWeights: Record<Measurement['id'], number>;
-}
-
-export interface GovernanceProfileSourceMetadata {
-  boundaryPolicySource: GovernanceProfile['boundaryPolicySource'];
 }
 
 export interface NodeNameConventionOptions {
@@ -107,11 +102,9 @@ export interface NormalizedGovernanceProfile {
   scoring: GovernanceScoringProfile;
   exceptions: GovernanceException[];
   nodeOverrides: Record<string, GovernanceNodeOverride>;
-  profileSource: GovernanceProfileSourceMetadata;
 }
 
 export interface ProfileOverrides {
-  boundaryPolicySource?: GovernanceProfile['boundaryPolicySource'];
   layers?: string[];
   rules?: Record<string, GovernanceRuleConfig>;
   allowedLayerDependencies?: AllowedLayerDependencies;
@@ -202,8 +195,5 @@ export function normalizeGovernanceProfile(
     },
     exceptions: options.exceptions ?? [],
     nodeOverrides: options.nodeOverrides ?? {},
-    profileSource: {
-      boundaryPolicySource: profile.boundaryPolicySource,
-    },
   };
 }

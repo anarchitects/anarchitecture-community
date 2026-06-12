@@ -9,7 +9,6 @@ import { coreTestAdapterResult } from '../../../tests/workspace.fixtures.js';
 
 const testProfile: GovernanceProfile = {
   name: 'frontend-layered',
-  boundaryPolicySource: 'profile',
   layers: ['app', 'domain', 'ui'],
   allowedDomainDependencies: {
     platform: ['platform'],

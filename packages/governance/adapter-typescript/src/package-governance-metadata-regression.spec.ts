@@ -181,7 +181,6 @@ describe('package governance metadata regression coverage', () => {
       workspaceAdapterResult: adapterResult,
       profile: {
         name: 'ownership-required',
-        boundaryPolicySource: 'profile',
         layers: [],
         allowedDomainDependencies: {
           '*': [],

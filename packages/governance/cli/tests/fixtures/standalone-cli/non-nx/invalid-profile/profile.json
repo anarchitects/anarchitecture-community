@@ -1,6 +1,5 @@
 {
   "name": " ",
-  "boundaryPolicySource": "profile",
   "layers": ["domain", "domain"],
   "rules": {
     "project-name-convention": {

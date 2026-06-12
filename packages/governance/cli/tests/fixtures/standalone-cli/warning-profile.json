@@ -1,7 +1,6 @@
 {
   "name": "check-warning",
   "description": "Standalone agov check warning threshold fixture",
-  "boundaryPolicySource": "profile",
   "layers": ["domain"],
   "allowedDomainDependencies": {
     "customer": ["order"],

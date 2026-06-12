@@ -1,5 +1,4 @@
 {
-  "boundaryPolicySource": "eslint",
   "layers": ["app", "feature", "ui", "data-access", "util"],
   "allowedDomainDependencies": {
     "js": [],

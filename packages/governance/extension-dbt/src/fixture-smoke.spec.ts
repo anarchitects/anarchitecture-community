@@ -26,7 +26,6 @@ describe('dbt extension fixture smoke coverage', () => {
   ): GovernanceProfile {
     return {
       name: 'dbt',
-      boundaryPolicySource: 'profile',
       layers: ['staging', 'intermediate', 'marts'],
       allowedDomainDependencies: {
         customer: ['customer'],

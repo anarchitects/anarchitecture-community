@@ -36,7 +36,6 @@ describe('governance extension runtime', () => {
 
   const baseProfile: GovernanceProfile = {
     name: 'frontend-layered',
-    boundaryPolicySource: 'profile',
     layers: [],
     allowedDomainDependencies: {},
     ownership: {

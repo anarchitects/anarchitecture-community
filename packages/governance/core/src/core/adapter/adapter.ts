@@ -3,7 +3,6 @@ import type {
   GovernanceWorkspace,
 } from '../model/models.js';
 import { buildGovernanceNormalizedGraph } from '../graph/internal-normalization.js';
-import type { ProfileOverrides } from '../evaluation/profile.js';
 
 export interface GovernanceWorkspaceAdapterResult {
   workspace?: GovernanceWorkspace;
@@ -130,6 +129,9 @@ export interface GovernanceNodeInput {
   evidence?: GovernanceEvidence[];
   authority?: GovernanceAuthority;
   confidence?: GovernanceConfidence;
+  // Adapter-specific or extension-owned expansion data can be attached here.
+  // Core keeps metadata opaque unless a generic canonical contract says
+  // otherwise.
   metadata?: Record<string, unknown>;
 }
 
@@ -147,6 +149,8 @@ export interface GovernanceRelationInput {
   evidence?: GovernanceEvidence[];
   authority?: GovernanceAuthority;
   confidence?: GovernanceConfidence;
+  // Relation metadata may carry source-specific facts, but Core only interprets
+  // it through explicit generic contracts.
   metadata?: Record<string, unknown>;
 }
 
@@ -214,7 +218,6 @@ export interface GovernanceDiagnostic {
 
 export function buildGovernanceWorkspace(
   adapterResult: GovernanceWorkspaceAdapterResult,
-  _overrides: ProfileOverrides = { nodeOverrides: {} },
 ): GovernanceWorkspace {
   const graph = buildGovernanceNormalizedGraph(adapterResult);
   const root =

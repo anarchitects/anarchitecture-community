@@ -20,7 +20,6 @@ describe('loadStandaloneGovernanceProfile', () => {
     expect(loaded.profile).toEqual({
       name: 'standalone-demo',
       description: 'Standalone Governance CLI profile fixture',
-      boundaryPolicySource: 'profile',
       layers: ['app', 'domain', 'infra'],
       rules: {
         'missing-domain': {
@@ -134,9 +133,6 @@ describe('loadStandaloneGovernanceProfile', () => {
       },
       exceptions: [],
       nodeOverrides: {},
-      profileSource: {
-        boundaryPolicySource: 'profile',
-      },
     });
   });
 
@@ -145,7 +141,6 @@ describe('loadStandaloneGovernanceProfile', () => {
 
     expect(loadStandaloneGovernanceProfileConfig(fixturePath)).toMatchObject({
       name: 'standalone-demo',
-      boundaryPolicySource: 'profile',
       layers: ['app', 'domain', 'infra'],
     });
   });
@@ -188,7 +183,6 @@ describe('loadStandaloneGovernanceProfile', () => {
     expect(() =>
       validateStandaloneGovernanceProfile({
         name: 'legacy-overrides',
-        boundaryPolicySource: 'profile',
         layers: ['app'],
         allowedDomainDependencies: {
           '*': [],
@@ -217,7 +211,6 @@ describe('loadStandaloneGovernanceProfile', () => {
     try {
       validateStandaloneGovernanceProfile({
         name: 'legacy-overrides',
-        boundaryPolicySource: 'profile',
         layers: ['app'],
         allowedDomainDependencies: {
           '*': [],
@@ -302,7 +295,6 @@ describe('loadStandaloneGovernanceProfile', () => {
     expect(() =>
       validateStandaloneGovernanceProfile({
         name: '  ',
-        boundaryPolicySource: 'custom',
         layers: ['app', 'app'],
         rules: {
           'project-name-convention': {
@@ -335,7 +327,6 @@ describe('loadStandaloneGovernanceProfile', () => {
     try {
       validateStandaloneGovernanceProfile({
         name: '  ',
-        boundaryPolicySource: 'custom',
         layers: ['app', 'app'],
         rules: {
           'project-name-convention': {
@@ -377,11 +368,6 @@ describe('loadStandaloneGovernanceProfile', () => {
           code: 'governance.profile.invalid_value',
           message: 'Profile name must be non-empty.',
           path: '/name',
-        },
-        {
-          code: 'governance.profile.invalid_enum_value',
-          message: 'boundaryPolicySource must be "profile" or "eslint".',
-          path: '/boundaryPolicySource',
         },
         {
           code: 'governance.profile.invalid_value',
@@ -434,7 +420,6 @@ describe('loadStandaloneGovernanceProfile', () => {
     const profile = validateStandaloneGovernanceProfile({
       name: '  deterministic-profile  ',
       description: '  deterministic output fixture  ',
-      boundaryPolicySource: 'profile',
       layers: ['app', 'domain', 'infra'],
       allowedLayerDependencies: {
         domain: ['infra', 'infra'],
@@ -471,7 +456,6 @@ describe('loadStandaloneGovernanceProfile', () => {
     expect(profile).toEqual({
       name: 'deterministic-profile',
       description: 'deterministic output fixture',
-      boundaryPolicySource: 'profile',
       layers: ['app', 'domain', 'infra'],
       rules: {
         'project-name-convention': {
@@ -510,7 +494,6 @@ describe('loadStandaloneGovernanceProfile', () => {
     expect(() =>
       validateStandaloneGovernanceProfile({
         name: 'unknown-ownership-field',
-        boundaryPolicySource: 'profile',
         layers: ['app'],
         allowedDomainDependencies: {
           '*': [],
@@ -539,7 +522,6 @@ describe('loadStandaloneGovernanceProfile', () => {
     try {
       validateStandaloneGovernanceProfile({
         name: 'unknown-ownership-field',
-        boundaryPolicySource: 'profile',
         layers: ['app'],
         allowedDomainDependencies: {
           '*': [],

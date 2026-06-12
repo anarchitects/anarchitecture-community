@@ -1,7 +1,6 @@
 {
   "name": "fixture-valid-json",
   "description": "Non-Nx standalone CLI JSON fixture profile",
-  "boundaryPolicySource": "profile",
   "layers": ["domain"],
   "allowedDomainDependencies": {
     "billing": ["shared"],

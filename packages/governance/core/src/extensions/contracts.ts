@@ -15,6 +15,8 @@ export interface GovernanceExtensionHostContext {
   // filesystem or assume Nx semantics; it only carries the workspace root.
   workspaceRoot: string;
   profileName: string;
+  // Opaque extension-owned configuration routed by the host. Canonical profile
+  // policy does not belong here, and Core does not interpret these options.
   options: Readonly<Record<string, unknown>>;
   inventory: GovernanceWorkspace;
   // Hosts compose adapter, extension, profile, and execution concerns through

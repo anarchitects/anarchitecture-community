@@ -12,7 +12,6 @@ import { normalizeGovernanceProfile } from '@anarchitects/governance-core';
 const PROFILE_TOP_LEVEL_FIELDS = new Set([
   'name',
   'description',
-  'boundaryPolicySource',
   'layers',
   'rules',
   'allowedLayerDependencies',
@@ -151,11 +150,6 @@ export function validateStandaloneGovernanceProfile(
     issues,
     'Profile description',
   );
-  const boundaryPolicySource = validateBoundaryPolicySource(
-    root.boundaryPolicySource,
-    '/boundaryPolicySource',
-    issues,
-  );
   const layers = validateLayers(root.layers, '/layers', issues);
   const rules = validateRules(root.rules, '/rules', issues);
   const allowedLayerDependencies = validateAllowedLayerDependencies(
@@ -176,7 +170,6 @@ export function validateStandaloneGovernanceProfile(
   if (
     issues.length > 0 ||
     !name ||
-    !boundaryPolicySource ||
     !layers ||
     !allowedDomainDependencies ||
     !ownership ||
@@ -189,7 +182,6 @@ export function validateStandaloneGovernanceProfile(
   return {
     name,
     ...(description ? { description } : {}),
-    boundaryPolicySource,
     layers,
     ...(rules ? { rules } : {}),
     ...(allowedLayerDependencies ? { allowedLayerDependencies } : {}),
@@ -245,31 +237,6 @@ function parseStandaloneProfileJson(source: string, filePath: string): unknown {
       filePath,
     );
   }
-}
-
-function validateBoundaryPolicySource(
-  value: unknown,
-  pointer: string,
-  issues: StandaloneGovernanceProfileValidationIssue[],
-): GovernanceProfile['boundaryPolicySource'] | undefined {
-  if (value === undefined) {
-    issues.push(
-      missingRequiredField(pointer, 'boundaryPolicySource is required.'),
-    );
-    return undefined;
-  }
-
-  if (value !== 'profile' && value !== 'eslint') {
-    issues.push(
-      invalidEnumValue(
-        pointer,
-        'boundaryPolicySource must be "profile" or "eslint".',
-      ),
-    );
-    return undefined;
-  }
-
-  return value;
 }
 
 function validateLayers(

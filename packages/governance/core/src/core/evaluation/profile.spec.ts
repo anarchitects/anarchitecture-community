@@ -9,7 +9,6 @@ describe('normalizeGovernanceProfile', () => {
   const baseProfile: GovernanceProfile = {
     name: 'test-profile',
     description: 'Profile normalization test fixture',
-    boundaryPolicySource: 'profile',
     layers: ['app', 'feature', 'ui', 'data-access', 'util'],
     allowedDomainDependencies: {
       '*': ['shared'],
@@ -74,6 +73,7 @@ describe('normalizeGovernanceProfile', () => {
       },
       metricWeights: baseProfile.metrics,
     });
+    expect(normalized).not.toHaveProperty('profileSource');
   });
 
   it('preserves explicit generic rule configuration', () => {

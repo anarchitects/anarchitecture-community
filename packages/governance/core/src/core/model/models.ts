@@ -25,6 +25,8 @@ export interface GovernanceWorkspace {
   relations: GovernanceRelation[];
   capabilities?: GovernanceCapability[];
   diagnostics?: GovernanceDiagnostic[];
+  // Hosts, adapters, and extensions may attach runtime data here. Core does
+  // not treat arbitrary metadata as canonical policy input.
   metadata?: Record<string, unknown>;
 }
 
@@ -44,6 +46,8 @@ export interface GovernanceNode {
   evidence?: GovernanceNodeInput['evidence'];
   authority?: GovernanceNodeInput['authority'];
   confidence?: GovernanceNodeInput['confidence'];
+  // Extensions may persist owned expansion data here, but Core only interprets
+  // metadata when an explicit generic contract defines semantics for it.
   metadata: Record<string, unknown>;
 }
 
@@ -57,6 +61,8 @@ export interface GovernanceRelation {
   evidence?: GovernanceRelationInput['evidence'];
   authority?: GovernanceRelationInput['authority'];
   confidence?: GovernanceRelationInput['confidence'];
+  // Relation metadata is opaque by default and stays extension-owned unless a
+  // canonical Core contract says otherwise.
   metadata: Record<string, unknown>;
 }
 
