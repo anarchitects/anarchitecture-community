@@ -351,6 +351,109 @@ describe('buildTopIssues', () => {
       'missing-domain-context',
     ]);
   });
+
+  it('keeps generic relation-level issues scoped to relations', () => {
+    expect(
+      buildTopIssues([
+        createSignal({
+          id: 'generic-relation-issue',
+          type: 'cross-domain-dependency',
+          severity: 'warning',
+          category: 'boundary',
+          nodeId: 'booking-api',
+          relationId: 'relation:booking-api->booking-interface',
+          relatedNodeIds: ['booking-api', 'booking-interface'],
+          message: 'Cross-domain dependency.',
+        }),
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        subjects: ['relation:booking-api->booking-interface'],
+      }),
+    ]);
+  });
+
+  it('keeps only relevant missing-domain-context subjects for the missing source side', () => {
+    expect(
+      buildTopIssues([
+        createSignal({
+          id: 'missing-source-domain',
+          type: 'missing-domain-context',
+          severity: 'warning',
+          category: 'boundary',
+          nodeId: 'booking-api',
+          relationId: 'relation:booking-api->booking-interface',
+          relatedNodeIds: ['booking-api', 'booking-interface'],
+          message: 'Missing domain context.',
+          metadata: {
+            missingSourceDomain: true,
+            missingTargetDomain: false,
+          },
+        }),
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        subjects: ['booking-api', 'relation:booking-api->booking-interface'],
+      }),
+    ]);
+  });
+
+  it('keeps only relevant missing-domain-context subjects for the missing target side', () => {
+    expect(
+      buildTopIssues([
+        createSignal({
+          id: 'missing-target-domain',
+          type: 'missing-domain-context',
+          severity: 'warning',
+          category: 'boundary',
+          nodeId: 'booking-api',
+          relationId: 'relation:booking-api->booking-interface',
+          relatedNodeIds: ['booking-api', 'booking-interface'],
+          message: 'Missing domain context.',
+          metadata: {
+            missingSourceDomain: false,
+            missingTargetDomain: true,
+          },
+        }),
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        subjects: [
+          'booking-interface',
+          'relation:booking-api->booking-interface',
+        ],
+      }),
+    ]);
+  });
+
+  it('keeps only relevant missing-domain-context subjects when both domains are missing', () => {
+    expect(
+      buildTopIssues([
+        createSignal({
+          id: 'missing-both-domains',
+          type: 'missing-domain-context',
+          severity: 'warning',
+          category: 'boundary',
+          nodeId: 'booking-api',
+          relationId: 'relation:booking-api->booking-interface',
+          relatedNodeIds: ['booking-api', 'booking-interface'],
+          message: 'Missing domain context.',
+          metadata: {
+            missingSourceDomain: true,
+            missingTargetDomain: true,
+          },
+        }),
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        subjects: [
+          'booking-api',
+          'booking-interface',
+          'relation:booking-api->booking-interface',
+        ],
+      }),
+    ]);
+  });
 });
 
 describe('buildTopSignals', () => {

@@ -1,4 +1,5 @@
 import {
+  buildTopIssues,
   buildGovernanceRecommendations,
   calculateGovernanceHealth,
   calculateGovernanceMetrics,
@@ -274,22 +275,16 @@ describe('metrics and health', () => {
     });
     expect(health.subjectHotspots).toEqual([
       {
-        subjectId: 'booking-ui',
-        subjectType: 'node',
-        count: 3,
-        dominantIssueTypes: ['domain-boundary-violation', 'ownership-gap'],
-      },
-      {
-        subjectId: 'app-shell',
-        subjectType: 'node',
-        count: 2,
-        dominantIssueTypes: ['domain-boundary-violation'],
-      },
-      {
         subjectId: 'relation:app-shell->booking-ui',
         subjectType: 'relation',
         count: 2,
         dominantIssueTypes: ['domain-boundary-violation'],
+      },
+      {
+        subjectId: 'booking-ui',
+        subjectType: 'node',
+        count: 1,
+        dominantIssueTypes: ['ownership-gap'],
       },
     ]);
     expect(health).toMatchObject({
@@ -384,6 +379,105 @@ describe('metrics and health', () => {
           nodeId: 'undocumented-node',
         },
       }),
+    ]);
+  });
+
+  it.each([
+    {
+      name: 'source-missing',
+      metadata: {
+        missingSourceDomain: true,
+        missingTargetDomain: false,
+      },
+      expectedNodeHotspots: ['booking-api'],
+      excludedNodeHotspots: ['booking-interface'],
+    },
+    {
+      name: 'target-missing',
+      metadata: {
+        missingSourceDomain: false,
+        missingTargetDomain: true,
+      },
+      expectedNodeHotspots: ['booking-interface'],
+      excludedNodeHotspots: ['booking-api'],
+    },
+    {
+      name: 'both-missing',
+      metadata: {
+        missingSourceDomain: true,
+        missingTargetDomain: true,
+      },
+      expectedNodeHotspots: ['booking-api', 'booking-interface'],
+      excludedNodeHotspots: [],
+    },
+  ])(
+    'attributes missing-domain-context node hotspots to the missing side for $name',
+    ({ metadata, expectedNodeHotspots, excludedNodeHotspots }) => {
+      const topIssues = buildTopIssues([
+        {
+          id: `signal:${metadata.missingSourceDomain ? 'source' : 'target'}:${metadata.missingTargetDomain ? 'target' : 'source'}`,
+          type: 'missing-domain-context',
+          nodeId: 'booking-api',
+          relationId: 'relation:booking-api->booking-interface',
+          relatedNodeIds: ['booking-api', 'booking-interface'],
+          severity: 'warning',
+          category: 'boundary',
+          message: 'Missing domain context.',
+          source: 'graph',
+          createdAt: '2026-06-12T10:00:00.000Z',
+          metadata,
+        } satisfies GovernanceSignal,
+      ]);
+      const health = calculateGovernanceHealth([], {}, undefined, {
+        topIssues,
+      });
+      const nodeHotspotIds = health.subjectHotspots
+        .filter((hotspot) => hotspot.subjectType === 'node')
+        .map((hotspot) => hotspot.subjectId);
+
+      expect(nodeHotspotIds).toEqual(expectedNodeHotspots);
+      if (excludedNodeHotspots.length > 0) {
+        expect(nodeHotspotIds).not.toEqual(
+          expect.arrayContaining(excludedNodeHotspots),
+        );
+      }
+      expect(health.subjectHotspots).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            subjectId: 'relation:booking-api->booking-interface',
+            subjectType: 'relation',
+            dominantIssueTypes: ['missing-domain-context'],
+          }),
+        ]),
+      );
+    },
+  );
+
+  it('keeps generic relation-level hotspot context out of node hotspots', () => {
+    const health = calculateGovernanceHealth([], {}, undefined, {
+      topIssues: [
+        {
+          type: 'cross-domain-dependency',
+          source: 'graph',
+          severity: 'warning',
+          count: 1,
+          subjects: [
+            'booking-api',
+            'booking-interface',
+            'relation:booking-api->booking-interface',
+          ],
+          message: 'Cross-domain dependency.',
+        },
+      ],
+    });
+
+    expect(health.subjectHotspots).toEqual([
+      {
+        subjectId: 'relation:booking-api->booking-interface',
+        subjectType: 'relation',
+        count: 1,
+        dominantIssueTypes: ['cross-domain-dependency'],
+      },
     ]);
   });
 });
