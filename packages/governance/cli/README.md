@@ -11,7 +11,8 @@ Use this package when you want to run Governance from a shell, CI job, or
 automation script without writing a custom host.
 
 Package boundaries follow
-[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md).
+[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
+[ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
 
 ## Key Concepts
 
@@ -116,6 +117,78 @@ agov assess --workspace ./governance.workspace.json --profile ./governance.profi
 `agov assess --include-top-signals` when you want a separate `Top Signals`
 section that can include `info`-level telemetry for architecture inspection or
 debugging.
+
+### Host Configuration Layering
+
+The standalone CLI host keeps canonical policy separate from adapter-specific
+and extension-specific runtime config.
+
+Use the canonical Governance profile for Core-owned policy only:
+
+- profile rules and policy
+- canonical ownership requirements
+- canonical domain, layer, and scope expectations
+
+Do not put adapter extraction options or extension interpretation options into
+the canonical profile.
+
+Use `agov.config.json` or `governance.config.json` for host-owned layering:
+
+```json
+{
+  "profile": "./governance.profile.json",
+  "adapter": "@anarchitects/governance-adapter-typescript",
+  "extensions": ["@anarchitects/governance-extension-typescript"],
+  "adapterOptions": {
+    "@anarchitects/governance-adapter-typescript": {
+      "discoveryConfig": {
+        "projects": [
+          { "pattern": "libs/*", "projection": { "type": "library" } }
+        ]
+      }
+    }
+  },
+  "extensionOptions": {
+    "@anarchitects/governance-extension-typescript": {
+      "signals": {
+        "createdAt": "2026-06-12T00:00:00.000Z"
+      }
+    }
+  }
+}
+```
+
+In that split:
+
+- `profile` remains canonical Core policy
+- `adapterOptions` routes only to adapter creation/loading
+- `extensionOptions` routes only to extension creation/registration/runtime
+- Core evaluation receives the resolved canonical profile and normalized
+  workspace data, not the host config blobs directly
+
+Current precedence rules:
+
+- explicit CLI flags override host config for `profile`, `adapter`, `workspace`,
+  `root`, and `format`
+- host config provides `extensions`, `adapterOptions`, and `extensionOptions`
+- explicit configured extensions are loaded first, then an inferred matching
+  extension may be added for adapter flows if it is available and not already
+  configured
+
+TypeScript example:
+
+- TypeScript discovery config belongs in `adapterOptions` for
+  `@anarchitects/governance-adapter-typescript`
+- TypeScript extension interpretation config belongs in `extensionOptions` for
+  `@anarchitects/governance-extension-typescript`
+- canonical policy still belongs in `governance.profile.json`
+
+dbt-oriented note:
+
+- future dbt hosts should apply the same split between canonical profile,
+  dbt adapter config, dbt extension config, and dbt runtime/host options
+- dbt-specific extraction and interpretation options should not be folded into
+  the canonical profile
 
 ### Inspection Commands
 

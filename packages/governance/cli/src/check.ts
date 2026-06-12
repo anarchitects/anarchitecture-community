@@ -31,6 +31,12 @@ const TOP_SIGNAL_SEVERITY_ORDER: Record<GovernanceSignalSeverity, number> = {
   error: 2,
 };
 
+export interface AgovExtensionHostOptions {
+  host?: Readonly<Record<string, unknown>>;
+  adapter?: Readonly<Record<string, unknown>>;
+  extensions?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+}
+
 export interface AgovCheckWithWorkspacePathOptions {
   profilePath: string;
   workspacePath: string;
@@ -38,6 +44,7 @@ export interface AgovCheckWithWorkspacePathOptions {
   workspaceAdapterInput?: undefined;
   extensions?: readonly GovernanceLoadedExtension[];
   extensionDiagnostics?: readonly GovernanceExtensionDiagnostic[];
+  extensionHostOptions?: AgovExtensionHostOptions;
 }
 
 export interface AgovCheckWithAdapterOptions<TInput = unknown> {
@@ -47,6 +54,7 @@ export interface AgovCheckWithAdapterOptions<TInput = unknown> {
   workspacePath?: undefined;
   extensions?: readonly GovernanceLoadedExtension[];
   extensionDiagnostics?: readonly GovernanceExtensionDiagnostic[];
+  extensionHostOptions?: AgovExtensionHostOptions;
 }
 
 export type AgovCheckOptions<TInput = unknown> =
@@ -180,6 +188,15 @@ function buildExtensionOptions<TInput>(
     ...('workspaceAdapter' in options && options.workspaceAdapter
       ? { workspaceAdapterId: options.workspaceAdapter.id }
       : {}),
+    ...(options.extensionHostOptions?.host
+      ? { host: options.extensionHostOptions.host }
+      : {}),
+    ...(options.extensionHostOptions?.adapter
+      ? { adapter: options.extensionHostOptions.adapter }
+      : {}),
+    ...(options.extensionHostOptions?.extensions
+      ? { extensions: options.extensionHostOptions.extensions }
+      : {}),
   };
 }
 
@@ -242,31 +259,31 @@ function buildFallbackTopSignals(
 
   return [...groups.values()].sort(
     (left: GovernanceTopSignal, right: GovernanceTopSignal) => {
-    const sourceOrder =
-      TOP_SIGNAL_SOURCE_ORDER[left.source] -
-      TOP_SIGNAL_SOURCE_ORDER[right.source];
-    if (sourceOrder !== 0) {
-      return sourceOrder;
-    }
+      const sourceOrder =
+        TOP_SIGNAL_SOURCE_ORDER[left.source] -
+        TOP_SIGNAL_SOURCE_ORDER[right.source];
+      if (sourceOrder !== 0) {
+        return sourceOrder;
+      }
 
-    const severityOrder =
-      TOP_SIGNAL_SEVERITY_ORDER[left.severity] -
-      TOP_SIGNAL_SEVERITY_ORDER[right.severity];
-    if (severityOrder !== 0) {
-      return severityOrder;
-    }
+      const severityOrder =
+        TOP_SIGNAL_SEVERITY_ORDER[left.severity] -
+        TOP_SIGNAL_SEVERITY_ORDER[right.severity];
+      if (severityOrder !== 0) {
+        return severityOrder;
+      }
 
-    const typeOrder = left.type.localeCompare(right.type);
-    if (typeOrder !== 0) {
-      return typeOrder;
-    }
+      const typeOrder = left.type.localeCompare(right.type);
+      if (typeOrder !== 0) {
+        return typeOrder;
+      }
 
-    const subjectsOrder = left.subjects
-      .join(',')
-      .localeCompare(right.subjects.join(','));
-    if (subjectsOrder !== 0) {
-      return subjectsOrder;
-    }
+      const subjectsOrder = left.subjects
+        .join(',')
+        .localeCompare(right.subjects.join(','));
+      if (subjectsOrder !== 0) {
+        return subjectsOrder;
+      }
 
       return left.message.localeCompare(right.message);
     },
