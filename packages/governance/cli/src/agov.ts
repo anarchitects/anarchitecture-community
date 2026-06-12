@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 import type {
   GovernanceExtensionDefinition,
-  GovernanceExtensionDiagnostic,
   GovernanceLoadedExtension,
   GovernanceWorkspaceAdapter,
   GovernanceWorkspaceAdapterProbeConfidence,
@@ -52,6 +51,7 @@ import type {
   AgovViolationsResult,
 } from './violations.js';
 import type {
+  AgovExtensionHostOptions,
   AgovAssessOptions,
   AgovAssessResult,
   AgovCheckOptions,
@@ -150,10 +150,25 @@ export interface AgovCliConfig {
   profile?: string;
   adapter?: string;
   adapters?: string[];
+  extensions?: string[];
+  adapterOptions?: AgovCliNamedOptionsMap;
+  extensionOptions?: AgovCliNamedOptionsMap;
   root?: string;
   workspace?: string;
   format?: string;
   output?: string;
+}
+
+export type AgovCliScopedOptions = Readonly<Record<string, unknown>>;
+
+export type AgovCliNamedOptionsMap = Readonly<
+  Record<string, AgovCliScopedOptions>
+>;
+
+export interface AgovCliResolvedHostConfig {
+  extensionPackages: readonly string[];
+  adapterOptions: AgovCliNamedOptionsMap;
+  extensionOptions: AgovCliNamedOptionsMap;
 }
 
 export type AgovAssessmentCommandName = 'check' | 'assess';
@@ -293,6 +308,7 @@ export interface AgovResolvedAssessmentCommand {
   workspacePath?: string;
   adapterPackage?: string;
   adapterCandidates?: string[];
+  hostConfig: AgovCliResolvedHostConfig;
 }
 
 export interface AgovResolvedWorkspaceCommand {
@@ -305,6 +321,7 @@ export interface AgovResolvedWorkspaceCommand {
   workspacePath?: string;
   adapterPackage?: string;
   adapterCandidates?: string[];
+  hostConfig: AgovCliResolvedHostConfig;
 }
 
 export type AgovResolvedCheckCommand = AgovResolvedAssessmentCommand & {
@@ -348,6 +365,7 @@ export interface AgovResolvedInspectCommand {
   adapterPackage?: string;
   adapterCandidates?: string[];
   filters?: AgovInspectFilters;
+  hostConfig: AgovCliResolvedHostConfig;
 }
 
 export interface AgovResolvedDependenciesCommand {
@@ -361,6 +379,7 @@ export interface AgovResolvedDependenciesCommand {
   adapterPackage?: string;
   adapterCandidates?: string[];
   filters?: AgovDependenciesFilters;
+  hostConfig: AgovCliResolvedHostConfig;
 }
 
 export interface ParsedAgovProfileValidateOptions {
@@ -401,6 +420,7 @@ export interface AgovResolvedWorkspaceValidateCommand {
   workspacePath?: string;
   adapterPackage?: string;
   adapterCandidates?: string[];
+  hostConfig: AgovCliResolvedHostConfig;
 }
 
 export type AgovAssessmentRuntimeOptions<TInput = unknown> =
@@ -460,6 +480,8 @@ export class AgovCliRuntimeError extends Error {
     public readonly code:
       | 'agov.cli.adapter_not_found'
       | 'agov.cli.adapter_contract_mismatch'
+      | 'agov.cli.extension_not_found'
+      | 'agov.cli.extension_contract_mismatch'
       | 'agov.cli.no_supported_adapter'
       | 'agov.cli.unhandled_error',
     public readonly details?: Record<string, unknown>,
@@ -1890,6 +1912,7 @@ function resolveAgovWorkspaceCommand(
   );
   const config = configPath ? loadAgovConfig(configPath) : {};
   const configBasePath = configPath ? path.dirname(configPath) : cwd;
+  const hostConfig = resolveAgovCliHostConfig(config);
 
   if (
     (config.adapter || readNonEmptyStringArray(config.adapters).length > 0) &&
@@ -1943,6 +1966,7 @@ function resolveAgovWorkspaceCommand(
       rootPath,
       workspacePath,
       format,
+      hostConfig,
       ...(outputPath ? { outputPath } : {}),
       ...(configPath ? { configPath } : {}),
       mode: 'workspace',
@@ -1955,6 +1979,7 @@ function resolveAgovWorkspaceCommand(
       rootPath,
       adapterPackage,
       format,
+      hostConfig,
       ...(outputPath ? { outputPath } : {}),
       ...(configPath ? { configPath } : {}),
       mode: 'adapter',
@@ -1967,6 +1992,7 @@ function resolveAgovWorkspaceCommand(
       rootPath,
       adapterCandidates,
       format,
+      hostConfig,
       ...(outputPath ? { outputPath } : {}),
       ...(configPath ? { configPath } : {}),
       mode: 'adapter-discovery',
@@ -1979,6 +2005,7 @@ function resolveAgovWorkspaceCommand(
       rootPath,
       workspacePath,
       format,
+      hostConfig,
       ...(outputPath ? { outputPath } : {}),
       ...(configPath ? { configPath } : {}),
       mode: 'workspace',
@@ -2082,6 +2109,7 @@ export async function resolveAgovRuntimeOptions(
       const resolvedAdapter = await discoverGovernanceWorkspaceAdapter(
         command.adapterCandidates,
         command.rootPath,
+        command.hostConfig,
         environment,
       );
 
@@ -2095,6 +2123,10 @@ export async function resolveAgovRuntimeOptions(
     const workspaceAdapter = await loadGovernanceWorkspaceAdapter(
       command.adapterPackage,
       command.rootPath,
+      readScopedOptions(
+        command.hostConfig.adapterOptions,
+        command.adapterPackage,
+      ),
       environment,
     );
 
@@ -2117,6 +2149,16 @@ export async function resolveAgovRuntimeOptions(
       return {
         profilePath: command.profilePath,
         workspacePath: command.workspacePath,
+        ...(await loadGovernanceExtensionsForAssessment(
+          {
+            hostConfig: command.hostConfig,
+            rootPath: command.rootPath,
+            configPath: command.configPath,
+            profilePath: command.profilePath,
+            mode: command.mode,
+          },
+          environment,
+        )),
         ...(command.command === 'assess' && command.includeTopSignals
           ? { includeTopSignals: command.includeTopSignals }
           : {}),
@@ -2137,6 +2179,20 @@ export async function resolveAgovRuntimeOptions(
       const resolvedAdapter = await discoverGovernanceWorkspaceAdapter(
         command.adapterCandidates,
         command.rootPath,
+        command.hostConfig,
+        environment,
+      );
+
+      const loadedExtensions = await loadGovernanceExtensionsForAssessment(
+        {
+          adapterPackage: resolvedAdapter.packageName,
+          workspaceAdapter: resolvedAdapter.adapter,
+          hostConfig: command.hostConfig,
+          rootPath: command.rootPath,
+          configPath: command.configPath,
+          profilePath: command.profilePath,
+          mode: command.mode,
+        },
         environment,
       );
 
@@ -2144,13 +2200,10 @@ export async function resolveAgovRuntimeOptions(
         profilePath: command.profilePath,
         workspaceAdapter: resolvedAdapter.adapter,
         workspaceAdapterInput: command.rootPath,
+        ...loadedExtensions,
         ...(command.command === 'assess' && command.includeTopSignals
           ? { includeTopSignals: command.includeTopSignals }
           : {}),
-        ...(await loadInferredGovernanceExtensions(
-          resolvedAdapter.packageName,
-          environment,
-        )),
         ...('filters' in command && command.filters
           ? { filters: command.filters }
           : {}),
@@ -2160,6 +2213,23 @@ export async function resolveAgovRuntimeOptions(
     const workspaceAdapter = await loadGovernanceWorkspaceAdapter(
       command.adapterPackage,
       command.rootPath,
+      readScopedOptions(
+        command.hostConfig.adapterOptions,
+        command.adapterPackage,
+      ),
+      environment,
+    );
+
+    const loadedExtensions = await loadGovernanceExtensionsForAssessment(
+      {
+        adapterPackage: command.adapterPackage,
+        workspaceAdapter,
+        hostConfig: command.hostConfig,
+        rootPath: command.rootPath,
+        configPath: command.configPath,
+        profilePath: command.profilePath,
+        mode: command.mode,
+      },
       environment,
     );
 
@@ -2167,13 +2237,10 @@ export async function resolveAgovRuntimeOptions(
       profilePath: command.profilePath,
       workspaceAdapter,
       workspaceAdapterInput: command.rootPath,
+      ...loadedExtensions,
       ...(command.command === 'assess' && command.includeTopSignals
         ? { includeTopSignals: command.includeTopSignals }
         : {}),
-      ...(await loadInferredGovernanceExtensions(
-        command.adapterPackage,
-        environment,
-      )),
       ...('filters' in command && command.filters
         ? { filters: command.filters }
         : {}),
@@ -2205,6 +2272,7 @@ export async function resolveAgovRuntimeOptions(
     const resolvedAdapter = await discoverGovernanceWorkspaceAdapter(
       command.adapterCandidates,
       command.rootPath,
+      command.hostConfig,
       environment,
     );
 
@@ -2218,6 +2286,10 @@ export async function resolveAgovRuntimeOptions(
   const workspaceAdapter = await loadGovernanceWorkspaceAdapter(
     command.adapterPackage,
     command.rootPath,
+    readScopedOptions(
+      command.hostConfig.adapterOptions,
+      command.adapterPackage,
+    ),
     environment,
   );
 
@@ -2231,6 +2303,7 @@ export async function resolveAgovRuntimeOptions(
 async function loadGovernanceWorkspaceAdapter(
   packageName: string,
   rootPath: string,
+  adapterOptions: AgovCliScopedOptions | undefined,
   environment: Pick<AgovCliEnvironment, 'moduleLoader'>,
 ): Promise<GovernanceWorkspaceAdapter<string>> {
   let loadedModule: unknown;
@@ -2248,7 +2321,24 @@ async function loadGovernanceWorkspaceAdapter(
     );
   }
 
-  const resolvedAdapter = resolveAdapterExport(loadedModule);
+  let resolvedAdapter: GovernanceWorkspaceAdapter<string> | undefined;
+
+  try {
+    resolvedAdapter = resolveAdapterExport(
+      packageName,
+      loadedModule,
+      adapterOptions,
+    );
+  } catch (error) {
+    throw new AgovCliRuntimeError(
+      error instanceof Error ? error.message : 'Unknown adapter load error.',
+      'agov.cli.adapter_contract_mismatch',
+      {
+        adapter: packageName,
+        rootPath,
+      },
+    );
+  }
 
   if (!resolvedAdapter) {
     throw new AgovCliRuntimeError(
@@ -2267,6 +2357,7 @@ async function loadGovernanceWorkspaceAdapter(
 async function discoverGovernanceWorkspaceAdapter(
   packageNames: string[],
   rootPath: string,
+  hostConfig: AgovCliResolvedHostConfig,
   environment: Pick<AgovCliEnvironment, 'moduleLoader'>,
 ): Promise<{
   adapter: GovernanceWorkspaceAdapter<string>;
@@ -2293,7 +2384,23 @@ async function discoverGovernanceWorkspaceAdapter(
       continue;
     }
 
-    const adapter = resolveAdapterExport(loadedModule);
+    let adapter: GovernanceWorkspaceAdapter<string> | undefined;
+
+    try {
+      adapter = resolveAdapterExport(
+        packageName,
+        loadedModule,
+        readScopedOptions(hostConfig.adapterOptions, packageName),
+      );
+    } catch (error) {
+      attempts.push({
+        packageName,
+        status: 'contract-mismatch',
+        reason:
+          error instanceof Error ? error.message : 'adapter export failure',
+      });
+      continue;
+    }
 
     if (!adapter) {
       attempts.push({ packageName, status: 'contract-mismatch' });
@@ -2344,73 +2451,49 @@ async function discoverGovernanceWorkspaceAdapter(
 }
 
 function resolveAdapterExport(
+  packageName: string,
   loadedModule: unknown,
+  adapterOptions?: AgovCliScopedOptions,
 ): GovernanceWorkspaceAdapter<string> | undefined {
   const moduleRecord =
     typeof loadedModule === 'object' && loadedModule !== null
       ? (loadedModule as Record<string, unknown>)
       : {};
 
-  for (const candidate of [
-    moduleRecord.default,
-    moduleRecord.governanceWorkspaceAdapter,
-    moduleRecord.adapter,
-  ]) {
-    if (isGovernanceWorkspaceAdapter(candidate)) {
-      return candidate;
-    }
-  }
-
   const createGovernanceWorkspaceAdapter =
     moduleRecord.createGovernanceWorkspaceAdapter;
 
   if (typeof createGovernanceWorkspaceAdapter === 'function') {
-    const created = createGovernanceWorkspaceAdapter();
+    const created = hasScopedOptions(adapterOptions)
+      ? createGovernanceWorkspaceAdapter(adapterOptions)
+      : createGovernanceWorkspaceAdapter();
+
     if (isGovernanceWorkspaceAdapter(created)) {
       return created;
     }
   }
 
+  for (const candidate of [
+    moduleRecord.default,
+    moduleRecord.governanceWorkspaceAdapter,
+    moduleRecord.adapter,
+  ]) {
+    if (!isGovernanceWorkspaceAdapter(candidate)) {
+      continue;
+    }
+
+    if (hasScopedOptions(adapterOptions)) {
+      throw new Error(
+        `Governance adapter package "${packageName}" does not expose a configurable createGovernanceWorkspaceAdapter(options) factory, so configured adapterOptions cannot be applied.`,
+      );
+    }
+
+    if (isGovernanceWorkspaceAdapter(candidate)) {
+      return candidate;
+    }
+  }
+
   return undefined;
-}
-
-async function loadInferredGovernanceExtensions(
-  adapterPackage: string,
-  environment: Pick<AgovCliEnvironment, 'moduleLoader'>,
-): Promise<{
-  extensions?: readonly GovernanceLoadedExtension[];
-  extensionDiagnostics?: readonly GovernanceExtensionDiagnostic[];
-}> {
-  const extensionPackage = inferGovernanceExtensionPackage(adapterPackage);
-
-  if (!extensionPackage) {
-    return {};
-  }
-
-  let loadedModule: unknown;
-
-  try {
-    loadedModule = await environment.moduleLoader(extensionPackage);
-  } catch {
-    // Inferred extensions are optional for existing adapter-only installations.
-    return {};
-  }
-
-  const definition = resolveExtensionExport(loadedModule);
-
-  if (!definition) {
-    return {};
-  }
-
-  return {
-    extensions: [
-      {
-        sourceSpecifier: extensionPackage,
-        moduleSpecifier: extensionPackage,
-        definition,
-      },
-    ],
-  };
 }
 
 function inferGovernanceExtensionPackage(
@@ -2421,37 +2504,234 @@ function inferGovernanceExtensionPackage(
     : undefined;
 }
 
+async function loadGovernanceExtensionsForAssessment(
+  input: {
+    hostConfig: AgovCliResolvedHostConfig;
+    rootPath: string;
+    configPath?: string;
+    profilePath: string;
+    mode: 'workspace' | 'adapter' | 'adapter-discovery';
+    adapterPackage?: string;
+    workspaceAdapter?: GovernanceWorkspaceAdapter<unknown>;
+  },
+  environment: Pick<AgovCliEnvironment, 'moduleLoader'>,
+): Promise<{
+  extensions?: readonly GovernanceLoadedExtension[];
+  extensionHostOptions?: AgovExtensionHostOptions;
+}> {
+  const configuredExtensions = [...input.hostConfig.extensionPackages];
+  const inferredExtension = input.adapterPackage
+    ? inferGovernanceExtensionPackage(input.adapterPackage)
+    : undefined;
+  const extensionPackages = inferredExtension
+    ? [...new Set([...configuredExtensions, inferredExtension])]
+    : configuredExtensions;
+
+  const loadedExtensions: GovernanceLoadedExtension[] = [];
+
+  for (const packageName of extensionPackages) {
+    const extension = await loadGovernanceExtensionPackage(
+      packageName,
+      readScopedOptions(input.hostConfig.extensionOptions, packageName),
+      environment,
+      {
+        optional:
+          packageName === inferredExtension &&
+          !configuredExtensions.includes(packageName),
+      },
+    );
+
+    if (extension) {
+      loadedExtensions.push(extension);
+    }
+  }
+
+  const extensionHostOptions = buildAgovExtensionHostOptions({
+    adapterPackage: input.adapterPackage,
+    workspaceAdapter: input.workspaceAdapter,
+    hostConfig: input.hostConfig,
+    rootPath: input.rootPath,
+    configPath: input.configPath,
+    profilePath: input.profilePath,
+    mode: input.mode,
+    extensionPackages: loadedExtensions.map(
+      (extension) => extension.sourceSpecifier,
+    ),
+  });
+
+  return {
+    ...(loadedExtensions.length > 0 ? { extensions: loadedExtensions } : {}),
+    ...(extensionHostOptions ? { extensionHostOptions } : {}),
+  };
+}
+
+async function loadGovernanceExtensionPackage(
+  packageName: string,
+  extensionOptions: AgovCliScopedOptions | undefined,
+  environment: Pick<AgovCliEnvironment, 'moduleLoader'>,
+  options: {
+    optional?: boolean;
+  } = {},
+): Promise<GovernanceLoadedExtension | undefined> {
+  let loadedModule: unknown;
+
+  try {
+    loadedModule = await environment.moduleLoader(packageName);
+  } catch {
+    if (options.optional) {
+      return undefined;
+    }
+
+    throw new AgovCliRuntimeError(
+      renderMissingExtensionMessage(packageName),
+      'agov.cli.extension_not_found',
+      {
+        extension: packageName,
+      },
+    );
+  }
+
+  let definition: GovernanceExtensionDefinition | undefined;
+
+  try {
+    definition = resolveExtensionExport(
+      packageName,
+      loadedModule,
+      extensionOptions,
+    );
+  } catch (error) {
+    throw new AgovCliRuntimeError(
+      error instanceof Error ? error.message : 'Unknown extension load error.',
+      'agov.cli.extension_contract_mismatch',
+      {
+        extension: packageName,
+      },
+    );
+  }
+
+  if (!definition) {
+    if (options.optional) {
+      return undefined;
+    }
+
+    throw new AgovCliRuntimeError(
+      `Package "${packageName}" was loaded, but it does not expose a compatible Governance extension.`,
+      'agov.cli.extension_contract_mismatch',
+      {
+        extension: packageName,
+      },
+    );
+  }
+
+  return {
+    sourceSpecifier: packageName,
+    moduleSpecifier: packageName,
+    definition,
+  };
+}
+
+function buildAgovExtensionHostOptions(input: {
+  hostConfig: AgovCliResolvedHostConfig;
+  rootPath: string;
+  configPath?: string;
+  profilePath: string;
+  mode: 'workspace' | 'adapter' | 'adapter-discovery';
+  adapterPackage?: string;
+  workspaceAdapter?: GovernanceWorkspaceAdapter<unknown>;
+  extensionPackages: readonly string[];
+}): AgovExtensionHostOptions | undefined {
+  const hostOptions: Record<string, unknown> = {
+    rootPath: input.rootPath,
+    profilePath: input.profilePath,
+    mode: input.mode,
+    ...(input.configPath ? { configPath: input.configPath } : {}),
+  };
+
+  const adapterOptions =
+    input.adapterPackage &&
+    readScopedOptions(input.hostConfig.adapterOptions, input.adapterPackage);
+  const extensionOptions = Object.fromEntries(
+    input.extensionPackages.flatMap((packageName) => {
+      const options = readScopedOptions(
+        input.hostConfig.extensionOptions,
+        packageName,
+      );
+
+      return options ? [[packageName, options]] : [];
+    }),
+  ) as Record<string, Readonly<Record<string, unknown>>>;
+
+  const extensionHostOptions: AgovExtensionHostOptions = {
+    host: hostOptions,
+    ...(input.adapterPackage || input.workspaceAdapter
+      ? {
+          adapter: {
+            ...(input.adapterPackage
+              ? { packageName: input.adapterPackage }
+              : {}),
+            ...(input.workspaceAdapter
+              ? { adapterId: input.workspaceAdapter.id }
+              : {}),
+            ...(adapterOptions ? { options: adapterOptions } : {}),
+          },
+        }
+      : {}),
+    ...(Object.keys(extensionOptions).length > 0
+      ? { extensions: extensionOptions }
+      : {}),
+  };
+
+  return extensionHostOptions;
+}
+
 function resolveExtensionExport(
+  packageName: string,
   loadedModule: unknown,
+  extensionOptions?: AgovCliScopedOptions,
 ): GovernanceExtensionDefinition | undefined {
   const moduleRecord =
     typeof loadedModule === 'object' && loadedModule !== null
       ? (loadedModule as Record<string, unknown>)
       : {};
 
-  for (const candidate of [
-    moduleRecord.default,
-    moduleRecord.governanceExtension,
-    moduleRecord.governanceTypeScriptExtension,
-    moduleRecord.extension,
-  ]) {
-    if (isGovernanceExtensionDefinition(candidate)) {
-      return candidate;
-    }
-  }
-
   for (const factoryName of [
     'createGovernanceExtension',
     'createTypeScriptGovernanceExtension',
+    'createDbtGovernanceExtension',
   ]) {
     const factory = moduleRecord[factoryName];
     if (typeof factory !== 'function') {
       continue;
     }
 
-    const created = factory();
+    const created = hasScopedOptions(extensionOptions)
+      ? factory(extensionOptions)
+      : factory();
     if (isGovernanceExtensionDefinition(created)) {
       return created;
+    }
+  }
+
+  for (const candidate of [
+    moduleRecord.default,
+    moduleRecord.governanceExtension,
+    moduleRecord.governanceTypeScriptExtension,
+    moduleRecord.governanceDbtExtension,
+    moduleRecord.dbtGovernanceExtension,
+    moduleRecord.extension,
+  ]) {
+    if (!isGovernanceExtensionDefinition(candidate)) {
+      continue;
+    }
+
+    if (hasScopedOptions(extensionOptions)) {
+      throw new Error(
+        `Governance extension package "${packageName}" does not expose a configurable extension factory, so configured extensionOptions cannot be applied.`,
+      );
+    }
+
+    if (isGovernanceExtensionDefinition(candidate)) {
+      return candidate;
     }
   }
 
@@ -2488,6 +2768,21 @@ function renderMissingAdapterMessage(packageName: string): string {
   );
   lines.push(
     `You can also pass "--adapter ${packageName}" explicitly, or use "--workspace <path>" with a canonical Governance workspace document.`,
+  );
+
+  return lines.join(' ');
+}
+
+function renderMissingExtensionMessage(packageName: string): string {
+  const lines = [
+    `Could not load Governance extension package "${packageName}".`,
+  ];
+
+  lines.push(
+    `Install "${packageName}" in the consuming workspace to use configured extension mode.`,
+  );
+  lines.push(
+    'You can also remove the package from the host config if that extension is not intended to run in this flow.',
   );
 
   return lines.join(' ');
@@ -2562,7 +2857,110 @@ function loadAgovConfig(filePath: string): AgovCliConfig {
     );
   }
 
-  return parsed as AgovCliConfig;
+  return validateAgovCliConfig(parsed as Record<string, unknown>, filePath);
+}
+
+function validateAgovCliConfig(
+  parsed: Record<string, unknown>,
+  filePath: string,
+): AgovCliConfig {
+  return {
+    ...(typeof parsed.profile === 'string' ? { profile: parsed.profile } : {}),
+    ...(typeof parsed.adapter === 'string' ? { adapter: parsed.adapter } : {}),
+    ...(Array.isArray(parsed.adapters) ? { adapters: parsed.adapters } : {}),
+    ...(Array.isArray(parsed.extensions)
+      ? { extensions: parsed.extensions }
+      : {}),
+    ...(typeof parsed.root === 'string' ? { root: parsed.root } : {}),
+    ...(typeof parsed.workspace === 'string'
+      ? { workspace: parsed.workspace }
+      : {}),
+    ...(typeof parsed.format === 'string' ? { format: parsed.format } : {}),
+    ...(typeof parsed.output === 'string' ? { output: parsed.output } : {}),
+    ...(parsed.adapterOptions !== undefined
+      ? {
+          adapterOptions: readNamedOptionsMap(
+            parsed.adapterOptions,
+            'adapterOptions',
+            filePath,
+          ),
+        }
+      : {}),
+    ...(parsed.extensionOptions !== undefined
+      ? {
+          extensionOptions: readNamedOptionsMap(
+            parsed.extensionOptions,
+            'extensionOptions',
+            filePath,
+          ),
+        }
+      : {}),
+  };
+}
+
+function readNamedOptionsMap(
+  value: unknown,
+  fieldName: 'adapterOptions' | 'extensionOptions',
+  filePath: string,
+): AgovCliNamedOptionsMap {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new AgovCliUsageError(
+      `agov config file "${filePath}" field "${fieldName}" must be an object keyed by package specifier.`,
+      'agov.cli.invalid_config',
+    );
+  }
+
+  const entries = Object.entries(value);
+  const normalized: Record<string, AgovCliScopedOptions> = {};
+
+  for (const [key, entryValue] of entries) {
+    if (
+      typeof entryValue !== 'object' ||
+      entryValue === null ||
+      Array.isArray(entryValue)
+    ) {
+      throw new AgovCliUsageError(
+        `agov config file "${filePath}" field "${fieldName}.${key}" must be a JSON object.`,
+        'agov.cli.invalid_config',
+      );
+    }
+
+    normalized[key] = Object.freeze({
+      ...(entryValue as Record<string, unknown>),
+    });
+  }
+
+  return Object.freeze(normalized);
+}
+
+function resolveAgovCliHostConfig(
+  config: AgovCliConfig,
+): AgovCliResolvedHostConfig {
+  return {
+    extensionPackages: Object.freeze(
+      readNonEmptyStringArray(config.extensions),
+    ),
+    adapterOptions: config.adapterOptions ?? Object.freeze({}),
+    extensionOptions: config.extensionOptions ?? Object.freeze({}),
+  };
+}
+
+function readScopedOptions(
+  map: AgovCliNamedOptionsMap | undefined,
+  key: string | undefined,
+): AgovCliScopedOptions | undefined {
+  if (!map || !key) {
+    return undefined;
+  }
+
+  const value = map[key];
+  return value && Object.keys(value).length > 0 ? value : undefined;
+}
+
+function hasScopedOptions(
+  value: AgovCliScopedOptions | undefined,
+): value is AgovCliScopedOptions {
+  return !!value && Object.keys(value).length > 0;
 }
 
 function resolveOutputFormat(

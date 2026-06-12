@@ -4,6 +4,7 @@ export type {
   AgovCheckOptions,
   AgovCheckResult,
   AgovCheckWithAdapterOptions,
+  AgovExtensionHostOptions,
   AgovCheckWithWorkspacePathOptions,
 } from './check.js';
 export { runAgovAssess, runAgovCheck } from './check.js';
@@ -103,7 +104,10 @@ export {
   type AgovCliConfig,
   type AgovCliEnvironment,
   type AgovCliIo,
+  type AgovCliNamedOptionsMap,
+  type AgovCliResolvedHostConfig,
   type AgovCliRuntime,
+  type AgovCliScopedOptions,
   type AgovResolvedAssessCommand,
   type AgovResolvedAssessmentCommand,
   type AgovResolvedCheckCommand,

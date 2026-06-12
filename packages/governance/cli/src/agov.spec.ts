@@ -1350,6 +1350,181 @@ describe('agov executable command surface', () => {
     expect(io.err).toBe('');
   });
 
+  it('routes adapterOptions and extensionOptions through separate host config layers in adapter mode', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-config-layering-adapter-');
+    const observedAdapterOptions: unknown[] = [];
+    const observedExtensionFactoryOptions: unknown[] = [];
+    const observedExtensionContextOptions: unknown[] = [];
+
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+    writeJson(path.join(cwd, 'agov.config.json'), {
+      profile: './profile.json',
+      adapter: '@anarchitects/governance-adapter-typescript',
+      extensions: ['@anarchitects/governance-extension-typescript'],
+      adapterOptions: {
+        '@anarchitects/governance-adapter-typescript': {
+          discoveryConfig: {
+            projects: [{ pattern: 'libs/*' }],
+          },
+        },
+      },
+      extensionOptions: {
+        '@anarchitects/governance-extension-typescript': {
+          signals: {
+            createdAt: '2026-06-12T00:00:00.000Z',
+          },
+        },
+      },
+      format: 'json',
+    });
+
+    expect(
+      await runAgovCli(
+        ['assess'],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === '@anarchitects/governance-adapter-typescript') {
+              return createAdapterModule({
+                workspaceName: path.basename(cwd),
+                observedOptions: observedAdapterOptions,
+              });
+            }
+
+            if (specifier === '@anarchitects/governance-extension-typescript') {
+              return createExtensionModule({
+                observedFactoryOptions: observedExtensionFactoryOptions,
+                observedContextOptions: observedExtensionContextOptions,
+              });
+            }
+
+            throw new Error(`Unexpected module specifier: ${specifier}`);
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(observedAdapterOptions).toEqual([
+      {
+        discoveryConfig: {
+          projects: [{ pattern: 'libs/*' }],
+        },
+      },
+    ]);
+    expect(observedExtensionFactoryOptions).toEqual([
+      {
+        signals: {
+          createdAt: '2026-06-12T00:00:00.000Z',
+        },
+      },
+    ]);
+    expect(observedExtensionContextOptions).toEqual([
+      expect.objectContaining({
+        profilePath: path.join(cwd, 'profile.json'),
+        workspaceAdapterId: 'governance-adapter:typescript',
+        host: expect.objectContaining({
+          mode: 'adapter',
+          rootPath: cwd,
+          profilePath: path.join(cwd, 'profile.json'),
+          configPath: path.join(cwd, 'agov.config.json'),
+        }),
+        adapter: {
+          packageName: '@anarchitects/governance-adapter-typescript',
+          adapterId: 'governance-adapter:typescript',
+          options: {
+            discoveryConfig: {
+              projects: [{ pattern: 'libs/*' }],
+            },
+          },
+        },
+        extensions: {
+          '@anarchitects/governance-extension-typescript': {
+            signals: {
+              createdAt: '2026-06-12T00:00:00.000Z',
+            },
+          },
+        },
+      }),
+    ]);
+    expect(io.err).toBe('');
+  });
+
+  it('loads configured extensions in workspace mode without collapsing extension config into the canonical profile', async () => {
+    const io = createMemoryIo();
+    const cwd = createTempWorkspaceRoot('agov-config-layering-workspace-');
+    const observedExtensionFactoryOptions: unknown[] = [];
+    const observedExtensionContextOptions: unknown[] = [];
+
+    writeFixtureWorkspace(path.join(cwd, 'workspace.json'));
+    writeFixtureProfile(path.join(cwd, 'profile.json'));
+    writeJson(path.join(cwd, 'agov.config.json'), {
+      workspace: './workspace.json',
+      profile: './profile.json',
+      extensions: ['@anarchitects/governance-extension-typescript'],
+      extensionOptions: {
+        '@anarchitects/governance-extension-typescript': {
+          metrics: {
+            includeRecommendations: true,
+          },
+        },
+      },
+      format: 'json',
+    });
+
+    expect(
+      await runAgovCli(
+        ['assess'],
+        io,
+        undefined,
+        createEnvironment({
+          cwd,
+          moduleLoader: async (specifier: string) => {
+            if (specifier === '@anarchitects/governance-extension-typescript') {
+              return createExtensionModule({
+                observedFactoryOptions: observedExtensionFactoryOptions,
+                observedContextOptions: observedExtensionContextOptions,
+              });
+            }
+
+            throw new Error(`Unexpected module specifier: ${specifier}`);
+          },
+        }),
+      ),
+    ).toBe(AGOV_EXIT_SUCCESS);
+
+    expect(observedExtensionFactoryOptions).toEqual([
+      {
+        metrics: {
+          includeRecommendations: true,
+        },
+      },
+    ]);
+    expect(observedExtensionContextOptions).toEqual([
+      expect.objectContaining({
+        profilePath: path.join(cwd, 'profile.json'),
+        workspacePath: path.join(cwd, 'workspace.json'),
+        host: expect.objectContaining({
+          mode: 'workspace',
+          rootPath: cwd,
+          profilePath: path.join(cwd, 'profile.json'),
+          configPath: path.join(cwd, 'agov.config.json'),
+        }),
+        extensions: {
+          '@anarchitects/governance-extension-typescript': {
+            metrics: {
+              includeRecommendations: true,
+            },
+          },
+        },
+      }),
+    ]);
+    expect(observedExtensionContextOptions[0]).not.toHaveProperty('adapter');
+    expect(io.err).toBe('');
+  });
+
   it('renders adapter diagnostics through canonical check JSON output', async () => {
     const io = createMemoryIo();
     const cwd = createTempWorkspaceRoot('agov-check-diagnostics-');
@@ -3735,9 +3910,13 @@ function createTempWorkspaceRoot(prefix: string): string {
   return mkdtempSync(path.join(tmpdir(), prefix));
 }
 
-function createAdapterModule(input: { workspaceName: string }): unknown {
+function createAdapterModule(input: {
+  workspaceName: string;
+  observedOptions?: unknown[];
+}): unknown {
   return {
-    createGovernanceWorkspaceAdapter() {
+    createGovernanceWorkspaceAdapter(options?: unknown) {
+      input.observedOptions?.push(options);
       return {
         id: 'governance-adapter:typescript',
         loadWorkspace() {
@@ -3789,12 +3968,45 @@ function createDiagnosticAdapterModule(input: {
   };
 }
 
-function createExtensionModule(): unknown {
+function createExtensionModule(
+  input: {
+    observedFactoryOptions?: unknown[];
+    observedContextOptions?: unknown[];
+  } = {},
+): unknown {
   return {
+    createTypeScriptGovernanceExtension(options?: unknown) {
+      input.observedFactoryOptions?.push(options);
+      return {
+        id: 'test.extension:typescript',
+        name: 'Test TypeScript Governance Extension',
+        register(host: GovernanceExtensionHost) {
+          input.observedContextOptions?.push(host.context.options);
+          host.registerRulePack({
+            evaluate() {
+              return [
+                {
+                  id: 'test-extension:workspace',
+                  ruleId: 'test.extension.loaded',
+                  subjectId: 'workspace',
+                  reference: {
+                    nodeId: 'workspace',
+                  },
+                  severity: 'warning',
+                  category: 'architecture',
+                  message: 'Test extension executed.',
+                },
+              ];
+            },
+          });
+        },
+      };
+    },
     governanceTypeScriptExtension: {
       id: 'test.extension:typescript',
       name: 'Test TypeScript Governance Extension',
       register(host: GovernanceExtensionHost) {
+        input.observedContextOptions?.push(host.context.options);
         host.registerRulePack({
           evaluate() {
             return [
