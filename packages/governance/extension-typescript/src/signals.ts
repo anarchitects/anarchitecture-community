@@ -15,7 +15,9 @@ import {
   findNodeById,
   getDependencyRelations,
   getImportRelations,
+  getPackageManagerMetadata,
   getPathMappingRelations,
+  getTypeScriptMetadata,
   getTypeScriptProjectNodes,
   normalizeIds,
   readBooleanMetadata,
@@ -122,18 +124,15 @@ export function buildTypeScriptGovernanceSignals(
       ]),
       relatedRelationIds: [relation.id],
       metadata: {
-        sourceFile: readStringMetadata(relation.metadata, [
-          'typescript',
+        sourceFile: readStringMetadata(getTypeScriptMetadata(relation), [
           'import',
           'sourceFile',
         ]),
-        specifier: readStringMetadata(relation.metadata, [
-          'typescript',
+        specifier: readStringMetadata(getTypeScriptMetadata(relation), [
           'import',
           'specifier',
         ]),
-        importKind: readStringMetadata(relation.metadata, [
-          'typescript',
+        importKind: readStringMetadata(getTypeScriptMetadata(relation), [
           'import',
           'importKind',
         ]),
@@ -157,8 +156,7 @@ export function buildTypeScriptGovernanceSignals(
       ]),
       relatedRelationIds: [relation.id],
       metadata: {
-        alias: readStringMetadata(relation.metadata, [
-          'typescript',
+        alias: readStringMetadata(getTypeScriptMetadata(relation), [
           'pathMapping',
           'alias',
         ]),
@@ -170,7 +168,7 @@ export function buildTypeScriptGovernanceSignals(
   for (const relation of getDependencyRelations(input.workspace)) {
     const targetNode = findNodeById(input.workspace, relation.targetNodeId);
     if (
-      !readBooleanMetadata(targetNode?.metadata, ['packageManager', 'external'])
+      !readBooleanMetadata(getPackageManagerMetadata(targetNode), ['external'])
     ) {
       continue;
     }
@@ -189,13 +187,12 @@ export function buildTypeScriptGovernanceSignals(
       ]),
       relatedRelationIds: [relation.id],
       metadata: {
-        dependencyType: readStringMetadata(relation.metadata, [
-          'packageManager',
-          'dependencyType',
-        ]),
+        dependencyType: readStringMetadata(
+          getPackageManagerMetadata(relation),
+          ['dependencyType'],
+        ),
         packageName:
-          readStringMetadata(relation.metadata, [
-            'packageManager',
+          readStringMetadata(getPackageManagerMetadata(relation), [
             'packageName',
           ]) ?? targetNode?.name,
       },

@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import type { GovernanceRelationInput } from '@anarchitects/governance-core';
 
+import { buildTypeScriptImportRelationExpansion } from './extension-normalization.js';
 import {
   ambiguousProjectMatchDiagnostic,
   resolvedImportOutsideProjectDiagnostic,
@@ -321,21 +322,22 @@ function createImportRelation(
     id: buildTypeScriptImportRelationId(sourceNodeId, targetNodeId, edge),
     sourceNodeId,
     targetNodeId,
-    kind: 'import',
+    kind: 'dependency',
     source: TYPESCRIPT_IMPORT_SOURCE,
     authority: 'discovered',
     confidence: 1,
-    metadata: {
-      typescript: {
-        import: {
+    extensions: {
+      'governance-extension:typescript': buildTypeScriptImportRelationExpansion(
+        {
           sourceFile: edge.sourceFile,
           specifier: edge.specifier,
           importKind: edge.kind,
           external: edge.external,
           ...(edge.resolvedFile ? { resolvedFile: edge.resolvedFile } : {}),
         },
-      },
+      ),
     },
+    metadata: {},
   };
 }
 
@@ -348,26 +350,22 @@ function buildTypeScriptImportRelationId(
 }
 
 function relationSourceFile(relation: GovernanceRelationInput): string {
-  const metadata = relation.metadata;
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-    return '';
-  }
+  const expansion = relation.extensions?.['governance-extension:typescript'];
+  const data =
+    expansion && typeof expansion === 'object' && 'data' in expansion
+      ? (expansion.data as Record<string, unknown>)
+      : undefined;
+  const importMetadata =
+    data &&
+    typeof data === 'object' &&
+    !Array.isArray(data) &&
+    typeof data.import === 'object' &&
+    data.import !== null &&
+    !Array.isArray(data.import)
+      ? (data.import as Record<string, unknown>)
+      : undefined;
 
-  const typescript = (metadata as Record<string, unknown>).typescript;
-  if (
-    !typescript ||
-    typeof typescript !== 'object' ||
-    Array.isArray(typescript)
-  ) {
-    return '';
-  }
-
-  const importMetadata = (typescript as Record<string, unknown>).import;
-  if (
-    !importMetadata ||
-    typeof importMetadata !== 'object' ||
-    Array.isArray(importMetadata)
-  ) {
+  if (!importMetadata) {
     return '';
   }
 

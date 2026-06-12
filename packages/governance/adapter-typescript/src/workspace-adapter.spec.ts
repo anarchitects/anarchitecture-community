@@ -52,31 +52,50 @@ describe('createTypeScriptWorkspaceAdapter', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: 'workspace:@fixture/root',
-          kind: 'package-manager-package',
+          kind: 'resource',
           sourceSystem: 'pnpm',
+          extensions: expect.objectContaining({
+            'governance-extension:typescript': expect.objectContaining({
+              data: expect.objectContaining({
+                kind: 'node',
+                nodeKind: 'package-manager-package',
+                packageManagerPackage: expect.objectContaining({
+                  workspace: true,
+                }),
+              }),
+            }),
+          }),
         }),
         expect.objectContaining({
           id: 'web',
           name: 'web',
           root: 'apps/web',
           path: 'apps/web',
-          kind: 'typescript-workspace-project',
+          kind: 'project',
           technology: 'typescript',
           sourceSystem: 'pnpm',
           tags: expect.arrayContaining(['type:app']),
           classification: expect.objectContaining({
             tags: expect.arrayContaining(['type:app']),
           }),
+          extensions: expect.objectContaining({
+            'governance-extension:typescript': expect.objectContaining({
+              data: expect.objectContaining({
+                kind: 'node',
+                nodeKind: 'workspace-project',
+              }),
+            }),
+          }),
         }),
         expect.objectContaining({
           id: 'customer',
           root: 'packages/customer',
-          kind: 'typescript-workspace-project',
+          kind: 'project',
         }),
         expect.objectContaining({
           id: 'order',
           root: 'packages/order',
-          kind: 'typescript-workspace-project',
+          kind: 'project',
         }),
       ]),
     );
@@ -86,25 +105,29 @@ describe('createTypeScriptWorkspaceAdapter', () => {
           id: 'typescript:workspace-member:workspace:@fixture/root->customer',
           sourceNodeId: 'workspace:@fixture/root',
           targetNodeId: 'customer',
-          kind: 'workspace-member',
+          kind: 'traceability',
         }),
         expect.objectContaining({
           sourceNodeId: 'customer',
           targetNodeId: 'order',
-          kind: 'import',
-          metadata: {
-            typescript: {
-              import: expect.objectContaining({
-                sourceFile: 'packages/customer/src/index.ts',
-                importKind: 'static-import',
+          kind: 'dependency',
+          extensions: expect.objectContaining({
+            'governance-extension:typescript': expect.objectContaining({
+              data: expect.objectContaining({
+                kind: 'relation',
+                relationKind: 'import',
+                import: expect.objectContaining({
+                  sourceFile: 'packages/customer/src/index.ts',
+                  importKind: 'static-import',
+                }),
               }),
-            },
-          },
+            }),
+          }),
         }),
         expect.objectContaining({
           sourceNodeId: 'web',
           targetNodeId: 'customer',
-          kind: 'import',
+          kind: 'dependency',
         }),
       ]),
     );
@@ -237,17 +260,20 @@ describe('generic Governance adapter exports', () => {
             ]),
           }),
           metadata: expect.objectContaining({
-            typescript: {
-              workspaceProject: expect.objectContaining({
-                type: 'frontend-app',
-                domain: 'commerce',
-                layer: 'app',
-                scope: 'web',
-              }),
-            },
             discovery: {
               runtime: 'browser',
             },
+          }),
+          extensions: expect.objectContaining({
+            'governance-extension:typescript': expect.objectContaining({
+              data: expect.objectContaining({
+                kind: 'node',
+                nodeKind: 'workspace-project',
+                workspaceProject: expect.objectContaining({
+                  type: 'frontend-app',
+                }),
+              }),
+            }),
           }),
         }),
         expect.objectContaining({
@@ -319,8 +345,16 @@ describe('generic Governance adapter exports', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: 'tsconfig:tsconfig.json',
-          kind: 'typescript-tsconfig',
+          kind: 'resource',
           technology: 'typescript',
+          extensions: expect.objectContaining({
+            'governance-extension:typescript': expect.objectContaining({
+              data: expect.objectContaining({
+                kind: 'node',
+                nodeKind: 'tsconfig',
+              }),
+            }),
+          }),
         }),
       ]),
     );
@@ -329,12 +363,12 @@ describe('generic Governance adapter exports', () => {
         expect.objectContaining({
           sourceNodeId: 'tsconfig:tsconfig.json',
           targetNodeId: 'customer',
-          kind: 'path-mapping',
+          kind: 'traceability',
         }),
         expect.objectContaining({
           sourceNodeId: 'tsconfig:tsconfig.json',
           targetNodeId: 'order',
-          kind: 'path-mapping',
+          kind: 'traceability',
         }),
       ]),
     );

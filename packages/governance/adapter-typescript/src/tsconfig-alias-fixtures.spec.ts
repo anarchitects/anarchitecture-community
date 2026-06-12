@@ -260,14 +260,17 @@ function relation(
   return expect.objectContaining({
     sourceNodeId,
     targetNodeId,
-    kind: 'import',
-    metadata: {
-      typescript: {
-        import: expect.objectContaining({
-          sourceFile,
+    kind: 'dependency',
+    extensions: expect.objectContaining({
+      'governance-extension:typescript': expect.objectContaining({
+        data: expect.objectContaining({
+          relationKind: 'import',
+          import: expect.objectContaining({
+            sourceFile,
+          }),
         }),
-      },
-    },
+      }),
+    }),
   });
 }
 

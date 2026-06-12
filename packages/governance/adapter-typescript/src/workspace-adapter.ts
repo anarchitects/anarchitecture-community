@@ -15,6 +15,15 @@ import type {
 } from '@anarchitects/governance-core';
 
 import { detectTypeScriptWorkspace } from './detect-typescript-workspace.js';
+import {
+  buildTypeScriptPackageDependencyRelationExpansion,
+  buildTypeScriptPathMappingRelationExpansion,
+  buildTypeScriptProjectNodeExpansion,
+  buildTypeScriptTsconfigNodeExpansion,
+  buildTypeScriptWorkspaceExpansion,
+  buildTypeScriptWorkspaceMemberRelationExpansion,
+  buildTypeScriptWorkspacePackageNodeExpansion,
+} from './extension-normalization.js';
 import { buildTypeScriptImportGraph } from './import-graph.js';
 import { loadPackageMetadata } from './load-package-metadata.js';
 import { mapTypeScriptImportsToGovernanceDependencies } from './map-imports-to-projects.js';
@@ -128,10 +137,12 @@ export function createTypeScriptWorkspaceAdapter(
       });
 
       const workspaceName = inferWorkspaceName(workspaceRoot);
+      const workspacePackageMetadata = loadPackageMetadata(workspaceRoot);
       const workspaceNode = buildWorkspaceNode(
         workspaceRoot,
         workspaceName,
         workspace.packageManager,
+        workspacePackageMetadata,
       );
       const projectPackageMetadata = readProjectPackageMetadata(
         workspaceRoot,
@@ -183,14 +194,18 @@ export function createTypeScriptWorkspaceAdapter(
           ...importGraph.diagnostics,
           ...mapping.diagnostics,
         ]),
-        metadata: {
-          packageManager: workspace.packageManager ?? 'unknown',
-          workspacePatterns: [...workspace.patterns],
-          tsconfig: {
-            configFiles: [...tsconfig.configFiles],
-            ...(tsconfig.baseUrl ? { baseUrl: tsconfig.baseUrl } : {}),
-            pathAliasCount: Object.keys(tsconfig.pathAliases).length,
-          },
+        extensions: {
+          'governance-extension:typescript': buildTypeScriptWorkspaceExpansion(
+            workspaceName,
+            normalizeRelativePath(
+              workspaceRoot,
+              workspacePackageMetadata.packageJsonPath,
+            ),
+            workspacePackageMetadata.packageJson,
+            workspace,
+            tsconfig,
+            discovered.projects,
+          ),
         },
       };
     },
@@ -219,32 +234,35 @@ function buildWorkspaceNode(
   workspaceRoot: string,
   workspaceName: string,
   packageManager?: WorkspacePackageResolution['packageManager'],
+  metadata?: LoadedPackageMetadata,
 ): GovernanceNodeInput {
-  const metadata = loadPackageMetadata(workspaceRoot);
+  const packageMetadata = metadata ?? loadPackageMetadata(workspaceRoot);
   const packageName =
-    readOptionalString(metadata.packageJson?.name) ?? workspaceName;
+    readOptionalString(packageMetadata.packageJson?.name) ?? workspaceName;
 
   return {
     id: buildWorkspaceNodeId(packageName),
     name: packageName,
-    kind: 'package-manager-package',
+    kind: 'resource',
     sourceSystem: packageManager ?? 'npm',
     root: '.',
     path: 'package.json',
     source: TYPESCRIPT_ADAPTER_SOURCE,
     authority: 'documented',
     confidence: 1,
-    metadata: {
-      packageManager: {
-        workspace: true,
-        packageManager: packageManager ?? 'unknown',
-        packageJsonPath: normalizeRelativePath(
-          workspaceRoot,
-          metadata.packageJsonPath,
+    extensions: {
+      'governance-extension:typescript':
+        buildTypeScriptWorkspacePackageNodeExpansion(
+          packageManager,
+          normalizeRelativePath(workspaceRoot, packageMetadata.packageJsonPath),
+          packageMetadata.packageJson,
+          {
+            packageName,
+            workspace: true,
+          },
         ),
-        ...(metadata.packageJson ? { packageJson: metadata.packageJson } : {}),
-      },
     },
+    metadata: {},
   };
 }
 
@@ -259,7 +277,7 @@ function buildProjectNode(
   return {
     id: project.id,
     name: project.name ?? project.id,
-    kind: project.kind ?? 'typescript-workspace-project',
+    kind: project.kind ?? 'project',
     technology: 'typescript',
     sourceSystem: packageManager ?? 'typescript',
     ...(root ? { root } : {}),
@@ -272,27 +290,15 @@ function buildProjectNode(
     source: TYPESCRIPT_ADAPTER_SOURCE,
     authority: 'discovered',
     confidence: 1,
+    extensions: {
+      'governance-extension:typescript': buildTypeScriptProjectNodeExpansion(
+        project,
+        packageManager,
+        packageMetadata?.packageJsonPath,
+        packageMetadata?.packageJson,
+      ),
+    },
     metadata: {
-      typescript: {
-        workspaceProject: {
-          id: project.id,
-          ...(project.type ? { type: project.type } : {}),
-          ...(project.domain ? { domain: project.domain } : {}),
-          ...(project.layer ? { layer: project.layer } : {}),
-          ...(project.scope ? { scope: project.scope } : {}),
-        },
-      },
-      ...(packageMetadata
-        ? {
-            packageManager: {
-              packageManager: packageManager ?? 'unknown',
-              packageJsonPath: packageMetadata.packageJsonPath,
-              ...(packageMetadata.packageJson
-                ? { packageJson: packageMetadata.packageJson }
-                : {}),
-            },
-          }
-        : {}),
       ...(project.metadata ? { discovery: project.metadata } : {}),
     },
   };
@@ -326,7 +332,7 @@ function buildTsconfigNodes(
     .map((configFile) => ({
       id: buildTsconfigNodeId(configFile),
       name: path.basename(configFile),
-      kind: 'typescript-tsconfig',
+      kind: 'resource',
       technology: 'typescript',
       sourceSystem: 'typescript',
       root: path.posix.dirname(configFile),
@@ -334,19 +340,13 @@ function buildTsconfigNodes(
       source: TYPESCRIPT_ADAPTER_SOURCE,
       authority: 'documented',
       confidence: 1,
-      metadata: {
-        typescript: {
-          tsconfig: {
-            configFile,
-            ...(configFile === tsconfig.configFiles.at(-1)
-              ? {
-                  ...(tsconfig.baseUrl ? { baseUrl: tsconfig.baseUrl } : {}),
-                  pathAliases: tsconfig.pathAliases,
-                }
-              : {}),
-          },
-        },
+      extensions: {
+        'governance-extension:typescript': buildTypeScriptTsconfigNodeExpansion(
+          configFile,
+          tsconfig,
+        ),
       },
+      metadata: {},
     }));
 }
 
@@ -384,18 +384,25 @@ function buildExternalPackageNodes(
       nodes.set(id, {
         id,
         name: dependency.name,
-        kind: 'package-manager-package',
+        kind: 'resource',
         sourceSystem: packageManager ?? 'npm',
         source: TYPESCRIPT_ADAPTER_SOURCE,
         authority: 'documented',
         confidence: 1,
-        metadata: {
-          packageManager: {
-            packageManager: packageManager ?? 'unknown',
-            external: true,
-            packageName: dependency.name,
-          },
+        extensions: {
+          'governance-extension:typescript':
+            buildTypeScriptWorkspacePackageNodeExpansion(
+              packageManager,
+              '',
+              undefined,
+              {
+                packageName: dependency.name,
+                workspace: false,
+                external: true,
+              },
+            ),
         },
+        metadata: {},
       });
     }
   }
@@ -415,17 +422,15 @@ function buildWorkspaceMembershipRelations(
       id: `typescript:workspace-member:${workspaceNodeId}->${project.id}`,
       sourceNodeId: workspaceNodeId,
       targetNodeId: project.id,
-      kind: 'workspace-member',
+      kind: 'traceability',
       source: TYPESCRIPT_ADAPTER_SOURCE,
       authority: 'documented',
       confidence: 1,
-      metadata: {
-        typescript: {
-          workspaceMember: {
-            projectRoot: project.root ?? '',
-          },
-        },
+      extensions: {
+        'governance-extension:typescript':
+          buildTypeScriptWorkspaceMemberRelationExpansion(project.root ?? ''),
       },
+      metadata: {},
     }));
 }
 
@@ -475,14 +480,16 @@ function buildPackageDependencyRelations(
         source: TYPESCRIPT_ADAPTER_SOURCE,
         authority: 'documented',
         confidence: 1,
-        metadata: {
-          packageManager: {
-            packageManager: packageManager ?? 'unknown',
-            dependencyType: dependency.type,
-            packageName: dependency.name,
-            specifier: dependency.specifier,
-          },
+        extensions: {
+          'governance-extension:typescript':
+            buildTypeScriptPackageDependencyRelationExpansion({
+              packageManager,
+              dependencyType: dependency.type,
+              packageName: dependency.name,
+              specifier: dependency.specifier,
+            }),
         },
+        metadata: {},
       });
     }
   }
@@ -523,19 +530,19 @@ function buildTsconfigPathMappingRelations(
             id: relationId,
             sourceNodeId: tsconfigNodeId,
             targetNodeId: project.id,
-            kind: 'path-mapping',
+            kind: 'traceability',
             source: TYPESCRIPT_ADAPTER_SOURCE,
             authority: 'documented',
             confidence: 1,
-            metadata: {
-              typescript: {
-                pathMapping: {
+            extensions: {
+              'governance-extension:typescript':
+                buildTypeScriptPathMappingRelationExpansion({
                   alias,
                   target,
                   tsconfig: configFile,
-                },
-              },
+                }),
             },
+            metadata: {},
           });
         }
       }
