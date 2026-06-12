@@ -33,6 +33,7 @@ export type {
   TypeScriptImportEdge,
   TypeScriptImportGraph,
   TypeScriptImportKind,
+  TypeScriptProjectDiscoveryProjection,
   TypeScriptProjectRelationMappingResult,
   TypeScriptProjectDiscoveryConfig,
   TypeScriptDiscoveredProject,

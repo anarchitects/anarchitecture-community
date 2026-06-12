@@ -133,6 +133,57 @@ const mapping = mapTypeScriptImportsToGovernanceDependencies({
 });
 ```
 
+### Discovery Rule Projections
+
+Discovery rules can project canonical governance facts directly onto discovered
+projects. Use `projection` for first-class classification such as `domain`,
+`layer`, `scope`, project `kind`, adapter-specific `type`, and selected
+discovery metadata. Keep `tags` as supplemental hints rather than the primary
+classification mechanism.
+
+```ts
+import { createGovernanceWorkspaceAdapter } from '@anarchitects/governance-adapter-typescript';
+
+const adapter = createGovernanceWorkspaceAdapter({
+  discoveryConfig: {
+    projects: [
+      {
+        pattern: 'apps/*',
+        name: '{segment:1}',
+        tags: ['type:app'],
+        projection: {
+          kind: 'application',
+          type: 'frontend-app',
+          domain: 'commerce',
+          layer: 'app',
+          scope: '{segment:1}',
+          metadata: {
+            runtime: 'browser',
+          },
+        },
+      },
+      {
+        pattern: 'libs/*/*',
+        name: '{segment:1}-{segment:2}',
+        projection: {
+          kind: 'library',
+          domain: '{segment:1}',
+          layer: '{segment:2}',
+        },
+      },
+    ],
+  },
+});
+```
+
+Projection precedence is deterministic:
+
+- The first matching discovery rule still wins for project identity.
+- Within a matched rule, explicit `projection` values win over classification
+  inferred from discovery tags.
+- Package governance metadata still wins over discovery-derived defaults for
+  `domain`, `layer`, `scope`, and ownership when both are present.
+
 ## Related Packages
 
 - `@anarchitects/governance-core` owns the canonical node/relation contracts

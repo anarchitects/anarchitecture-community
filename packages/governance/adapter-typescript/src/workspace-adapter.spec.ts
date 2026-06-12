@@ -187,6 +187,77 @@ describe('generic Governance adapter exports', () => {
     );
   });
 
+  it('maps discovery projections into canonical project node fields', () => {
+    const workspaceRoot = materializeFixture('pnpm');
+    const adapter = createGovernanceWorkspaceAdapter({
+      discoveryConfig: {
+        projects: [
+          {
+            pattern: 'apps/*',
+            name: '{segment:1}',
+            tags: ['type:app'],
+            projection: {
+              kind: 'application',
+              type: 'frontend-app',
+              domain: 'commerce',
+              layer: 'app',
+              scope: '{segment:1}',
+              metadata: {
+                runtime: 'browser',
+              },
+            },
+          },
+          {
+            pattern: 'packages/*',
+            name: '{segment:1}',
+            tags: ['type:lib'],
+            projection: {
+              kind: 'library',
+            },
+          },
+        ],
+      },
+    });
+    const result = adapter.loadWorkspace(workspaceRoot);
+
+    expect(result.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'web',
+          kind: 'application',
+          classification: expect.objectContaining({
+            domain: 'commerce',
+            layer: 'app',
+            scope: 'web',
+            tags: expect.arrayContaining([
+              'type:app',
+              'domain:commerce',
+              'layer:app',
+              'scope:web',
+            ]),
+          }),
+          metadata: expect.objectContaining({
+            typescript: {
+              workspaceProject: expect.objectContaining({
+                type: 'frontend-app',
+                domain: 'commerce',
+                layer: 'app',
+                scope: 'web',
+              }),
+            },
+            discovery: {
+              runtime: 'browser',
+            },
+          }),
+        }),
+        expect.objectContaining({
+          id: 'customer',
+          kind: 'library',
+        }),
+      ]),
+    );
+  });
+
   it('passes package metadata config through createGovernanceWorkspaceAdapter to canonical node metadata', () => {
     const workspaceRoot = materializeFixture('pnpm');
     writeJsonFile(path.join(workspaceRoot, 'packages', 'customer'), {

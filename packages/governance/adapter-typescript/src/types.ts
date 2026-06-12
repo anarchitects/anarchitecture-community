@@ -57,10 +57,20 @@ export interface TypeScriptProjectDiscoveryRule {
   pattern: string;
   name?: string;
   tags?: string[];
+  projection?: TypeScriptProjectDiscoveryProjection;
 }
 
 export interface TypeScriptProjectDiscoveryConfig {
   projects: TypeScriptProjectDiscoveryRule[];
+}
+
+export interface TypeScriptProjectDiscoveryProjection {
+  domain?: string;
+  layer?: string;
+  scope?: string;
+  type?: string;
+  kind?: GovernanceNodeInput['kind'];
+  metadata?: Record<string, unknown>;
 }
 
 export interface TypeScriptPackageGovernanceMetadataFieldMapping {
@@ -93,6 +103,7 @@ export interface TypeScriptDiscoveredProject {
   id: string;
   name?: string;
   root?: string;
+  kind?: GovernanceNodeInput['kind'];
   type?: string;
   domain?: string;
   layer?: string;

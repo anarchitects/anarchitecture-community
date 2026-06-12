@@ -6,13 +6,18 @@ import {
   discoveryPatternNoMatchesDiagnostic,
   duplicateProjectNameDiagnostic,
   duplicateProjectRootDiagnostic,
+  invalidDiscoveryProjectionDiagnostic,
   invalidDiscoveryPatternDiagnostic,
   invalidTagTemplateDiagnostic,
 } from './diagnostics.js';
 import { extractPackageGovernanceMetadata } from './extract-package-governance-metadata.js';
-import { renderProjectNameTemplate } from './project-naming.js';
+import {
+  renderProjectNameTemplate,
+  renderProjectionTemplate,
+} from './project-naming.js';
 import { deriveProjectTags } from './tag-mapping.js';
 import type {
+  TypeScriptProjectDiscoveryProjection,
   TypeScriptPackageGovernanceMetadataConfig,
   TypeScriptDiscoveredProject,
   TypeScriptProjectDiscoveryConfig,
@@ -112,6 +117,12 @@ export function discoverTypeScriptProjects(
 
       const tags = deriveProjectTags(rule.tags, wildcardSegments, rulePath);
       diagnostics.push(...tags.diagnostics);
+      const projection = deriveProjectProjection(
+        rule.projection,
+        wildcardSegments,
+        rulePath,
+      );
+      diagnostics.push(...projection.diagnostics);
 
       if (seenRoots.has(match)) {
         diagnostics.push(
@@ -139,10 +150,13 @@ export function discoverTypeScriptProjects(
         createDiscoveredProject({
           root: match,
           name: name.value,
+          kind: projection.kind,
+          type: projection.type,
           tags: tags.tags,
-          domain: tags.domain,
-          layer: tags.layer,
-          scope: tags.scope,
+          domain: projection.domain ?? tags.domain,
+          layer: projection.layer ?? tags.layer,
+          scope: projection.scope ?? tags.scope,
+          metadata: projection.metadata,
           owner: extractedMetadata.metadata?.owner,
           metadataDomain: extractedMetadata.metadata?.domain,
           metadataLayer: extractedMetadata.metadata?.layer,
@@ -169,10 +183,13 @@ export function discoverTypeScriptProjects(
 function createDiscoveredProject({
   root,
   name,
+  kind,
+  type,
   tags,
   domain,
   layer,
   scope,
+  metadata,
   owner,
   metadataDomain,
   metadataLayer,
@@ -180,10 +197,13 @@ function createDiscoveredProject({
 }: {
   root: string;
   name: string;
+  kind?: string;
+  type?: string;
   tags: string[];
   domain?: string;
   layer?: string;
   scope?: string;
+  metadata?: Record<string, unknown>;
   owner?: string;
   metadataDomain?: string;
   metadataLayer?: string;
@@ -202,7 +222,8 @@ function createDiscoveredProject({
     id: name,
     name,
     root,
-    type: 'unknown',
+    ...(kind ? { kind } : {}),
+    type: type ?? 'unknown',
     tags: mergeResolvedGovernanceTags(
       tags,
       resolvedGovernance.domain,
@@ -220,7 +241,7 @@ function createDiscoveredProject({
           },
         }
       : {}),
-    metadata: {},
+    metadata: metadata ?? {},
   };
 }
 
@@ -312,6 +333,209 @@ function normalizeDiscoveryPattern(pattern: unknown): string | undefined {
   }
 
   return normalized.length > 0 ? normalized : undefined;
+}
+
+function deriveProjectProjection(
+  projection: TypeScriptProjectDiscoveryProjection | undefined,
+  wildcardSegments: readonly string[],
+  rulePath: string,
+): {
+  kind?: string;
+  type?: string;
+  domain?: string;
+  layer?: string;
+  scope?: string;
+  metadata?: Record<string, unknown>;
+  diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
+} {
+  const diagnostics: TypeScriptWorkspaceDetectionDiagnostic[] = [];
+  const projectionPath = `${rulePath}/projection`;
+
+  if (projection === undefined) {
+    return { diagnostics };
+  }
+
+  if (!isRecord(projection)) {
+    diagnostics.push(
+      invalidDiscoveryProjectionDiagnostic(
+        projectionPath,
+        'Discovery rule projection must be an object when present.',
+      ),
+    );
+    return { diagnostics };
+  }
+
+  const kind = renderOptionalProjectionString(
+    projection.kind,
+    wildcardSegments,
+    `${projectionPath}/kind`,
+  );
+  const type = renderOptionalProjectionString(
+    projection.type,
+    wildcardSegments,
+    `${projectionPath}/type`,
+  );
+  const domain = renderOptionalProjectionString(
+    projection.domain,
+    wildcardSegments,
+    `${projectionPath}/domain`,
+  );
+  const layer = renderOptionalProjectionString(
+    projection.layer,
+    wildcardSegments,
+    `${projectionPath}/layer`,
+  );
+  const scope = renderOptionalProjectionString(
+    projection.scope,
+    wildcardSegments,
+    `${projectionPath}/scope`,
+  );
+  const metadata = renderProjectedMetadata(
+    projection.metadata,
+    wildcardSegments,
+    `${projectionPath}/metadata`,
+  );
+
+  diagnostics.push(
+    ...kind.diagnostics,
+    ...type.diagnostics,
+    ...domain.diagnostics,
+    ...layer.diagnostics,
+    ...scope.diagnostics,
+    ...metadata.diagnostics,
+  );
+
+  return {
+    ...(kind.value ? { kind: kind.value } : {}),
+    ...(type.value ? { type: type.value } : {}),
+    ...(domain.value ? { domain: domain.value } : {}),
+    ...(layer.value ? { layer: layer.value } : {}),
+    ...(scope.value ? { scope: scope.value } : {}),
+    ...(metadata.value ? { metadata: metadata.value } : {}),
+    diagnostics,
+  };
+}
+
+function renderOptionalProjectionString(
+  value: unknown,
+  wildcardSegments: readonly string[],
+  path: string,
+): {
+  value?: string;
+  diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
+} {
+  if (value === undefined) {
+    return { diagnostics: [] };
+  }
+
+  if (typeof value !== 'string') {
+    return {
+      diagnostics: [
+        invalidDiscoveryProjectionDiagnostic(
+          path,
+          'Discovery projection field must be a string when present.',
+        ),
+      ],
+    };
+  }
+
+  return renderProjectionTemplate(value, wildcardSegments, path);
+}
+
+function renderProjectedMetadata(
+  value: unknown,
+  wildcardSegments: readonly string[],
+  path: string,
+): {
+  value?: Record<string, unknown>;
+  diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
+} {
+  if (value === undefined) {
+    return { diagnostics: [] };
+  }
+
+  if (!isRecord(value)) {
+    return {
+      diagnostics: [
+        invalidDiscoveryProjectionDiagnostic(
+          path,
+          'Discovery projection metadata must be an object when present.',
+        ),
+      ],
+    };
+  }
+
+  const rendered = renderProjectedMetadataValue(value, wildcardSegments, path);
+  return {
+    value: isRecord(rendered.value) ? rendered.value : undefined,
+    diagnostics: rendered.diagnostics,
+  };
+}
+
+function renderProjectedMetadataValue(
+  value: unknown,
+  wildcardSegments: readonly string[],
+  path: string,
+): {
+  value?: unknown;
+  diagnostics: TypeScriptWorkspaceDetectionDiagnostic[];
+} {
+  if (typeof value === 'string') {
+    return renderProjectionTemplate(value, wildcardSegments, path);
+  }
+
+  if (Array.isArray(value)) {
+    const diagnostics: TypeScriptWorkspaceDetectionDiagnostic[] = [];
+    const renderedValues: unknown[] = [];
+
+    for (let index = 0; index < value.length; index += 1) {
+      const rendered = renderProjectedMetadataValue(
+        value[index],
+        wildcardSegments,
+        `${path}/${index}`,
+      );
+      diagnostics.push(...rendered.diagnostics);
+      if (rendered.value !== undefined) {
+        renderedValues.push(rendered.value);
+      }
+    }
+
+    return {
+      value: renderedValues,
+      diagnostics,
+    };
+  }
+
+  if (isRecord(value)) {
+    const diagnostics: TypeScriptWorkspaceDetectionDiagnostic[] = [];
+    const renderedEntries: [string, unknown][] = [];
+
+    for (const [key, entryValue] of Object.entries(value)) {
+      const rendered = renderProjectedMetadataValue(
+        entryValue,
+        wildcardSegments,
+        `${path}/${key}`,
+      );
+      diagnostics.push(...rendered.diagnostics);
+      if (rendered.value !== undefined) {
+        renderedEntries.push([key, rendered.value]);
+      }
+    }
+
+    return {
+      value: Object.fromEntries(renderedEntries),
+      diagnostics,
+    };
+  }
+
+  return {
+    value,
+    diagnostics: [],
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function extractWildcardSegments(
