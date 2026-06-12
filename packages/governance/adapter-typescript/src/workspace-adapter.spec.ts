@@ -220,9 +220,7 @@ describe('generic Governance adapter exports', () => {
           }),
           ownership: expect.objectContaining({
             team: 'booking-team',
-          }),
-          metadata: expect.objectContaining({
-            discovery: expect.objectContaining({ owner: 'booking-team' }),
+            source: 'project-metadata',
           }),
           tags: expect.arrayContaining([
             'domain:booking',

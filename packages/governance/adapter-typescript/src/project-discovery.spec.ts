@@ -457,7 +457,7 @@ describe('TypeScript project discovery', () => {
     });
   });
 
-  it('maps metadata owner to project.metadata.owner', () => {
+  it('maps metadata owner to canonical project ownership', () => {
     const packageRoot = makeTempPackageRoot({
       governance: {
         owner: 'booking-team',
@@ -487,9 +487,11 @@ describe('TypeScript project discovery', () => {
         root: 'packages/order',
         type: 'unknown',
         tags: [],
-        metadata: {
-          owner: 'booking-team',
+        ownership: {
+          team: 'booking-team',
+          source: 'project-metadata',
         },
+        metadata: {},
       },
     ]);
   });
@@ -563,9 +565,11 @@ describe('TypeScript project discovery', () => {
         tags: ['domain:booking', 'layer:application'],
         domain: 'booking',
         layer: 'application',
-        metadata: {
-          owner: 'booking-team',
+        ownership: {
+          team: 'booking-team',
+          source: 'project-metadata',
         },
+        metadata: {},
       },
     ]);
     expect(result.diagnostics).toEqual([]);

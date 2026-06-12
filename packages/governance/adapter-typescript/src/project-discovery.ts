@@ -212,7 +212,15 @@ function createDiscoveredProject({
     ...(resolvedGovernance.domain ? { domain: resolvedGovernance.domain } : {}),
     ...(resolvedGovernance.layer ? { layer: resolvedGovernance.layer } : {}),
     ...(resolvedGovernance.scope ? { scope: resolvedGovernance.scope } : {}),
-    metadata: owner ? { owner } : {},
+    ...(owner
+      ? {
+          ownership: {
+            team: owner,
+            source: 'project-metadata',
+          },
+        }
+      : {}),
+    metadata: {},
   };
 }
 
