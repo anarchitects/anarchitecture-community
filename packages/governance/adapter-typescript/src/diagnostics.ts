@@ -292,6 +292,18 @@ export function invalidProjectNameTemplateDiagnostic(
   };
 }
 
+export function invalidDiscoveryProjectionDiagnostic(
+  path: string,
+  message: string,
+): TypeScriptWorkspaceDetectionDiagnostic {
+  return {
+    code: 'governance.typescript_adapter.invalid_discovery_projection',
+    message,
+    source: DIAGNOSTIC_SOURCE,
+    path,
+  };
+}
+
 export function sourceFileParseErrorDiagnostic(
   path: string,
   message: string,

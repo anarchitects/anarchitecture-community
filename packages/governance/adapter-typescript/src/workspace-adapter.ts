@@ -259,7 +259,7 @@ function buildProjectNode(
   return {
     id: project.id,
     name: project.name ?? project.id,
-    kind: 'typescript-workspace-project',
+    kind: project.kind ?? 'typescript-workspace-project',
     technology: 'typescript',
     sourceSystem: packageManager ?? 'typescript',
     ...(root ? { root } : {}),

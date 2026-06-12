@@ -127,10 +127,18 @@ describe('TypeScript project discovery', () => {
           {
             pattern: 'apps/*',
             name: '{segment:1}',
+            projection: {
+              kind: 'application',
+              domain: 'booking',
+            },
           },
           {
             pattern: 'apps/*',
             name: 'duplicate-{segment:1}',
+            projection: {
+              kind: 'library',
+              domain: 'payments',
+            },
           },
         ],
       },
@@ -141,8 +149,10 @@ describe('TypeScript project discovery', () => {
         id: 'site',
         name: 'site',
         root: 'apps/site',
+        kind: 'application',
         type: 'unknown',
-        tags: [],
+        tags: ['domain:booking'],
+        domain: 'booking',
         metadata: {},
       },
     ]);
@@ -155,6 +165,61 @@ describe('TypeScript project discovery', () => {
         path: '/projects/1/pattern',
       },
     ]);
+  });
+
+  it('projects canonical governance fields and discovery metadata directly from matching rules', () => {
+    const result = discoverTypeScriptProjects(
+      workspace({
+        packageRoots: ['libs/booking/domain'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'libs/*/*',
+            name: '{segment:1}-{segment:2}',
+            tags: ['type:lib'],
+            projection: {
+              kind: 'library',
+              type: 'bounded-context-module',
+              domain: '{segment:1}',
+              layer: '{segment:2}',
+              scope: 'core',
+              metadata: {
+                source: 'discovery-rule',
+                path: '{segment:1}/{segment:2}',
+                nested: {
+                  layer: '{segment:2}',
+                },
+                flags: [true, '{segment:1}'],
+              },
+            },
+          },
+        ],
+      },
+    );
+
+    expect(result.projects).toEqual([
+      {
+        id: 'booking-domain',
+        name: 'booking-domain',
+        root: 'libs/booking/domain',
+        kind: 'library',
+        type: 'bounded-context-module',
+        tags: ['type:lib', 'domain:booking', 'layer:domain', 'scope:core'],
+        domain: 'booking',
+        layer: 'domain',
+        scope: 'core',
+        metadata: {
+          source: 'discovery-rule',
+          path: 'booking/domain',
+          nested: {
+            layer: 'domain',
+          },
+          flags: [true, 'booking'],
+        },
+      },
+    ]);
+    expect(result.diagnostics).toEqual([]);
   });
 
   it('reports duplicate names deterministically and keeps the first project', () => {
@@ -611,6 +676,66 @@ describe('TypeScript project discovery', () => {
         layer: 'domain',
         scope: 'customer',
         metadata: {},
+      },
+    ]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('prefers explicit projections over tag inference, while package metadata still wins over projections', () => {
+    const packageRoot = makeTempPackageRoot({
+      governance: {
+        domain: 'booking',
+        layer: 'domain',
+        scope: 'platform',
+      },
+    });
+
+    const result = discoverTypeScriptProjects(
+      workspace({
+        workspaceRoot: packageRoot.workspaceRoot,
+        packageRoots: ['libs/customer/application'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'libs/*/*',
+            name: '{segment:1}-{segment:2}',
+            tags: [
+              'domain:payments',
+              'layer:application',
+              'scope:legacy',
+              'type:lib',
+            ],
+            projection: {
+              kind: 'library',
+              type: 'feature-slice',
+              domain: 'customer',
+              layer: 'service',
+              scope: '{segment:1}',
+              metadata: {
+                channel: '{segment:2}',
+              },
+            },
+          },
+        ],
+      },
+      DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    );
+
+    expect(result.projects).toEqual([
+      {
+        id: 'customer-application',
+        name: 'customer-application',
+        root: 'libs/customer/application',
+        kind: 'library',
+        type: 'feature-slice',
+        tags: ['type:lib', 'domain:booking', 'layer:domain', 'scope:platform'],
+        domain: 'booking',
+        layer: 'domain',
+        scope: 'platform',
+        metadata: {
+          channel: 'application',
+        },
       },
     ]);
     expect(result.diagnostics).toEqual([]);

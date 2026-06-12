@@ -1,4 +1,5 @@
 import {
+  invalidDiscoveryProjectionDiagnostic,
   invalidProjectNameTemplateDiagnostic,
   invalidTagTemplateDiagnostic,
 } from './diagnostics.js';
@@ -8,7 +9,7 @@ interface RenderTemplateOptions {
   template: string;
   wildcardSegments: readonly string[];
   path: string;
-  kind: 'name' | 'tag';
+  kind: 'name' | 'projection' | 'tag';
 }
 
 interface RenderTemplateResult {
@@ -49,6 +50,19 @@ export function renderTagTemplate(
     wildcardSegments,
     path,
     kind: 'tag',
+  });
+}
+
+export function renderProjectionTemplate(
+  template: string,
+  wildcardSegments: readonly string[],
+  path: string,
+): RenderTemplateResult {
+  return renderTemplate({
+    template,
+    wildcardSegments,
+    path,
+    kind: 'projection',
   });
 }
 
@@ -110,11 +124,17 @@ function renderTemplate({
 }
 
 function invalidTemplateDiagnostic(
-  kind: 'name' | 'tag',
+  kind: 'name' | 'projection' | 'tag',
   path: string,
   message: string,
 ): TypeScriptWorkspaceDetectionDiagnostic {
-  return kind === 'name'
-    ? invalidProjectNameTemplateDiagnostic(path, message)
-    : invalidTagTemplateDiagnostic(path, message);
+  switch (kind) {
+    case 'name':
+      return invalidProjectNameTemplateDiagnostic(path, message);
+    case 'projection':
+      return invalidDiscoveryProjectionDiagnostic(path, message);
+    case 'tag':
+    default:
+      return invalidTagTemplateDiagnostic(path, message);
+  }
 }
