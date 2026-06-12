@@ -393,16 +393,19 @@ function buildGroupKey(signal: GovernanceSignal): string {
 }
 
 function subjectsFromSignal(signal: GovernanceSignal): string[] {
-  return [
-    ...new Set(
-      [
-        signal.nodeId,
-        signal.relationId,
-        ...(signal.relatedNodeIds ?? []),
-        ...(signal.relatedRelationIds ?? []),
-      ].filter((value): value is string => Boolean(value)),
-    ),
-  ].sort((a, b) => a.localeCompare(b));
+  const relationSubjects = collectSubjects([
+    signal.relationId,
+    ...(signal.relatedRelationIds ?? []),
+  ]);
+
+  if (relationSubjects.length > 0) {
+    return collectSubjects([
+      ...relationSubjects,
+      ...relevantNodeSubjectsFromRelationSignal(signal),
+    ]);
+  }
+
+  return collectSubjects([signal.nodeId, ...(signal.relatedNodeIds ?? [])]);
 }
 
 function mergeSubjects(
@@ -417,6 +420,46 @@ function mergeSubjects(
 function readRuleId(signal: GovernanceSignal): string | undefined {
   const ruleId = signal.metadata?.ruleId;
   return typeof ruleId === 'string' && ruleId.length > 0 ? ruleId : undefined;
+}
+
+function relevantNodeSubjectsFromRelationSignal(
+  signal: GovernanceSignal,
+): string[] {
+  if (signal.type !== 'missing-domain-context') {
+    return [];
+  }
+
+  const missingSourceDomain = signal.metadata?.missingSourceDomain;
+  const missingTargetDomain = signal.metadata?.missingTargetDomain;
+  if (
+    typeof missingSourceDomain !== 'boolean' ||
+    typeof missingTargetDomain !== 'boolean'
+  ) {
+    return [];
+  }
+
+  const sourceNodeId = signal.nodeId;
+  const targetNodeId = (signal.relatedNodeIds ?? []).find(
+    (nodeId) => nodeId !== sourceNodeId,
+  );
+
+  if (
+    (missingSourceDomain && !sourceNodeId) ||
+    (missingTargetDomain && !targetNodeId)
+  ) {
+    return [];
+  }
+
+  return collectSubjects([
+    ...(missingSourceDomain ? [sourceNodeId] : []),
+    ...(missingTargetDomain ? [targetNodeId] : []),
+  ]);
+}
+
+function collectSubjects(values: (string | undefined)[]): string[] {
+  return [
+    ...new Set(values.filter((value): value is string => Boolean(value))),
+  ].sort((a, b) => a.localeCompare(b));
 }
 
 function compareTopIssues(

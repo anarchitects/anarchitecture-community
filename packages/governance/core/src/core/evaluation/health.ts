@@ -229,7 +229,7 @@ function buildSubjectHotspots(
       continue;
     }
 
-    for (const subject of issue.subjects) {
+    for (const subject of subjectsForHotspotAggregation(issue)) {
       const current = counts.get(subject) ?? {
         count: 0,
         typeCounts: new Map<GovernanceTopIssue['type'], number>(),
@@ -260,6 +260,27 @@ function buildSubjectHotspots(
 
 function isHealthDrivingIssue(issue: GovernanceTopIssue): boolean {
   return issue.type !== 'structural-dependency';
+}
+
+function subjectsForHotspotAggregation(issue: GovernanceTopIssue): string[] {
+  const relationSubjects = issue.subjects.filter(
+    (subject) => inferSubjectType(subject) === 'relation',
+  );
+
+  if (relationSubjects.length === 0) {
+    return issue.subjects.filter(
+      (subject) => inferSubjectType(subject) === 'node',
+    );
+  }
+
+  if (issue.type !== 'missing-domain-context') {
+    return relationSubjects;
+  }
+
+  return [
+    ...relationSubjects,
+    ...issue.subjects.filter((subject) => inferSubjectType(subject) === 'node'),
+  ];
 }
 
 function inferSubjectType(
