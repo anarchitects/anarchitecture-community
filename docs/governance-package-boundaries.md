@@ -1,12 +1,15 @@
 # Governance Package Boundaries
 
-Authoritative architecture decision:
+Authoritative accepted architecture decision:
 [ADR 0001: Governance Package Boundaries for Core, CLI, Adapters, and Extensions](./adr/0001-governance-package-boundaries.md)
+
+Additional accepted architecture decision:
+[ADR 0003: Governance Boundaries for Canonical Core, Adapters, Extensions, and Hosts](./adr/0003-governance-core-adapter-extension-host-boundaries.md)
 
 This document defines public API and dependency-boundary conventions for future Governance packages in `anarchitects/anarchitecture-community`.
 
 Status:
-Supporting guidance for Governance package boundary work. The accepted architectural source of truth lives in ADR 0001.
+Supporting guidance for Governance package boundary work. Accepted architectural source of truth lives in ADR 0001 and ADR 0003.
 
 ## Public API Expectations
 
