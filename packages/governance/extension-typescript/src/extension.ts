@@ -4,6 +4,7 @@ import type {
 } from '@anarchitects/governance-core';
 
 import type { TypeScriptGovernanceExtensionContributions } from './contracts.js';
+import { TYPESCRIPT_GOVERNANCE_EXTENSION_ID } from './constants.js';
 import { typescriptGovernanceDiagnosticsProvider } from './diagnostics.js';
 import { typescriptGovernanceMetricProvider } from './metrics.js';
 import { typescriptGovernanceRecommendationProvider } from './recommendations.js';
@@ -12,9 +13,6 @@ import {
   registerTypeScriptGovernanceExtensionContributions,
   type TypeScriptGovernanceExtensionOptions,
 } from './contracts.js';
-
-export const TYPESCRIPT_GOVERNANCE_EXTENSION_ID =
-  'governance-extension:typescript';
 
 export interface TypeScriptGovernanceExtensionMetadata {
   id: typeof TYPESCRIPT_GOVERNANCE_EXTENSION_ID;

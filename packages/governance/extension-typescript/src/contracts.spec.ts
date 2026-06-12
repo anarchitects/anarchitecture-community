@@ -1,5 +1,6 @@
 import {
   DefaultGovernanceCapabilityRegistry,
+  getGovernanceExtensionModelExpansion,
   registerLoadedGovernanceExtensionsWithDiagnostics,
   type GovernanceDiagnostic,
   type GovernanceExtensionHostContext,
@@ -10,15 +11,21 @@ import {
 } from '@anarchitects/governance-core';
 
 import {
+  TYPESCRIPT_GOVERNANCE_EXPANSION_CONTRACT_VERSION,
   TYPESCRIPT_GOVERNANCE_DIAGNOSTIC_PROVIDER_CAPABILITY_PREFIX,
+  TYPESCRIPT_GOVERNANCE_EXTENSION_ID,
   TYPESCRIPT_GOVERNANCE_RECOMMENDATION_PROVIDER_CAPABILITY_PREFIX,
+  attachTypeScriptGovernanceModelExpansion,
   createTypeScriptGovernanceExtension,
+  createTypeScriptGovernanceModelExpansion,
+  getTypeScriptGovernanceModelExpansion,
   getTypeScriptGovernanceDiagnosticProviders,
   getTypeScriptGovernanceRecommendationProviders,
   typescriptGovernanceDiagnosticsProvider,
   typescriptGovernanceMetricProvider,
   typescriptGovernanceRecommendationProvider,
   typescriptGovernanceSignalProvider,
+  validateTypeScriptGovernanceModelExpansion,
 } from './index.js';
 import { createTypeScriptWorkspace } from './test-workspace.js';
 
@@ -133,6 +140,78 @@ describe('TypeScript governance extension contracts', () => {
     ).toEqual([
       typescriptGovernanceRecommendationProvider,
       recommendationProvider,
+    ]);
+  });
+
+  it('attaches versioned TypeScript expansion data to canonical carriers', () => {
+    const workspace = attachTypeScriptGovernanceModelExpansion(
+      createTypeScriptWorkspace(),
+      {
+        kind: 'workspace',
+        technology: 'typescript',
+        packageManager: 'pnpm',
+        projectNodeIds: ['orders'],
+      },
+    );
+
+    expect(getTypeScriptGovernanceModelExpansion(workspace)).toEqual({
+      extensionId: TYPESCRIPT_GOVERNANCE_EXTENSION_ID,
+      contractVersion: TYPESCRIPT_GOVERNANCE_EXPANSION_CONTRACT_VERSION,
+      data: {
+        kind: 'workspace',
+        technology: 'typescript',
+        packageManager: 'pnpm',
+        projectNodeIds: ['orders'],
+      },
+    });
+    expect(
+      getGovernanceExtensionModelExpansion(
+        workspace,
+        TYPESCRIPT_GOVERNANCE_EXTENSION_ID,
+      ),
+    ).toEqual(getTypeScriptGovernanceModelExpansion(workspace));
+  });
+
+  it('validates TypeScript-owned expansion envelopes and leaves deep semantics to the extension', () => {
+    const validExpansion = createTypeScriptGovernanceModelExpansion({
+      kind: 'runtime-context',
+      technology: 'typescript',
+      config: {
+        signals: {
+          importGraph: true,
+        },
+      },
+      expectedFacts: ['tsconfig', 'imports'],
+    });
+
+    expect(validateTypeScriptGovernanceModelExpansion(validExpansion)).toEqual(
+      [],
+    );
+    expect(
+      validateTypeScriptGovernanceModelExpansion({
+        extensionId: TYPESCRIPT_GOVERNANCE_EXTENSION_ID,
+        contractVersion: '999',
+        data: {
+          kind: 'node',
+          technology: 'typescript',
+          nodeKind: 'unsupported',
+        },
+      }),
+    ).toEqual([
+      {
+        code: 'typescript.expansion.unsupported_contract_version',
+        severity: 'error',
+        message:
+          'TypeScript governance model expansion contractVersion is not supported.',
+        path: '/contractVersion',
+      },
+      {
+        code: 'typescript.expansion.invalid_enum_value',
+        severity: 'error',
+        message:
+          'Expected one of workspace-project, tsconfig, package-manager-package, unknown.',
+        path: '/data/nodeKind',
+      },
     ]);
   });
 });

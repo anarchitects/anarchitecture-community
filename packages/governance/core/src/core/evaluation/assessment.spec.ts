@@ -237,6 +237,43 @@ describe('buildGovernanceAssessment', () => {
       'domain-boundary-violation',
     ]);
   });
+
+  it('preserves assessment-level extension-owned expansions without interpreting them', () => {
+    const assessment = buildGovernanceAssessment({
+      ...baseAssessmentInput,
+      extensions: {
+        'governance-extension:typescript': {
+          extensionId: 'governance-extension:typescript',
+          contractVersion: '1',
+          data: {
+            kind: 'runtime-context',
+            technology: 'typescript',
+            config: {
+              signals: {
+                importGraph: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(assessment.extensions).toEqual({
+      'governance-extension:typescript': {
+        extensionId: 'governance-extension:typescript',
+        contractVersion: '1',
+        data: {
+          kind: 'runtime-context',
+          technology: 'typescript',
+          config: {
+            signals: {
+              importGraph: true,
+            },
+          },
+        },
+      },
+    });
+  });
 });
 
 describe('buildTopIssues', () => {

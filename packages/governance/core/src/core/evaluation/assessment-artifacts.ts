@@ -20,6 +20,7 @@ import {
   type GovernanceExtensionHostContext,
   type GovernanceExtensionRegistry,
 } from '../../extensions/index.js';
+import type { GovernanceExtensionModelExpansionMap } from '../../extensions/model-expansions.js';
 import {
   buildGovernanceRecommendations,
   calculateGovernanceHealth,
@@ -65,6 +66,7 @@ export interface BuildGovernanceAssessmentArtifactsInput {
   extensionRegistry?: GovernanceExtensionRegistry;
   extensionContext?: GovernanceExtensionHostContext;
   extensionDiagnostics?: GovernanceExtensionDiagnostic[];
+  assessmentExtensions?: GovernanceExtensionModelExpansionMap;
   asOf?: Date;
 }
 
@@ -207,6 +209,9 @@ export async function buildGovernanceAssessmentArtifacts(
     measurements,
     health,
     recommendations,
+    ...(input.assessmentExtensions
+      ? { extensions: input.assessmentExtensions }
+      : {}),
   });
 
   return {

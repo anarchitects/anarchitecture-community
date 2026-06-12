@@ -60,6 +60,7 @@ export function normalizeGovernanceNode(
   if (node.evidence !== undefined) normalized.evidence = node.evidence;
   if (node.authority !== undefined) normalized.authority = node.authority;
   if (node.confidence !== undefined) normalized.confidence = node.confidence;
+  if (node.extensions !== undefined) normalized.extensions = node.extensions;
 
   return normalized;
 }
@@ -90,6 +91,9 @@ export function normalizeGovernanceRelation(
   }
   if (relation.confidence !== undefined) {
     normalized.confidence = relation.confidence;
+  }
+  if (relation.extensions !== undefined) {
+    normalized.extensions = relation.extensions;
   }
 
   return normalized;

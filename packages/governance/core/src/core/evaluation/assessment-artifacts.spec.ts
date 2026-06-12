@@ -32,6 +32,16 @@ describe('assessment artifact assembly', () => {
       workspaceAdapterResult: coreTestAdapterResult,
       profile: testProfile,
       warnings: ['fixture'],
+      assessmentExtensions: {
+        'governance-extension:typescript': {
+          extensionId: 'governance-extension:typescript',
+          contractVersion: '1',
+          data: {
+            kind: 'runtime-context',
+            technology: 'typescript',
+          },
+        },
+      },
       exceptions: [],
       conformanceFindings: [
         {
@@ -49,6 +59,16 @@ describe('assessment artifact assembly', () => {
 
     expect(artifacts.workspace.nodes).toHaveLength(3);
     expect(artifacts.assessment.profile).toBe('frontend-layered');
+    expect(artifacts.assessment.extensions).toEqual({
+      'governance-extension:typescript': {
+        extensionId: 'governance-extension:typescript',
+        contractVersion: '1',
+        data: {
+          kind: 'runtime-context',
+          technology: 'typescript',
+        },
+      },
+    });
     expect(artifacts.signals.length).toBeGreaterThan(0);
     expect(artifacts.measurements.length).toBeGreaterThan(0);
     expect(artifacts.assessment.exceptions.summary.declaredCount).toBe(0);
