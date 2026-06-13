@@ -10,6 +10,8 @@ evaluate governance rules, compute scores, or implement dbt host behavior.
 Package boundaries follow
 [ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
 [ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
+Practical contributor guidance lives in
+[`docs/governance-boundary-contributor-guide.md`](../../../docs/governance-boundary-contributor-guide.md).
 
 ## Public API
 
@@ -94,6 +96,7 @@ The canonical adapter output is:
 - `capabilities`
 - `diagnostics`
 - `metadata`
+- `metadata.dbt`
 - `extensions`
 
 Canonical governance facts stay in first-class Core fields when they are
@@ -161,6 +164,13 @@ The dbt adapter does not own:
 - runtime composition
 - host UX, CI orchestration, or dbt command execution
 
+Adapter contributor rules:
+
+- do not import `@anarchitects/governance-extension-dbt` at runtime
+- do not add a runtime dependency on the dbt extension package
+- do not call extension factory helpers from the adapter
+- emit dbt extension data through Core-owned generic envelope contracts
+
 Future `@anarchitects/governance-runtime-dbt` should compose:
 
 - canonical governance profile config
@@ -186,17 +196,18 @@ extension layers instead of collapsing everything into one profile surface.
   "adapter": "@anarchitects/governance-adapter-dbt",
   "extensions": ["@anarchitects/governance-extension-dbt"],
   "adapterOptions": {
-    "dbt": {
+    "@anarchitects/governance-adapter-dbt": {
       "paths": {
         "projectDir": "./analytics",
         "manifestPath": "./analytics/target/manifest.json"
-      }
+      },
+      "validationMode": "strict"
     }
   },
   "extensionOptions": {
-    "dbt": {
+    "@anarchitects/governance-extension-dbt": {
       "signals": {},
-      "rules": {}
+      "metrics": {}
     }
   }
 }

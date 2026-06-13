@@ -14,6 +14,8 @@ extension contributions separately from TypeScript workspace extraction.
 Package boundaries follow
 [ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
 [ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
+Practical contributor guidance lives in
+[`docs/governance-boundary-contributor-guide.md`](../../../docs/governance-boundary-contributor-guide.md).
 
 ## Key Concepts
 
@@ -143,7 +145,7 @@ Validation and versioning rules:
 - Future incompatible TypeScript expansion changes must increment the contract
   version in this package instead of changing Core.
 
-Ownership split:
+Ownership boundaries:
 
 - Canonical facts such as ownership, domain, layer, and scope remain Core
   inputs when they are genuinely architectural.
@@ -153,6 +155,14 @@ Ownership split:
 - Hosts route runtime config separately through extension options or
   `GovernanceExtensionHostContext.options`; that config does not belong in the
   canonical Governance profile.
+
+TypeScript extension contributor rules:
+
+- own TypeScript expansion validation and contract versioning here
+- own TypeScript-specific diagnostics, signals, metrics, and recommendations
+- do not own TypeScript workspace extraction
+- do not require adapter-private implementation details
+- do not move TypeScript-specific payload fields into Core
 
 ## Related Packages
 
