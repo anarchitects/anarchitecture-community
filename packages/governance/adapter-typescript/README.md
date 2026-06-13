@@ -38,7 +38,9 @@ Package boundaries follow
 npm install @anarchitects/governance-adapter-typescript
 ```
 
-Hosts that evaluate the result also need `@anarchitects/governance-core`.
+The adapter runtime depends on `@anarchitects/governance-core` and local
+parsing libraries only. Hosts that validate or interpret TypeScript-specific
+expansion data also need `@anarchitects/governance-extension-typescript`.
 
 ## Quick Start
 
@@ -100,8 +102,18 @@ genuinely generic:
 
 TypeScript-specific extraction facts are emitted through the
 `governance-extension:typescript` model expansion surface owned by
-`@anarchitects/governance-extension-typescript`. The adapter does not keep
-TypeScript semantics in canonical metadata as the primary contract surface.
+`@anarchitects/governance-extension-typescript`. The adapter emits those
+envelopes by protocol shape only:
+
+- `extensionId`
+- `contractVersion`
+- `data`
+- optional `diagnostics`
+- optional `metadata`
+
+Validation, versioning, and semantic interpretation remain extension-owned.
+The adapter does not keep TypeScript semantics in canonical metadata as the
+primary contract surface and does not import the TypeScript extension runtime.
 
 ## Usage
 
@@ -204,7 +216,8 @@ The adapter owns extraction and deterministic normalization only.
 - Generic governance facts map into canonical Core fields.
 - TypeScript-specific facts such as `tsconfig`, import evidence, package
   manager dependency details, and path alias resolution map into the
-  TypeScript extension expansion surface.
+  TypeScript extension expansion surface using Core-owned generic model
+  expansion envelopes.
 - Adapter-specific extraction config remains adapter/host-owned and does not
   expand the canonical Governance profile.
 

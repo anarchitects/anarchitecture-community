@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { GovernanceWorkspaceAdapter } from '@anarchitects/governance-core';
+import { validateTypeScriptGovernanceModelExpansion } from '@anarchitects/governance-extension-typescript';
 
 import {
   DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
@@ -373,6 +374,89 @@ describe('generic Governance adapter exports', () => {
       ]),
     );
   });
+
+  it('emits TypeScript expansion envelopes that remain valid for the extension validator', () => {
+    const workspaceRoot = materializeFixture('pnpm');
+    writeJsonFile(path.join(workspaceRoot, 'packages', 'customer'), {
+      name: '@demo/customer',
+      private: true,
+      dependencies: {
+        '@demo/order': 'workspace:*',
+        react: '^19.0.0',
+      },
+    });
+
+    const workspaceAdapter = createGovernanceWorkspaceAdapter({
+      discoveryConfig: {
+        projects: [
+          { pattern: 'apps/*', name: '{segment:1}', tags: ['type:app'] },
+          { pattern: 'packages/*', name: '{segment:1}', tags: ['type:lib'] },
+        ],
+      },
+    });
+    const workspaceResult = workspaceAdapter.loadWorkspace(workspaceRoot);
+    const tsconfigResult = workspaceAdapter.loadWorkspace(
+      materializeTsconfigFixture('alias-baseurl'),
+    );
+
+    const workspaceExpansion =
+      workspaceResult.extensions?.['governance-extension:typescript'];
+    const workspacePackageExpansion = readNodeExpansion(
+      workspaceResult,
+      (expansion) =>
+        expansion.data.nodeKind === 'package-manager-package' &&
+        expansion.data.packageManagerPackage?.workspace === true,
+    );
+    const projectNodeExpansion = readNodeExpansion(
+      workspaceResult,
+      (expansion) => expansion.data.nodeKind === 'workspace-project',
+    );
+    const externalPackageExpansion = readNodeExpansion(
+      workspaceResult,
+      (expansion) =>
+        expansion.data.nodeKind === 'package-manager-package' &&
+        expansion.data.packageManagerPackage?.external === true,
+    );
+    const tsconfigNodeExpansion = readNodeExpansion(
+      tsconfigResult,
+      (expansion) => expansion.data.nodeKind === 'tsconfig',
+    );
+    const workspaceMemberExpansion = readRelationExpansion(
+      workspaceResult,
+      (expansion) => expansion.data.relationKind === 'workspace-member',
+    );
+    const packageDependencyExpansion = readRelationExpansion(
+      workspaceResult,
+      (expansion) => expansion.data.relationKind === 'package-dependency',
+    );
+    const pathMappingExpansion = readRelationExpansion(
+      tsconfigResult,
+      (expansion) => expansion.data.relationKind === 'path-alias',
+    );
+    const importExpansion = readRelationExpansion(
+      workspaceResult,
+      (expansion) => expansion.data.relationKind === 'import',
+    );
+
+    [
+      workspaceExpansion,
+      workspacePackageExpansion,
+      projectNodeExpansion,
+      externalPackageExpansion,
+      tsconfigNodeExpansion,
+      workspaceMemberExpansion,
+      packageDependencyExpansion,
+      pathMappingExpansion,
+      importExpansion,
+    ].forEach((expansion) => {
+      expect(expansion).toBeDefined();
+      expect(expansion).toMatchObject({
+        extensionId: 'governance-extension:typescript',
+        contractVersion: '1',
+      });
+      expect(validateTypeScriptGovernanceModelExpansion(expansion)).toEqual([]);
+    });
+  });
 });
 
 const specDir = fileURLToPath(new URL('.', import.meta.url));
@@ -441,4 +525,54 @@ function renameIfExists(root: string, from: string, to: string): void {
 
 function writeJsonFile(root: string, value: Record<string, unknown>): void {
   writeFileSync(path.join(root, 'package.json'), JSON.stringify(value), 'utf8');
+}
+
+interface TypeScriptNodeExpansionEnvelope {
+  extensionId: string;
+  contractVersion: string;
+  data: {
+    kind: 'node';
+    nodeKind: string;
+    packageManagerPackage?: {
+      workspace?: boolean;
+      external?: boolean;
+    };
+  };
+}
+
+interface TypeScriptRelationExpansionEnvelope {
+  extensionId: string;
+  contractVersion: string;
+  data: {
+    kind: 'relation';
+    relationKind: string;
+  };
+}
+
+function readNodeExpansion(
+  result: ReturnType<GovernanceWorkspaceAdapter<string>['loadWorkspace']>,
+  predicate: (expansion: TypeScriptNodeExpansionEnvelope) => boolean,
+): TypeScriptNodeExpansionEnvelope | undefined {
+  return result.nodes
+    ?.flatMap((node) => {
+      const expansion = node.extensions?.['governance-extension:typescript'] as
+        | TypeScriptNodeExpansionEnvelope
+        | undefined;
+      return expansion?.data.kind === 'node' ? [expansion] : [];
+    })
+    .find((expansion) => predicate(expansion));
+}
+
+function readRelationExpansion(
+  result: ReturnType<GovernanceWorkspaceAdapter<string>['loadWorkspace']>,
+  predicate: (expansion: TypeScriptRelationExpansionEnvelope) => boolean,
+): TypeScriptRelationExpansionEnvelope | undefined {
+  return result.relations
+    ?.flatMap((relation) => {
+      const expansion = relation.extensions?.[
+        'governance-extension:typescript'
+      ] as TypeScriptRelationExpansionEnvelope | undefined;
+      return expansion?.data.kind === 'relation' ? [expansion] : [];
+    })
+    .find((expansion) => predicate(expansion));
 }

@@ -108,9 +108,18 @@ genuinely generic:
 
 dbt-specific artifact facts are emitted through the
 `governance-extension:dbt` model expansion surface owned by
-`@anarchitects/governance-extension-dbt`. The adapter is responsible for
-deterministic extraction and normalization, not for dbt semantic
-interpretation.
+`@anarchitects/governance-extension-dbt`. The adapter emits those envelopes by
+protocol shape only:
+
+- `extensionId`
+- `contractVersion`
+- `data`
+- optional `diagnostics`
+- optional `metadata`
+
+The adapter is responsible for deterministic extraction and normalization, not
+for dbt semantic interpretation. Validation, versioning, and semantic
+ownership remain with the dbt extension.
 
 ## Input Contract
 
@@ -143,6 +152,7 @@ The dbt adapter owns:
 - artifact loading and validation
 - normalization of generic governance facts into canonical Core fields
 - projection of dbt-specific facts into the dbt extension expansion surface
+  using Core-owned generic model expansion envelopes
 
 The dbt adapter does not own:
 
@@ -206,7 +216,8 @@ In that flow:
   emitted by this adapter.
 - `@anarchitects/governance-extension-dbt` interprets dbt-specific expansion
   data and emits canonical findings, signals, measurements, and
-  recommendations.
+  recommendations. Hosts that need that interpretation install the extension;
+  the adapter itself does not depend on the extension runtime package.
 
 ## License
 

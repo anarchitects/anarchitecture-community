@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { validateDbtGovernanceModelExpansion } from '@anarchitects/governance-extension-dbt';
+
 import {
   loadDbtArtifacts,
   normalizeDbtArtifacts,
@@ -10,6 +12,24 @@ import {
 const fixturesRoot = fileURLToPath(
   new URL('../tests/fixtures/artifacts/', import.meta.url),
 );
+
+interface DbtNodeExpansionEnvelope {
+  extensionId: string;
+  contractVersion: string;
+  data: {
+    kind: 'node';
+    nodeKind: 'project' | 'resource' | 'unknown';
+  };
+}
+
+interface DbtRelationExpansionEnvelope {
+  extensionId: string;
+  contractVersion: string;
+  data: {
+    kind: 'relation';
+    relationKind: string;
+  };
+}
 
 describe('dbt artifact normalization', () => {
   it('emits canonical workspace identity, nodes, and relations only', () => {
@@ -410,6 +430,59 @@ describe('dbt artifact normalization', () => {
         }),
       ]),
     );
+  });
+
+  it('emits dbt expansion envelopes that remain valid for the extension validator', () => {
+    const context = mustResolveContext('valid-project');
+    const artifacts = mustLoadArtifacts(context);
+    const normalized = normalizeDbtArtifacts(context, artifacts);
+
+    const workspaceExpansion =
+      normalized.extensions?.['governance-extension:dbt'];
+    const projectNodeExpansion = normalized.nodes
+      ?.flatMap((node) => {
+        const expansion = node.extensions?.['governance-extension:dbt'] as
+          | DbtNodeExpansionEnvelope
+          | undefined;
+        return expansion?.data.kind === 'node' &&
+          expansion.data.nodeKind === 'project'
+          ? [expansion]
+          : [];
+      })
+      .at(0);
+    const resourceNodeExpansion = normalized.nodes
+      ?.flatMap((node) => {
+        const expansion = node.extensions?.['governance-extension:dbt'] as
+          | DbtNodeExpansionEnvelope
+          | undefined;
+        return expansion?.data.kind === 'node' &&
+          expansion.data.nodeKind === 'resource'
+          ? [expansion]
+          : [];
+      })
+      .at(0);
+    const relationExpansion = normalized.relations
+      ?.flatMap((relation) => {
+        const expansion = relation.extensions?.['governance-extension:dbt'] as
+          | DbtRelationExpansionEnvelope
+          | undefined;
+        return expansion?.data.kind === 'relation' ? [expansion] : [];
+      })
+      .at(0);
+
+    [
+      workspaceExpansion,
+      projectNodeExpansion,
+      resourceNodeExpansion,
+      relationExpansion,
+    ].forEach((expansion) => {
+      expect(expansion).toBeDefined();
+      expect(expansion).toMatchObject({
+        extensionId: 'governance-extension:dbt',
+        contractVersion: '1',
+      });
+      expect(validateDbtGovernanceModelExpansion(expansion)).toEqual([]);
+    });
   });
 });
 
