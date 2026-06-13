@@ -18,6 +18,8 @@ Use this package when you are building:
 Package boundaries follow
 [ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
 [ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
+Practical contributor guidance lives in
+[`docs/governance-boundary-contributor-guide.md`](../../../docs/governance-boundary-contributor-guide.md).
 
 ## Key Concepts
 
@@ -135,6 +137,7 @@ This package owns:
 - deterministic rule evaluation, metrics, health, and assessment assembly
 - generic built-in rule packs
 - extension contracts, capability contracts, and registration helpers
+- generic extension-owned model expansion envelope contracts
 - deterministic AI handoff payload builders over canonical assessment data
 
 This package does not own:
@@ -147,6 +150,7 @@ This package does not own:
 - host-specific configuration discovery
 - adapter-specific extraction or normalization configuration
 - extension-specific interpretation configuration
+- host or runtime orchestration configuration
 
 ## Boundary Model
 
@@ -165,6 +169,10 @@ When technology-specific or source-specific facts still need to travel through
 Core contracts, they should remain opaque in versioned extension-owned
 expansion envelopes, capability payloads, or extension host `options` until a
 stable generic Core contract exists.
+
+Contributor rule:
+If a field is TypeScript-specific, dbt-specific, or otherwise technology-owned,
+do not place it in Core just because multiple packages need to carry it.
 
 ## Usage
 

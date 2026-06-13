@@ -53,6 +53,7 @@ Governance packages should be:
 - clean in published npm artifacts
 
 See `docs/governance-package-boundaries.md` for Governance-specific public API and dependency-boundary rules.
+See `docs/governance-boundary-contributor-guide.md` for Core vs adapter vs extension vs host ownership and config placement.
 See `docs/governance-release-conventions.md` for release sequencing and versioning expectations.
 See `docs/governance-documentation-structure.md` for package README and documentation placement expectations.
 
@@ -138,6 +139,35 @@ Minimum expectations:
 - externalize dependencies appropriately so build output reflects the intended public package boundary
 
 Large manual validation assets should remain outside publishable outputs. If a fixture is needed for tests, it should still be prevented from appearing in the packed artifact.
+
+## Boundary-Conscious Dependency Conventions
+
+Package manifests should reinforce the ownership split from ADR 0003.
+
+Use these rules:
+
+- Core stays technology-agnostic and does not add ecosystem-specific runtime
+  dependencies for convenience.
+- Adapters depend on `@anarchitects/governance-core` for canonical contracts
+  and generic extension envelope contracts.
+- Adapters must not add runtime dependencies on concrete extension
+  implementation packages.
+- Extensions depend on `@anarchitects/governance-core` and own their
+  technology-specific validation and interpretation.
+- Hosts or runtimes may orchestrate concrete adapters and extensions, but that
+  orchestration boundary does not move into Core, adapters, or extensions.
+
+## Configuration Conventions
+
+Governance package docs and examples should keep configuration ownership
+explicit:
+
+- canonical profile examples stay technology-neutral
+- adapter examples show extraction, discovery, path, or validation options
+- extension examples show interpretation and provider options
+- host examples show package selection, runtime context, and reporting options
+
+Do not place adapter or extension options in canonical profile examples.
 
 ## Package Validation Expectations
 

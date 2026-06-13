@@ -13,6 +13,8 @@ automation script without writing a custom host.
 Package boundaries follow
 [ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
 [ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
+Practical contributor guidance lives in
+[`docs/governance-boundary-contributor-guide.md`](../../../docs/governance-boundary-contributor-guide.md).
 
 ## Key Concepts
 
@@ -158,7 +160,7 @@ Use `agov.config.json` or `governance.config.json` for host-owned layering:
 }
 ```
 
-In that split:
+In that layering:
 
 - `profile` remains canonical Core policy
 - `adapterOptions` routes only to adapter creation/loading
@@ -185,10 +187,35 @@ TypeScript example:
 
 dbt-oriented note:
 
-- future dbt hosts should apply the same split between canonical profile,
+- future dbt hosts should apply the same ownership layering between canonical profile,
   dbt adapter config, dbt extension config, and dbt runtime/host options
 - dbt-specific extraction and interpretation options should not be folded into
   the canonical profile
+
+dbt example:
+
+```json
+{
+  "profile": "./governance.profile.json",
+  "adapter": "@anarchitects/governance-adapter-dbt",
+  "extensions": ["@anarchitects/governance-extension-dbt"],
+  "adapterOptions": {
+    "@anarchitects/governance-adapter-dbt": {
+      "paths": {
+        "projectDir": "./analytics",
+        "manifestPath": "./analytics/target/manifest.json"
+      },
+      "validationMode": "strict"
+    }
+  },
+  "extensionOptions": {
+    "@anarchitects/governance-extension-dbt": {
+      "signals": {},
+      "metrics": {}
+    }
+  }
+}
+```
 
 ### Inspection Commands
 

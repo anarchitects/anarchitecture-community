@@ -15,6 +15,8 @@ graph.
 Package boundaries follow
 [ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
 [ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
+Practical contributor guidance lives in
+[`docs/governance-boundary-contributor-guide.md`](../../../docs/governance-boundary-contributor-guide.md).
 
 ## Key Concepts
 
@@ -220,6 +222,13 @@ The adapter owns extraction and deterministic normalization only.
   expansion envelopes.
 - Adapter-specific extraction config remains adapter/host-owned and does not
   expand the canonical Governance profile.
+
+Adapter contributor rules:
+
+- do not import `@anarchitects/governance-extension-typescript` at runtime
+- do not add a runtime dependency on the TypeScript extension package
+- do not call extension factory helpers from the adapter
+- emit TypeScript expansion data through Core-owned generic envelope contracts
 
 ## Related Packages
 

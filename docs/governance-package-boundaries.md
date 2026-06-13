@@ -11,6 +11,9 @@ This document defines public API and dependency-boundary conventions for future 
 Status:
 Supporting guidance for Governance package boundary work. Accepted architectural source of truth lives in ADR 0001 and ADR 0003.
 
+Practical contributor guide:
+[`docs/governance-boundary-contributor-guide.md`](./governance-boundary-contributor-guide.md)
+
 ## Public API Expectations
 
 Governance packages should expose explicit and intentional public APIs.
@@ -42,15 +45,20 @@ That means:
 Allowed:
 
 - `@anarchitects/governance-cli` -> `@anarchitects/governance-core`
-- `@anarchitects/governance-adapter-typescript` -> `@anarchitects/governance-core`
+- `@anarchitects/governance-adapter-*` -> `@anarchitects/governance-core`
 - `@anarchitects/governance-extension-*` -> `@anarchitects/governance-core`
-- published packages in `anarchitecture-plugins` -> published Governance packages from `anarchitecture-community`
+- future Governance hosts or runtimes -> `@anarchitects/governance-core` plus
+  the concrete adapters and extensions they intentionally orchestrate
+- published packages in `anarchitecture-plugins` -> published Governance
+  packages from `anarchitecture-community`
 
 Forbidden:
 
 - `@anarchitects/governance-core` -> CLI packages
 - `@anarchitects/governance-core` -> adapter packages
 - `@anarchitects/governance-core` -> extension runtime implementations
+- `@anarchitects/governance-adapter-*` -> concrete extension implementation
+  packages at runtime
 - any Community Governance package -> Nx APIs
 - any Community Governance package -> `@anarchitects/governance-adapter-nx`
 - any Community Governance package -> `@anarchitects/nx-governance`
@@ -61,10 +69,14 @@ Forbidden:
 
 - owns canonical contracts
 - owns deterministic governance logic
+- owns generic extension runtime and model expansion envelope contracts
 - must remain platform-independent
 - must not know about Nx
 - must not know about CLI runtime concerns
-- must not know about TypeScript workspace scanning internals
+- must not know about TypeScript, dbt, GitHub, Angular, or other
+  technology-specific payload schemas
+- must not own adapter extraction config, extension interpretation config, or
+  host orchestration config
 
 Core is the canonical model layer. It should define the shapes that adapters and hosts normalize into, not consume host-specific extraction models.
 
@@ -74,23 +86,32 @@ Core is the canonical model layer. It should define the shapes that adapters and
 
 - owns standalone runtime orchestration
 - may depend on Core
-- may accept concrete adapters only through Core-owned contracts
+- may accept concrete adapters only through Core-owned contracts and
+  host-routed package loading
 - may format output and handle process exit behavior
 - must not become a source of canonical Governance contracts
 - must not depend directly on concrete adapter packages
+- must not fold adapter or extension options into the canonical profile
 
 If the CLI needs a reusable contract, that contract belongs in Core rather than in CLI-specific modules.
 
 ## Adapter Boundary Rules
 
-`@anarchitects/governance-adapter-typescript`:
+`@anarchitects/governance-adapter-*`:
 
-- owns TypeScript workspace extraction logic
+- own source extraction and normalization
 - may depend on Governance Core contracts
-- must normalize into canonical `GovernanceWorkspace` structures
-- must not leak adapter-specific models into Core
+- may emit extension-owned expansions through generic Core-owned envelopes
+- must normalize into canonical Core structures
+- must preserve source provenance when useful
+- must not import concrete extension implementation packages at runtime
+- must not runtime-depend on concrete extension implementation packages
+- must not call extension factory functions
+- must not move technology-specific payload fields into Core
 
-The adapter may perform host-specific parsing and discovery internally, but its public output should align with canonical Core contracts rather than custom transport shapes.
+Adapters may emit extension-owned data by protocol shape, but they must build
+`GovernanceExtensionModelExpansion<TData>` envelopes through
+`@anarchitects/governance-core` contracts only.
 
 ## Extension Boundary Rules
 
@@ -98,10 +119,25 @@ The adapter may perform host-specific parsing and discovery internally, but its 
 
 - may extend Governance behavior
 - may contribute rules, signals, presets, and diagnostics
+- own technology-specific expansion validation and versioning
 - must remain platform-independent unless explicitly documented otherwise
-- must not own Nx runtime behavior
+- must not own source artifact loading
+- must not own adapter extraction
+- must not own host orchestration
 
 Extensions should plug into Core contracts and extension points rather than inventing parallel models.
+
+## Config Placement
+
+Use the config split from ADR 0003 and the contributor guide:
+
+- canonical profile: generic governance policy only
+- adapter config: extraction, discovery, normalization, paths, validation mode
+- extension config: interpretation, diagnostics, signals, metrics,
+  recommendations
+- host config: orchestration, loading, runtime context, reporting
+
+Technology-specific options do not belong in the canonical profile.
 
 ## Forbidden Dependencies
 

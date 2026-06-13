@@ -26,6 +26,7 @@ Suggested structure:
 
 ```text
 docs/
+  governance-boundary-contributor-guide.md
   governance-package-layout.md
   governance-package-conventions.md
   governance-package-boundaries.md
@@ -34,11 +35,19 @@ docs/
 packages/governance/*/README.md
 ```
 
-Repository-level Governance docs should own shared concepts, ownership boundaries, dependency direction, release sequencing, and documentation structure guidance.
+Repository-level Governance docs should own shared concepts, ownership
+boundaries, dependency direction, config placement, release sequencing, and
+documentation structure guidance.
 
 Accepted package-boundary decisions should live under `docs/adr/` and be linked from the supporting Governance docs.
 
-Package-level READMEs should own package-specific purpose, usage, configuration, compatibility notes, and links back to the shared Governance docs where needed.
+Package-level READMEs should own package-specific purpose, usage,
+configuration, compatibility notes, and links back to the shared Governance
+docs where needed.
+
+The practical contributor reference for Core vs adapter vs extension vs host
+implementation should live once at the repository level and be linked from
+package READMEs rather than copied into each package.
 
 ## Package README Expectations
 
@@ -163,6 +172,7 @@ Ownership boundaries and dependency direction should remain documented at the re
 Package docs should link to the shared Governance docs for:
 
 - Community package ownership boundaries
+- practical Core/adapter/extension/host contributor guidance
 - forbidden Nx-specific responsibilities
 - allowed and forbidden dependency direction
 - Community-first release direction

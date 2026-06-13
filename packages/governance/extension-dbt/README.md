@@ -11,6 +11,8 @@ diagnostics, signals, rule results, measurements, and recommendations.
 Package boundaries follow
 [ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
 [ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
+Practical contributor guidance lives in
+[`docs/governance-boundary-contributor-guide.md`](../../../docs/governance-boundary-contributor-guide.md).
 
 ## Public API
 
@@ -115,6 +117,32 @@ await registerLoadedGovernanceExtensionsWithDiagnostics(context, [
 ]);
 ```
 
+## dbt-Owned Model Expansions
+
+This package owns the dbt expansion payload schema carried through Core's
+generic `extensions` envelope:
+
+```ts
+{
+  extensionId: 'governance-extension:dbt',
+  contractVersion: '1',
+  data: {
+    kind: 'node' | 'relation' | 'workspace' | 'runtime-context',
+    technology: 'dbt',
+    // dbt-owned fields
+  },
+}
+```
+
+Ownership rules:
+
+- Core owns the generic carrier and envelope shape.
+- This package owns dbt payload validation and versioning.
+- The dbt adapter may emit the payload by protocol shape without importing the
+  extension runtime.
+- Hosts route dbt-specific interpretation config separately through extension
+  options or `GovernanceExtensionHostContext.options`.
+
 ## Related Packages
 
 - `@anarchitects/governance-core` owns the canonical node/relation contracts.
@@ -133,8 +161,10 @@ This extension owns:
 This extension does not own:
 
 - raw dbt artifact loading
+- adapter extraction
 - runtime composition
 - dbt host concerns such as command UX, CI orchestration, or reporting shells
+- adapter-private implementation details
 
 Future `@anarchitects/governance-runtime-dbt` should compose Core, the dbt
 adapter, and this extension. Future dbt host packages should own dbt-native
