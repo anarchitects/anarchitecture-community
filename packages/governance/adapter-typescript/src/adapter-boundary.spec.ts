@@ -3,8 +3,34 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 describe('TypeScript adapter boundary guardrail', () => {
+  const packageRoot = path.resolve(
+    fileURLToPath(new URL('..', import.meta.url)),
+  );
+
+  it('does not list the TypeScript extension package as a runtime dependency', () => {
+    const packageJson = JSON.parse(
+      readFileSync(path.join(packageRoot, 'package.json'), 'utf8'),
+    ) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      peerDependencies?: Record<string, string>;
+    };
+
+    expect(Object.keys(packageJson.dependencies ?? {})).toEqual([
+      '@anarchitects/governance-core',
+      'minimatch',
+      'typescript',
+      'yaml',
+    ]);
+    expect(packageJson.dependencies).not.toHaveProperty(
+      '@anarchitects/governance-extension-typescript',
+    );
+    expect(packageJson.devDependencies).toBeUndefined();
+    expect(packageJson.peerDependencies).toBeUndefined();
+  });
+
   it('keeps extracted adapter implementation free of Nx and host-owned imports', () => {
-    const sourceRoot = fileURLToPath(new URL('.', import.meta.url));
+    const sourceRoot = path.join(packageRoot, 'src');
     const forbiddenPatterns = [
       /from ['"]nx['"]/,
       /from ['"]@nx\//,
@@ -17,6 +43,7 @@ describe('TypeScript adapter boundary guardrail', () => {
       /from ['"]\.\.\/manual-workspace(?:\/|['"])/,
       /from ['"]@anarchitects\/governance-cli(?:\/|['"])/,
       /from ['"]@anarchitects\/governance-adapter-nx['"]/,
+      /from ['"]@anarchitects\/governance-extension-typescript['"]/,
       /from ['"]@anarchitects\/nx-governance['"]/,
       /anarchitecture-plugins/,
       /@anarchitects\/governance-core\//,

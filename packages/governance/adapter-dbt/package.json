@@ -59,7 +59,6 @@
   },
   "dependencies": {
     "@anarchitects/governance-core": "^0.3.0",
-    "@anarchitects/governance-extension-dbt": "^0.1.2",
     "yaml": "^2.8.1"
   }
 }

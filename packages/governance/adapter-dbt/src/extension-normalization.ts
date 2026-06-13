@@ -1,11 +1,105 @@
-import {
-  createDbtGovernanceModelExpansion,
-  type DbtGovernanceNodeExpansionData,
-  type DbtGovernanceRelationExpansionData,
-  type DbtGovernanceWorkspaceExpansionData,
-} from '@anarchitects/governance-extension-dbt';
+import type {
+  GovernanceExtensionContractIssue,
+  GovernanceExtensionModelExpansion,
+} from '@anarchitects/governance-core';
 
 import type { DbtArtifacts, DbtProjectContext } from './contracts.js';
+
+const DBT_GOVERNANCE_EXTENSION_ID = 'governance-extension:dbt';
+const DBT_GOVERNANCE_EXPANSION_CONTRACT_VERSION = '1';
+
+interface DbtGovernanceWorkspaceExpansionData {
+  kind: 'workspace';
+  technology: 'dbt';
+  projectName: string;
+  projectVersion?: string | number;
+  profile?: string;
+  configVersion?: number;
+  artifactPaths?: {
+    projectDir?: string;
+    dbtProjectPath?: string;
+    manifestPath?: string;
+    catalogPath?: string;
+    runResultsPath?: string;
+    sourcesPath?: string;
+  };
+  manifest?: {
+    projectName: string;
+    dbtSchemaVersion: string;
+    dbtVersion?: string;
+    adapterType?: string;
+    generatedAt?: string;
+    invocationId?: string;
+  };
+  projectNodeIds?: string[];
+}
+
+interface DbtGovernanceNodeExpansionData {
+  kind: 'node';
+  technology: 'dbt';
+  nodeKind: 'project' | 'resource' | 'unknown';
+  resourceType:
+    | 'project'
+    | 'model'
+    | 'seed'
+    | 'snapshot'
+    | 'source'
+    | 'exposure'
+    | 'test'
+    | 'metric'
+    | 'semantic_model'
+    | 'saved_query'
+    | 'unknown'
+    | (string & {});
+  project?: Record<string, unknown>;
+  identity?: Record<string, unknown>;
+  resource?: Record<string, unknown>;
+  relation?: Record<string, unknown>;
+  validation?: Record<string, unknown>;
+  documentation?: Record<string, unknown>;
+}
+
+interface DbtGovernanceRelationExpansionData {
+  kind: 'relation';
+  technology: 'dbt';
+  relationKind:
+    | 'lineage'
+    | 'exposes'
+    | 'tests'
+    | 'dependency'
+    | 'uses-package'
+    | 'unknown';
+  source?: Record<string, unknown>;
+  target?: Record<string, unknown>;
+  lineage?: Record<string, unknown>;
+}
+
+type DbtGovernanceModelExpansionData =
+  | DbtGovernanceWorkspaceExpansionData
+  | DbtGovernanceNodeExpansionData
+  | DbtGovernanceRelationExpansionData;
+
+interface CreateDbtGovernanceModelExpansionOptions {
+  contractVersion?: string;
+  diagnostics?: readonly GovernanceExtensionContractIssue[];
+  metadata?: Record<string, unknown>;
+}
+
+function createDbtGovernanceModelExpansion<
+  TData extends DbtGovernanceModelExpansionData,
+>(
+  data: TData,
+  options: CreateDbtGovernanceModelExpansionOptions = {},
+): GovernanceExtensionModelExpansion<TData> {
+  return {
+    extensionId: DBT_GOVERNANCE_EXTENSION_ID,
+    contractVersion:
+      options.contractVersion ?? DBT_GOVERNANCE_EXPANSION_CONTRACT_VERSION,
+    data,
+    ...(options.diagnostics ? { diagnostics: options.diagnostics } : {}),
+    ...(options.metadata ? { metadata: options.metadata } : {}),
+  };
+}
 
 export function buildDbtWorkspaceExpansion(
   projectContext: DbtProjectContext,

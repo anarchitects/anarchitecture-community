@@ -1,15 +1,119 @@
-import {
-  createTypeScriptGovernanceModelExpansion,
-  type TypeScriptGovernanceNodeExpansionData,
-  type TypeScriptGovernanceRelationExpansionData,
-  type TypeScriptGovernanceWorkspaceExpansionData,
-} from '@anarchitects/governance-extension-typescript';
+import type {
+  GovernanceExtensionContractIssue,
+  GovernanceExtensionModelExpansion,
+} from '@anarchitects/governance-core';
 
 import type {
   TsConfigResolutionModel,
   TypeScriptDiscoveredProject,
   WorkspacePackageResolution,
 } from './types.js';
+
+const TYPESCRIPT_GOVERNANCE_EXTENSION_ID = 'governance-extension:typescript';
+const TYPESCRIPT_GOVERNANCE_EXPANSION_CONTRACT_VERSION = '1';
+
+interface TypeScriptGovernanceWorkspaceExpansionData {
+  kind: 'workspace';
+  technology: 'typescript';
+  packageManager?: string;
+  workspacePatterns?: string[];
+  workspacePackageName?: string;
+  packageJsonPath?: string;
+  packageJson?: Record<string, unknown>;
+  projectNodeIds?: string[];
+  tsconfigNodeIds?: string[];
+}
+
+interface TypeScriptGovernanceNodeExpansionData {
+  kind: 'node';
+  technology: 'typescript';
+  nodeKind:
+    | 'workspace-project'
+    | 'tsconfig'
+    | 'package-manager-package'
+    | 'unknown';
+  packageManager?: string;
+  packageName?: string;
+  packageJsonPath?: string;
+  packageJson?: Record<string, unknown>;
+  workspaceProject?: {
+    id: string;
+    type?: string;
+    projectRoot?: string;
+  };
+  tsconfig?: {
+    configFile: string;
+    baseUrl?: string;
+    pathAliases?: Record<string, string[]>;
+  };
+  packageManagerPackage?: {
+    external?: boolean;
+    workspace?: boolean;
+    packageName?: string;
+  };
+}
+
+interface TypeScriptGovernanceRelationExpansionData {
+  kind: 'relation';
+  technology: 'typescript';
+  relationKind:
+    | 'import'
+    | 'path-alias'
+    | 'workspace-member'
+    | 'tsconfig-extends'
+    | 'package-dependency'
+    | 'unknown';
+  importSpecifiers?: string[];
+  import?: {
+    sourceFile?: string;
+    specifier?: string;
+    importKind?: string;
+    external?: boolean;
+    resolvedFile?: string;
+  };
+  pathMapping?: {
+    alias: string;
+    target: string;
+    tsconfig: string;
+  };
+  workspaceMember?: {
+    projectRoot: string;
+  };
+  packageDependency?: {
+    packageManager?: string;
+    dependencyType?: string;
+    packageName?: string;
+    specifier?: string;
+  };
+}
+
+type TypeScriptGovernanceModelExpansionData =
+  | TypeScriptGovernanceWorkspaceExpansionData
+  | TypeScriptGovernanceNodeExpansionData
+  | TypeScriptGovernanceRelationExpansionData;
+
+interface CreateTypeScriptGovernanceModelExpansionOptions {
+  contractVersion?: string;
+  diagnostics?: readonly GovernanceExtensionContractIssue[];
+  metadata?: Record<string, unknown>;
+}
+
+function createTypeScriptGovernanceModelExpansion<
+  TData extends TypeScriptGovernanceModelExpansionData,
+>(
+  data: TData,
+  options: CreateTypeScriptGovernanceModelExpansionOptions = {},
+): GovernanceExtensionModelExpansion<TData> {
+  return {
+    extensionId: TYPESCRIPT_GOVERNANCE_EXTENSION_ID,
+    contractVersion:
+      options.contractVersion ??
+      TYPESCRIPT_GOVERNANCE_EXPANSION_CONTRACT_VERSION,
+    data,
+    ...(options.diagnostics ? { diagnostics: options.diagnostics } : {}),
+    ...(options.metadata ? { metadata: options.metadata } : {}),
+  };
+}
 
 export function buildTypeScriptWorkspaceExpansion(
   workspaceName: string,
