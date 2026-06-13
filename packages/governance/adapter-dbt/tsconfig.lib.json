@@ -12,6 +12,9 @@
   "references": [
     {
       "path": "../core/tsconfig.lib.json"
+    },
+    {
+      "path": "../extension-dbt/tsconfig.lib.json"
     }
   ],
   "exclude": [

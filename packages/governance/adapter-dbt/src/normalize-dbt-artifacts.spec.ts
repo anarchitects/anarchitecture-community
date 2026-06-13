@@ -50,20 +50,25 @@ describe('dbt artifact normalization', () => {
     expect(
       normalized.nodes?.find((node) => node.id === 'dbt.project.valid_project'),
     ).toMatchObject({
-      kind: 'dbt-project',
+      kind: 'project',
       technology: 'dbt',
       sourceSystem: 'dbt',
-      metadata: {
-        dbt: {
-          identity: {
-            projectName: 'valid_project',
+      extensions: {
+        'governance-extension:dbt': expect.objectContaining({
+          data: expect.objectContaining({
+            kind: 'node',
+            nodeKind: 'project',
             resourceType: 'project',
-          },
-          project: {
-            name: 'valid_project',
-            profile: 'analytics',
-          },
-        },
+            identity: expect.objectContaining({
+              projectName: 'valid_project',
+              resourceType: 'project',
+            }),
+            project: expect.objectContaining({
+              name: 'valid_project',
+              profile: 'analytics',
+            }),
+          }),
+        }),
       },
     });
 
@@ -72,7 +77,7 @@ describe('dbt artifact normalization', () => {
         (node) => node.id === 'model.valid_project.orders',
       ),
     ).toMatchObject({
-      kind: 'dbt-model',
+      kind: 'resource',
       technology: 'dbt',
       sourceSystem: 'dbt',
       tags: ['finance', 'published', 'scope:analytics'],
@@ -82,53 +87,58 @@ describe('dbt artifact normalization', () => {
         scope: 'analytics',
         tags: ['finance', 'published', 'scope:analytics'],
       },
-      metadata: {
-        dbt: {
-          identity: {
-            uniqueId: 'model.valid_project.orders',
-            packageName: 'valid_project',
-            resourceName: 'orders',
+      extensions: {
+        'governance-extension:dbt': expect.objectContaining({
+          data: expect.objectContaining({
+            kind: 'node',
+            nodeKind: 'resource',
             resourceType: 'model',
-            fullyQualifiedName: 'valid_project.marts.orders',
-            fqn: ['valid_project', 'marts', 'orders'],
-          },
-          resource: {
-            materialization: 'table',
-            tags: ['finance', 'published', 'scope:analytics'],
-            meta: {
-              governance: {
-                domain: 'finance',
-                layer: 'transform',
-                scope: 'analytics',
+            identity: expect.objectContaining({
+              uniqueId: 'model.valid_project.orders',
+              packageName: 'valid_project',
+              resourceName: 'orders',
+              resourceType: 'model',
+              fullyQualifiedName: 'valid_project.marts.orders',
+              fqn: ['valid_project', 'marts', 'orders'],
+            }),
+            resource: expect.objectContaining({
+              materialization: 'table',
+              tags: ['finance', 'published', 'scope:analytics'],
+              meta: {
+                governance: {
+                  domain: 'finance',
+                  layer: 'transform',
+                  scope: 'analytics',
+                },
               },
-            },
-            group: 'finance',
-            owner: {
-              name: 'finance-platform',
-              email: 'finance@example.com',
-            },
-          },
-          relation: {
-            database: 'analytics',
-            schema: 'marts',
-            alias: 'orders',
-            path: 'orders.sql',
-            originalFilePath: 'models/marts/orders.sql',
-            relationName: '"analytics"."marts"."orders"',
-          },
-          validation: {
-            tests: ['unique:order_id', 'not_null:order_id'],
-            contract: {
-              enforced: true,
-              alias_types: false,
-            },
-          },
-          documentation: {
-            description: 'Normalized orders model',
-            hasDescription: true,
-            docsShow: true,
-          },
-        },
+              group: 'finance',
+              owner: {
+                name: 'finance-platform',
+                email: 'finance@example.com',
+              },
+            }),
+            relation: expect.objectContaining({
+              database: 'analytics',
+              schema: 'marts',
+              alias: 'orders',
+              path: 'orders.sql',
+              originalFilePath: 'models/marts/orders.sql',
+              relationName: '"analytics"."marts"."orders"',
+            }),
+            validation: expect.objectContaining({
+              tests: ['unique:order_id', 'not_null:order_id'],
+              contract: {
+                enforced: true,
+                alias_types: false,
+              },
+            }),
+            documentation: expect.objectContaining({
+              description: 'Normalized orders model',
+              hasDescription: true,
+              docsShow: true,
+            }),
+          }),
+        }),
       },
     });
 
@@ -137,30 +147,33 @@ describe('dbt artifact normalization', () => {
         (node) => node.id === 'source.valid_project.raw.orders',
       ),
     ).toMatchObject({
-      kind: 'dbt-source',
+      kind: 'resource',
       ownership: {
         team: 'data-eng',
       },
-      metadata: {
-        dbt: {
-          identity: {
-            uniqueId: 'source.valid_project.raw.orders',
+      extensions: {
+        'governance-extension:dbt': expect.objectContaining({
+          data: expect.objectContaining({
             resourceType: 'source',
-            sourceName: 'raw',
-          },
-          resource: {
-            group: 'raw-data',
-            owner: 'data-eng',
-          },
-          relation: {
-            database: 'warehouse',
-            schema: 'raw',
-            relationName: '"warehouse"."raw"."orders"',
-          },
-          validation: {
-            tests: ['freshness', 'not_null:order_id'],
-          },
-        },
+            identity: expect.objectContaining({
+              uniqueId: 'source.valid_project.raw.orders',
+              resourceType: 'source',
+              sourceName: 'raw',
+            }),
+            resource: expect.objectContaining({
+              group: 'raw-data',
+              owner: 'data-eng',
+            }),
+            relation: expect.objectContaining({
+              database: 'warehouse',
+              schema: 'raw',
+              relationName: '"warehouse"."raw"."orders"',
+            }),
+            validation: expect.objectContaining({
+              tests: ['freshness', 'not_null:order_id'],
+            }),
+          }),
+        }),
       },
     });
   });
@@ -176,23 +189,26 @@ describe('dbt artifact normalization', () => {
     expect(node).toMatchObject({
       id: 'exposure.valid_project.executive_dashboard',
       name: 'executive_dashboard',
-      kind: 'dbt-exposure',
-      metadata: {
-        dbt: {
-          identity: {
-            uniqueId: 'exposure.valid_project.executive_dashboard',
-            packageName: 'valid_project',
-            resourceName: 'executive_dashboard',
-            fullyQualifiedName: 'valid_project.executive_dashboard',
+      kind: 'resource',
+      extensions: {
+        'governance-extension:dbt': expect.objectContaining({
+          data: expect.objectContaining({
             resourceType: 'exposure',
-          },
-          resource: {
-            owner: {
-              name: 'analytics-team',
-            },
-            subtype: 'dashboard',
-          },
-        },
+            identity: expect.objectContaining({
+              uniqueId: 'exposure.valid_project.executive_dashboard',
+              packageName: 'valid_project',
+              resourceName: 'executive_dashboard',
+              fullyQualifiedName: 'valid_project.executive_dashboard',
+              resourceType: 'exposure',
+            }),
+            resource: expect.objectContaining({
+              owner: {
+                name: 'analytics-team',
+              },
+              subtype: 'dashboard',
+            }),
+          }),
+        }),
       },
     });
   });
@@ -208,31 +224,34 @@ describe('dbt artifact normalization', () => {
           id: 'dbt:lineage:model.valid_project.stg_orders->source.valid_project.raw.orders',
           sourceNodeId: 'model.valid_project.stg_orders',
           targetNodeId: 'source.valid_project.raw.orders',
-          kind: 'lineage',
-          metadata: {
-            dbt: expect.objectContaining({
-              source: expect.objectContaining({
-                identity: expect.objectContaining({
-                  uniqueId: 'model.valid_project.stg_orders',
-                  resourceType: 'model',
-                }),
-              }),
-              target: expect.objectContaining({
-                identity: expect.objectContaining({
-                  uniqueId: 'source.valid_project.raw.orders',
-                  resourceType: 'source',
-                  sourceName: 'raw',
-                }),
-              }),
-              lineage: expect.objectContaining({
+          kind: 'dependency',
+          extensions: {
+            'governance-extension:dbt': expect.objectContaining({
+              data: expect.objectContaining({
+                kind: 'relation',
                 relationKind: 'lineage',
-                dependencyKind: 'source',
-                artifactDependencyKind: 'depends_on.nodes',
-                source: {
-                  packageName: 'valid_project',
-                  sourceName: 'raw',
-                  name: 'orders',
-                },
+                source: expect.objectContaining({
+                  identity: expect.objectContaining({
+                    uniqueId: 'model.valid_project.stg_orders',
+                    resourceType: 'model',
+                  }),
+                }),
+                target: expect.objectContaining({
+                  identity: expect.objectContaining({
+                    uniqueId: 'source.valid_project.raw.orders',
+                    resourceType: 'source',
+                    sourceName: 'raw',
+                  }),
+                }),
+                lineage: expect.objectContaining({
+                  dependencyKind: 'source',
+                  artifactDependencyKind: 'depends_on.nodes',
+                  source: {
+                    packageName: 'valid_project',
+                    sourceName: 'raw',
+                    name: 'orders',
+                  },
+                }),
               }),
             }),
           },
@@ -241,18 +260,20 @@ describe('dbt artifact normalization', () => {
           id: 'dbt:lineage:model.valid_project.orders->model.valid_project.stg_orders',
           sourceNodeId: 'model.valid_project.orders',
           targetNodeId: 'model.valid_project.stg_orders',
-          kind: 'lineage',
-          metadata: {
-            dbt: expect.objectContaining({
-              lineage: expect.objectContaining({
+          kind: 'dependency',
+          extensions: {
+            'governance-extension:dbt': expect.objectContaining({
+              data: expect.objectContaining({
                 relationKind: 'lineage',
-                dependencyKind: 'ref',
-                artifactDependencyKind: 'depends_on.nodes',
-                ref: {
-                  packageName: 'valid_project',
-                  name: 'stg_orders',
-                  fqn: ['valid_project', 'staging', 'stg_orders'],
-                },
+                lineage: expect.objectContaining({
+                  dependencyKind: 'ref',
+                  artifactDependencyKind: 'depends_on.nodes',
+                  ref: {
+                    packageName: 'valid_project',
+                    name: 'stg_orders',
+                    fqn: ['valid_project', 'staging', 'stg_orders'],
+                  },
+                }),
               }),
             }),
           },
@@ -261,13 +282,13 @@ describe('dbt artifact normalization', () => {
           id: 'dbt:lineage:snapshot.valid_project.orders_snapshot->model.valid_project.orders',
           sourceNodeId: 'snapshot.valid_project.orders_snapshot',
           targetNodeId: 'model.valid_project.orders',
-          kind: 'lineage',
+          kind: 'dependency',
         }),
         expect.objectContaining({
           id: 'dbt:exposes:exposure.valid_project.executive_dashboard->model.valid_project.orders',
           sourceNodeId: 'exposure.valid_project.executive_dashboard',
           targetNodeId: 'model.valid_project.orders',
-          kind: 'exposes',
+          kind: 'dependency',
         }),
       ]),
     );

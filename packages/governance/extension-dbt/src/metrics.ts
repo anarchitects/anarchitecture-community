@@ -12,6 +12,7 @@ import type {
   DbtGovernanceMetricProviderInput,
 } from './contracts.js';
 import {
+  getDbtMetadata,
   getDbtDependencyRelations,
   getDbtNodes,
   toRelationKey,
@@ -438,7 +439,7 @@ function isDbtModelNode(node: GovernanceNode): boolean {
     return true;
   }
 
-  const identity = asRecord(readPathValue(node.metadata, ['dbt', 'identity']));
+  const identity = asRecord(readPathValue(getDbtMetadata(node), ['identity']));
   const resourceType = asString(identity?.resourceType);
   const uniqueId = asString(identity?.uniqueId);
 

@@ -3,6 +3,7 @@ import type {
   GovernanceExtensionHost,
 } from '@anarchitects/governance-core';
 
+import { DBT_GOVERNANCE_EXTENSION_ID } from './constants.js';
 import type { DbtGovernanceExtensionContributions } from './contracts.js';
 import { dbtGovernanceDiagnosticsProvider } from './diagnostics.js';
 import { dbtGovernanceMetricProvider } from './metrics.js';
@@ -13,9 +14,6 @@ import {
   registerDbtGovernanceExtensionContributions,
   type DbtGovernanceExtensionOptions,
 } from './contracts.js';
-
-export const DBT_GOVERNANCE_EXTENSION_ID = 'governance-extension:dbt';
-
 export interface DbtGovernanceExtensionMetadata {
   id: typeof DBT_GOVERNANCE_EXTENSION_ID;
   name: string;

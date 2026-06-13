@@ -27,11 +27,11 @@ describe('dbt Governance adapter metadata', () => {
         'dbt validation',
         'dbt resource normalization',
         'dbt dependency mapping',
-        'dbt metadata preservation',
+        'dbt extension expansion normalization',
         'dbt adapter contract definition',
       ]),
       nonGoals: expect.arrayContaining([
-        'TypeScript runtime composition',
+        'dbt runtime composition',
         'dbt-native Python host experience',
       ]),
     });

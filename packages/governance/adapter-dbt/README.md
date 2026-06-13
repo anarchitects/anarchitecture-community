@@ -8,7 +8,8 @@ loading, validation, normalization, and dbt metadata preservation. It does not
 evaluate governance rules, compute scores, or implement dbt host behavior.
 
 Package boundaries follow
-[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md).
+[ADR 0001](../../../docs/adr/0001-governance-package-boundaries.md) and
+[ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md).
 
 ## Public API
 
@@ -77,7 +78,7 @@ const result: DbtAdapterResult = normalizeDbtArtifacts(
 console.log(result.workspaceName);
 console.log(result.nodes?.map((node) => node.id));
 console.log(result.relations?.map((relation) => relation.id));
-console.log(result.metadata?.dbt);
+console.log(result.extensions?.['governance-extension:dbt']);
 ```
 
 ## Output Contract
@@ -93,16 +94,23 @@ The canonical adapter output is:
 - `capabilities`
 - `diagnostics`
 - `metadata`
+- `extensions`
 
-Representative dbt artifacts are emitted as canonical nodes such as
-`dbt-project`, `dbt-model`, `dbt-source`, `dbt-seed`, `dbt-snapshot`,
-`dbt-exposure`, `dbt-semantic-model`, `dbt-metric`, and `dbt-test`.
+Canonical governance facts stay in first-class Core fields when they are
+genuinely generic:
 
-Representative dbt relationships are emitted as canonical relations such as
-`lineage`, `dependency`, `tests`, `exposes`, and `uses-package`.
+- `classification.domain`
+- `classification.layer`
+- `classification.scope`
+- `ownership`
+- generic node kinds such as `project` and `resource`
+- generic relation kinds such as `dependency` and `traceability`
 
-Technology-specific details stay under namespaced metadata such as
-`metadata.dbt`.
+dbt-specific artifact facts are emitted through the
+`governance-extension:dbt` model expansion surface owned by
+`@anarchitects/governance-extension-dbt`. The adapter is responsible for
+deterministic extraction and normalization, not for dbt semantic
+interpretation.
 
 ## Input Contract
 
@@ -127,12 +135,78 @@ Rules:
 - `catalog.json`, `run_results.json`, and `sources.json` are optional and do
   not change the canonical Core contract
 
+## Boundary Guidance
+
+The dbt adapter owns:
+
+- dbt project detection
+- artifact loading and validation
+- normalization of generic governance facts into canonical Core fields
+- projection of dbt-specific facts into the dbt extension expansion surface
+
+The dbt adapter does not own:
+
+- dbt governance interpretation
+- dbt-specific rules, metrics, diagnostics, or recommendations
+- runtime composition
+- host UX, CI orchestration, or dbt command execution
+
+Future `@anarchitects/governance-runtime-dbt` should compose:
+
+- canonical governance profile config
+- dbt adapter config
+- dbt extension config
+- runtime invocation context
+
+Future dbt host packages should own:
+
+- dbt-native UX and commands
+- artifact lifecycle orchestration
+- environment setup and CI ergonomics
+- human-facing reporting
+
+They should route configuration to the canonical profile, adapter, and
+extension layers instead of collapsing everything into one profile surface.
+
+## Flow Example
+
+```json
+{
+  "profile": "./governance.profile.json",
+  "adapter": "@anarchitects/governance-adapter-dbt",
+  "extensions": ["@anarchitects/governance-extension-dbt"],
+  "adapterOptions": {
+    "dbt": {
+      "paths": {
+        "projectDir": "./analytics",
+        "manifestPath": "./analytics/target/manifest.json"
+      }
+    }
+  },
+  "extensionOptions": {
+    "dbt": {
+      "signals": {},
+      "rules": {}
+    }
+  }
+}
+```
+
+In that flow:
+
+- dbt artifacts enter through adapter/runtime config
+- canonical ownership, domain, layer, and scope land in Core fields
+- dbt artifact identity, validation, docs, and lineage details land in the dbt
+  extension expansion
+- `@anarchitects/governance-extension-dbt` performs dbt-specific interpretation
+
 ## Related Packages
 
 - `@anarchitects/governance-core` owns the canonical node/relation contracts
   emitted by this adapter.
-- `@anarchitects/governance-extension-dbt` interprets dbt-specific metadata and
-  emits canonical findings, signals, measurements, and recommendations.
+- `@anarchitects/governance-extension-dbt` interprets dbt-specific expansion
+  data and emits canonical findings, signals, measurements, and
+  recommendations.
 
 ## License
 

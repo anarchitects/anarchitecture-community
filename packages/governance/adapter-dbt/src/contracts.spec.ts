@@ -61,7 +61,7 @@ describe('dbt adapter contracts', () => {
       nodes: [
         {
           id: 'dbt.project.analytics',
-          kind: 'dbt-project',
+          kind: 'project',
           technology: 'dbt',
           sourceSystem: 'dbt',
         },
@@ -75,8 +75,16 @@ describe('dbt adapter contracts', () => {
           dbtProjectPath: '/repo/analytics/dbt_project.yml',
           manifestPath: '/repo/analytics/target/manifest.json',
         },
-        dbt: {
-          manifestVersion: 12,
+      },
+      extensions: {
+        'governance-extension:dbt': {
+          extensionId: 'governance-extension:dbt',
+          contractVersion: '1',
+          data: {
+            kind: 'workspace',
+            technology: 'dbt',
+            projectName: 'analytics',
+          },
         },
       },
     } satisfies DbtAdapterResult;
@@ -87,12 +95,21 @@ describe('dbt adapter contracts', () => {
     expect(coreCompatible.nodes).toEqual([
       expect.objectContaining({
         id: 'dbt.project.analytics',
-        kind: 'dbt-project',
+        kind: 'project',
       }),
     ]);
     expect(result.diagnostics?.[0]?.inputField).toBe('paths.manifestPath');
     expect(result.diagnostics?.[0]?.dbtUniqueId).toBe('model.analytics.orders');
-    expect(result.metadata?.dbt).toEqual({ manifestVersion: 12 });
+    expect(result.extensions).toEqual(
+      expect.objectContaining({
+        'governance-extension:dbt': expect.objectContaining({
+          data: expect.objectContaining({
+            kind: 'workspace',
+            projectName: 'analytics',
+          }),
+        }),
+      }),
+    );
   });
 
   it('supports strict and lenient validation modes only', () => {

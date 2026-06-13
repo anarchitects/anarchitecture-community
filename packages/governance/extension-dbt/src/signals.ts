@@ -15,6 +15,7 @@ import type {
   DbtGovernanceSignalProviderInput,
 } from './contracts.js';
 import {
+  getDbtMetadata,
   getDbtDependencyRelations,
   normalizeIds,
   toRelationKey,
@@ -898,7 +899,7 @@ function resolveMetadataResolutions(
   }
 
   return input.workspace.nodes
-    .filter((node) => hasDbtMetadata(node.metadata))
+    .filter((node) => Boolean(getDbtMetadata(node)))
     .map((node) => resolveDbtGovernanceMetadata(toResolverInput(node)));
 }
 
@@ -1103,14 +1104,8 @@ function normalizeCreatedAt(value: string | undefined): string | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
-function hasDbtMetadata(
-  metadata: unknown,
-): metadata is Record<string, unknown> {
-  return isRecord(metadata) && isRecord(metadata.dbt);
-}
-
 function readDependencyKind(relation: GovernanceRelation): string | undefined {
-  const lineage = readPathValue(relation.metadata, ['dbt', 'lineage']);
+  const lineage = readPathValue(getDbtMetadata(relation), ['lineage']);
 
   if (!isRecord(lineage)) {
     return relation.kind;

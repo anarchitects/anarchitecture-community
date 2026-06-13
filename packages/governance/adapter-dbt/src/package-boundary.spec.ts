@@ -7,7 +7,7 @@ describe('dbt Governance adapter package boundary', () => {
     fileURLToPath(new URL('..', import.meta.url)),
   );
 
-  it('does not depend on extension, runtime, or host dbt packages', () => {
+  it('depends only on core contracts, the dbt extension contract, and yaml at runtime', () => {
     const packageJson = JSON.parse(
       readFileSync(path.join(packageRoot, 'package.json'), 'utf8'),
     ) as {
@@ -18,19 +18,18 @@ describe('dbt Governance adapter package boundary', () => {
 
     expect(Object.keys(packageJson.dependencies ?? {})).toEqual([
       '@anarchitects/governance-core',
+      '@anarchitects/governance-extension-dbt',
       'yaml',
     ]);
     expect(packageJson.devDependencies).toBeUndefined();
     expect(packageJson.peerDependencies).toBeUndefined();
   });
 
-  it('does not import dbt extension, runtime, or host packages', () => {
+  it('does not import dbt runtime or host packages', () => {
     const source = readSourceFiles(path.join(packageRoot, 'src')).join('\n');
 
-    expect(source).not.toMatch(/governance-extension-dbt/);
     expect(source).not.toMatch(/governance-runtime-dbt/);
     expect(source).not.toMatch(/governance-host-dbt/);
-    expect(source).not.toMatch(/packages\/governance\/extension-dbt/);
     expect(source).not.toMatch(/packages\/governance\/runtime-dbt/);
     expect(source).not.toMatch(/packages\/governance\/host-dbt/);
   });
