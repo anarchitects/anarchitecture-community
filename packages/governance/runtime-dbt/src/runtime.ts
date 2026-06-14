@@ -11,12 +11,12 @@ import {
   type DbtGovernanceAdapterInput,
 } from '@anarchitects/governance-adapter-dbt';
 import {
-  applyGovernanceEnrichers,
+  buildGovernanceAssessment,
+  buildGovernanceAssessmentArtifacts,
+  buildTopIssues,
   buildGovernanceWorkspace,
-  collectGovernanceMeasurements,
-  collectGovernanceSignals,
+  calculateGovernanceHealth,
   DefaultGovernanceCapabilityRegistry,
-  evaluateGovernanceRulePacks,
   registerLoadedGovernanceExtensionsWithDiagnostics,
   type GovernanceDiagnostic,
   type GovernanceExtensionDiagnostic,
@@ -24,6 +24,7 @@ import {
   type GovernanceExtensionHostContext,
   type GovernanceLoadedExtension,
   type GovernanceProfile,
+  type Recommendation,
   type GovernanceSignal,
   type GovernanceWorkspace,
   type Measurement,
@@ -31,11 +32,20 @@ import {
 } from '@anarchitects/governance-core';
 import {
   collectDbtGovernanceDiagnostics,
+  collectDbtGovernanceRecommendations,
   dbtGovernanceExtension,
   getDbtGovernanceDiagnosticProviders,
+  getDbtGovernanceRecommendationProviders,
 } from '@anarchitects/governance-extension-dbt';
 
-import { dbtGovernanceRuntimeMetadata } from './constants.js';
+import {
+  DBT_GOVERNANCE_ADAPTER_PACKAGE_NAME,
+  DBT_GOVERNANCE_EXTENSION_PACKAGE_NAME,
+  DBT_GOVERNANCE_RUNTIME_ID,
+  DBT_GOVERNANCE_RUNTIME_PACKAGE_NAME,
+  DBT_GOVERNANCE_RUNTIME_VERSION,
+  dbtGovernanceRuntimeMetadata,
+} from './constants.js';
 import type {
   DbtGovernanceRuntimeError,
   DbtGovernanceRuntimeInput,
@@ -62,7 +72,8 @@ const DEFAULT_RUNTIME_PROFILE: GovernanceProfile = {
 export async function runDbtGovernanceRuntime(
   input: DbtGovernanceRuntimeInput,
 ): Promise<DbtGovernanceRuntimeResult> {
-  const runtimeMetadata = buildRuntimeMetadata(input.runtime);
+  const generatedAt = new Date().toISOString();
+  const runtimeMetadata = buildRuntimeMetadata(input.runtime, generatedAt);
   const profileResult = resolveRuntimeProfile(input.profile);
 
   if ('error' in profileResult) {
@@ -191,7 +202,9 @@ export async function runDbtGovernanceRuntime(
           profile: {
             name: profileResult.profile.name,
           },
-          ...(adapterResult.metadata ? { adapter: adapterResult.metadata } : {}),
+          ...(adapterResult.metadata
+            ? { adapter: adapterResult.metadata }
+            : {}),
         },
       },
     );
@@ -200,14 +213,19 @@ export async function runDbtGovernanceRuntime(
   const discoveryHost = createDiscoveryHost(extensionContext);
   const extensionDiagnosticProviders =
     getDbtGovernanceDiagnosticProviders(discoveryHost);
-  const enrichedWorkspace = await applyGovernanceEnrichers(
-    registration.registry,
-    {
-      workspace,
-      profile: profileResult.profile,
-      context: extensionContext,
-    },
-  );
+  const extensionRecommendationProviders =
+    getDbtGovernanceRecommendationProviders(discoveryHost);
+  const assessmentArtifacts = await buildGovernanceAssessmentArtifacts({
+    profile: profileResult.profile,
+    workspace,
+    diagnostics: adapterResult.diagnostics ?? [],
+    capabilities: capabilities.list(),
+    extensionRegistry: registration.registry,
+    extensionContext,
+    assessmentExtensions: workspace.extensions,
+    asOf: new Date(generatedAt),
+  });
+  const enrichedWorkspace = assessmentArtifacts.workspace;
   const extensionDiagnostics = await collectDbtGovernanceDiagnostics(
     extensionDiagnosticProviders,
     {
@@ -220,29 +238,69 @@ export async function runDbtGovernanceRuntime(
       violations: [],
     },
   );
-  const signals = await collectGovernanceSignals(registration.registry, {
-    workspace: enrichedWorkspace,
-    profile: profileResult.profile,
-    context: extensionContext,
-    violations: [],
-    signals: [],
-  });
-  const violations = await evaluateGovernanceRulePacks(registration.registry, {
-    workspace: enrichedWorkspace,
-    profile: profileResult.profile,
-    context: extensionContext,
-  });
-  const measurements = await collectGovernanceMeasurements(
-    registration.registry,
+  const warnings = buildWarnings(
+    adapterResult.diagnostics ?? [],
+    extensionDiagnostics,
+  );
+  const extensionRecommendations = await collectDbtGovernanceRecommendations(
+    extensionRecommendationProviders,
     {
       workspace: enrichedWorkspace,
       profile: profileResult.profile,
       context: extensionContext,
-      signals,
-      measurements: [],
-      violations,
+      diagnostics: extensionDiagnostics,
+      signals: assessmentArtifacts.signals,
+      violations: assessmentArtifacts.violations,
+      measurements: assessmentArtifacts.measurements,
+      recommendations: [],
     },
   );
+  const recommendations = mergeRecommendations(
+    assessmentArtifacts.recommendations,
+    extensionRecommendations,
+  );
+  const health = calculateGovernanceHealth(
+    assessmentArtifacts.measurements,
+    profileResult.profile.metrics,
+    profileResult.profile.health.statusThresholds,
+    {
+      topIssues: buildTopIssues(assessmentArtifacts.signals),
+    },
+  );
+  const assessment = buildGovernanceAssessment({
+    workspace: enrichedWorkspace,
+    profile: profileResult.profile.name,
+    warnings,
+    includeTopSignals: assessmentArtifacts.assessment.topSignals !== undefined,
+    exceptions: assessmentArtifacts.assessment.exceptions,
+    violations: assessmentArtifacts.violations,
+    ...(assessmentArtifacts.assessment.findings
+      ? { findings: assessmentArtifacts.assessment.findings }
+      : {}),
+    signals: assessmentArtifacts.signals,
+    measurements: assessmentArtifacts.measurements,
+    ...(assessmentArtifacts.assessment.scores
+      ? { scores: assessmentArtifacts.assessment.scores }
+      : {}),
+    health,
+    recommendations,
+    ...(assessmentArtifacts.assessment.scope
+      ? { scope: assessmentArtifacts.assessment.scope }
+      : {}),
+    ...(assessmentArtifacts.assessment.perspectives
+      ? { perspectives: assessmentArtifacts.assessment.perspectives }
+      : {}),
+    ...(assessmentArtifacts.assessment.extensions
+      ? { extensions: assessmentArtifacts.assessment.extensions }
+      : enrichedWorkspace.extensions
+        ? { extensions: enrichedWorkspace.extensions }
+        : {}),
+    metadata: {
+      runtime: runtimeMetadata.runtime,
+      adapterDiagnostics: adapterResult.diagnostics ?? [],
+      extensionDiagnostics,
+    },
+  });
 
   return {
     ok: true,
@@ -251,10 +309,11 @@ export async function runDbtGovernanceRuntime(
     capabilities: capabilities.list(),
     extensionDiagnostics,
     extensionRegistrationDiagnostics: registration.diagnostics,
-    violations,
-    signals,
-    measurements,
+    violations: assessmentArtifacts.violations,
+    signals: assessmentArtifacts.signals,
+    measurements: assessmentArtifacts.measurements,
     workspace: enrichedWorkspace,
+    assessment,
     metadata: {
       ...runtimeMetadata,
       profile: {
@@ -265,14 +324,14 @@ export async function runDbtGovernanceRuntime(
         registeredExtensionIds: collectRegisteredExtensionIds(
           registration.registry,
           registration.diagnostics,
-          signals,
-          violations,
-          measurements,
+          assessmentArtifacts.signals,
+          assessmentArtifacts.violations,
+          assessmentArtifacts.measurements,
         ),
         sourcePluginIds: collectSourcePluginIds(
-          signals,
-          violations,
-          measurements,
+          assessmentArtifacts.signals,
+          assessmentArtifacts.violations,
+          assessmentArtifacts.measurements,
         ),
         rulePackCount: registration.registry.rulePacks.length,
         signalProviderCount: registration.registry.signalProviders.length,
@@ -378,8 +437,7 @@ function resolveRuntimeProfile(
           warningMinScore:
             typeof statusThresholds?.warningMinScore === 'number'
               ? statusThresholds.warningMinScore
-              : DEFAULT_RUNTIME_PROFILE.health.statusThresholds
-                  .warningMinScore,
+              : DEFAULT_RUNTIME_PROFILE.health.statusThresholds.warningMinScore,
         },
       },
       metrics,
@@ -388,9 +446,7 @@ function resolveRuntimeProfile(
   };
 }
 
-function toDbtGovernanceAdapterInput(
-  input: DbtGovernanceRuntimeInput,
-):
+function toDbtGovernanceAdapterInput(input: DbtGovernanceRuntimeInput):
   | {
       adapterInput: DbtGovernanceAdapterInput;
       diagnostics: GovernanceDiagnostic[];
@@ -442,10 +498,7 @@ function normalizeAdapterPaths(
       : {}),
     ...(pathsInput.dbtProjectPath
       ? {
-          dbtProjectPath: resolvePath(
-            pathsInput.dbtProjectPath,
-            baseDirectory,
-          ),
+          dbtProjectPath: resolvePath(pathsInput.dbtProjectPath, baseDirectory),
         }
       : {}),
     ...(pathsInput.manifestPath
@@ -456,10 +509,7 @@ function normalizeAdapterPaths(
       : {}),
     ...(pathsInput.runResultsPath
       ? {
-          runResultsPath: resolvePath(
-            pathsInput.runResultsPath,
-            baseDirectory,
-          ),
+          runResultsPath: resolvePath(pathsInput.runResultsPath, baseDirectory),
         }
       : {}),
     ...(pathsInput.sourcesPath
@@ -513,21 +563,27 @@ function normalizeAdapterOptions(
 
 function buildRuntimeMetadata(
   runtimeInput: DbtGovernanceRuntimeInput['runtime'] | undefined,
+  generatedAt: string,
 ): Pick<DbtGovernanceRuntimeResultMetadata, 'runtime'> {
-  if (!runtimeInput) {
-    return {};
-  }
-
   return {
     runtime: {
-      ...(runtimeInput.requestId ? { requestId: runtimeInput.requestId } : {}),
-      ...(runtimeInput.workingDirectory
+      packageName: DBT_GOVERNANCE_RUNTIME_PACKAGE_NAME,
+      id: DBT_GOVERNANCE_RUNTIME_ID,
+      version: DBT_GOVERNANCE_RUNTIME_VERSION,
+      adapterPackageName: DBT_GOVERNANCE_ADAPTER_PACKAGE_NAME,
+      extensionPackageName: DBT_GOVERNANCE_EXTENSION_PACKAGE_NAME,
+      generatedAt,
+      ...(runtimeInput?.requestId
+        ? { invocationId: runtimeInput.requestId }
+        : {}),
+      ...(runtimeInput?.requestId ? { requestId: runtimeInput.requestId } : {}),
+      ...(runtimeInput?.workingDirectory
         ? { workingDirectory: path.resolve(runtimeInput.workingDirectory) }
         : {}),
-      ...(runtimeInput.dryRun !== undefined
+      ...(runtimeInput?.dryRun !== undefined
         ? { dryRun: runtimeInput.dryRun }
         : {}),
-      ...(runtimeInput.metadata ? { metadata: runtimeInput.metadata } : {}),
+      ...(runtimeInput?.metadata ? { metadata: runtimeInput.metadata } : {}),
     },
   };
 }
@@ -667,6 +723,36 @@ function countRecommendationProviders(
         'capability:governance:extension:dbt:recommendation-provider:',
       ),
     ).length;
+}
+
+function mergeRecommendations(
+  coreRecommendations: Recommendation[],
+  extensionRecommendations: Recommendation[],
+): Recommendation[] {
+  return [...coreRecommendations, ...extensionRecommendations]
+    .reduce<Recommendation[]>((deduped, recommendation) => {
+      if (deduped.some((entry) => entry.id === recommendation.id)) {
+        return deduped;
+      }
+
+      deduped.push(recommendation);
+      return deduped;
+    }, [])
+    .sort(
+      (left, right) =>
+        left.id.localeCompare(right.id) ||
+        left.title.localeCompare(right.title),
+    );
+}
+
+function buildWarnings(
+  adapterDiagnostics: GovernanceDiagnostic[],
+  extensionDiagnostics: GovernanceDiagnostic[],
+): string[] {
+  return [...adapterDiagnostics, ...extensionDiagnostics]
+    .filter((diagnostic) => diagnostic.severity !== 'info')
+    .map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`)
+    .sort((left, right) => left.localeCompare(right));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

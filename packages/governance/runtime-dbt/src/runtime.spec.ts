@@ -52,6 +52,50 @@ describe('runDbtGovernanceRuntime', () => {
       name: 'layered_project',
       root: path.join(fixturesRoot, 'layered-project'),
     });
+    expect(result.assessment).toBeDefined();
+    expect(result.assessment).toMatchObject({
+      workspace: expect.objectContaining({
+        id: 'dbt:layered_project',
+        name: 'layered_project',
+      }),
+      profile: 'dbt',
+      violations: expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: 'dbt/no-disallowed-layer-dependency',
+          sourcePluginId: 'governance-extension:dbt',
+        }),
+      ]),
+      signals: expect.arrayContaining([
+        expect.objectContaining({
+          source: 'extension',
+          sourcePluginId: 'governance-extension:dbt',
+        }),
+      ]),
+      measurements: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'dbt-model-count',
+          sourcePluginId: 'governance-extension:dbt',
+        }),
+      ]),
+      recommendations: expect.any(Array),
+      health: expect.objectContaining({
+        score: expect.any(Number),
+        status: expect.any(String),
+      }),
+      extensions: expect.objectContaining({
+        'governance-extension:dbt': expect.any(Object),
+      }),
+      metadata: expect.objectContaining({
+        runtime: expect.objectContaining({
+          packageName: '@anarchitects/governance-runtime-dbt',
+          id: 'governance-runtime:dbt',
+          version: '0.0.1',
+          adapterPackageName: '@anarchitects/governance-adapter-dbt',
+          extensionPackageName: '@anarchitects/governance-extension-dbt',
+          invocationId: 'req-extension-1',
+        }),
+      }),
+    });
     expect(result.extensionRegistrationDiagnostics).toEqual([]);
     expect(result.extensionDiagnostics).toEqual(
       expect.arrayContaining([
@@ -119,12 +163,18 @@ describe('runDbtGovernanceRuntime', () => {
         recommendationProviderCount: 1,
       },
       runtime: {
+        packageName: '@anarchitects/governance-runtime-dbt',
+        id: 'governance-runtime:dbt',
+        version: '0.0.1',
+        adapterPackageName: '@anarchitects/governance-adapter-dbt',
+        extensionPackageName: '@anarchitects/governance-extension-dbt',
+        generatedAt: expect.any(String),
+        invocationId: 'req-extension-1',
         requestId: 'req-extension-1',
         workingDirectory: path.resolve(fixturesRoot),
         dryRun: true,
       },
     });
-    expect(result.assessment).toBeUndefined();
   });
 
   it('returns a structured runtime error when dbt artifacts cannot be loaded', async () => {
