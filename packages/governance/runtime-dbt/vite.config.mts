@@ -30,6 +30,7 @@ export default defineConfig(() => ({
         'tslib',
         '@anarchitects/governance-adapter-dbt',
         '@anarchitects/governance-core',
+        '@anarchitects/governance-extension-dbt',
       ],
     },
   },

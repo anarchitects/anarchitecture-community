@@ -1,11 +1,15 @@
+import type { DbtAdapterResultMetadata } from '@anarchitects/governance-adapter-dbt';
 import type {
   GovernanceAssessment,
   GovernanceCapability,
   GovernanceDiagnostic,
   GovernanceExtensionDiagnostic,
+  GovernanceProfile,
+  GovernanceSignal,
   GovernanceWorkspace,
+  Measurement,
+  Violation,
 } from '@anarchitects/governance-core';
-import type { DbtAdapterResultMetadata } from '@anarchitects/governance-adapter-dbt';
 
 import type { DbtGovernanceRuntimeMetadata } from './constants.js';
 
@@ -73,8 +77,25 @@ export interface DbtGovernanceRuntimeError {
   details?: Record<string, unknown>;
 }
 
+export interface DbtGovernanceRuntimeProfileMetadata {
+  name: GovernanceProfile['name'];
+}
+
+export interface DbtGovernanceRuntimeExtensionMetadata {
+  registeredExtensionIds: string[];
+  sourcePluginIds: string[];
+  rulePackCount: number;
+  signalProviderCount: number;
+  metricProviderCount: number;
+  enricherCount: number;
+  diagnosticProviderCount: number;
+  recommendationProviderCount: number;
+}
+
 export interface DbtGovernanceRuntimeResultMetadata {
+  profile?: DbtGovernanceRuntimeProfileMetadata;
   adapter?: DbtAdapterResultMetadata;
+  extension?: DbtGovernanceRuntimeExtensionMetadata;
   runtime?: {
     requestId?: string;
     workingDirectory?: string;
@@ -87,7 +108,11 @@ export interface DbtGovernanceRuntimeBaseResult {
   runtime: DbtGovernanceRuntimeMetadata;
   diagnostics: GovernanceDiagnostic[];
   capabilities: GovernanceCapability[];
-  extensionDiagnostics?: GovernanceExtensionDiagnostic[];
+  extensionDiagnostics?: GovernanceDiagnostic[];
+  extensionRegistrationDiagnostics?: GovernanceExtensionDiagnostic[];
+  violations?: Violation[];
+  signals?: GovernanceSignal[];
+  measurements?: Measurement[];
   metadata?: DbtGovernanceRuntimeResultMetadata;
   workspace?: GovernanceWorkspace;
   assessment?: GovernanceAssessment;
