@@ -18,5 +18,7 @@ export type {
   DbtGovernanceRuntimeInvocationContext,
   DbtGovernanceRuntimeProfileConfig,
   DbtGovernanceRuntimeResult,
+  DbtGovernanceRuntimeResultMetadata,
   DbtGovernanceRuntimeSuccessResult,
 } from './contracts.js';
+export { runDbtGovernanceRuntime } from './runtime.js';

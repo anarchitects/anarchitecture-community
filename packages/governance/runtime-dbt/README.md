@@ -25,6 +25,7 @@ main exported contract names are:
 - `DbtGovernanceRuntimeSuccessResult`
 - `DbtGovernanceRuntimeErrorResult`
 - `DbtGovernanceRuntimeError`
+- `runDbtGovernanceRuntime(...)`
 
 ## License
 

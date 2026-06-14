@@ -78,4 +78,8 @@ describe('dbt runtime public API', () => {
     expect(success.ok).toBe(true);
     expect(failure.error.stage).toBe('input');
   });
+
+  it('exports the runtime entrypoint from the package root', () => {
+    expect(typeof runtimeDbt.runDbtGovernanceRuntime).toBe('function');
+  });
 });
