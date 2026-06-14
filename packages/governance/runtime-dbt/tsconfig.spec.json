@@ -42,6 +42,9 @@
       "path": "../adapter-dbt/tsconfig.lib.json"
     },
     {
+      "path": "../extension-dbt/tsconfig.lib.json"
+    },
+    {
       "path": "../core/tsconfig.lib.json"
     }
   ]

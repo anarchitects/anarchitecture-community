@@ -8,16 +8,36 @@ const fixturesRoot = fileURLToPath(
 );
 
 describe('runDbtGovernanceRuntime', () => {
-  it('composes the public dbt adapter flow into a canonical workspace result', async () => {
+  it('composes adapter loading and dbt extension execution into a runtime result', async () => {
     const result = await runDbtGovernanceRuntime({
+      profile: {
+        document: {
+          rules: {
+            'dbt/no-disallowed-layer-dependency': {
+              options: {
+                allowedUpstreamByLayer: {
+                  staging: [],
+                  intermediate: [],
+                  marts: ['marts'],
+                },
+              },
+            },
+          },
+        },
+      },
       adapter: {
         paths: {
-          projectDir: './simple-project',
+          projectDir: './layered-project',
+        },
+      },
+      extension: {
+        options: {
+          createdAt: '2026-06-14T12:00:00.000Z',
         },
       },
       runtime: {
         workingDirectory: fixturesRoot,
-        requestId: 'req-runtime-1',
+        requestId: 'req-extension-1',
         dryRun: true,
       },
     });
@@ -28,58 +48,78 @@ describe('runDbtGovernanceRuntime', () => {
     }
 
     expect(result.workspace).toMatchObject({
-      id: 'dbt:simple_project',
-      name: 'simple_project',
-      root: path.join(fixturesRoot, 'simple-project'),
+      id: 'dbt:layered_project',
+      name: 'layered_project',
+      root: path.join(fixturesRoot, 'layered-project'),
     });
-    expect(result.workspace?.nodes).toEqual(
+    expect(result.extensionRegistrationDiagnostics).toEqual([]);
+    expect(result.extensionDiagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: 'dbt.project.simple_project',
-          kind: 'project',
-          technology: 'dbt',
-        }),
-        expect.objectContaining({
-          id: 'model.simple_project.hello_world',
-          kind: 'resource',
-          technology: 'dbt',
+          code: 'DBT_DOMAIN_UNRESOLVED',
         }),
       ]),
     );
-    expect(result.workspace?.extensions).toEqual(
-      expect.objectContaining({
-        'governance-extension:dbt': expect.any(Object),
-      }),
+    expect(result.signals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'extension',
+          sourcePluginId: 'governance-extension:dbt',
+        }),
+      ]),
     );
-    expect(
-      result.workspace?.nodes.find(
-        (node) => node.id === 'model.simple_project.hello_world',
-      )?.extensions,
-    ).toEqual(
-      expect.objectContaining({
-        'governance-extension:dbt': expect.any(Object),
-      }),
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: 'dbt/no-disallowed-layer-dependency',
+          sourcePluginId: 'governance-extension:dbt',
+        }),
+      ]),
+    );
+    expect(result.measurements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'dbt-model-count',
+          sourcePluginId: 'governance-extension:dbt',
+        }),
+      ]),
+    );
+    expect(result.capabilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.stringContaining(
+            'capability:governance:extension:dbt:diagnostic-provider:',
+          ),
+        }),
+        expect.objectContaining({
+          id: expect.stringContaining(
+            'capability:governance:extension:dbt:recommendation-provider:',
+          ),
+        }),
+      ]),
     );
     expect(result.metadata).toEqual({
+      profile: {
+        name: 'dbt',
+      },
       adapter: {
         adapter: 'dbt',
         paths: expect.objectContaining({
-          projectDir: path.join(fixturesRoot, 'simple-project'),
-          dbtProjectPath: path.join(
-            fixturesRoot,
-            'simple-project',
-            'dbt_project.yml',
-          ),
-          manifestPath: path.join(
-            fixturesRoot,
-            'simple-project',
-            'target',
-            'manifest.json',
-          ),
+          projectDir: path.join(fixturesRoot, 'layered-project'),
         }),
       },
+      extension: {
+        registeredExtensionIds: ['governance-extension:dbt'],
+        sourcePluginIds: ['governance-extension:dbt'],
+        rulePackCount: 1,
+        signalProviderCount: 1,
+        metricProviderCount: 1,
+        enricherCount: 0,
+        diagnosticProviderCount: 1,
+        recommendationProviderCount: 1,
+      },
       runtime: {
-        requestId: 'req-runtime-1',
+        requestId: 'req-extension-1',
         workingDirectory: path.resolve(fixturesRoot),
         dryRun: true,
       },
@@ -114,7 +154,6 @@ describe('runDbtGovernanceRuntime', () => {
       },
     });
     expect(result.workspace).toBeUndefined();
-    expect(result.capabilities).toEqual([]);
     expect(result.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
