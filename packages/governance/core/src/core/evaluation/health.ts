@@ -200,6 +200,7 @@ function buildWeakestMetrics(
   measurements: Measurement[],
 ): HealthMetricHotspot[] {
   return [...measurements]
+    .filter((measurement) => measurement.score < 100)
     .sort((a, b) => a.score - b.score || a.id.localeCompare(b.id))
     .slice(0, 3)
     .map((measurement) => ({

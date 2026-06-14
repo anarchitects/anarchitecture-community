@@ -479,6 +479,110 @@ describe('metrics and health', () => {
       },
     ]);
   });
+
+  it('omits perfect metrics when fewer than three imperfect metrics exist', () => {
+    const health = calculateGovernanceHealth([
+      measurement(
+        'documentation-completeness',
+        'Documentation Completeness',
+        0,
+      ),
+      measurement('dependency-complexity', 'Dependency Complexity', 79),
+      measurement('architectural-entropy', 'Architectural Entropy', 100),
+    ]);
+
+    expect(health.explainability.weakestMetrics).toEqual([
+      {
+        id: 'documentation-completeness',
+        name: 'Documentation Completeness',
+        score: 0,
+      },
+      {
+        id: 'dependency-complexity',
+        name: 'Dependency Complexity',
+        score: 79,
+      },
+    ]);
+    expect(health.explainability.summary).not.toContain(
+      'Architectural Entropy',
+    );
+  });
+
+  it('keeps only the three weakest imperfect metrics', () => {
+    const health = calculateGovernanceHealth([
+      measurement(
+        'documentation-completeness',
+        'Documentation Completeness',
+        0,
+      ),
+      measurement('dependency-complexity', 'Dependency Complexity', 79),
+      measurement('architectural-entropy', 'Architectural Entropy', 100),
+      measurement('layer-integrity', 'Layer Integrity', 50),
+    ]);
+
+    expect(health.explainability.weakestMetrics).toEqual([
+      {
+        id: 'documentation-completeness',
+        name: 'Documentation Completeness',
+        score: 0,
+      },
+      {
+        id: 'layer-integrity',
+        name: 'Layer Integrity',
+        score: 50,
+      },
+      {
+        id: 'dependency-complexity',
+        name: 'Dependency Complexity',
+        score: 79,
+      },
+    ]);
+  });
+
+  it('returns no weakest metrics when all metrics are perfect', () => {
+    const health = calculateGovernanceHealth([
+      measurement('architectural-entropy', 'Architectural Entropy', 100),
+      measurement('dependency-complexity', 'Dependency Complexity', 100),
+      measurement(
+        'documentation-completeness',
+        'Documentation Completeness',
+        100,
+      ),
+    ]);
+
+    expect(health.explainability.weakestMetrics).toEqual([]);
+    expect(health.explainability.summary).toContain(
+      'No weak metrics were detected.',
+    );
+    expect(health.explainability.summary).not.toContain('Weakest metrics are');
+  });
+
+  it('uses deterministic tie-breaking by metric id for equally weak metrics', () => {
+    const health = calculateGovernanceHealth([
+      measurement('zeta-metric', 'Zeta Metric', 50),
+      measurement('alpha-metric', 'Alpha Metric', 50),
+      measurement('beta-metric', 'Beta Metric', 50),
+      measurement('perfect-metric', 'Perfect Metric', 100),
+    ]);
+
+    expect(health.explainability.weakestMetrics).toEqual([
+      {
+        id: 'alpha-metric',
+        name: 'Alpha Metric',
+        score: 50,
+      },
+      {
+        id: 'beta-metric',
+        name: 'Beta Metric',
+        score: 50,
+      },
+      {
+        id: 'zeta-metric',
+        name: 'Zeta Metric',
+        score: 50,
+      },
+    ]);
+  });
 });
 
 function createWorkspace(
@@ -499,4 +603,16 @@ function findMeasurement(
   id: string,
 ) {
   return measurements.find((measurement) => measurement.id === id);
+}
+
+function measurement(id: string, name: string, score: number) {
+  return {
+    id,
+    name,
+    family: 'test',
+    value: score / 100,
+    score,
+    maxScore: 100,
+    unit: 'score',
+  } as const;
 }
