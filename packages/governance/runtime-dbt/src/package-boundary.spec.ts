@@ -18,8 +18,8 @@ describe('dbt Governance runtime package boundary', () => {
 
     expect(Object.keys(packageJson.dependencies ?? {})).toEqual([
       '@anarchitects/governance-adapter-dbt',
-      '@anarchitects/governance-extension-dbt',
       '@anarchitects/governance-core',
+      '@anarchitects/governance-extension-dbt',
     ]);
     expect(packageJson.devDependencies).toBeUndefined();
     expect(packageJson.peerDependencies).toBeUndefined();
