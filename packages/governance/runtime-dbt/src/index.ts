@@ -24,4 +24,5 @@ export type {
   DbtGovernanceRuntimeResultMetadata,
   DbtGovernanceRuntimeSuccessResult,
 } from './contracts.js';
+export { runDbtGovernanceRuntimeFromJson } from './json-boundary.js';
 export { runDbtGovernanceRuntime } from './runtime.js';
