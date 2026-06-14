@@ -146,6 +146,37 @@ const packages = [
     ],
   },
   {
+    projectName: 'governance-runtime-dbt',
+    packageName: '@anarchitects/governance-runtime-dbt',
+    root: join(workspaceRoot, 'packages/governance/runtime-dbt'),
+    sourceIndexPath: join(
+      workspaceRoot,
+      'packages/governance/runtime-dbt/src/index.ts',
+    ),
+    readmePath: join(
+      workspaceRoot,
+      'packages/governance/runtime-dbt/README.md',
+    ),
+    allowedGovernanceDeps: [
+      '@anarchitects/governance-adapter-dbt',
+      '@anarchitects/governance-core',
+      '@anarchitects/governance-extension-dbt',
+    ],
+    requiredReadmeTerms: [
+      '@anarchitects/governance-runtime-dbt',
+      'runDbtGovernanceRuntime',
+      'runDbtGovernanceRuntimeFromJson',
+      'DbtGovernanceRuntimeInput',
+      'DbtGovernanceRuntimeResult',
+      'profile',
+      'adapter',
+      'extension',
+      'runtime',
+      'nodes',
+      'relations',
+    ],
+  },
+  {
     projectName: 'governance-cli',
     packageName: '@anarchitects/governance-cli',
     root: join(workspaceRoot, 'packages/governance/cli'),
@@ -243,6 +274,12 @@ function validatePrerequisites() {
   );
   assertExists(
     join(workspaceRoot, 'packages/governance/extension-dbt/src/index.ts'),
+  );
+  assertExists(
+    join(workspaceRoot, 'packages/governance/runtime-dbt/src/runtime.ts'),
+  );
+  assertExists(
+    join(workspaceRoot, 'packages/governance/runtime-dbt/src/json-boundary.ts'),
   );
   assertExists(
     join(
@@ -429,6 +466,7 @@ function validateSourceBoundaries() {
   validateAdapterSourceBoundaries();
   validateDbtExtensionSourceBoundaries();
   validateTypeScriptExtensionSourceBoundaries();
+  validateDbtRuntimeSourceBoundaries();
   validateCliSourceBoundaries();
 }
 
@@ -522,6 +560,29 @@ function validateTypeScriptExtensionSourceBoundaries() {
   );
 }
 
+function validateDbtRuntimeSourceBoundaries() {
+  const sourceRoot = join(workspaceRoot, 'packages/governance/runtime-dbt/src');
+  const forbiddenPatterns = [
+    /from ['"]@anarchitects\/governance-cli(?:\/|['"])/,
+    /from ['"]@anarchitects\/governance-adapter-dbt\/.+['"]/,
+    /from ['"]@anarchitects\/governance-extension-dbt\/.+['"]/,
+    /from ['"]@anarchitects\/governance-core\/.+['"]/,
+    /from ['"]@nx\//,
+    /from ['"]nx['"]/,
+    /from ['"]nx\/src.+['"]/,
+    /from ['"]child_process['"]/,
+    /from ['"]node:child_process['"]/,
+    /from ['"]execa['"]/,
+    /from ['"]cross-spawn['"]/,
+    /anarchitecture-plugins/,
+    /governance-host-dbt/,
+    /packages\/governance\/host-dbt/,
+    /['"`]\s*dbt\s+(build|parse|run|test|docs|source)\b/i,
+  ];
+
+  validateSourceFiles(sourceRoot, forbiddenPatterns, 'Governance dbt runtime');
+}
+
 function validateCliSourceBoundaries() {
   const sourceRoot = join(workspaceRoot, 'packages/governance/cli/src');
   const forbiddenPatterns = [
@@ -559,6 +620,7 @@ function validateCanonicalContractScans() {
     'packages/governance/adapter-typescript/src',
     'packages/governance/extension-dbt/src',
     'packages/governance/extension-typescript/src',
+    'packages/governance/runtime-dbt/src',
     'packages/governance/cli/src',
   ].map((relative) => join(workspaceRoot, relative));
   const forbiddenPatterns = [
@@ -697,6 +759,10 @@ function isForbiddenDependency(dependency, owner) {
   }
 
   if (owner === '@anarchitects/governance-adapter-typescript') {
+    return dependency === '@anarchitects/governance-cli';
+  }
+
+  if (owner === '@anarchitects/governance-runtime-dbt') {
     return dependency === '@anarchitects/governance-cli';
   }
 
