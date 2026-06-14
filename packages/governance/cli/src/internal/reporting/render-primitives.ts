@@ -25,26 +25,35 @@ export function renderMarkdownTable(input: {
   return lines;
 }
 
+export function renderTextTable(input: {
+  headers: readonly string[];
+  rows: readonly (readonly string[])[];
+}): string[] {
+  const widths = input.headers.map((header, index) =>
+    Math.max(
+      header.length,
+      ...input.rows.map((row) => (row[index] ?? '').length),
+    ),
+  );
+
+  return [
+    input.headers
+      .map((cell, index) => padCell(cell, widths[index]!))
+      .join('  '),
+    widths.map((width) => '-'.repeat(width)).join('  '),
+    ...input.rows.map((row) =>
+      input.headers
+        .map((_, index) => padCell(row[index] ?? '', widths[index]!))
+        .join('  '),
+    ),
+  ];
+}
+
 export function renderTwoColumnTextTable(input: {
   headers: readonly [string, string];
   rows: readonly (readonly [string, string])[];
 }): string[] {
-  const leftWidth = Math.max(
-    input.headers[0].length,
-    ...input.rows.map((row) => row[0].length),
-  );
-  const rightWidth = Math.max(
-    input.headers[1].length,
-    ...input.rows.map((row) => row[1].length),
-  );
-
-  return [
-    `${padCell(input.headers[0], leftWidth)}  ${padCell(input.headers[1], rightWidth)}`,
-    `${'-'.repeat(leftWidth)}  ${'-'.repeat(rightWidth)}`,
-    ...input.rows.map(
-      (row) => `${padCell(row[0], leftWidth)}  ${padCell(row[1], rightWidth)}`,
-    ),
-  ];
+  return renderTextTable(input);
 }
 
 export function renderJsonValue(

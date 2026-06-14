@@ -2,6 +2,7 @@ import {
   escapeMarkdownCell,
   renderJsonValue,
   renderMarkdownTable,
+  renderTextTable,
   renderTwoColumnTextTable,
 } from './render-primitives.js';
 
@@ -24,6 +25,23 @@ describe('shared reporting primitives', () => {
       '-----  -----',
       'alpha  1    ',
       'beta   22   ',
+    ]);
+  });
+
+  it('renders multi-column text tables deterministically', () => {
+    const lines = renderTextTable({
+      headers: ['id', 'kind', 'name'],
+      rows: [
+        ['node-a', 'project', 'alpha'],
+        ['node-b', 'resource', 'beta'],
+      ],
+    });
+
+    expect(lines).toEqual([
+      'id      kind      name ',
+      '------  --------  -----',
+      'node-a  project   alpha',
+      'node-b  resource  beta ',
     ]);
   });
 

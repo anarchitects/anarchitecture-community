@@ -179,9 +179,11 @@ describe('agov command report rendering', () => {
       ),
     ).toEqual(['warning:documentation-gap', 'warning:documentation-gap']);
     expect(assessResult.assessment).not.toHaveProperty('topSignals');
-    expect(textRendered).toContain('Top Issues:');
-    expect(textRendered).toContain('[warning] documentation-gap');
-    expect(textRendered).not.toContain('Top Signals:');
+    expect(textRendered).toContain('Measurements');
+    expect(textRendered).toContain('Top Issues');
+    expect(textRendered).toContain('severity  type');
+    expect(textRendered).toContain('documentation-gap');
+    expect(textRendered).not.toContain('Top Signals');
   });
 
   it('renders opt-in top signals as a separate section and JSON field', async () => {
@@ -224,10 +226,10 @@ describe('agov command report rendering', () => {
       'warning:documentation-gap',
       'error:domain-boundary-violation',
     ]);
-    expect(textRendered).toContain('Top Signals:');
-    expect(textRendered).toContain('[info] structural-dependency');
-    expect(textRendered).toContain('[warning] documentation-gap');
-    expect(textRendered).toContain('Top Issues:');
+    expect(textRendered).toContain('Top Signals');
+    expect(textRendered).toContain('structural-dependency');
+    expect(textRendered).toContain('documentation-gap');
+    expect(textRendered).toContain('Top Issues');
   });
 
   it('renders canonical diagnostics in JSON and text outputs', async () => {
@@ -642,7 +644,15 @@ describe('agov command report rendering', () => {
     ]);
     expect(textRendered).toContain('Nodes');
     expect(textRendered).toContain('Relations');
-    expect(textRendered).toContain('kind=model');
+    expect(textRendered).toContain('kind    name');
+    expect(textRendered).toContain('path');
+    expect(textRendered).toContain('domain');
+    expect(textRendered).toContain('owner');
+    expect(textRendered).toContain('finance');
+    expect(textRendered).toContain('data-platform');
+    expect(textRendered).toContain('dependency type');
+    expect(textRendered).toContain('models/orders.sql');
+    expect(textRendered).not.toContain('Node              Details');
     expect(textRendered).not.toContain('Compatibility Projects');
   });
 
@@ -730,6 +740,26 @@ describe('agov command report rendering', () => {
     expect(markdownTableSpy).toHaveBeenCalled();
   });
 
+  it('renders measurement facts as first-class table columns', async () => {
+    const metricsResult = await runAgovMetrics({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/passing-profile.json',
+      ),
+    });
+
+    const textRendered = renderAgovMetricsReport(metricsResult, 'text');
+
+    expect(textRendered).toContain('Measurements');
+    expect(textRendered).toContain('id');
+    expect(textRendered).toContain('family');
+    expect(textRendered).toContain('score');
+    expect(textRendered).toContain('max score');
+    expect(textRendered).not.toContain('Measurement  Details');
+  });
+
   it('keeps recommendations JSON output shape stable', async () => {
     const recommendationsResult = await runAgovRecommendations({
       workspacePath: fixturePath(
@@ -784,6 +814,28 @@ describe('agov command report rendering', () => {
 
     expect(textTableSpy).toHaveBeenCalled();
     expect(markdownTableSpy).toHaveBeenCalled();
+  });
+
+  it('renders recommendation facts as first-class table columns', async () => {
+    const recommendationsResult = await runAgovRecommendations({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+    });
+
+    const textRendered = renderAgovRecommendationsReport(
+      recommendationsResult,
+      'text',
+    );
+
+    expect(textRendered).toContain('Recommendations');
+    expect(textRendered).toContain('priority');
+    expect(textRendered).toContain('title');
+    expect(textRendered).toContain('reason');
+    expect(textRendered).not.toContain('Recommendation  Details');
   });
 
   it('keeps signals JSON output shape stable', async () => {
@@ -851,6 +903,26 @@ describe('agov command report rendering', () => {
     expect(markdownTableSpy).toHaveBeenCalled();
   });
 
+  it('renders signal facts as first-class table columns', async () => {
+    const signalsResult = await runAgovSignals({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+    });
+
+    const textRendered = renderAgovSignalsReport(signalsResult, 'text');
+
+    expect(textRendered).toContain('Signals');
+    expect(textRendered).toContain('severity');
+    expect(textRendered).toContain('type');
+    expect(textRendered).toContain('message');
+    expect(textRendered).toContain('source plugin');
+    expect(textRendered).not.toContain('Signal  Details');
+  });
+
   it('keeps violations JSON output shape stable', async () => {
     const violationsResult = await runAgovViolations({
       workspacePath: fixturePath(
@@ -905,6 +977,26 @@ describe('agov command report rendering', () => {
 
     expect(textTableSpy).toHaveBeenCalled();
     expect(markdownTableSpy).toHaveBeenCalled();
+  });
+
+  it('renders violation facts as first-class table columns', async () => {
+    const violationsResult = await runAgovViolations({
+      workspacePath: fixturePath(
+        '../tests/fixtures/manual-workspace/demo-workspace.json',
+      ),
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/error-profile.json',
+      ),
+    });
+
+    const textRendered = renderAgovViolationsReport(violationsResult, 'text');
+
+    expect(textRendered).toContain('Violations');
+    expect(textRendered).toContain('severity');
+    expect(textRendered).toContain('rule');
+    expect(textRendered).toContain('subject');
+    expect(textRendered).toContain('recommendation');
+    expect(textRendered).not.toContain('Violation  Details');
   });
 
   it('renders focused report scope for filtered violations', async () => {
@@ -963,8 +1055,18 @@ function createCanonicalGraphAdapter(): GovernanceWorkspaceAdapter<string> {
             name: 'orders',
             kind: 'model',
             technology: 'dbt',
+            root: 'models',
             path: 'models/orders.sql',
             tags: ['finance'],
+            classification: {
+              domain: 'finance',
+              layer: 'transformation',
+              scope: 'orders',
+              tags: ['finance'],
+            },
+            ownership: {
+              team: 'data-platform',
+            },
             metadata: {
               materialization: 'table',
             },
@@ -974,6 +1076,17 @@ function createCanonicalGraphAdapter(): GovernanceWorkspaceAdapter<string> {
             name: 'raw.orders',
             kind: 'source',
             technology: 'dbt',
+            root: 'models',
+            path: 'models/sources.yml',
+            classification: {
+              domain: 'finance',
+              layer: 'ingestion',
+              scope: 'raw',
+              tags: ['finance'],
+            },
+            ownership: {
+              team: 'data-platform',
+            },
             metadata: {
               database: 'raw',
             },
@@ -986,6 +1099,8 @@ function createCanonicalGraphAdapter(): GovernanceWorkspaceAdapter<string> {
             targetNodeId: 'dbt.model.orders',
             kind: 'lineage',
             metadata: {
+              dependencyType: 'static',
+              sourceFile: 'models/orders.sql',
               selector: 'source("raw", "orders")',
             },
           },
