@@ -25,7 +25,12 @@ export default defineConfig(() => ({
       formats: ['es' as const],
     },
     rollupOptions: {
-      external: [/^node:.+$/, 'tslib', '@anarchitects/governance-core'],
+      external: [
+        /^node:.+$/,
+        'tslib',
+        '@anarchitects/governance-adapter-dbt',
+        '@anarchitects/governance-core',
+      ],
     },
   },
   test: {

@@ -5,6 +5,7 @@ import type {
   GovernanceExtensionDiagnostic,
   GovernanceWorkspace,
 } from '@anarchitects/governance-core';
+import type { DbtAdapterResultMetadata } from '@anarchitects/governance-adapter-dbt';
 
 import type { DbtGovernanceRuntimeMetadata } from './constants.js';
 
@@ -72,11 +73,22 @@ export interface DbtGovernanceRuntimeError {
   details?: Record<string, unknown>;
 }
 
+export interface DbtGovernanceRuntimeResultMetadata {
+  adapter?: DbtAdapterResultMetadata;
+  runtime?: {
+    requestId?: string;
+    workingDirectory?: string;
+    dryRun?: boolean;
+    metadata?: Record<string, unknown>;
+  };
+}
+
 export interface DbtGovernanceRuntimeBaseResult {
   runtime: DbtGovernanceRuntimeMetadata;
   diagnostics: GovernanceDiagnostic[];
   capabilities: GovernanceCapability[];
   extensionDiagnostics?: GovernanceExtensionDiagnostic[];
+  metadata?: DbtGovernanceRuntimeResultMetadata;
   workspace?: GovernanceWorkspace;
   assessment?: GovernanceAssessment;
 }

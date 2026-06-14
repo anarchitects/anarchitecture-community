@@ -62,6 +62,7 @@
     }
   },
   "dependencies": {
+    "@anarchitects/governance-adapter-dbt": "^0.1.4",
     "@anarchitects/governance-core": "^0.4.1"
   }
 }

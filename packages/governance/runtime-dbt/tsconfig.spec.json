@@ -39,6 +39,9 @@
       "path": "./tsconfig.lib.json"
     },
     {
+      "path": "../adapter-dbt/tsconfig.lib.json"
+    },
+    {
       "path": "../core/tsconfig.lib.json"
     }
   ]

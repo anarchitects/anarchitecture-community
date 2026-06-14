@@ -17,11 +17,9 @@ describe('dbt Governance runtime package boundary', () => {
     };
 
     expect(Object.keys(packageJson.dependencies ?? {})).toEqual([
+      '@anarchitects/governance-adapter-dbt',
       '@anarchitects/governance-core',
     ]);
-    expect(packageJson.dependencies).not.toHaveProperty(
-      '@anarchitects/governance-adapter-dbt',
-    );
     expect(packageJson.dependencies).not.toHaveProperty(
       '@anarchitects/governance-extension-dbt',
     );
@@ -33,11 +31,10 @@ describe('dbt Governance runtime package boundary', () => {
     const source = readSourceFiles(path.join(packageRoot, 'src')).join('\n');
 
     expect(source).not.toMatch(
-      /from ['"]@anarchitects\/governance-adapter-dbt['"]/,
-    );
-    expect(source).not.toMatch(
       /from ['"]@anarchitects\/governance-extension-dbt['"]/,
     );
+    expect(source).not.toMatch(/@anarchitects\/governance-adapter-dbt\/.+/);
+    expect(source).not.toMatch(/@anarchitects\/governance-extension-dbt\/.+/);
     expect(source).not.toMatch(/governance-host-dbt/);
     expect(source).not.toMatch(/governance-plugin-dbt/);
     expect(source).not.toMatch(/@nx\//);
