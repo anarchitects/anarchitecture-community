@@ -135,6 +135,7 @@ That gate should pass for:
 - `@anarchitects/governance-adapter-typescript`
 - `@anarchitects/governance-extension-dbt`
 - `@anarchitects/governance-extension-typescript`
+- `@anarchitects/governance-runtime-dbt`
 - `@anarchitects/governance-cli`
 
 Representative release-gate scans:

@@ -74,7 +74,7 @@
         "executor": "nx:run-commands",
         "options": {
           "commands": [
-            "yarn nx run-many -t build,typecheck,test,lint -p governance-core governance-adapter-dbt governance-adapter-typescript governance-extension-dbt governance-extension-typescript governance-cli",
+            "yarn nx run-many -t build,typecheck,test,lint -p governance-core governance-adapter-dbt governance-adapter-typescript governance-extension-dbt governance-extension-typescript governance-runtime-dbt governance-cli",
             "node tools/governance/validate-community-governance.mjs all"
           ],
           "parallel": false

@@ -68,7 +68,7 @@ boundary that a future host can call.
 
 ## Configuration Layering
 
-The runtime keeps configuration split into four top-level sections:
+The runtime keeps configuration separated into four top-level sections:
 
 - `profile`: canonical Governance profile config only
 - `adapter`: dbt adapter paths and adapter-owned options
@@ -77,7 +77,7 @@ The runtime keeps configuration split into four top-level sections:
   host-supplied metadata
 
 Do not collapse adapter config, extension config, and canonical policy into
-one profile object. That ownership split comes from ADR 0003.
+one profile object. That ownership boundary comes from ADR 0003.
 
 Conceptual shape:
 
