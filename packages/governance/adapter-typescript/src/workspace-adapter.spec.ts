@@ -179,6 +179,57 @@ describe('generic Governance adapter exports', () => {
     expect(typedDefault.id).toBe('governance-adapter:typescript');
   });
 
+  it('keeps default discovery no-match diagnostics as detail-only infos', () => {
+    const workspaceRoot = materializeFixture('pnpm');
+    const result =
+      createGovernanceWorkspaceAdapter().loadWorkspace(workspaceRoot);
+    const diagnostics = result.diagnostics ?? [];
+
+    const noMatchDiagnostics = diagnostics.filter(
+      (diagnostic) =>
+        diagnostic.code ===
+        'governance.typescript_adapter.discovery_pattern_no_matches',
+    );
+
+    expect(noMatchDiagnostics.length).toBeGreaterThan(0);
+    expect(
+      noMatchDiagnostics.every(
+        (diagnostic) =>
+          diagnostic.severity === 'info' &&
+          diagnostic.kind === 'observation' &&
+          diagnostic.metadata?.configuredBy === 'default' &&
+          diagnostic.metadata?.visibility === 'detail',
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps explicit no-match discovery diagnostics visible as warnings', () => {
+    const workspaceRoot = materializeFixture('pnpm');
+    const result = createTypeScriptWorkspaceAdapter({
+      discoveryConfig: {
+        projects: [
+          {
+            pattern: 'libs/*',
+            name: '{segment:1}',
+          },
+        ],
+      },
+      packageGovernanceMetadataConfig:
+        DEFAULT_TYPESCRIPT_PACKAGE_GOVERNANCE_METADATA_CONFIG,
+    }).loadWorkspace(workspaceRoot);
+    const diagnostics = result.diagnostics ?? [];
+
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'governance.typescript_adapter.discovery_pattern_no_matches',
+        severity: 'warning',
+        kind: 'warning',
+        category: 'adapter',
+      }),
+    ]);
+    expect(diagnostics[0]?.metadata).toBeUndefined();
+  });
+
   it('includes metadata diagnostics in canonical loadWorkspace results and continues discovery', () => {
     const workspaceRoot = materializeFixture('pnpm');
     writeJsonFile(path.join(workspaceRoot, 'packages', 'customer'), {

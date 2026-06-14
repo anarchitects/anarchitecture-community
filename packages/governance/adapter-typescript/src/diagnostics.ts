@@ -235,12 +235,14 @@ export function invalidDiscoveryPatternDiagnostic(
 export function discoveryPatternNoMatchesDiagnostic(
   pattern: string,
   path: string,
+  metadata?: Record<string, unknown>,
 ): TypeScriptWorkspaceDetectionDiagnostic {
   return {
     code: 'governance.typescript_adapter.discovery_pattern_no_matches',
     message: `Discovery pattern "${pattern}" did not match any package roots.`,
     source: DIAGNOSTIC_SOURCE,
     path,
+    ...(metadata ? { metadata } : {}),
   };
 }
 

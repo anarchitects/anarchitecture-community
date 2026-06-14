@@ -58,6 +58,7 @@ export interface TypeScriptProjectDiscoveryRule {
   name?: string;
   tags?: string[];
   projection?: TypeScriptProjectDiscoveryProjection;
+  configuredBy?: 'default' | 'user';
 }
 
 export interface TypeScriptProjectDiscoveryConfig {
