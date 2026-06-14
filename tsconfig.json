@@ -26,6 +26,9 @@
     },
     {
       "path": "./packages/governance/extension-dbt"
+    },
+    {
+      "path": "./packages/governance/runtime-dbt"
     }
   ]
 }

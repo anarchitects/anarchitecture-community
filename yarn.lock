@@ -74,6 +74,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@anarchitects/governance-runtime-dbt@workspace:packages/governance/runtime-dbt":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/governance-runtime-dbt@workspace:packages/governance/runtime-dbt"
+  languageName: unknown
+  linkType: soft
+
 "@anarchitects/nest-angular-ssr@workspace:packages/nest/angular-ssr":
   version: 0.0.0-use.local
   resolution: "@anarchitects/nest-angular-ssr@workspace:packages/nest/angular-ssr"
