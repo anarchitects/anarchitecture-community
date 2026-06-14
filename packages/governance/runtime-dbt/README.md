@@ -17,8 +17,14 @@ management.
 
 ## Current Scope
 
-This package currently establishes only the minimal public API and package
-boundary for future runtime composition work.
+This package currently defines the public runtime contract surface only. The
+main exported contract names are:
+
+- `DbtGovernanceRuntimeInput`
+- `DbtGovernanceRuntimeResult`
+- `DbtGovernanceRuntimeSuccessResult`
+- `DbtGovernanceRuntimeErrorResult`
+- `DbtGovernanceRuntimeError`
 
 ## License
 
