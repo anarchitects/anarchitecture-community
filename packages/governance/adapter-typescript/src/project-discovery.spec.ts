@@ -287,6 +287,37 @@ describe('TypeScript project discovery', () => {
     ]);
   });
 
+  it('marks default no-match patterns as detail-only diagnostics', () => {
+    const result = discoverTypeScriptProjects(
+      workspace({
+        packageRoots: ['packages/core'],
+      }),
+      {
+        projects: [
+          {
+            pattern: 'apps/*',
+            name: '{segment:1}',
+            configuredBy: 'default',
+          },
+        ],
+      },
+    );
+
+    expect(result.projects).toEqual([]);
+    expect(result.diagnostics).toEqual([
+      {
+        code: 'governance.typescript_adapter.discovery_pattern_no_matches',
+        message: 'Discovery pattern "apps/*" did not match any package roots.',
+        source: 'governance.typescript_adapter',
+        path: '/projects/0/pattern',
+        metadata: {
+          configuredBy: 'default',
+          visibility: 'detail',
+        },
+      },
+    ]);
+  });
+
   it('reports invalid discovery patterns deterministically', () => {
     const result = discoverTypeScriptProjects(
       workspace({

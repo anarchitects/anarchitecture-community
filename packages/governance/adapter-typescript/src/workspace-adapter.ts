@@ -55,16 +55,16 @@ export interface CreateGovernanceWorkspaceAdapterOptions {
 
 export const DEFAULT_TYPESCRIPT_PROJECT_DISCOVERY_CONFIG = {
   projects: [
-    { pattern: 'packages/*' },
-    { pattern: 'packages/*/*' },
-    { pattern: 'apps/*' },
-    { pattern: 'apps/*/*' },
-    { pattern: 'libs/*' },
-    { pattern: 'libs/*/*' },
-    { pattern: 'services/*' },
-    { pattern: 'services/*/*' },
-    { pattern: 'tools/*' },
-    { pattern: 'tools/*/*' },
+    { pattern: 'packages/*', configuredBy: 'default' },
+    { pattern: 'packages/*/*', configuredBy: 'default' },
+    { pattern: 'apps/*', configuredBy: 'default' },
+    { pattern: 'apps/*/*', configuredBy: 'default' },
+    { pattern: 'libs/*', configuredBy: 'default' },
+    { pattern: 'libs/*/*', configuredBy: 'default' },
+    { pattern: 'services/*', configuredBy: 'default' },
+    { pattern: 'services/*/*', configuredBy: 'default' },
+    { pattern: 'tools/*', configuredBy: 'default' },
+    { pattern: 'tools/*/*', configuredBy: 'default' },
   ],
 } satisfies TypeScriptProjectDiscoveryConfig;
 
@@ -766,12 +766,26 @@ function diagnosticSeverity(
   diagnostic: TypeScriptWorkspaceDetectionDiagnostic,
 ): GovernanceDiagnosticSeverity {
   if (
-    diagnostic.code === 'governance.typescript_adapter.no_workspace_indicators'
+    diagnostic.code ===
+      'governance.typescript_adapter.no_workspace_indicators' ||
+    isDefaultDiscoveryNoMatchDiagnostic(diagnostic)
   ) {
     return 'info';
   }
 
   return 'warning';
+}
+
+function isDefaultDiscoveryNoMatchDiagnostic(
+  diagnostic: TypeScriptWorkspaceDetectionDiagnostic,
+): boolean {
+  const metadata = asRecord(diagnostic.metadata);
+
+  return (
+    diagnostic.code ===
+      'governance.typescript_adapter.discovery_pattern_no_matches' &&
+    metadata?.configuredBy === 'default'
+  );
 }
 
 function diagnosticKind(

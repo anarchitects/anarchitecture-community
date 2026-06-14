@@ -84,7 +84,16 @@ export function discoverTypeScriptProjects(
 
     if (matches.length === 0) {
       diagnostics.push(
-        discoveryPatternNoMatchesDiagnostic(pattern, `${rulePath}/pattern`),
+        discoveryPatternNoMatchesDiagnostic(
+          pattern,
+          `${rulePath}/pattern`,
+          rule.configuredBy === 'default'
+            ? {
+                configuredBy: 'default',
+                visibility: 'detail',
+              }
+            : undefined,
+        ),
       );
       return;
     }

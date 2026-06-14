@@ -290,13 +290,17 @@ function appendDiagnosticsText(
   lines: string[],
   result: AgovCommandResult,
 ): void {
-  if (result.artifacts.diagnostics.length > 0) {
+  const diagnostics = filterDiagnosticsForStandardOutput(
+    result.artifacts.diagnostics,
+  );
+
+  if (diagnostics.length > 0) {
     lines.push('');
     lines.push('Diagnostics');
     lines.push(
       ...reportingPrimitives.renderTwoColumnTextTable({
         headers: ['Diagnostic', 'Details'],
-        rows: result.artifacts.diagnostics.map((diagnostic) => [
+        rows: diagnostics.map((diagnostic) => [
           diagnostic.code,
           formatDiagnosticDetails(diagnostic),
         ]),
@@ -337,13 +341,17 @@ function appendDiagnosticsMarkdown(
   lines: string[],
   result: AgovCommandResult,
 ): void {
-  if (result.artifacts.diagnostics.length > 0) {
+  const diagnostics = filterDiagnosticsForStandardOutput(
+    result.artifacts.diagnostics,
+  );
+
+  if (diagnostics.length > 0) {
     lines.push('');
     lines.push('## Diagnostics');
     lines.push(
       ...reportingPrimitives.renderMarkdownTable({
         headers: ['Diagnostic', 'Details'],
-        rows: result.artifacts.diagnostics.map((diagnostic) => [
+        rows: diagnostics.map((diagnostic) => [
           diagnostic.code,
           formatDiagnosticDetails(diagnostic),
         ]),
@@ -419,6 +427,29 @@ function readDiagnosticStatus(
   return metadataStatus ?? detailsStatus;
 }
 
+function filterDiagnosticsForStandardOutput<T extends { metadata?: unknown }>(
+  diagnostics: readonly T[],
+): T[] {
+  return diagnostics.filter(
+    (diagnostic) => readDiagnosticVisibility(diagnostic) !== 'detail',
+  );
+}
+
+function readDiagnosticVisibility(diagnostic: {
+  metadata?: unknown;
+}): string | undefined {
+  const metadata =
+    typeof diagnostic.metadata === 'object' &&
+    diagnostic.metadata !== null &&
+    !Array.isArray(diagnostic.metadata)
+      ? (diagnostic.metadata as Record<string, unknown>)
+      : undefined;
+
+  return typeof metadata?.visibility === 'string'
+    ? metadata.visibility
+    : undefined;
+}
+
 function renderAgovProfileValidateTable(
   result: AgovProfileValidateResult,
 ): string {
@@ -463,6 +494,9 @@ function renderAgovWorkspaceValidateTable(
   result: AgovWorkspaceValidateResult,
 ): string {
   const lines: string[] = [];
+  const diagnostics = filterDiagnosticsForStandardOutput(
+    result.diagnostics ?? [],
+  );
 
   lines.push('agov workspace validate');
   lines.push('');
@@ -479,7 +513,7 @@ function renderAgovWorkspaceValidateTable(
         ['node count', String(result.summary.nodeCount)],
         ['relation count', String(result.summary.relationCount)],
         ['error count', String(result.summary.errorCount)],
-        ['diagnostic count', String(result.summary.diagnosticCount)],
+        ['diagnostic count', String(diagnostics.length)],
         ['warning count', String(result.summary.warningCount)],
       ],
     }),
@@ -501,13 +535,13 @@ function renderAgovWorkspaceValidateTable(
     );
   }
 
-  if ((result.diagnostics?.length ?? 0) > 0) {
+  if (diagnostics.length > 0) {
     lines.push('');
     lines.push('Diagnostics');
     lines.push(
       ...reportingPrimitives.renderTwoColumnTextTable({
         headers: ['Diagnostic', 'Details'],
-        rows: (result.diagnostics ?? []).map((diagnostic) => [
+        rows: diagnostics.map((diagnostic) => [
           diagnostic.code,
           [
             `message=${diagnostic.message}`,
@@ -844,6 +878,9 @@ function renderAgovWorkspaceValidateMarkdown(
   result: AgovWorkspaceValidateResult,
 ): string {
   const lines: string[] = [];
+  const diagnostics = filterDiagnosticsForStandardOutput(
+    result.diagnostics ?? [],
+  );
 
   lines.push('# agov workspace validate');
   lines.push('');
@@ -860,7 +897,7 @@ function renderAgovWorkspaceValidateMarkdown(
         ['node count', String(result.summary.nodeCount)],
         ['relation count', String(result.summary.relationCount)],
         ['error count', String(result.summary.errorCount)],
-        ['diagnostic count', String(result.summary.diagnosticCount)],
+        ['diagnostic count', String(diagnostics.length)],
         ['warning count', String(result.summary.warningCount)],
       ],
     }),
@@ -881,13 +918,13 @@ function renderAgovWorkspaceValidateMarkdown(
     );
   }
 
-  if ((result.diagnostics?.length ?? 0) > 0) {
+  if (diagnostics.length > 0) {
     lines.push('');
     lines.push('## Diagnostics');
     lines.push(
       ...reportingPrimitives.renderMarkdownTable({
         headers: ['code', 'message', 'source', 'details'],
-        rows: (result.diagnostics ?? []).map((diagnostic) => [
+        rows: diagnostics.map((diagnostic) => [
           diagnostic.code,
           diagnostic.message,
           diagnostic.source ?? 'none',

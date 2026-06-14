@@ -392,6 +392,140 @@ describe('agov command report rendering', () => {
     expect(markdownTableSpy).toHaveBeenCalled();
   });
 
+  it('keeps detail-only diagnostics out of normal workspace validate rendering', async () => {
+    const workspaceValidateResult = await runAgovWorkspaceValidate({
+      workspaceAdapter: {
+        id: 'test-adapter:workspace-validate-detail-only',
+        loadWorkspace() {
+          return {
+            workspaceId: 'diagnostic-workspace',
+            workspaceName: 'diagnostic-workspace',
+            workspaceRoot: '.',
+            nodes: [
+              {
+                id: 'app',
+                name: 'app',
+                kind: 'application',
+                root: 'apps/app',
+              },
+            ],
+            relations: [],
+            diagnostics: [
+              {
+                code: 'governance.typescript_adapter.discovery_pattern_no_matches',
+                message:
+                  'Discovery pattern "libs/*" did not match any package roots.',
+                severity: 'info',
+                kind: 'observation',
+                category: 'adapter',
+                metadata: {
+                  configuredBy: 'default',
+                  visibility: 'detail',
+                },
+              },
+            ],
+          };
+        },
+      },
+      workspaceAdapterInput: '.',
+    });
+
+    const textRendered = renderAgovWorkspaceValidateReport(
+      workspaceValidateResult,
+      'text',
+    );
+    const markdownRendered = renderAgovWorkspaceValidateReport(
+      workspaceValidateResult,
+      'markdown',
+    );
+    const parsed = JSON.parse(
+      renderAgovWorkspaceValidateJson(workspaceValidateResult),
+    ) as {
+      diagnostics: Array<{
+        metadata?: Record<string, unknown>;
+      }>;
+      summary: {
+        diagnosticCount: number;
+      };
+    };
+
+    expect(parsed.summary.diagnosticCount).toBe(1);
+    expect(parsed.diagnostics).toEqual([
+      expect.objectContaining({
+        metadata: {
+          configuredBy: 'default',
+          visibility: 'detail',
+        },
+      }),
+    ]);
+    expect(textRendered).not.toContain('Diagnostics');
+    expect(markdownRendered).not.toContain('## Diagnostics');
+    expect(markdownRendered).toContain('| diagnostic count | 0 |');
+  });
+
+  it('keeps detail-only diagnostics out of normal check rendering while preserving JSON output', async () => {
+    const checkResult = await runAgovCheck({
+      workspaceAdapter: {
+        id: 'test-adapter:check-detail-only',
+        loadWorkspace() {
+          return {
+            workspaceId: 'diagnostic-workspace',
+            workspaceName: 'diagnostic-workspace',
+            workspaceRoot: '.',
+            nodes: [
+              {
+                id: 'app',
+                name: 'app',
+                kind: 'application',
+                root: 'apps/app',
+              },
+            ],
+            relations: [],
+            diagnostics: [
+              {
+                code: 'governance.typescript_adapter.discovery_pattern_no_matches',
+                message:
+                  'Discovery pattern "libs/*" did not match any package roots.',
+                severity: 'info',
+                kind: 'observation',
+                category: 'adapter',
+                metadata: {
+                  configuredBy: 'default',
+                  visibility: 'detail',
+                },
+              },
+            ],
+          };
+        },
+      },
+      workspaceAdapterInput: '.',
+      profilePath: fixturePath(
+        '../tests/fixtures/standalone-cli/passing-profile.json',
+      ),
+    });
+
+    const textRendered = renderAgovCheckReport(checkResult, 'text');
+    const markdownRendered = renderAgovCheckReport(checkResult, 'markdown');
+    const parsed = JSON.parse(renderAgovCheckJson(checkResult)) as {
+      artifacts: {
+        diagnostics: Array<{
+          metadata?: Record<string, unknown>;
+        }>;
+      };
+    };
+
+    expect(parsed.artifacts.diagnostics).toEqual([
+      expect.objectContaining({
+        metadata: {
+          configuredBy: 'default',
+          visibility: 'detail',
+        },
+      }),
+    ]);
+    expect(textRendered).not.toContain('Diagnostics');
+    expect(markdownRendered).not.toContain('## Diagnostics');
+  });
+
   it('keeps dependencies JSON output shape stable', async () => {
     const dependenciesResult = await runAgovDependencies({
       workspacePath: fixturePath(
