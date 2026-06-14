@@ -97,6 +97,13 @@ export interface DbtGovernanceRuntimeResultMetadata {
   adapter?: DbtAdapterResultMetadata;
   extension?: DbtGovernanceRuntimeExtensionMetadata;
   runtime?: {
+    packageName: string;
+    id: string;
+    version?: string;
+    adapterPackageName: string;
+    extensionPackageName: string;
+    generatedAt: string;
+    invocationId?: string;
     requestId?: string;
     workingDirectory?: string;
     dryRun?: boolean;
