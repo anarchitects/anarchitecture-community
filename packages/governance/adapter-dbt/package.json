@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/governance-adapter-dbt",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "dbt Governance adapter package boundary for future discovery, loading, validation, normalization, and metadata preservation.",
   "license": "Apache-2.0",
   "type": "module",
@@ -58,7 +58,7 @@
     }
   },
   "dependencies": {
-    "@anarchitects/governance-core": "^0.4.0",
+    "@anarchitects/governance-core": "^0.4.1",
     "yaml": "^2.8.1"
   }
 }
