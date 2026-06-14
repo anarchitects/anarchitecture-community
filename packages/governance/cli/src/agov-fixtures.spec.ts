@@ -58,7 +58,9 @@ describe('agov check workspace-mode fixtures', () => {
     ).toBe(AGOV_EXIT_SUCCESS);
 
     expect(io.out).toContain('agov check');
-    expect(io.out).toContain('Governance Check - fixture-valid-json');
+    expect(io.out).toContain('Summary');
+    expect(io.out).toMatch(/workspace\s+fixture-valid-json/);
+    expect(io.out).toContain('Measurements');
     expect(io.err).toBe('');
   });
 

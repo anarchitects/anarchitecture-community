@@ -349,7 +349,8 @@ describe('agov executable command surface', () => {
       await runAgovCli(['check'], io, undefined, createEnvironment({ cwd })),
     ).toBe(AGOV_EXIT_SUCCESS);
     expect(io.out).toContain('agov check');
-    expect(io.out).toContain('workspace  demo');
+    expect(io.out).toContain('Summary');
+    expect(io.out).toMatch(/workspace\s+demo/);
     expect(io.err).toBe('');
   });
 
@@ -364,7 +365,8 @@ describe('agov executable command surface', () => {
       await runAgovCli(['assess'], io, undefined, createEnvironment({ cwd })),
     ).toBe(AGOV_EXIT_SUCCESS);
     expect(io.out).toContain('agov assess');
-    expect(io.out).toContain('workspace  demo');
+    expect(io.out).toContain('Summary');
+    expect(io.out).toMatch(/workspace\s+demo/);
     expect(io.err).toBe('');
   });
 
