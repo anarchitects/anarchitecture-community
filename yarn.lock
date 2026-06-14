@@ -58,7 +58,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@anarchitects/governance-extension-dbt@workspace:packages/governance/extension-dbt":
+"@anarchitects/governance-extension-dbt@npm:^0.1.4, @anarchitects/governance-extension-dbt@workspace:packages/governance/extension-dbt":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-extension-dbt@workspace:packages/governance/extension-dbt"
   dependencies:
@@ -80,6 +80,7 @@ __metadata:
   dependencies:
     "@anarchitects/governance-adapter-dbt": "npm:^0.1.4"
     "@anarchitects/governance-core": "npm:^0.4.1"
+    "@anarchitects/governance-extension-dbt": "npm:^0.1.4"
   languageName: unknown
   linkType: soft
 
