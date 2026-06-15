@@ -19,12 +19,17 @@ from .compatibility import (
 from .dbt_project import HostDiagnostic, resolve_dbt_path_hints
 from .exit_codes import ExitCode
 from .renderer import (
+    render_check_failure,
     render_check_success,
     render_diagnostics,
     render_not_implemented,
     render_runtime_environment,
 )
-from .runtime_invocation import RuntimeInvocation
+from .runtime_invocation import (
+    ResolvedRuntimeExecutable,
+    RuntimeInvocation,
+    invoke_runtime_handoff,
+)
 
 RUNTIME_EXECUTABLE_NAME = "dbt-governance-runtime"
 
@@ -81,7 +86,7 @@ class RuntimeEnvironmentResult:
 
 
 def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResult:
-    """Execute a host command without crossing into runtime composition yet."""
+    """Execute a host command and hand off to the runtime when required."""
 
     if invocation.command == "check" and invocation.check_options is not None:
         detection = resolve_dbt_path_hints(
@@ -108,9 +113,28 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
                 output=render_diagnostics(resolved.diagnostics),
             )
 
+        runtime_environment = doctor_runtime_environment()
+        if not runtime_environment.supported:
+            return InvocationExecutionResult(
+                exit_code=ExitCode.HOST_ERROR,
+                output=render_diagnostics(runtime_environment.diagnostics),
+            )
+
+        runtime_handoff = invoke_runtime_handoff(
+            resolved.context,
+            _resolved_runtime_executable(runtime_environment.report),
+            host_version=runtime_environment.report.host_version,
+            working_directory=resolved.context.project_dir,
+        )
+        if not runtime_handoff.supported:
+            return InvocationExecutionResult(
+                exit_code=ExitCode.HOST_ERROR,
+                output=render_check_failure(runtime_handoff),
+            )
+
         return InvocationExecutionResult(
             exit_code=ExitCode.SUCCESS,
-            output=render_check_success(resolved),
+            output=render_check_success(resolved, runtime_handoff),
         )
 
     if invocation.command == "setup":
@@ -750,4 +774,15 @@ def _run_command(
         capture_output=True,
         text=True,
         check=False,
+    )
+
+
+def _resolved_runtime_executable(
+    report: RuntimeEnvironmentReport,
+) -> ResolvedRuntimeExecutable:
+    return ResolvedRuntimeExecutable(
+        runtime_package=report.manifest.runtime_package,
+        runtime_version=report.manifest.runtime_version,
+        contract_version=report.manifest.contract_version,
+        executable_path=report.runtime_resolution.executable_path,
     )

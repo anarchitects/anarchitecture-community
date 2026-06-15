@@ -11,6 +11,8 @@ node_modules
 # Python
 __pycache__/
 *.py[cod]
+.coverage
+.coverage.*
 
 # IDEs and editors
 /.idea

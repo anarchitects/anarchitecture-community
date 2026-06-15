@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 from .artifact_manager import ArtifactResolutionResult
 from .dbt_project import HostDiagnostic
 
 if TYPE_CHECKING:
+    from .runtime_invocation import RuntimeHandoffResult
     from .runtime_manager import RuntimeEnvironmentResult
 
 
@@ -40,20 +42,23 @@ def render_diagnostics(diagnostics: list[HostDiagnostic]) -> str:
     return "\n".join(lines)
 
 
-def render_check_success(result: ArtifactResolutionResult) -> str:
-    """Render a successful check result without invoking the runtime."""
+def render_check_success(
+    artifact_result: ArtifactResolutionResult,
+    runtime_result: RuntimeHandoffResult,
+) -> str:
+    """Render a successful check result after runtime handoff."""
 
-    if result.context is None:
+    if artifact_result.context is None:
         return "dbt-governance check completed without a resolved dbt project."
 
-    artifact_paths = result.context.artifact_paths
+    artifact_paths = artifact_result.context.artifact_paths
     lines = [
-        f"Resolved dbt project: {result.context.project_dir}",
-        f"Resolved dbt_project.yml: {result.context.dbt_project_path}",
-        f"Resolved target path: {result.context.target_path}",
+        f"Resolved dbt project: {artifact_result.context.project_dir}",
+        f"Resolved dbt_project.yml: {artifact_result.context.dbt_project_path}",
+        f"Resolved target path: {artifact_result.context.target_path}",
         f"Using manifest: {artifact_paths.manifest_path}",
     ]
-    if result.invoked_parse:
+    if artifact_result.invoked_parse:
         lines.append("dbt parse was invoked to generate manifest.json.")
     else:
         lines.append("Using existing manifest.json without invoking dbt.")
@@ -65,6 +70,30 @@ def render_check_success(result: ArtifactResolutionResult) -> str:
         )
     if artifact_paths.sources_path is not None:
         lines.append(f"Detected optional artifact: {artifact_paths.sources_path}")
+    lines.append("Runtime handoff completed via dbt-governance-runtime.")
+    if runtime_result.diagnostics:
+        lines.append("")
+        lines.append("Invocation diagnostics:")
+        lines.append(render_diagnostics(runtime_result.diagnostics))
+    if runtime_result.runtime_result is not None:
+        lines.append("")
+        lines.append("Runtime JSON result:")
+        lines.append(_render_json(runtime_result.runtime_result))
+    return "\n".join(lines)
+
+
+def render_check_failure(result: RuntimeHandoffResult) -> str:
+    """Render a failed runtime handoff while preserving the JSON result."""
+
+    lines: list[str] = []
+    if result.diagnostics:
+        lines.append(render_diagnostics(result.diagnostics))
+    if result.runtime_result is not None:
+        if lines:
+            lines.append("")
+        lines.append("Runtime JSON result:")
+        lines.append(_render_json(result.runtime_result))
+
     return "\n".join(lines)
 
 
@@ -131,3 +160,7 @@ def render_runtime_environment(
         lines.append(render_diagnostics(result.diagnostics))
 
     return "\n".join(lines)
+
+
+def _render_json(payload: dict[str, object]) -> str:
+    return json.dumps(payload, indent=2, sort_keys=True)
