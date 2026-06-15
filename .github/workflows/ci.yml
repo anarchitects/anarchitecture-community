@@ -36,6 +36,9 @@ jobs:
           node-version: 24
           cache: 'yarn'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
       - run: yarn install --immutable
 
       # Prepend any command with "nx record --" to record its logs to Nx Cloud
