@@ -81,6 +81,8 @@ __metadata:
     "@anarchitects/governance-adapter-dbt": "npm:^0.1.4"
     "@anarchitects/governance-core": "npm:^0.4.1"
     "@anarchitects/governance-extension-dbt": "npm:^0.1.4"
+  bin:
+    dbt-governance-runtime: ./dist/bin/dbt-governance-runtime.js
   languageName: unknown
   linkType: soft
 

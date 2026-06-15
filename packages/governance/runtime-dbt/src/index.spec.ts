@@ -85,4 +85,8 @@ describe('dbt runtime public API', () => {
     expect(typeof runtimeDbt.runDbtGovernanceRuntime).toBe('function');
     expect(typeof runtimeDbt.runDbtGovernanceRuntimeFromJson).toBe('function');
   });
+
+  it('keeps the runtime package bin boundary separate from the public TypeScript API', () => {
+    expect('runDbtGovernanceRuntimeExecutable' in runtimeDbt).toBe(false);
+  });
 });
