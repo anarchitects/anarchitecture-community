@@ -1,4 +1,4 @@
-"""CLI unit tests for the dbt Governance host scaffold."""
+"""CLI unit tests for the dbt Governance host."""
 
 from __future__ import annotations
 
@@ -12,16 +12,28 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+import tomllib
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from anarchitecture_dbt_governance.cli import COMMANDS, build_parser, main
-from anarchitecture_dbt_governance.compatibility import RuntimeManifest
+from anarchitecture_dbt_governance.compatibility import (
+    RuntimeManifest,
+    load_runtime_manifest,
+)
 from anarchitecture_dbt_governance.dbt_project import HostDiagnostic
 from anarchitecture_dbt_governance.runtime_manager import (
     RuntimeEnvironmentReport,
     RuntimeEnvironmentResult,
     RuntimePackageResolution,
 )
+
+HOST_VERSION = tomllib.loads(
+    (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+)["project"]["version"]
+RUNTIME_MANIFEST = load_runtime_manifest()
+RUNTIME_PACKAGE = RUNTIME_MANIFEST.runtime_package
+RUNTIME_VERSION = RUNTIME_MANIFEST.runtime_version
 
 
 class CliTests(unittest.TestCase):
@@ -776,10 +788,10 @@ def create_runtime_environment_result(
         supported=True,
         diagnostics=[],
         report=RuntimeEnvironmentReport(
-            host_version="0.0.1",
+            host_version=HOST_VERSION,
             manifest=RuntimeManifest(
-                runtime_package="@anarchitects/governance-runtime-dbt",
-                runtime_version="0.0.1",
+                runtime_package=RUNTIME_PACKAGE,
+                runtime_version=RUNTIME_VERSION,
                 node_range=">=20 <25",
                 contract_version="1.0.0",
             ),
@@ -790,8 +802,8 @@ def create_runtime_environment_result(
             runtime_resolution=RuntimePackageResolution(
                 cache_dir=executable_path.parent,
                 package_dir=executable_path.parent,
-                package_name="@anarchitects/governance-runtime-dbt",
-                package_version="0.0.1",
+                package_name=RUNTIME_PACKAGE,
+                package_version=RUNTIME_VERSION,
                 executable_path=executable_path,
             ),
             runtime_compatible=True,
@@ -803,8 +815,8 @@ def create_incompatible_runtime_environment_result() -> RuntimeEnvironmentResult
     resolution = RuntimePackageResolution(
         cache_dir=Path("/tmp/runtime-cache"),
         package_dir=Path("/tmp/runtime-cache"),
-        package_name="@anarchitects/governance-runtime-dbt",
-        package_version="0.0.1",
+        package_name=RUNTIME_PACKAGE,
+        package_version=RUNTIME_VERSION,
         executable_path=Path("/tmp/runtime-cache/dbt-governance-runtime"),
     )
     return RuntimeEnvironmentResult(
@@ -816,10 +828,10 @@ def create_incompatible_runtime_environment_result() -> RuntimeEnvironmentResult
             )
         ],
         report=RuntimeEnvironmentReport(
-            host_version="0.0.1",
+            host_version=HOST_VERSION,
             manifest=RuntimeManifest(
-                runtime_package="@anarchitects/governance-runtime-dbt",
-                runtime_version="0.0.1",
+                runtime_package=RUNTIME_PACKAGE,
+                runtime_version=RUNTIME_VERSION,
                 node_range=">=20 <25",
                 contract_version="1.0.0",
             ),
@@ -864,8 +876,8 @@ def sample_runtime_result(*, blocking: bool = False) -> dict[str, object]:
     return {
         "ok": True,
         "runtime": {
-            "packageName": "@anarchitects/governance-runtime-dbt",
-            "version": "0.0.1",
+            "packageName": RUNTIME_PACKAGE,
+            "version": RUNTIME_VERSION,
         },
         "diagnostics": [
             {

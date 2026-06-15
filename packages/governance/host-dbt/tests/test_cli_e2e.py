@@ -13,6 +13,8 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import tomllib
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from anarchitecture_dbt_governance.compatibility import load_runtime_manifest
@@ -30,6 +32,9 @@ ADAPTER_FIXTURES_ROOT = (
 )
 HOST_FIXTURES_ROOT = PACKAGE_ROOT / "tests" / "fixtures" / "e2e"
 RUNTIME_MANIFEST = load_runtime_manifest()
+HOST_VERSION = tomllib.loads(
+    (PACKAGE_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+)["project"]["version"]
 
 
 class CliE2ETests(unittest.TestCase):
@@ -354,7 +359,7 @@ class CliE2ETests(unittest.TestCase):
 
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertIn("dbt-governance doctor", completed.stdout)
-            self.assertIn("Host version: 0.0.1", completed.stdout)
+            self.assertIn(f"Host version: {HOST_VERSION}", completed.stdout)
             self.assertIn(
                 "Manifest runtime package: @anarchitects/governance-runtime-dbt",
                 completed.stdout,

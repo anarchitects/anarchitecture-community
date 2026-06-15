@@ -9,9 +9,12 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import tomllib
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from anarchitecture_dbt_governance.artifact_manager import resolve_artifacts
+from anarchitecture_dbt_governance.compatibility import load_runtime_manifest
 from anarchitecture_dbt_governance.dbt_project import (
     DbtArtifactPathHints,
     DbtProjectContext,
@@ -22,6 +25,13 @@ from anarchitecture_dbt_governance.runtime_invocation import (
     build_runtime_input,
     invoke_runtime_handoff,
 )
+
+HOST_VERSION = tomllib.loads(
+    (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+)["project"]["version"]
+RUNTIME_MANIFEST = load_runtime_manifest()
+RUNTIME_PACKAGE = RUNTIME_MANIFEST.runtime_package
+RUNTIME_VERSION = RUNTIME_MANIFEST.runtime_version
 
 
 class RuntimeInvocationTests(unittest.TestCase):
@@ -34,7 +44,7 @@ class RuntimeInvocationTests(unittest.TestCase):
 
             payload = build_runtime_input(
                 detection.context,  # type: ignore[arg-type]
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 request_id="req-1",
             )
 
@@ -55,7 +65,7 @@ class RuntimeInvocationTests(unittest.TestCase):
             detection = resolve_dbt_path_hints(project_dir=str(project_dir))
             payload = build_runtime_input(
                 detection.context,  # type: ignore[arg-type]
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
             )
 
         adapter_paths = payload["adapter"]["paths"]
@@ -78,7 +88,7 @@ class RuntimeInvocationTests(unittest.TestCase):
             )
             payload = build_runtime_input(
                 resolved.context,  # type: ignore[arg-type]
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
             )
 
         adapter_paths = payload["adapter"]["paths"]
@@ -101,7 +111,7 @@ class RuntimeInvocationTests(unittest.TestCase):
             detection = resolve_dbt_path_hints(project_dir=str(project_dir))
             payload = build_runtime_input(
                 detection.context,  # type: ignore[arg-type]
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 profile_path=str((project_dir / "governance.profile.yml").resolve()),
                 profile_document={"name": "dbt-custom"},
                 adapter_options={"validationMode": "relaxed"},
@@ -127,12 +137,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 request_id="req-123",
                 process_runner=successful_runtime_runner,
             )
@@ -149,12 +159,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 process_runner=stderr_runtime_runner,
             )
 
@@ -172,12 +182,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 process_runner=structured_error_runtime_runner,
             )
 
@@ -196,12 +206,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 process_runner=invalid_json_runtime_runner,
             )
 
@@ -218,12 +228,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=None,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
             )
 
         self.assertFalse(result.supported)
@@ -244,7 +254,7 @@ class RuntimeInvocationTests(unittest.TestCase):
                     contract_version="",
                     executable_path=None,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
             )
 
         self.assertFalse(result.supported)
@@ -261,12 +271,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 process_runner=timeout_runtime_runner,
             )
 
@@ -284,12 +294,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 process_runner=failing_runtime_runner,
             )
 
@@ -312,12 +322,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 process_runner=non_zero_ok_true_runtime_runner,
             )
 
@@ -336,12 +346,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 process_runner=non_zero_invalid_json_runtime_runner,
             )
 
@@ -364,12 +374,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 process_runner=non_zero_metadata_mismatch_runtime_runner,
             )
 
@@ -405,12 +415,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 context,
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
             )
 
         self.assertFalse(result.supported)
@@ -427,12 +437,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 process_runner=metadata_mismatch_runtime_runner,
             )
 
@@ -450,12 +460,12 @@ class RuntimeInvocationTests(unittest.TestCase):
             result = invoke_runtime_handoff(
                 detection.context,  # type: ignore[arg-type]
                 ResolvedRuntimeExecutable(
-                    runtime_package="@anarchitects/governance-runtime-dbt",
-                    runtime_version="0.0.1",
+                    runtime_package=RUNTIME_PACKAGE,
+                    runtime_version=RUNTIME_VERSION,
                     contract_version="1.0.0",
                     executable_path=executable_path,
                 ),
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 runtime_metadata={"bad": object()},
             )
 
@@ -513,13 +523,13 @@ def successful_runtime_runner(
             {
                 "ok": True,
                 "runtime": {
-                    "packageName": "@anarchitects/governance-runtime-dbt",
-                    "version": "0.0.1",
+                    "packageName": RUNTIME_PACKAGE,
+                    "version": RUNTIME_VERSION,
                 },
                 "metadata": {
                     "runtime": {
-                        "packageName": "@anarchitects/governance-runtime-dbt",
-                        "version": "0.0.1",
+                        "packageName": RUNTIME_PACKAGE,
+                        "version": RUNTIME_VERSION,
                     }
                 },
                 "echo": payload["adapter"]["paths"],
@@ -542,8 +552,8 @@ def stderr_runtime_runner(
             {
                 "ok": True,
                 "runtime": {
-                    "packageName": "@anarchitects/governance-runtime-dbt",
-                    "version": "0.0.1",
+                    "packageName": RUNTIME_PACKAGE,
+                    "version": RUNTIME_VERSION,
                 },
             }
         ),
@@ -565,8 +575,8 @@ def structured_error_runtime_runner(
             {
                 "ok": False,
                 "runtime": {
-                    "packageName": "@anarchitects/governance-runtime-dbt",
-                    "version": "0.0.1",
+                    "packageName": RUNTIME_PACKAGE,
+                    "version": RUNTIME_VERSION,
                 },
                 "error": {
                     "code": "governance.runtime.invalid_input",
@@ -616,7 +626,7 @@ def failing_runtime_runner(
         args,
         stdout=(
             '{"ok":false,"runtime":{"packageName":'
-            '"@anarchitects/governance-runtime-dbt","version":"0.0.1"},'
+            '"@anarchitects/governance-runtime-dbt","version":"0.1.0"},'
             '"error":{"code":"governance.runtime.failed","message":"failed"}}'
         ),
         stderr="boom\n",
@@ -638,13 +648,13 @@ def non_zero_ok_true_runtime_runner(
             {
                 "ok": True,
                 "runtime": {
-                    "packageName": "@anarchitects/governance-runtime-dbt",
-                    "version": "0.0.1",
+                    "packageName": RUNTIME_PACKAGE,
+                    "version": RUNTIME_VERSION,
                 },
                 "metadata": {
                     "runtime": {
-                        "packageName": "@anarchitects/governance-runtime-dbt",
-                        "version": "0.0.1",
+                        "packageName": RUNTIME_PACKAGE,
+                        "version": RUNTIME_VERSION,
                     }
                 },
             }

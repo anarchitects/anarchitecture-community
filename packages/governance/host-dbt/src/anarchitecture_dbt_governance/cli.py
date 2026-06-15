@@ -1,4 +1,4 @@
-"""Command-line interface for the dbt Governance host scaffold."""
+"""Command-line interface for the dbt Governance host."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
         prog="dbt-governance",
-        description="dbt-native Governance host scaffold.",
+        description="dbt-native Python CLI for running Governance checks.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

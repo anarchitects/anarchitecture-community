@@ -2,8 +2,13 @@
 
 Build it like an Nx product. Use it like a dbt tool.
 
-`anarchitecture-dbt-governance` is the dbt-native Python host for Governance
-checks. It gives dbt users a Python CLI while preserving the governance package
+`anarchitecture-dbt-governance` is a dbt-native Python CLI for running
+Anarchitects Governance checks against an existing dbt project. It manages dbt
+artifact lifecycle, resolves the pinned Node runtime, invokes
+`@anarchitects/governance-runtime-dbt` over a process/JSON boundary, and
+renders human, JSON, and markdown output for local and CI use.
+
+It gives dbt users a Python CLI while preserving the governance package
 architecture:
 
 ```text
@@ -45,10 +50,12 @@ The host does not own:
 - Python module: `anarchitecture_dbt_governance`
 - CLI command: `dbt-governance`
 - Runtime package: `@anarchitects/governance-runtime-dbt`
+- Pinned runtime version: `0.1.0`
 - Runtime executable: `dbt-governance-runtime`
 - Runtime version source:
   [`runtime_manifest.json`](./src/anarchitecture_dbt_governance/runtime_manifest.json)
 - Pinned Node range: `>=20 <25`
+- Contract version: `1.0.0`
 
 ## Architecture And Boundaries
 
@@ -127,6 +134,41 @@ Exercise the CLI from the package directory with `uv`:
 cd packages/governance/host-dbt
 uv run python -m anarchitecture_dbt_governance.cli --help
 uv run dbt-governance --help
+```
+
+## Using `dbt-governance` In An Existing dbt Project
+
+This package is installed as a Python CLI. It is not installed through
+`packages.yml` or `dbt deps`.
+
+Install it with one of these approaches:
+
+```bash
+pipx install anarchitecture-dbt-governance
+```
+
+```bash
+uv tool install anarchitecture-dbt-governance
+```
+
+```bash
+pip install anarchitecture-dbt-governance
+```
+
+Run it from the root of the dbt project, or pass `--project-dir`:
+
+```bash
+cd my-dbt-project
+dbt-governance init
+dbt-governance setup
+dbt parse
+dbt-governance check
+```
+
+If you want the host to generate `manifest.json` when it is missing:
+
+```bash
+dbt-governance check --parse
 ```
 
 ## CLI Commands
@@ -308,6 +350,8 @@ The host:
 - verifies Node.js
 - verifies a supported package manager
 - uses the pinned runtime package and version from the manifest
+- pins `@anarchitects/governance-runtime-dbt@0.1.0`
+- requires contract version `1.0.0`
 - requires Node.js `>=20 <25`
 - installs into a controlled cache
 - never installs globally
@@ -411,3 +455,26 @@ Common host diagnostics include:
 - [ADR 0003](../../../docs/adr/0003-governance-core-adapter-extension-host-boundaries.md)
 - [Governance Boundary Contributor Guide](../../../docs/governance-boundary-contributor-guide.md)
 - [Target Canonical Governance Model](../../../docs/governance/target-canonical-governance-model.md)
+
+## Preview Release Checklist
+
+Runtime prerequisite:
+
+- `@anarchitects/governance-runtime-dbt@0.1.0` must be published before
+  releasing the Python host, because `dbt-governance setup` installs the
+  pinned runtime version.
+
+Validation:
+
+```bash
+yarn nx run governance-host-dbt:lint
+yarn nx run governance-host-dbt:test
+yarn nx run governance-host-dbt:e2e
+yarn nx run governance-host-dbt:build
+```
+
+Publish:
+
+```bash
+yarn nx run governance-host-dbt:nx-release-publish
+```

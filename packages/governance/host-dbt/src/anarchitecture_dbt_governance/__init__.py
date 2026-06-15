@@ -1,4 +1,4 @@
-"""dbt-native Governance host scaffold."""
+"""dbt-native Python CLI for running Governance checks against dbt projects."""
 
 from .cli import build_parser, main
 from .compatibility import load_runtime_manifest

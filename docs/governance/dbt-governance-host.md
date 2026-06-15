@@ -32,10 +32,12 @@ semantics.
 - Python module: `anarchitecture_dbt_governance`
 - CLI command: `dbt-governance`
 - Runtime package: `@anarchitects/governance-runtime-dbt`
+- Pinned runtime version: `0.1.0`
 - Runtime executable: `dbt-governance-runtime`
 - Runtime version source:
   `packages/governance/host-dbt/src/anarchitecture_dbt_governance/runtime_manifest.json`
 - Node range: `>=20 <25`
+- Contract version: `1.0.0`
 
 ## High-Level Flow
 

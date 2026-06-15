@@ -27,7 +27,7 @@ class CompatibilityTests(unittest.TestCase):
             manifest.runtime_package,
             "@anarchitects/governance-runtime-dbt",
         )
-        self.assertEqual(manifest.runtime_version, "0.0.1")
+        self.assertEqual(manifest.runtime_version, "0.1.0")
         self.assertEqual(manifest.node_range, ">=20 <25")
         self.assertEqual(manifest.contract_version, "1.0.0")
 
@@ -46,7 +46,7 @@ class CompatibilityTests(unittest.TestCase):
                 json.dumps(
                     {
                         "runtimePackage": "@anarchitects/governance-runtime-dbt",
-                        "runtimeVersion": "0.0.1",
+                        "runtimeVersion": "0.1.0",
                         "nodeRange": ">=20 <25",
                     }
                 ),

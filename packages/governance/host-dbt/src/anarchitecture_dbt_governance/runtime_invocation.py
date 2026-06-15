@@ -58,7 +58,7 @@ class InitCommandOptions:
 
 @dataclass(frozen=True)
 class RuntimeInvocation:
-    """Invocation model for scaffolded and implemented commands."""
+    """Invocation model for host CLI commands."""
 
     command: str
     config_path: str | None = None
