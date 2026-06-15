@@ -39,6 +39,12 @@ Artifact lookup behavior:
 - Existing `manifest.json` is always preferred and used without invoking dbt.
 - Optional `catalog.json`, `run_results.json`, and `sources.json` are detected
   and carried forward when present.
+- After path hints are resolved, `check` invokes
+  `@anarchitects/governance-runtime-dbt` through the `dbt-governance-runtime`
+  process/JSON boundary.
+- Runtime `stdout` is machine-readable JSON from the runtime boundary.
+- The host preserves the runtime JSON result and does not inspect
+  adapter/extension internals beyond runtime package metadata validation.
 
 `--parse` behavior:
 
@@ -80,11 +86,14 @@ Boundary:
 
 - the host manages dbt-native artifact lifecycle orchestration
 - the host manages pinned runtime setup and validation
+- the host constructs JSON input and invokes the runtime process boundary
 - the host only performs lightweight path existence and readability checks
 - the host does not normalize dbt artifacts
 - the host does not compute governance results
 - the host does not compose governance-core, adapter, or extension packages
 - runtime-dbt remains the TypeScript composition boundary
+- authoritative dbt artifact loading, validation, and normalization begin after
+  the runtime handoff
 
 ## Boundary Rules
 
