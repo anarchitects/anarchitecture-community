@@ -72,10 +72,11 @@
       "cache": true
     },
     "e2e": {
-      "executor": "nx:run-commands",
+      "executor": "@nxlv/python:run-commands",
+      "outputs": [],
       "options": {
-        "command": "PYTHONPATH=src python3 -m unittest tests.test_cli_smoke",
-        "cwd": "packages/governance/host-dbt"
+        "command": "uv run python3 -m unittest tests.test_cli_smoke tests.test_cli_e2e",
+        "cwd": "{projectRoot}"
       },
       "cache": true
     },
