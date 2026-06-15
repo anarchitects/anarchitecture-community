@@ -16,6 +16,13 @@ from .compatibility import (
     is_supported_node_version,
     load_runtime_manifest,
 )
+from .config import (
+    ConfigLoadResult,
+    GovernanceHostConfig,
+    init_governance_config,
+    load_governance_config,
+    resolve_config_relative_path,
+)
 from .dbt_project import HostDiagnostic, resolve_dbt_path_hints
 from .exit_codes import (
     ExitCode,
@@ -33,6 +40,7 @@ from .renderer import (
 )
 from .runtime_invocation import (
     CheckCommandOptions,
+    InitCommandOptions,
     ReportCommandOptions,
     ResolvedRuntimeExecutable,
     RuntimeHandoffResult,
@@ -82,6 +90,9 @@ class RuntimeEnvironmentReport:
     package_manager: PackageManagerResolution | None
     runtime_resolution: RuntimePackageResolution
     runtime_compatible: bool
+    config_path: Path | None = None
+    config_loaded: bool = False
+    config_explicit: bool = False
     install_performed: bool = False
 
 
@@ -110,8 +121,27 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
     """Execute a host command and hand off to the runtime when required."""
 
     if invocation.command == "check" and invocation.check_options is not None:
-        result = _execute_governance_command(invocation.check_options)
-        report_path = _resolve_output_path(invocation.check_options.report_path)
+        config_result = load_governance_config(
+            explicit_path=invocation.check_options.config,
+            project_dir=invocation.check_options.project_dir,
+        )
+        if not config_result.supported:
+            return InvocationExecutionResult(
+                exit_code=exit_code_for_diagnostics(config_result.diagnostics),
+                output=render_diagnostics(config_result.diagnostics),
+            )
+
+        result = _execute_governance_command(
+            invocation.check_options,
+            config_result,
+        )
+        report_path = _resolve_output_path(
+            invocation.check_options.report_path
+            or resolve_config_relative_path(
+                config_result.config.runtime.report_path,
+                config_result.config,
+            )
+        )
         report_document = build_report_document(
             command="check",
             host_version=result.host_version,
@@ -136,14 +166,36 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
             exit_code=result.exit_code,
             output=(
                 render_json_report(report_document)
-                if invocation.check_options.json_output
+                if (
+                    invocation.check_options.json_output
+                    or config_result.config.host.output == "json"
+                )
                 else render_human_report(report_document)
             ),
         )
 
     if invocation.command == "report" and invocation.report_options is not None:
-        result = _execute_governance_command(invocation.report_options)
-        report_path = _resolve_output_path(invocation.report_options.report_path)
+        config_result = load_governance_config(
+            explicit_path=invocation.report_options.config,
+            project_dir=invocation.report_options.project_dir,
+        )
+        if not config_result.supported:
+            return InvocationExecutionResult(
+                exit_code=exit_code_for_diagnostics(config_result.diagnostics),
+                output=render_diagnostics(config_result.diagnostics),
+            )
+
+        result = _execute_governance_command(
+            invocation.report_options,
+            config_result,
+        )
+        report_path = _resolve_output_path(
+            invocation.report_options.report_path
+            or resolve_config_relative_path(
+                config_result.config.runtime.report_path,
+                config_result.config,
+            )
+        )
         report_document = build_report_document(
             command="report",
             host_version=result.host_version,
@@ -153,9 +205,13 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
             diagnostics=result.diagnostics,
             report_path=report_path,
         )
+        report_format = (
+            invocation.report_options.format
+            or ("json" if config_result.config.host.output == "json" else "markdown")
+        )
         rendered_output = (
             render_json_report(report_document)
-            if invocation.report_options.format == "json"
+            if report_format == "json"
             else render_markdown_report(report_document)
         )
         write_failure = _write_report_output(report_path, rendered_output)
@@ -171,7 +227,17 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
         )
 
     if invocation.command == "setup":
-        result = setup_runtime_environment()
+        config_result = load_governance_config(explicit_path=invocation.config_path)
+        if not config_result.supported:
+            return InvocationExecutionResult(
+                exit_code=exit_code_for_diagnostics(config_result.diagnostics),
+                output=render_diagnostics(config_result.diagnostics),
+            )
+
+        result = setup_runtime_environment(
+            cache_root=_resolve_cache_root(config_result.config),
+            config_result=config_result,
+        )
         return InvocationExecutionResult(
             exit_code=(
                 ExitCode.SUCCESS
@@ -182,7 +248,17 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
         )
 
     if invocation.command == "doctor":
-        result = doctor_runtime_environment()
+        config_result = load_governance_config(explicit_path=invocation.config_path)
+        if not config_result.supported:
+            return InvocationExecutionResult(
+                exit_code=exit_code_for_diagnostics(config_result.diagnostics),
+                output=render_diagnostics(config_result.diagnostics),
+            )
+
+        result = doctor_runtime_environment(
+            cache_root=_resolve_cache_root(config_result.config),
+            config_result=config_result,
+        )
         return InvocationExecutionResult(
             exit_code=(
                 ExitCode.SUCCESS
@@ -190,6 +266,21 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
                 else exit_code_for_diagnostics(result.diagnostics)
             ),
             output=render_runtime_environment("doctor", result),
+        )
+
+    if invocation.command == "init" and invocation.init_options is not None:
+        result = _execute_init(invocation.init_options)
+        return InvocationExecutionResult(
+            exit_code=(
+                ExitCode.SUCCESS
+                if result.supported
+                else exit_code_for_diagnostics(result.diagnostics)
+            ),
+            output=(
+                f"Created governance config: {result.config_path}"
+                if result.supported and result.config_path is not None
+                else render_diagnostics(result.diagnostics)
+            ),
         )
 
     return InvocationExecutionResult(
@@ -200,13 +291,39 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
 
 def _execute_governance_command(
     options: CheckCommandOptions | ReportCommandOptions,
+    config_result: ConfigLoadResult,
 ) -> GovernanceCommandResult:
+    config = config_result.config
     detection = resolve_dbt_path_hints(
-        project_dir=options.project_dir,
+        project_dir=options.project_dir
+        or resolve_config_relative_path(config.adapter.paths.project_dir, config),
+        dbt_project_path=resolve_config_relative_path(
+            config.adapter.paths.dbt_project_path,
+            config,
+        ),
         profiles_dir=options.profiles_dir,
         target=options.target,
-        target_path=options.target_path,
-        config=options.config,
+        target_path=options.target_path
+        or _resolve_target_path_from_config(config),
+        manifest_path=resolve_config_relative_path(
+            config.adapter.paths.manifest_path,
+            config,
+        ),
+        catalog_path=resolve_config_relative_path(
+            config.adapter.paths.catalog_path,
+            config,
+        ),
+        run_results_path=resolve_config_relative_path(
+            config.adapter.paths.run_results_path,
+            config,
+        ),
+        sources_path=resolve_config_relative_path(
+            config.adapter.paths.sources_path,
+            config,
+        ),
+        config=config_result.config.config_path.as_posix()
+        if config_result.config.config_path is not None
+        else None,
     )
     if not detection.supported or detection.context is None:
         return GovernanceCommandResult(
@@ -218,8 +335,8 @@ def _execute_governance_command(
 
     resolved = resolve_artifacts(
         detection.context,
-        parse=options.parse,
-        use_existing_artifacts=options.use_existing_artifacts,
+        parse=_resolve_parse_mode(options, config),
+        use_existing_artifacts=_resolve_use_existing_artifacts(options, config),
     )
     if not resolved.supported:
         return GovernanceCommandResult(
@@ -230,7 +347,10 @@ def _execute_governance_command(
             artifact_result=resolved,
         )
 
-    runtime_environment = doctor_runtime_environment()
+    runtime_environment = doctor_runtime_environment(
+        cache_root=_resolve_cache_root(config),
+        config_result=config_result,
+    )
     if not runtime_environment.supported:
         return GovernanceCommandResult(
             supported=False,
@@ -244,6 +364,10 @@ def _execute_governance_command(
         resolved.context,
         _resolved_runtime_executable(runtime_environment.report),
         host_version=runtime_environment.report.host_version,
+        profile_path=resolve_config_relative_path(config.profile.path, config),
+        profile_document=config.profile.document,
+        adapter_options=config.adapter.options,
+        extension_options=config.extension.options,
         working_directory=resolved.context.project_dir,
     )
     if not runtime_handoff.supported:
@@ -307,11 +431,93 @@ def _write_report_output(
     return None
 
 
+def _resolve_cache_root(config: GovernanceHostConfig) -> Path | None:
+    resolved = resolve_config_relative_path(config.runtime.cache_dir, config)
+    if resolved is None:
+        return None
+
+    return Path(resolved)
+
+
+def _resolve_target_path_from_config(config: GovernanceHostConfig) -> str | None:
+    if config.adapter.paths.target_path is not None:
+        return resolve_config_relative_path(config.adapter.paths.target_path, config)
+
+    manifest_path = resolve_config_relative_path(
+        config.adapter.paths.manifest_path,
+        config,
+    )
+    if manifest_path is not None:
+        return str(Path(manifest_path).parent)
+
+    for candidate in (
+        config.adapter.paths.catalog_path,
+        config.adapter.paths.run_results_path,
+        config.adapter.paths.sources_path,
+    ):
+        resolved = resolve_config_relative_path(candidate, config)
+        if resolved is not None:
+            return str(Path(resolved).parent)
+
+    return None
+
+
+def _resolve_parse_mode(
+    options: CheckCommandOptions | ReportCommandOptions,
+    config: GovernanceHostConfig,
+) -> bool:
+    if options.use_existing_artifacts:
+        return False
+    if options.parse:
+        return True
+
+    return config.host.artifact_mode == "use-existing-or-parse"
+
+
+def _resolve_use_existing_artifacts(
+    options: CheckCommandOptions | ReportCommandOptions,
+    config: GovernanceHostConfig,
+) -> bool:
+    if options.use_existing_artifacts:
+        return True
+    if options.parse:
+        return False
+
+    return config.host.artifact_mode == "use-existing-only"
+
+
+def _config_path(config_result: ConfigLoadResult | None) -> Path | None:
+    if config_result is None:
+        return None
+    return config_result.config.config_path
+
+
+def _config_loaded(config_result: ConfigLoadResult | None) -> bool:
+    if config_result is None:
+        return False
+    return config_result.config.loaded_from_file
+
+
+def _config_explicit(config_result: ConfigLoadResult | None) -> bool:
+    if config_result is None:
+        return False
+    return config_result.config.explicit_config
+
+
+def _execute_init(options: InitCommandOptions):
+    return init_governance_config(
+        project_dir=options.project_dir,
+        explicit_path=options.config,
+        force=options.force,
+    )
+
+
 def setup_runtime_environment(
     *,
     cache_root: Path | None = None,
     manifest_path: Path | None = None,
     command_runner=None,
+    config_result: ConfigLoadResult | None = None,
     workspace_root: Path | None = None,
 ) -> RuntimeEnvironmentResult:
     """Install or verify the pinned runtime package in the controlled cache."""
@@ -321,6 +527,7 @@ def setup_runtime_environment(
         cache_root=cache_root,
         manifest_path=manifest_path,
         command_runner=command_runner or _run_command,
+        config_result=config_result,
         workspace_root=workspace_root,
     )
 
@@ -330,6 +537,7 @@ def doctor_runtime_environment(
     cache_root: Path | None = None,
     manifest_path: Path | None = None,
     command_runner=None,
+    config_result: ConfigLoadResult | None = None,
     workspace_root: Path | None = None,
 ) -> RuntimeEnvironmentResult:
     """Inspect the pinned runtime environment without installing packages."""
@@ -339,6 +547,7 @@ def doctor_runtime_environment(
         cache_root=cache_root,
         manifest_path=manifest_path,
         command_runner=command_runner or _run_command,
+        config_result=config_result,
         workspace_root=workspace_root,
     )
 
@@ -365,6 +574,7 @@ def _manage_runtime_environment(
     cache_root: Path | None,
     manifest_path: Path | None,
     command_runner,
+    config_result: ConfigLoadResult | None,
     workspace_root: Path | None,
 ) -> RuntimeEnvironmentResult:
     host_version = _load_host_version()
@@ -390,6 +600,9 @@ def _manage_runtime_environment(
                 package_dir=(cache_root or Path.home()).resolve(),
             ),
             runtime_compatible=False,
+            config_path=_config_path(config_result),
+            config_loaded=_config_loaded(config_result),
+            config_explicit=_config_explicit(config_result),
         )
         return RuntimeEnvironmentResult(
             supported=False,
@@ -428,19 +641,22 @@ def _manage_runtime_environment(
         and not _ensure_runtime_cache_project(cache_dir, diagnostics)
     ):
         return _runtime_environment_result(
-            supported=False,
-            diagnostics=diagnostics,
-            report=RuntimeEnvironmentReport(
-                host_version=host_version,
-                manifest=manifest,
+        supported=False,
+        diagnostics=diagnostics,
+        report=RuntimeEnvironmentReport(
+            host_version=host_version,
+            manifest=manifest,
                 repo_package_manager=repo_package_manager,
                 node_version=node_version,
                 node_supported=node_supported,
-                package_manager=package_manager,
-                runtime_resolution=runtime_resolution,
-                runtime_compatible=False,
-            ),
-        )
+            package_manager=package_manager,
+            runtime_resolution=runtime_resolution,
+            runtime_compatible=False,
+            config_path=_config_path(config_result),
+            config_loaded=_config_loaded(config_result),
+            config_explicit=_config_explicit(config_result),
+        ),
+    )
 
     runtime_resolution, runtime_diagnostics = _inspect_runtime_package(
         manifest,
@@ -482,6 +698,9 @@ def _manage_runtime_environment(
         package_manager=package_manager,
         runtime_resolution=runtime_resolution,
         runtime_compatible=runtime_compatible,
+        config_path=_config_path(config_result),
+        config_loaded=_config_loaded(config_result),
+        config_explicit=_config_explicit(config_result),
         install_performed=install_performed,
     )
     supported = (

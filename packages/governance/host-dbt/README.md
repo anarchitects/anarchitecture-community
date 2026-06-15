@@ -18,7 +18,16 @@ The package exposes `dbt-governance` with these commands:
 - `init`
 - `report`
 
-`init` remains a placeholder.
+`governance.yml` is the host-local config file for dbt-native UX, adapter path
+hint routing, runtime setup defaults, and report/output behavior. It does not
+replace the canonical Governance profile, adapter semantics, extension
+semantics, or runtime composition ownership.
+
+Config precedence is:
+
+- CLI flags
+- `governance.yml`
+- host defaults
 
 `check` supports:
 
@@ -32,6 +41,16 @@ The package exposes `dbt-governance` with these commands:
 - `--json`
 - `--report-path`
 
+`setup` and `doctor` support:
+
+- `--config`
+
+`init` supports:
+
+- `--project-dir`
+- `--config`
+- `--force`
+
 `report` supports:
 
 - `--project-dir`
@@ -44,6 +63,42 @@ The package exposes `dbt-governance` with these commands:
 - `--format json`
 - `--format markdown`
 - `--report-path`
+
+Config loading:
+
+- `--config path/to/governance.yml` loads an explicit config file
+- without `--config`, the host loads `governance.yml` from the resolved
+  project directory or current directory when present
+- when no config file exists, the host falls back to built-in defaults
+
+Minimal config example:
+
+```yaml
+profile:
+  path: governance.profile.yml
+  document:
+    name: dbt
+
+adapter:
+  paths:
+    projectDir: .
+    manifestPath: target/manifest.json
+  options:
+    validationMode: strict
+
+extension:
+  options: {}
+
+runtime:
+  cacheDir: .anarchitecture/dbt-governance/runtime
+  reportPath: target/governance-report.json
+
+host:
+  artifactMode: use-existing-or-parse
+  output: human
+  ci:
+    failOnBlockingViolations: true
+```
 
 Artifact lookup behavior:
 
@@ -60,6 +115,8 @@ Artifact lookup behavior:
 - Runtime `stdout` remains machine-readable JSON from the runtime boundary.
 - The host preserves the runtime JSON result and does not inspect
   adapter/extension internals beyond runtime package metadata validation.
+- Adapter, extension, runtime, and host config sections stay separate and are
+  routed to their owning layer instead of being collapsed into one profile.
 
 Output modes:
 
@@ -87,6 +144,7 @@ Output modes:
 
 `setup` behavior:
 
+- may load `runtime.cacheDir` from `governance.yml`
 - validates `runtime_manifest.json`
 - requires Node.js in the pinned range `>=20 <25`
 - resolves npm first, with the repo package manager as a fallback
@@ -97,6 +155,7 @@ Output modes:
 
 `doctor` behavior:
 
+- reports config path/status
 - reports the host version
 - reports the runtime manifest values
 - reports Node.js and package-manager availability
@@ -108,6 +167,15 @@ Default runtime cache location:
 
 - `~/.cache/anarchitecture/dbt-governance/runtimes/@anarchitects/governance-runtime-dbt/<version>/`
 
+`init` behavior:
+
+- creates a starter `governance.yml`
+- refuses to overwrite an existing config by default
+- `--force` overwrites the existing file
+- does not generate dbt artifacts
+- does not run runtime setup
+- does not mutate `dbt_project.yml`, `package.json`, or `pyproject.toml`
+
 Boundary:
 
 - the host manages dbt-native artifact lifecycle orchestration
@@ -116,6 +184,8 @@ Boundary:
 - the host renders human, JSON, and markdown outputs from the preserved runtime
   result
 - the host maps final process exit codes for CLI and CI consumers
+- the host loads `governance.yml`, validates it, and routes each config section
+  to the correct ownership layer
 - the host only performs lightweight path existence and readability checks
 - the host does not normalize dbt artifacts
 - the host does not compute governance results
@@ -163,6 +233,9 @@ If `uv` is installed locally, the CLI entrypoint can be exercised with:
 ```bash
 cd packages/governance/host-dbt
 uv run dbt-governance --help
+uv run dbt-governance init
 uv run dbt-governance check --project-dir ./path/to/dbt/project
 uv run dbt-governance check --project-dir ./path/to/dbt/project --parse
+uv run dbt-governance check --config ./governance.yml
+uv run dbt-governance doctor --config ./governance.yml
 ```

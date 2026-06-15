@@ -7,6 +7,7 @@ from collections.abc import Sequence
 
 from .runtime_invocation import (
     CheckCommandOptions,
+    InitCommandOptions,
     ReportCommandOptions,
     RuntimeInvocation,
 )
@@ -62,18 +63,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="install or verify the pinned Node runtime package",
     )
     setup_parser.set_defaults(command_name="setup")
+    setup_parser.add_argument("--config")
 
     doctor_parser = subparsers.add_parser(
         "doctor",
         help="report runtime compatibility and environment diagnostics",
     )
     doctor_parser.set_defaults(command_name="doctor")
+    doctor_parser.add_argument("--config")
 
     init_parser = subparsers.add_parser(
         "init",
-        help="init placeholder command",
+        help="create a starter governance.yml file",
     )
     init_parser.set_defaults(command_name="init")
+    init_parser.add_argument("--project-dir")
+    init_parser.add_argument("--config")
+    init_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite an existing governance.yml file.",
+    )
 
     report_parser = subparsers.add_parser(
         "report",
@@ -101,7 +111,6 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument(
         "--format",
         choices=("json", "markdown"),
-        default="markdown",
         help="Select the report output format.",
     )
     report_parser.add_argument(
@@ -156,8 +165,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(execution_result.output)
         return int(execution_result.exit_code)
 
+    if namespace.command_name == "init":
+        invocation = RuntimeInvocation(
+            command="init",
+            init_options=InitCommandOptions(
+                project_dir=namespace.project_dir,
+                config=namespace.config,
+                force=namespace.force,
+            ),
+        )
+        execution_result = execute_invocation(invocation)
+        print(execution_result.output)
+        return int(execution_result.exit_code)
+
     invocation = RuntimeInvocation(
         command=namespace.command_name,
+        config_path=getattr(namespace, "config", None),
     )
     execution_result = execute_invocation(invocation)
     print(execution_result.output)

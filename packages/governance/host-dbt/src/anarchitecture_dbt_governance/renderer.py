@@ -253,6 +253,15 @@ def render_runtime_environment(
     lines = [
         f"dbt-governance {command}",
         f"Host version: {report.host_version}",
+        (
+            f"Config: {report.config_path} (loaded)"
+            if report.config_loaded and report.config_path is not None
+            else (
+                f"Config: {report.config_path} (explicit path, not loaded)"
+                if report.config_explicit and report.config_path is not None
+                else "Config: defaults"
+            )
+        ),
         f"Manifest runtime package: {report.manifest.runtime_package}",
         f"Manifest runtime version: {report.manifest.runtime_version}",
         f"Manifest Node range: {report.manifest.node_range}",

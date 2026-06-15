@@ -43,8 +43,17 @@ class ReportCommandOptions:
     config: str | None = None
     use_existing_artifacts: bool = False
     parse: bool = False
-    format: str = "markdown"
+    format: str | None = None
     report_path: str | None = None
+
+
+@dataclass(frozen=True)
+class InitCommandOptions:
+    """Host-owned CLI options for the init command."""
+
+    project_dir: str | None = None
+    config: str | None = None
+    force: bool = False
 
 
 @dataclass(frozen=True)
@@ -52,8 +61,10 @@ class RuntimeInvocation:
     """Invocation model for scaffolded and implemented commands."""
 
     command: str
+    config_path: str | None = None
     check_options: CheckCommandOptions | None = None
     report_options: ReportCommandOptions | None = None
+    init_options: InitCommandOptions | None = None
 
 
 @dataclass(frozen=True)
@@ -83,6 +94,10 @@ def build_runtime_input(
     context: DbtProjectContext,
     *,
     host_version: str,
+    profile_path: str | None = None,
+    profile_document: Mapping[str, Any] | None = None,
+    adapter_options: Mapping[str, Any] | None = None,
+    extension_options: Mapping[str, Any] | None = None,
     working_directory: Path | None = None,
     request_id: str | None = None,
     runtime_metadata: Mapping[str, Any] | None = None,
@@ -111,20 +126,26 @@ def build_runtime_input(
     if runtime_metadata is not None:
         metadata.update(runtime_metadata)
 
+    resolved_profile_document = dict(profile_document or {"name": "dbt"})
+    profile_payload: dict[str, Any] = {}
+    if profile_path is not None:
+        profile_payload["path"] = profile_path
+        profile_payload["format"] = _infer_profile_format(profile_path)
+    if resolved_profile_document:
+        profile_payload["document"] = resolved_profile_document
+
+    resolved_adapter_options = {"validationMode": "strict"}
+    if adapter_options is not None:
+        resolved_adapter_options.update(adapter_options)
+
     return {
-        "profile": {
-            "document": {
-                "name": "dbt",
-            }
-        },
+        "profile": profile_payload,
         "adapter": {
             "paths": adapter_paths,
-            "options": {
-                "validationMode": "strict",
-            },
+            "options": resolved_adapter_options,
         },
         "extension": {
-            "options": {},
+            "options": dict(extension_options or {}),
         },
         "runtime": {
             "requestId": resolved_request_id,
@@ -139,6 +160,10 @@ def invoke_runtime_handoff(
     resolved_runtime: ResolvedRuntimeExecutable,
     *,
     host_version: str,
+    profile_path: str | None = None,
+    profile_document: Mapping[str, Any] | None = None,
+    adapter_options: Mapping[str, Any] | None = None,
+    extension_options: Mapping[str, Any] | None = None,
     working_directory: Path | None = None,
     request_id: str | None = None,
     timeout_seconds: int = DEFAULT_RUNTIME_TIMEOUT_SECONDS,
@@ -152,6 +177,10 @@ def invoke_runtime_handoff(
     runtime_input = build_runtime_input(
         context,
         host_version=host_version,
+        profile_path=profile_path,
+        profile_document=profile_document,
+        adapter_options=adapter_options,
+        extension_options=extension_options,
         working_directory=resolved_working_directory,
         request_id=request_id,
         runtime_metadata=runtime_metadata,
@@ -552,3 +581,10 @@ def _run_runtime_process(
         check=False,
         timeout=timeout,
     )
+
+
+def _infer_profile_format(profile_path: str) -> str:
+    path = Path(profile_path)
+    if path.suffix in {".yaml", ".yml"}:
+        return "yaml"
+    return "json"
