@@ -1,0 +1,7 @@
+name: host_dbt_e2e
+version: '1.0.0'
+profile: host_dbt_e2e
+config-version: 2
+
+model-paths:
+  - models

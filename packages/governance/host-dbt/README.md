@@ -228,6 +228,19 @@ yarn nx run governance-host-dbt:e2e
 yarn nx run governance-host-dbt:build
 ```
 
+E2E coverage:
+
+- `governance-host-dbt:e2e` runs subprocess CLI tests against small copied
+  fixtures instead of mutating checked-in artifacts
+- existing dbt artifact fixtures are reused from `governance-adapter-dbt` where
+  possible
+- the suite is hermetic by default: fake `node`, `npm`, `dbt`, and
+  `dbt-governance-runtime` executables cover runtime setup, parse mode, and the
+  process/JSON boundary without network access
+- the assertions focus on the host/runtime boundary: path hints go over
+  stdin/stdout JSON, JSON mode stays machine-readable, and host-side rendering
+  and exit codes remain deterministic
+
 If `uv` is installed locally, the CLI entrypoint can be exercised with:
 
 ```bash
