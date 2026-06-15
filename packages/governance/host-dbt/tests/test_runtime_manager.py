@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import tomllib
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from anarchitecture_dbt_governance.compatibility import load_runtime_manifest
@@ -18,6 +20,10 @@ from anarchitecture_dbt_governance.runtime_manager import (
     resolve_runtime_cache_dir,
     setup_runtime_environment,
 )
+
+HOST_VERSION = tomllib.loads(
+    (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+)["project"]["version"]
 
 
 class RuntimeManagerTests(unittest.TestCase):
@@ -131,7 +137,10 @@ class RuntimeManagerTests(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             cache_root = Path(temp_dir) / "cache"
             write_runtime_package(
-                cache_root / "@anarchitects" / "governance-runtime-dbt" / "0.0.1",
+                cache_root
+                / "@anarchitects"
+                / "governance-runtime-dbt"
+                / manifest.runtime_version,
                 package_name="@anarchitects/not-the-runtime",
                 package_version=manifest.runtime_version,
                 include_executable=True,
@@ -152,7 +161,10 @@ class RuntimeManagerTests(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             cache_root = Path(temp_dir) / "cache"
             write_runtime_package(
-                cache_root / "@anarchitects" / "governance-runtime-dbt" / "0.0.1",
+                cache_root
+                / "@anarchitects"
+                / "governance-runtime-dbt"
+                / manifest.runtime_version,
                 package_name=manifest.runtime_package,
                 package_version="9.9.9",
                 include_executable=True,
@@ -173,7 +185,10 @@ class RuntimeManagerTests(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             cache_root = Path(temp_dir) / "cache"
             write_runtime_package(
-                cache_root / "@anarchitects" / "governance-runtime-dbt" / "0.0.1",
+                cache_root
+                / "@anarchitects"
+                / "governance-runtime-dbt"
+                / manifest.runtime_version,
                 package_name=manifest.runtime_package,
                 package_version=manifest.runtime_version,
                 include_executable=False,
@@ -241,7 +256,7 @@ class RuntimeManagerTests(unittest.TestCase):
             )
 
         self.assertTrue(result.supported)
-        self.assertEqual(result.report.host_version, "0.0.1")
+        self.assertEqual(result.report.host_version, HOST_VERSION)
         self.assertEqual(result.report.node_version, "v20.11.1")
         self.assertTrue(result.report.node_supported)
         self.assertEqual(result.report.package_manager.name, "npm")  # type: ignore[union-attr]

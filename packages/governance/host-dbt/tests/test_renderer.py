@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import tomllib
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from anarchitecture_dbt_governance.artifact_manager import ArtifactResolutionResult
@@ -28,6 +30,10 @@ from anarchitecture_dbt_governance.renderer import (
     render_markdown_report,
 )
 from anarchitecture_dbt_governance.runtime_invocation import RuntimeHandoffResult
+
+HOST_VERSION = tomllib.loads(
+    (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+)["project"]["version"]
 
 
 class RendererTests(unittest.TestCase):
@@ -97,7 +103,7 @@ class RendererTests(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             report = build_report_document(
                 command="check",
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 exit_code=ExitCode.SUCCESS,
                 artifact_result=create_artifact_result(Path(temp_dir)),
                 runtime_result=create_runtime_handoff(),
@@ -113,7 +119,7 @@ class RendererTests(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             report = build_report_document(
                 command="report",
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 exit_code=ExitCode.BLOCKING_VIOLATIONS,
                 artifact_result=create_artifact_result(Path(temp_dir)),
                 runtime_result=create_runtime_handoff(blocking=True),
@@ -137,7 +143,7 @@ class RendererTests(unittest.TestCase):
         with TemporaryDirectory() as temp_dir:
             report = build_report_document(
                 command="check",
-                host_version="0.0.1",
+                host_version=HOST_VERSION,
                 exit_code=ExitCode.BLOCKING_VIOLATIONS,
                 artifact_result=create_artifact_result(Path(temp_dir)),
                 runtime_result=create_runtime_handoff(blocking=True),
@@ -205,7 +211,7 @@ def sample_runtime_result(*, blocking: bool = False) -> dict[str, object]:
         "ok": True,
         "runtime": {
             "packageName": "@anarchitects/governance-runtime-dbt",
-            "version": "0.0.1",
+            "version": "0.1.0",
         },
         "assessment": {
             "violations": violations,

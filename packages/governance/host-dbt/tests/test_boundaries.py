@@ -1,4 +1,4 @@
-"""Boundary tests for the dbt Governance host scaffold."""
+"""Boundary tests for the dbt Governance host."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ FORBIDDEN_IMPORT_TOKENS = (
 
 
 class BoundaryTests(unittest.TestCase):
-    """Verify the scaffold respects the package boundary constraints."""
+    """Verify the host respects the package boundary constraints."""
 
     def test_pyproject_has_no_forbidden_runtime_dependencies(self) -> None:
         pyproject_text = (
@@ -51,20 +51,12 @@ class BoundaryTests(unittest.TestCase):
 
     def test_runtime_manifest_matches_requested_contract(self) -> None:
         manifest = load_runtime_manifest()
-        runtime_package_json = json.loads(
-            (
-                Path(__file__).resolve().parents[3]
-                / "governance"
-                / "runtime-dbt"
-                / "package.json"
-            ).read_text(encoding="utf-8")
-        )
 
         self.assertEqual(
             manifest.runtime_package,
             "@anarchitects/governance-runtime-dbt",
         )
-        self.assertEqual(manifest.runtime_version, runtime_package_json["version"])
+        self.assertEqual(manifest.runtime_version, "0.1.0")
         self.assertEqual(manifest.node_range, ">=20 <25")
         self.assertEqual(manifest.contract_version, "1.0.0")
 

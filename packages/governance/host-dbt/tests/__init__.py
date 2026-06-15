@@ -1,4 +1,4 @@
-"""Tests for the dbt Governance host scaffold."""
+"""Tests for the dbt Governance host."""
 
 from __future__ import annotations
 

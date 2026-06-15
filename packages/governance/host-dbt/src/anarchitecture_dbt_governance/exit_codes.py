@@ -1,4 +1,4 @@
-"""Process exit codes for the dbt Governance host scaffold."""
+"""Process exit codes for the dbt Governance host."""
 
 from __future__ import annotations
 
