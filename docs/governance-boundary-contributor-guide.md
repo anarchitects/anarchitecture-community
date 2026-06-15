@@ -113,6 +113,9 @@ Hosts must not:
 The current standalone CLI is a host. Future dbt-specific runtimes or hosts
 should follow the same ownership split.
 
+For the implemented dbt-native host behavior, see
+[`docs/governance/dbt-governance-host.md`](./governance/dbt-governance-host.md).
+
 ## Config Placement
 
 Canonical profile:
