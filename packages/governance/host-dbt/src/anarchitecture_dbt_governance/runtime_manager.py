@@ -27,7 +27,7 @@ from .dbt_project import HostDiagnostic, resolve_dbt_path_hints
 from .exit_codes import (
     ExitCode,
     exit_code_for_diagnostics,
-    exit_code_for_runtime_result,
+    exit_code_for_runtime_result_with_policy,
 )
 from .renderer import (
     build_report_document,
@@ -371,14 +371,9 @@ def _execute_governance_command(
         working_directory=resolved.context.project_dir,
     )
     if not runtime_handoff.supported:
-        runtime_result_exit_code = (
-            exit_code_for_runtime_result(runtime_handoff.runtime_result)
-            if runtime_handoff.runtime_result is not None
-            else exit_code_for_diagnostics(runtime_handoff.diagnostics)
-        )
         return GovernanceCommandResult(
             supported=False,
-            exit_code=runtime_result_exit_code,
+            exit_code=exit_code_for_diagnostics(runtime_handoff.diagnostics),
             diagnostics=runtime_handoff.diagnostics,
             host_version=runtime_environment.report.host_version,
             artifact_result=resolved,
@@ -387,7 +382,12 @@ def _execute_governance_command(
 
     return GovernanceCommandResult(
         supported=True,
-        exit_code=exit_code_for_runtime_result(runtime_handoff.runtime_result or {}),
+        exit_code=exit_code_for_runtime_result_with_policy(
+            runtime_handoff.runtime_result or {},
+            fail_on_blocking_violations=(
+                config.host.ci.fail_on_blocking_violations
+            ),
+        ),
         diagnostics=runtime_handoff.diagnostics,
         host_version=runtime_environment.report.host_version,
         artifact_result=resolved,
@@ -641,22 +641,22 @@ def _manage_runtime_environment(
         and not _ensure_runtime_cache_project(cache_dir, diagnostics)
     ):
         return _runtime_environment_result(
-        supported=False,
-        diagnostics=diagnostics,
-        report=RuntimeEnvironmentReport(
-            host_version=host_version,
-            manifest=manifest,
+            supported=False,
+            diagnostics=diagnostics,
+            report=RuntimeEnvironmentReport(
+                host_version=host_version,
+                manifest=manifest,
                 repo_package_manager=repo_package_manager,
                 node_version=node_version,
                 node_supported=node_supported,
-            package_manager=package_manager,
-            runtime_resolution=runtime_resolution,
-            runtime_compatible=False,
-            config_path=_config_path(config_result),
-            config_loaded=_config_loaded(config_result),
-            config_explicit=_config_explicit(config_result),
-        ),
-    )
+                package_manager=package_manager,
+                runtime_resolution=runtime_resolution,
+                runtime_compatible=False,
+                config_path=_config_path(config_result),
+                config_loaded=_config_loaded(config_result),
+                config_explicit=_config_explicit(config_result),
+            ),
+        )
 
     runtime_resolution, runtime_diagnostics = _inspect_runtime_package(
         manifest,

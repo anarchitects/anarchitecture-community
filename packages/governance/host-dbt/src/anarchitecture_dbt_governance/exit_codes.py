@@ -44,10 +44,20 @@ def exit_code_for_diagnostics(diagnostics: Sequence[HostDiagnostic]) -> ExitCode
 def exit_code_for_runtime_result(runtime_result: Mapping[str, Any]) -> ExitCode:
     """Map a structured runtime result to a deterministic process exit code."""
 
+    return exit_code_for_runtime_result_with_policy(runtime_result)
+
+
+def exit_code_for_runtime_result_with_policy(
+    runtime_result: Mapping[str, Any],
+    *,
+    fail_on_blocking_violations: bool = True,
+) -> ExitCode:
+    """Map a structured runtime result using the host CI blocking policy."""
+
     if runtime_result.get("ok") is False:
         return ExitCode.INVOCATION_FAILURE
 
-    if has_blocking_violations(runtime_result):
+    if fail_on_blocking_violations and has_blocking_violations(runtime_result):
         return ExitCode.BLOCKING_VIOLATIONS
 
     return ExitCode.SUCCESS

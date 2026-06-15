@@ -103,6 +103,38 @@ class CliE2ETests(unittest.TestCase):
                 completed.stdout,
             )
 
+    def test_check_allows_blocking_violations_when_ci_policy_disables_failure(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            project_dir = copy_fixture(
+                ADAPTER_FIXTURES_ROOT / "simple-project",
+                temp_root / "project",
+            )
+            report_path = project_dir / "target" / "governance-report.json"
+            write_governance_config(
+                project_dir,
+                fail_on_blocking_violations=False,
+            )
+            create_runtime_cache_package(project_dir / "runtime-cache")
+
+            env = create_fake_environment(temp_root)
+            env["FAKE_RUNTIME_BEHAVIOR"] = "blocking"
+
+            completed = run_cli(
+                ["check", "--report-path", str(report_path)],
+                cwd=project_dir,
+                env=env,
+            )
+
+            payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn("Blocking violations: 1", completed.stdout)
+            self.assertEqual(payload["host"]["exitCode"], 0)
+            self.assertEqual(payload["result"]["violations"][0]["severity"], "error")
+
     def test_missing_manifest_without_parse_returns_host_failure(self) -> None:
         with TemporaryDirectory() as temp_dir:
             temp_root = Path(temp_dir)
@@ -410,15 +442,23 @@ def copy_fixture(source: Path, destination: Path) -> Path:
     return destination
 
 
-def write_governance_config(project_dir: Path) -> Path:
+def write_governance_config(
+    project_dir: Path,
+    *,
+    fail_on_blocking_violations: bool = True,
+) -> Path:
     """Write the minimal config required for hermetic runtime resolution."""
 
     config_path = project_dir / "governance.yml"
+    blocking_policy = str(fail_on_blocking_violations).lower()
     config_path.write_text(
         textwrap.dedent(
-            """\
+            f"""\
             runtime:
               cacheDir: runtime-cache
+            host:
+              ci:
+                failOnBlockingViolations: {blocking_policy}
             """
         ),
         encoding="utf-8",

@@ -19,6 +19,8 @@ Fixture strategy:
 - keep host-local fixtures minimal for parse/no-manifest/config scenarios
 - use fake `dbt`, `node`, `npm`, and `dbt-governance-runtime` executables to
   exercise the host lifecycle and process/JSON boundary hermetically
+- this suite validates host behavior and the host/runtime boundary only; it is
+  intentionally not a real-runtime execution smoke test
 
 Current host-local fixtures:
 

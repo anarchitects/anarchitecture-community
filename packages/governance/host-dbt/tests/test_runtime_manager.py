@@ -202,6 +202,23 @@ class RuntimeManagerTests(unittest.TestCase):
             diagnostic_codes(result),
         )
 
+    def test_setup_reports_runtime_cache_creation_failure(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            invalid_cache_root = root / "cache-root-file"
+            invalid_cache_root.write_text("not-a-directory", encoding="utf-8")
+
+            result = setup_runtime_environment(
+                cache_root=invalid_cache_root,
+                command_runner=supported_environment_runner,
+            )
+
+        self.assertFalse(result.supported)
+        self.assertIn(
+            "governance.host_dbt.runtime_cache_creation_failed",
+            diagnostic_codes(result),
+        )
+
     def test_doctor_reports_all_relevant_status_fields(self) -> None:
         manifest = load_runtime_manifest()
         with TemporaryDirectory() as temp_dir:
