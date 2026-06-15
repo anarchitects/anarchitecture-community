@@ -1,0 +1,65 @@
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+exclude_lines = ['if TYPE_CHECKING:']
+show_missing = true
+
+[tool.pytest.ini_options]
+addopts = """
+ --cov
+ --cov-report html:'../../../coverage/packages/governance/host-dbt/html'
+ --cov-report xml:'../../../coverage/packages/governance/host-dbt/coverage.xml'
+ --html='../../../reports/packages/governance/host-dbt/unittests/html/index.html'
+ --junitxml='../../../reports/packages/governance/host-dbt/unittests/junit.xml'
+"""
+
+[project]
+name = "anarchitecture-dbt-governance"
+version = "0.0.1"
+description = "dbt-native Governance host scaffold for future runtime orchestration."
+requires-python = ">=3.9,<4"
+readme = "README.md"
+dependencies = []
+
+[project.scripts]
+dbt-governance = "anarchitecture_dbt_governance.cli:main"
+
+[project.urls]
+Repository = "https://github.com/anarchitects/anarchitecture-community"
+Issues = "https://github.com/anarchitects/anarchitecture-community/issues"
+
+[dependency-groups]
+dev = [
+  "autopep8>=2.3.1",
+  "pytest>=8.3.4",
+  "pytest-cov>=6.0.0",
+  "pytest-html>=4.1.1",
+  "pytest-sugar>=1.0.0",
+  "ruff>=0.8.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.9,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = ["anarchitecture_dbt_governance"]
+
+[tool.ruff]
+exclude = [
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "dist",
+]
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["E", "F", "UP", "B", "SIM", "I"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []

@@ -8,6 +8,10 @@ out-tsc
 # dependencies
 node_modules
 
+# Python
+__pycache__/
+*.py[cod]
+
 # IDEs and editors
 /.idea
 .project

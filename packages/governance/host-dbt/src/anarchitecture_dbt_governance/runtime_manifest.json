@@ -1,0 +1,6 @@
+{
+  "runtimePackage": "@anarchitects/governance-runtime-dbt",
+  "runtimeVersion": "0.0.1",
+  "nodeRange": ">=20 <25",
+  "contractVersion": "1.0.0"
+}
