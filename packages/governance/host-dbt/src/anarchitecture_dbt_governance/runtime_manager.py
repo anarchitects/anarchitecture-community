@@ -9,7 +9,7 @@ from pathlib import Path
 
 import tomllib
 
-from .artifact_manager import resolve_artifacts
+from .artifact_manager import ArtifactResolutionResult, resolve_artifacts
 from .compatibility import (
     RuntimeManifest,
     RuntimeManifestError,
@@ -17,16 +17,25 @@ from .compatibility import (
     load_runtime_manifest,
 )
 from .dbt_project import HostDiagnostic, resolve_dbt_path_hints
-from .exit_codes import ExitCode
+from .exit_codes import (
+    ExitCode,
+    exit_code_for_diagnostics,
+    exit_code_for_runtime_result,
+)
 from .renderer import (
-    render_check_failure,
-    render_check_success,
+    build_report_document,
     render_diagnostics,
+    render_human_report,
+    render_json_report,
+    render_markdown_report,
     render_not_implemented,
     render_runtime_environment,
 )
 from .runtime_invocation import (
+    CheckCommandOptions,
+    ReportCommandOptions,
     ResolvedRuntimeExecutable,
+    RuntimeHandoffResult,
     RuntimeInvocation,
     invoke_runtime_handoff,
 )
@@ -85,69 +94,101 @@ class RuntimeEnvironmentResult:
     report: RuntimeEnvironmentReport
 
 
+@dataclass(frozen=True)
+class GovernanceCommandResult:
+    """Intermediate runtime handoff result for check and report."""
+
+    supported: bool
+    exit_code: ExitCode
+    diagnostics: list[HostDiagnostic]
+    host_version: str
+    artifact_result: ArtifactResolutionResult | None = None
+    runtime_handoff: RuntimeHandoffResult | None = None
+
+
 def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResult:
     """Execute a host command and hand off to the runtime when required."""
 
     if invocation.command == "check" and invocation.check_options is not None:
-        detection = resolve_dbt_path_hints(
-            project_dir=invocation.check_options.project_dir,
-            profiles_dir=invocation.check_options.profiles_dir,
-            target=invocation.check_options.target,
-            target_path=invocation.check_options.target_path,
-            config=invocation.check_options.config,
+        result = _execute_governance_command(invocation.check_options)
+        report_path = _resolve_output_path(invocation.check_options.report_path)
+        report_document = build_report_document(
+            command="check",
+            host_version=result.host_version,
+            exit_code=result.exit_code,
+            artifact_result=result.artifact_result,
+            runtime_result=result.runtime_handoff,
+            diagnostics=result.diagnostics,
+            report_path=report_path,
         )
-        if not detection.supported or detection.context is None:
-            return InvocationExecutionResult(
-                exit_code=ExitCode.HOST_ERROR,
-                output=render_diagnostics(detection.diagnostics),
-            )
 
-        resolved = resolve_artifacts(
-            detection.context,
-            parse=invocation.check_options.parse,
-            use_existing_artifacts=invocation.check_options.use_existing_artifacts,
+        write_failure = _write_report_output(
+            report_path,
+            render_json_report(report_document),
         )
-        if not resolved.supported:
+        if write_failure is not None:
             return InvocationExecutionResult(
-                exit_code=ExitCode.HOST_ERROR,
-                output=render_diagnostics(resolved.diagnostics),
-            )
-
-        runtime_environment = doctor_runtime_environment()
-        if not runtime_environment.supported:
-            return InvocationExecutionResult(
-                exit_code=ExitCode.HOST_ERROR,
-                output=render_diagnostics(runtime_environment.diagnostics),
-            )
-
-        runtime_handoff = invoke_runtime_handoff(
-            resolved.context,
-            _resolved_runtime_executable(runtime_environment.report),
-            host_version=runtime_environment.report.host_version,
-            working_directory=resolved.context.project_dir,
-        )
-        if not runtime_handoff.supported:
-            return InvocationExecutionResult(
-                exit_code=ExitCode.HOST_ERROR,
-                output=render_check_failure(runtime_handoff),
+                exit_code=exit_code_for_diagnostics([write_failure]),
+                output=render_diagnostics([write_failure]),
             )
 
         return InvocationExecutionResult(
-            exit_code=ExitCode.SUCCESS,
-            output=render_check_success(resolved, runtime_handoff),
+            exit_code=result.exit_code,
+            output=(
+                render_json_report(report_document)
+                if invocation.check_options.json_output
+                else render_human_report(report_document)
+            ),
+        )
+
+    if invocation.command == "report" and invocation.report_options is not None:
+        result = _execute_governance_command(invocation.report_options)
+        report_path = _resolve_output_path(invocation.report_options.report_path)
+        report_document = build_report_document(
+            command="report",
+            host_version=result.host_version,
+            exit_code=result.exit_code,
+            artifact_result=result.artifact_result,
+            runtime_result=result.runtime_handoff,
+            diagnostics=result.diagnostics,
+            report_path=report_path,
+        )
+        rendered_output = (
+            render_json_report(report_document)
+            if invocation.report_options.format == "json"
+            else render_markdown_report(report_document)
+        )
+        write_failure = _write_report_output(report_path, rendered_output)
+        if write_failure is not None:
+            return InvocationExecutionResult(
+                exit_code=exit_code_for_diagnostics([write_failure]),
+                output=render_diagnostics([write_failure]),
+            )
+
+        return InvocationExecutionResult(
+            exit_code=result.exit_code,
+            output=rendered_output,
         )
 
     if invocation.command == "setup":
         result = setup_runtime_environment()
         return InvocationExecutionResult(
-            exit_code=ExitCode.SUCCESS if result.supported else ExitCode.HOST_ERROR,
+            exit_code=(
+                ExitCode.SUCCESS
+                if result.supported
+                else exit_code_for_diagnostics(result.diagnostics)
+            ),
             output=render_runtime_environment("setup", result),
         )
 
     if invocation.command == "doctor":
         result = doctor_runtime_environment()
         return InvocationExecutionResult(
-            exit_code=ExitCode.SUCCESS if result.supported else ExitCode.HOST_ERROR,
+            exit_code=(
+                ExitCode.SUCCESS
+                if result.supported
+                else exit_code_for_diagnostics(result.diagnostics)
+            ),
             output=render_runtime_environment("doctor", result),
         )
 
@@ -155,6 +196,115 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
         exit_code=ExitCode.SUCCESS,
         output=render_not_implemented(invocation.command),
     )
+
+
+def _execute_governance_command(
+    options: CheckCommandOptions | ReportCommandOptions,
+) -> GovernanceCommandResult:
+    detection = resolve_dbt_path_hints(
+        project_dir=options.project_dir,
+        profiles_dir=options.profiles_dir,
+        target=options.target,
+        target_path=options.target_path,
+        config=options.config,
+    )
+    if not detection.supported or detection.context is None:
+        return GovernanceCommandResult(
+            supported=False,
+            exit_code=exit_code_for_diagnostics(detection.diagnostics),
+            diagnostics=detection.diagnostics,
+            host_version=_load_host_version(),
+        )
+
+    resolved = resolve_artifacts(
+        detection.context,
+        parse=options.parse,
+        use_existing_artifacts=options.use_existing_artifacts,
+    )
+    if not resolved.supported:
+        return GovernanceCommandResult(
+            supported=False,
+            exit_code=exit_code_for_diagnostics(resolved.diagnostics),
+            diagnostics=resolved.diagnostics,
+            host_version=_load_host_version(),
+            artifact_result=resolved,
+        )
+
+    runtime_environment = doctor_runtime_environment()
+    if not runtime_environment.supported:
+        return GovernanceCommandResult(
+            supported=False,
+            exit_code=exit_code_for_diagnostics(runtime_environment.diagnostics),
+            diagnostics=runtime_environment.diagnostics,
+            host_version=runtime_environment.report.host_version,
+            artifact_result=resolved,
+        )
+
+    runtime_handoff = invoke_runtime_handoff(
+        resolved.context,
+        _resolved_runtime_executable(runtime_environment.report),
+        host_version=runtime_environment.report.host_version,
+        working_directory=resolved.context.project_dir,
+    )
+    if not runtime_handoff.supported:
+        runtime_result_exit_code = (
+            exit_code_for_runtime_result(runtime_handoff.runtime_result)
+            if runtime_handoff.runtime_result is not None
+            else exit_code_for_diagnostics(runtime_handoff.diagnostics)
+        )
+        return GovernanceCommandResult(
+            supported=False,
+            exit_code=runtime_result_exit_code,
+            diagnostics=runtime_handoff.diagnostics,
+            host_version=runtime_environment.report.host_version,
+            artifact_result=resolved,
+            runtime_handoff=runtime_handoff,
+        )
+
+    return GovernanceCommandResult(
+        supported=True,
+        exit_code=exit_code_for_runtime_result(runtime_handoff.runtime_result or {}),
+        diagnostics=runtime_handoff.diagnostics,
+        host_version=runtime_environment.report.host_version,
+        artifact_result=resolved,
+        runtime_handoff=runtime_handoff,
+    )
+
+
+def _resolve_output_path(output_path: str | None) -> Path | None:
+    if output_path is None:
+        return None
+
+    candidate = Path(output_path).expanduser()
+    if not candidate.is_absolute():
+        candidate = Path.cwd() / candidate
+
+    return candidate.resolve()
+
+
+def _write_report_output(
+    output_path: Path | None,
+    output: str,
+) -> HostDiagnostic | None:
+    if output_path is None:
+        return None
+
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(output, encoding="utf-8")
+    except OSError as error:
+        return HostDiagnostic(
+            code="governance.host_dbt.report_write_failed",
+            message="Writing the requested report output failed.",
+            path=str(output_path),
+            recommendation=(
+                "Ensure the report output directory is writable and retry the "
+                "command."
+            ),
+            details={"reason": str(error)},
+        )
+
+    return None
 
 
 def setup_runtime_environment(

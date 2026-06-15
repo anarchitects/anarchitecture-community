@@ -5,7 +5,11 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
-from .runtime_invocation import CheckCommandOptions, RuntimeInvocation
+from .runtime_invocation import (
+    CheckCommandOptions,
+    ReportCommandOptions,
+    RuntimeInvocation,
+)
 from .runtime_manager import execute_invocation
 
 COMMANDS = ("check", "setup", "doctor", "init", "report")
@@ -43,6 +47,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Invoke dbt parse when manifest.json is missing.",
     )
+    check_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Write the machine-readable report JSON to stdout only.",
+    )
+    check_parser.add_argument(
+        "--report-path",
+        help="Write the machine-readable JSON report to a file.",
+    )
 
     setup_parser = subparsers.add_parser(
         "setup",
@@ -56,12 +69,45 @@ def build_parser() -> argparse.ArgumentParser:
     )
     doctor_parser.set_defaults(command_name="doctor")
 
-    for command in ("init", "report"):
-        subparser = subparsers.add_parser(
-            command,
-            help=f"{command} placeholder command",
-        )
-        subparser.set_defaults(command_name=command)
+    init_parser = subparsers.add_parser(
+        "init",
+        help="init placeholder command",
+    )
+    init_parser.set_defaults(command_name="init")
+
+    report_parser = subparsers.add_parser(
+        "report",
+        help="render a governance report from the runtime result",
+    )
+    report_parser.set_defaults(command_name="report")
+    report_parser.add_argument("--project-dir")
+    report_parser.add_argument("--profiles-dir")
+    report_parser.add_argument("--target")
+    report_parser.add_argument("--target-path")
+    report_parser.add_argument("--config")
+    report_parser.add_argument(
+        "--use-existing-artifacts",
+        action="store_true",
+        help=(
+            "Use existing artifacts only and never invoke dbt parse when "
+            "manifest.json is missing."
+        ),
+    )
+    report_parser.add_argument(
+        "--parse",
+        action="store_true",
+        help="Invoke dbt parse when manifest.json is missing.",
+    )
+    report_parser.add_argument(
+        "--format",
+        choices=("json", "markdown"),
+        default="markdown",
+        help="Select the report output format.",
+    )
+    report_parser.add_argument(
+        "--report-path",
+        help="Write the rendered report output to a file.",
+    )
 
     return parser
 
@@ -83,6 +129,27 @@ def main(argv: Sequence[str] | None = None) -> int:
                 config=namespace.config,
                 use_existing_artifacts=namespace.use_existing_artifacts,
                 parse=namespace.parse,
+                json_output=namespace.json,
+                report_path=namespace.report_path,
+            ),
+        )
+        execution_result = execute_invocation(invocation)
+        print(execution_result.output)
+        return int(execution_result.exit_code)
+
+    if namespace.command_name == "report":
+        invocation = RuntimeInvocation(
+            command="report",
+            report_options=ReportCommandOptions(
+                project_dir=namespace.project_dir,
+                profiles_dir=namespace.profiles_dir,
+                target=namespace.target,
+                target_path=namespace.target_path,
+                config=namespace.config,
+                use_existing_artifacts=namespace.use_existing_artifacts,
+                parse=namespace.parse,
+                format=namespace.format,
+                report_path=namespace.report_path,
             ),
         )
         execution_result = execute_invocation(invocation)

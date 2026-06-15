@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import unittest
@@ -15,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from anarchitecture_dbt_governance.cli import COMMANDS, build_parser, main
 from anarchitecture_dbt_governance.compatibility import RuntimeManifest
+from anarchitecture_dbt_governance.dbt_project import HostDiagnostic
 from anarchitecture_dbt_governance.runtime_manager import (
     RuntimeEnvironmentReport,
     RuntimeEnvironmentResult,
@@ -23,7 +25,7 @@ from anarchitecture_dbt_governance.runtime_manager import (
 
 
 class CliTests(unittest.TestCase):
-    """Verify the placeholder CLI surface."""
+    """Verify the host CLI surface."""
 
     def test_help_lists_placeholder_commands(self) -> None:
         help_text = build_parser().format_help()
@@ -34,6 +36,10 @@ class CliTests(unittest.TestCase):
         self.assertIn("--project-dir", check_help_text)
         self.assertIn("--target-path", check_help_text)
         self.assertIn("--parse", check_help_text)
+        self.assertIn("--json", check_help_text)
+        report_help_text = capture_help_output(["report", "--help"])
+        self.assertIn("--format", report_help_text)
+        self.assertIn("--report-path", report_help_text)
 
     def test_check_command_resolves_project_from_current_directory(self) -> None:
         output = StringIO()
@@ -57,7 +63,9 @@ class CliTests(unittest.TestCase):
                     ),
                     patch(
                         "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
-                        return_value=create_runtime_completed_process(),
+                        return_value=create_runtime_completed_process(
+                            sample_runtime_result(),
+                        ),
                     ),
                 ):
                     exit_code = main(["check"])
@@ -65,11 +73,9 @@ class CliTests(unittest.TestCase):
                 os.chdir(previous_cwd)
 
         self.assertEqual(exit_code, 0)
-        self.assertIn("Resolved dbt project:", output.getvalue())
-        self.assertIn(
-            "Runtime handoff completed via dbt-governance-runtime.",
-            output.getvalue(),
-        )
+        self.assertIn("Project:", output.getvalue())
+        self.assertIn("Governance status:", output.getvalue())
+        self.assertNotIn("Runtime JSON result:", output.getvalue())
 
     def test_check_command_reports_missing_manifest_without_parse(self) -> None:
         output = StringIO()
@@ -81,7 +87,7 @@ class CliTests(unittest.TestCase):
             with redirect_stdout(output):
                 exit_code = main(["check", "--project-dir", str(project_dir)])
 
-        self.assertEqual(exit_code, 1)
+        self.assertEqual(exit_code, 2)
         self.assertIn(
             "governance.host_dbt.missing_manifest",
             output.getvalue(),
@@ -107,7 +113,9 @@ class CliTests(unittest.TestCase):
                 return create_completed_process()
 
             artifact_run_mock.side_effect = fake_run
-            runtime_process_mock.return_value = create_runtime_completed_process()
+            runtime_process_mock.return_value = create_runtime_completed_process(
+                sample_runtime_result(),
+            )
 
             with (
                 redirect_stdout(output),
@@ -126,8 +134,245 @@ class CliTests(unittest.TestCase):
                 )
 
         self.assertEqual(exit_code, 0)
-        self.assertIn("dbt parse was invoked", output.getvalue())
-        self.assertIn("Runtime JSON result:", output.getvalue())
+        self.assertIn("Artifact source: dbt parse", output.getvalue())
+        self.assertIn("Blocking violations: 0", output.getvalue())
+
+    def test_check_json_writes_machine_readable_output_only(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            with (
+                redirect_stdout(output),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                    return_value=create_runtime_environment_result(executable_path),
+                ),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                    return_value=create_runtime_completed_process(
+                        sample_runtime_result(),
+                    ),
+                ),
+            ):
+                exit_code = main(["check", "--project-dir", str(project_dir), "--json"])
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["host"]["command"], "check")
+        self.assertEqual(payload["result"]["ok"], True)
+        self.assertNotIn("dbt-governance check", output.getvalue())
+
+    def test_check_report_path_writes_json_report(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            report_path = project_dir / "target" / "governance-report.json"
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            with (
+                redirect_stdout(output),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                    return_value=create_runtime_environment_result(executable_path),
+                ),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                    return_value=create_runtime_completed_process(
+                        sample_runtime_result(),
+                    ),
+                ),
+            ):
+                exit_code = main(
+                    [
+                        "check",
+                        "--project-dir",
+                        str(project_dir),
+                        "--report-path",
+                        str(report_path),
+                    ]
+                )
+
+            payload = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(payload["host"]["reportPath"], str(report_path.resolve()))
+            self.assertEqual(payload["result"]["ok"], True)
+            self.assertIn("Report path:", output.getvalue())
+
+    def test_report_json_emits_json_report(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            with (
+                redirect_stdout(output),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                    return_value=create_runtime_environment_result(executable_path),
+                ),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                    return_value=create_runtime_completed_process(
+                        sample_runtime_result(),
+                    ),
+                ),
+            ):
+                exit_code = main(
+                    [
+                        "report",
+                        "--project-dir",
+                        str(project_dir),
+                        "--format",
+                        "json",
+                    ]
+                )
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["host"]["command"], "report")
+        self.assertEqual(payload["result"]["ok"], True)
+
+    def test_report_markdown_emits_markdown_report(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            with (
+                redirect_stdout(output),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                    return_value=create_runtime_environment_result(executable_path),
+                ),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                    return_value=create_runtime_completed_process(
+                        sample_runtime_result(),
+                    ),
+                ),
+            ):
+                exit_code = main(
+                    [
+                        "report",
+                        "--project-dir",
+                        str(project_dir),
+                        "--format",
+                        "markdown",
+                    ]
+                )
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("# dbt Governance Report", output.getvalue())
+        self.assertIn("## Summary", output.getvalue())
+
+    def test_check_returns_blocking_violation_exit_code(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            with (
+                redirect_stdout(output),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                    return_value=create_runtime_environment_result(executable_path),
+                ),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                    return_value=create_runtime_completed_process(
+                        sample_runtime_result(blocking=True),
+                    ),
+                ),
+            ):
+                exit_code = main(["check", "--project-dir", str(project_dir)])
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("Blocking violations: 1", output.getvalue())
+
+    def test_check_invalid_runtime_json_returns_invocation_failure(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            with (
+                redirect_stdout(output),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                    return_value=create_runtime_environment_result(executable_path),
+                ),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                    return_value=create_runtime_completed_process(
+                        "not-json",
+                    ),
+                ),
+            ):
+                exit_code = main(["check", "--project-dir", str(project_dir)])
+
+        self.assertEqual(exit_code, 2)
+        self.assertIn("runtime_invalid_json_output", output.getvalue())
+
+    def test_check_incompatible_runtime_returns_exit_code_three(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+
+            with (
+                redirect_stdout(output),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                    return_value=create_incompatible_runtime_environment_result(),
+                ),
+            ):
+                exit_code = main(["check", "--project-dir", str(project_dir)])
+
+        self.assertEqual(exit_code, 3)
+        self.assertIn("unsupported_node_version", output.getvalue())
 
 
 if __name__ == "__main__":
@@ -150,16 +395,16 @@ def create_completed_process():  # type: ignore[no-untyped-def]
     )
 
 
-def create_runtime_completed_process():  # type: ignore[no-untyped-def]
+def create_runtime_completed_process(  # type: ignore[no-untyped-def]
+    payload,
+):
     import subprocess
 
+    stdout = payload if isinstance(payload, str) else json.dumps(payload)
     return subprocess.CompletedProcess(
         args=["dbt-governance-runtime"],
         returncode=0,
-        stdout=(
-            '{"ok": true, "runtime": {"packageName": '
-            '"@anarchitects/governance-runtime-dbt", "version": "0.0.1"}}'
-        ),
+        stdout=stdout,
         stderr="",
     )
 
@@ -194,6 +439,40 @@ def create_runtime_environment_result(
     )
 
 
+def create_incompatible_runtime_environment_result() -> RuntimeEnvironmentResult:
+    resolution = RuntimePackageResolution(
+        cache_dir=Path("/tmp/runtime-cache"),
+        package_dir=Path("/tmp/runtime-cache"),
+        package_name="@anarchitects/governance-runtime-dbt",
+        package_version="0.0.1",
+        executable_path=Path("/tmp/runtime-cache/dbt-governance-runtime"),
+    )
+    return RuntimeEnvironmentResult(
+        supported=False,
+        diagnostics=[
+            HostDiagnostic(
+                code="governance.host_dbt.unsupported_node_version",
+                message='Node.js version "v25.0.0" is not supported.',
+            )
+        ],
+        report=RuntimeEnvironmentReport(
+            host_version="0.0.1",
+            manifest=RuntimeManifest(
+                runtime_package="@anarchitects/governance-runtime-dbt",
+                runtime_version="0.0.1",
+                node_range=">=20 <25",
+                contract_version="1.0.0",
+            ),
+            repo_package_manager="yarn",
+            node_version="v25.0.0",
+            node_supported=False,
+            package_manager=None,
+            runtime_resolution=resolution,
+            runtime_compatible=False,
+        ),
+    )
+
+
 def write_executable(path: Path) -> Path:
     path.write_text("#!/usr/bin/env node\n", encoding="utf-8")
     return path
@@ -206,3 +485,52 @@ def capture_help_output(argv: list[str]) -> str:
         build_parser().parse_args(argv)
 
     return output.getvalue()
+
+
+def sample_runtime_result(*, blocking: bool = False) -> dict[str, object]:
+    severity = "error" if blocking else "warning"
+    violations = (
+        [
+            {
+                "id": "violation-1",
+                "ruleId": "ownership-presence",
+                "severity": severity,
+                "message": "Owner metadata is missing.",
+            }
+        ]
+        if blocking
+        else []
+    )
+    return {
+        "ok": True,
+        "runtime": {
+            "packageName": "@anarchitects/governance-runtime-dbt",
+            "version": "0.0.1",
+        },
+        "diagnostics": [
+            {
+                "code": "adapter.warning",
+                "message": "Example warning.",
+                "severity": "warning",
+            }
+        ],
+        "assessment": {
+            "violations": violations,
+            "warnings": ["Example warning"],
+            "health": {
+                "status": "warning" if blocking else "good",
+                "score": 82 if blocking else 97,
+                "grade": "B" if blocking else "A",
+            },
+            "topIssues": [
+                {"message": "Fill in missing ownership metadata."},
+            ],
+            "recommendations": [
+                {
+                    "title": "Add owners",
+                    "reason": "Ownership metadata is required.",
+                }
+            ],
+        },
+        "violations": violations,
+    }
