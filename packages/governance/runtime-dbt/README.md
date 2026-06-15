@@ -154,8 +154,31 @@ On success, the runtime may return:
 
 ## JSON Process Boundary
 
-If a host needs a string-based process boundary, use
+If a host needs a stable process boundary, use the
+`dbt-governance-runtime` executable. It reads UTF-8 JSON from `stdin` and
+writes exactly one machine-readable JSON result to `stdout`.
+
+`stdout` is reserved for JSON only. Do not depend on human-readable prose on
+`stdout`. `stderr` is reserved for unexpected process-level diagnostics only.
+
+The executable contract is:
+
+- `stdin` JSON input
+- `runDbtGovernanceRuntimeFromJson(inputJson)` execution
+- `stdout` JSON output
+
+That executable is intended to be the supported process bridge for the future
+`governance-host-dbt` Python host while this package remains the TypeScript
+runtime composition boundary only.
+
+If a host needs the same behavior in-process, use
 `runDbtGovernanceRuntimeFromJson(...)`.
+
+Executable example:
+
+```bash
+echo '{"adapter":{"paths":{"projectDir":"./analytics"}}}' | dbt-governance-runtime
+```
 
 ```ts
 import { runDbtGovernanceRuntimeFromJson } from '@anarchitects/governance-runtime-dbt';
@@ -237,6 +260,11 @@ Example JSON result shape:
 Structured JSON errors stay aligned with the runtime error contract and are
 returned as normal JSON results instead of human-oriented stdout text.
 
+Unexpected process-level failures are also emitted as structured JSON when
+possible. Process-level failures may use a deterministic non-zero exit code,
+but governance assessment results and structured runtime errors do not define
+CI policy by themselves.
+
 ## Relationship To The Future Python Host
 
 The future Python dbt Governance Host should call this runtime as a stable
@@ -257,7 +285,14 @@ Those concerns must not move into this runtime package.
 - Keep dbt adapter paths and adapter options in `adapter`.
 - Keep dbt extension interpretation options in `extension`.
 - Keep invocation-only metadata in `runtime`.
+- Use `dbt-governance-runtime` as the supported machine-readable process
+  boundary for future host integration.
 - Do not import adapter or extension private paths.
+- Do not add Python/dbt host UX here.
+- Do not run `dbt parse`, `dbt build`, `dbt test`, `dbt docs`, or
+  `dbt source`.
+- Do not render human reports here.
+- Do not turn runtime output into final CI exit policy here.
 - Do not add host, plugin, Nx runtime, or dbt command concerns here.
 - Do not reintroduce legacy `projects` / `dependencies` terminology in runtime
   APIs. The canonical workspace boundary is `nodes` and `relations`.

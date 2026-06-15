@@ -30,6 +30,9 @@
       "default": "./dist/index.js"
     }
   },
+  "bin": {
+    "dbt-governance-runtime": "./dist/bin/dbt-governance-runtime.js"
+  },
   "files": [
     "dist",
     "!**/*.tsbuildinfo"
