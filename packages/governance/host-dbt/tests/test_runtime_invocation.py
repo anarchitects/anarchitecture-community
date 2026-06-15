@@ -298,6 +298,91 @@ class RuntimeInvocationTests(unittest.TestCase):
             "governance.host_dbt.runtime_process_failed",
             diagnostic_codes(result),
         )
+        self.assertIn(
+            "governance.host_dbt.runtime_stderr_output",
+            diagnostic_codes(result),
+        )
+        self.assertEqual(result.runtime_result["ok"], False)
+
+    def test_non_zero_process_exit_preserves_valid_ok_true_json(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            project_dir = create_project_fixture(Path(temp_dir), include_manifest=True)
+            detection = resolve_dbt_path_hints(project_dir=str(project_dir))
+            executable_path = create_runtime_executable(Path(temp_dir))
+            result = invoke_runtime_handoff(
+                detection.context,  # type: ignore[arg-type]
+                ResolvedRuntimeExecutable(
+                    runtime_package="@anarchitects/governance-runtime-dbt",
+                    runtime_version="0.0.1",
+                    contract_version="1.0.0",
+                    executable_path=executable_path,
+                ),
+                host_version="0.0.1",
+                process_runner=non_zero_ok_true_runtime_runner,
+            )
+
+        self.assertFalse(result.supported)
+        self.assertEqual(result.runtime_result["ok"], True)
+        self.assertIn(
+            "governance.host_dbt.runtime_process_failed",
+            diagnostic_codes(result),
+        )
+
+    def test_non_zero_process_exit_with_invalid_json_preserves_failure(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            project_dir = create_project_fixture(Path(temp_dir), include_manifest=True)
+            detection = resolve_dbt_path_hints(project_dir=str(project_dir))
+            executable_path = create_runtime_executable(Path(temp_dir))
+            result = invoke_runtime_handoff(
+                detection.context,  # type: ignore[arg-type]
+                ResolvedRuntimeExecutable(
+                    runtime_package="@anarchitects/governance-runtime-dbt",
+                    runtime_version="0.0.1",
+                    contract_version="1.0.0",
+                    executable_path=executable_path,
+                ),
+                host_version="0.0.1",
+                process_runner=non_zero_invalid_json_runtime_runner,
+            )
+
+        self.assertFalse(result.supported)
+        self.assertIsNone(result.runtime_result)
+        self.assertIn(
+            "governance.host_dbt.runtime_invalid_json_output",
+            diagnostic_codes(result),
+        )
+        self.assertIn(
+            "governance.host_dbt.runtime_process_failed",
+            diagnostic_codes(result),
+        )
+
+    def test_non_zero_process_exit_with_metadata_mismatch_is_preserved(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            project_dir = create_project_fixture(Path(temp_dir), include_manifest=True)
+            detection = resolve_dbt_path_hints(project_dir=str(project_dir))
+            executable_path = create_runtime_executable(Path(temp_dir))
+            result = invoke_runtime_handoff(
+                detection.context,  # type: ignore[arg-type]
+                ResolvedRuntimeExecutable(
+                    runtime_package="@anarchitects/governance-runtime-dbt",
+                    runtime_version="0.0.1",
+                    contract_version="1.0.0",
+                    executable_path=executable_path,
+                ),
+                host_version="0.0.1",
+                process_runner=non_zero_metadata_mismatch_runtime_runner,
+            )
+
+        self.assertFalse(result.supported)
+        self.assertEqual(result.runtime_result["ok"], True)
+        self.assertIn(
+            "governance.host_dbt.incompatible_runtime_metadata",
+            diagnostic_codes(result),
+        )
+        self.assertIn(
+            "governance.host_dbt.runtime_process_failed",
+            diagnostic_codes(result),
+        )
 
     def test_incomplete_path_hints_are_reported(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -527,7 +612,79 @@ def failing_runtime_runner(
     timeout: int,
 ) -> subprocess.CompletedProcess[str]:
     del cwd, input, timeout
-    return completed(args, stdout='{"ok":false}', stderr="boom\n", returncode=2)
+    return completed(
+        args,
+        stdout=(
+            '{"ok":false,"runtime":{"packageName":'
+            '"@anarchitects/governance-runtime-dbt","version":"0.0.1"},'
+            '"error":{"code":"governance.runtime.failed","message":"failed"}}'
+        ),
+        stderr="boom\n",
+        returncode=2,
+    )
+
+
+def non_zero_ok_true_runtime_runner(
+    args: list[str],
+    *,
+    cwd: Path,
+    input: str,
+    timeout: int,
+) -> subprocess.CompletedProcess[str]:
+    del cwd, input, timeout
+    return completed(
+        args,
+        stdout=json.dumps(
+            {
+                "ok": True,
+                "runtime": {
+                    "packageName": "@anarchitects/governance-runtime-dbt",
+                    "version": "0.0.1",
+                },
+                "metadata": {
+                    "runtime": {
+                        "packageName": "@anarchitects/governance-runtime-dbt",
+                        "version": "0.0.1",
+                    }
+                },
+            }
+        ),
+        returncode=3,
+    )
+
+
+def non_zero_invalid_json_runtime_runner(
+    args: list[str],
+    *,
+    cwd: Path,
+    input: str,
+    timeout: int,
+) -> subprocess.CompletedProcess[str]:
+    del cwd, input, timeout
+    return completed(args, stdout="not-json", stderr="boom\n", returncode=2)
+
+
+def non_zero_metadata_mismatch_runtime_runner(
+    args: list[str],
+    *,
+    cwd: Path,
+    input: str,
+    timeout: int,
+) -> subprocess.CompletedProcess[str]:
+    del cwd, input, timeout
+    return completed(
+        args,
+        stdout=json.dumps(
+            {
+                "ok": True,
+                "runtime": {
+                    "packageName": "@anarchitects/not-the-runtime",
+                    "version": "9.9.9",
+                },
+            }
+        ),
+        returncode=2,
+    )
 
 
 def metadata_mismatch_runtime_runner(

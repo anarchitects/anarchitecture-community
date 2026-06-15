@@ -287,90 +287,75 @@ def invoke_runtime_handoff(
             )
         )
 
-    if completed.returncode != 0:
+    parsed_output, json_diagnostics = _parse_runtime_stdout(
+        stdout,
+        stderr,
+        executable_path,
+    )
+    if json_diagnostics:
+        diagnostics = warning_diagnostics + json_diagnostics
+        if completed.returncode != 0:
+            diagnostics = _with_runtime_process_failed_diagnostic(
+                diagnostics,
+                executable_path,
+                completed.returncode,
+                stdout,
+                stderr,
+            )
         return RuntimeHandoffResult(
             supported=False,
-            diagnostics=warning_diagnostics
-            + [
-                HostDiagnostic(
-                    code="governance.host_dbt.runtime_process_failed",
-                    message="Runtime process exited with a non-zero status code.",
-                    path=str(executable_path),
-                    recommendation=(
-                        "Inspect runtime stdout/stderr context and resolve the "
-                        "runtime failure before rerunning dbt-governance check."
-                    ),
-                    details={
-                        "returncode": completed.returncode,
-                        "stdout": stdout,
-                        "stderr": stderr,
-                    },
-                )
-            ],
+            diagnostics=diagnostics,
             runtime_input=runtime_input,
             stdout=stdout,
             stderr=stderr,
             request_id=resolved_request_id,
         )
 
-    try:
-        parsed_output = json.loads(stdout)
-    except JSONDecodeError as error:
-        return RuntimeHandoffResult(
-            supported=False,
-            diagnostics=warning_diagnostics
-            + [
-                HostDiagnostic(
-                    code="governance.host_dbt.runtime_invalid_json_output",
-                    message="Runtime process stdout did not contain valid JSON.",
-                    path=str(executable_path),
-                    recommendation=(
-                        "Ensure the runtime executable writes exactly one JSON "
-                        "document to stdout."
-                    ),
-                    details={
-                        "reason": error.msg,
-                        "stdout": stdout,
-                        "stderr": stderr,
-                    },
-                )
-            ],
-            runtime_input=runtime_input,
-            stdout=stdout,
-            stderr=stderr,
-            request_id=resolved_request_id,
-        )
-
-    if not isinstance(parsed_output, dict):
-        return RuntimeHandoffResult(
-            supported=False,
-            diagnostics=warning_diagnostics
-            + [
-                HostDiagnostic(
-                    code="governance.host_dbt.runtime_invalid_json_output",
-                    message="Runtime process stdout JSON must be an object.",
-                    path=str(executable_path),
-                    recommendation=(
-                        "Ensure the runtime executable returns the structured "
-                        "runtime result object."
-                    ),
-                    details={"stdout": stdout, "stderr": stderr},
-                )
-            ],
-            runtime_input=runtime_input,
-            stdout=stdout,
-            stderr=stderr,
-            request_id=resolved_request_id,
-        )
+    assert parsed_output is not None
 
     metadata_diagnostics = _validate_runtime_result_metadata(
         parsed_output,
         resolved_runtime,
     )
     if metadata_diagnostics:
+        diagnostics = warning_diagnostics + metadata_diagnostics
+        if completed.returncode != 0:
+            diagnostics = _with_runtime_process_failed_diagnostic(
+                diagnostics,
+                executable_path,
+                completed.returncode,
+                stdout,
+                stderr,
+            )
         return RuntimeHandoffResult(
             supported=False,
-            diagnostics=warning_diagnostics + metadata_diagnostics,
+            diagnostics=diagnostics,
+            runtime_input=runtime_input,
+            runtime_result=parsed_output,
+            stdout=stdout,
+            stderr=stderr,
+            request_id=resolved_request_id,
+        )
+
+    if completed.returncode != 0:
+        diagnostics = _with_runtime_process_failed_diagnostic(
+            warning_diagnostics,
+            executable_path,
+            completed.returncode,
+            stdout,
+            stderr,
+        )
+        if parsed_output.get("ok") is False:
+            diagnostics.append(
+                _runtime_returned_error_diagnostic(
+                    parsed_output,
+                    executable_path,
+                    stderr,
+                )
+            )
+        return RuntimeHandoffResult(
+            supported=False,
+            diagnostics=diagnostics,
             runtime_input=runtime_input,
             runtime_result=parsed_output,
             stdout=stdout,
@@ -379,29 +364,14 @@ def invoke_runtime_handoff(
         )
 
     if parsed_output.get("ok") is False:
-        error_payload = parsed_output.get("error")
-        error_code = (
-            error_payload.get("code")
-            if isinstance(error_payload, dict)
-            and isinstance(error_payload.get("code"), str)
-            else "unknown"
-        )
         return RuntimeHandoffResult(
             supported=False,
             diagnostics=warning_diagnostics
             + [
-                HostDiagnostic(
-                    code="governance.host_dbt.runtime_returned_error",
-                    message=(
-                        "Runtime returned a structured error result "
-                        f'(error code: "{error_code}").'
-                    ),
-                    path=str(executable_path),
-                    recommendation=(
-                        "Inspect the preserved runtime JSON result for the "
-                        "authoritative adapter/extension/runtime error details."
-                    ),
-                    details={"stderr": stderr},
+                _runtime_returned_error_diagnostic(
+                    parsed_output,
+                    executable_path,
+                    stderr,
                 )
             ],
             runtime_input=runtime_input,
@@ -419,6 +389,106 @@ def invoke_runtime_handoff(
         stdout=stdout,
         stderr=stderr,
         request_id=resolved_request_id,
+    )
+
+
+def _parse_runtime_stdout(
+    stdout: str,
+    stderr: str,
+    executable_path: Path | None,
+) -> tuple[dict[str, Any] | None, list[HostDiagnostic]]:
+    try:
+        parsed_output = json.loads(stdout)
+    except JSONDecodeError as error:
+        return (
+            None,
+            [
+                HostDiagnostic(
+                    code="governance.host_dbt.runtime_invalid_json_output",
+                    message="Runtime process stdout did not contain valid JSON.",
+                    path=str(executable_path),
+                    recommendation=(
+                        "Ensure the runtime executable writes exactly one JSON "
+                        "document to stdout."
+                    ),
+                    details={
+                        "reason": error.msg,
+                        "stdout": stdout,
+                        "stderr": stderr,
+                    },
+                )
+            ],
+        )
+
+    if not isinstance(parsed_output, dict):
+        return (
+            None,
+            [
+                HostDiagnostic(
+                    code="governance.host_dbt.runtime_invalid_json_output",
+                    message="Runtime process stdout JSON must be an object.",
+                    path=str(executable_path),
+                    recommendation=(
+                        "Ensure the runtime executable returns the structured "
+                        "runtime result object."
+                    ),
+                    details={"stdout": stdout, "stderr": stderr},
+                )
+            ],
+        )
+
+    return parsed_output, []
+
+
+def _with_runtime_process_failed_diagnostic(
+    diagnostics: list[HostDiagnostic],
+    executable_path: Path | None,
+    returncode: int,
+    stdout: str,
+    stderr: str,
+) -> list[HostDiagnostic]:
+    return diagnostics + [
+        HostDiagnostic(
+            code="governance.host_dbt.runtime_process_failed",
+            message="Runtime process exited with a non-zero status code.",
+            path=str(executable_path),
+            recommendation=(
+                "Inspect runtime stdout/stderr context and resolve the runtime "
+                "failure before rerunning dbt-governance check."
+            ),
+            details={
+                "returncode": returncode,
+                "stdout": stdout,
+                "stderr": stderr,
+            },
+        )
+    ]
+
+
+def _runtime_returned_error_diagnostic(
+    parsed_output: dict[str, Any],
+    executable_path: Path | None,
+    stderr: str,
+) -> HostDiagnostic:
+    error_payload = parsed_output.get("error")
+    error_code = (
+        error_payload.get("code")
+        if isinstance(error_payload, dict)
+        and isinstance(error_payload.get("code"), str)
+        else "unknown"
+    )
+    return HostDiagnostic(
+        code="governance.host_dbt.runtime_returned_error",
+        message=(
+            'Runtime returned a structured error result '
+            f'(error code: "{error_code}").'
+        ),
+        path=str(executable_path),
+        recommendation=(
+            "Inspect the preserved runtime JSON result for the authoritative "
+            "adapter/extension/runtime error details."
+        ),
+        details={"stderr": stderr},
     )
 
 

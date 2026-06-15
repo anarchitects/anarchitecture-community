@@ -237,6 +237,8 @@ E2E coverage:
 - the suite is hermetic by default: fake `node`, `npm`, `dbt`, and
   `dbt-governance-runtime` executables cover runtime setup, parse mode, and the
   process/JSON boundary without network access
+- the current e2e target is intentionally fake-runtime-only coverage for host
+  behavior; it does not claim to be a real `governance-runtime-dbt` smoke test
 - the assertions focus on the host/runtime boundary: path hints go over
   stdin/stdout JSON, JSON mode stays machine-readable, and host-side rendering
   and exit codes remain deterministic

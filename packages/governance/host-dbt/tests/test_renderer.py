@@ -19,6 +19,7 @@ from anarchitecture_dbt_governance.exit_codes import (
     ExitCode,
     exit_code_for_diagnostics,
     exit_code_for_runtime_result,
+    exit_code_for_runtime_result_with_policy,
 )
 from anarchitecture_dbt_governance.renderer import (
     build_report_document,
@@ -42,6 +43,15 @@ class RendererTests(unittest.TestCase):
         self.assertEqual(
             exit_code_for_runtime_result(sample_runtime_result(blocking=True)),
             ExitCode.BLOCKING_VIOLATIONS,
+        )
+
+    def test_exit_code_blocking_violations_can_be_allowed_by_ci_policy(self) -> None:
+        self.assertEqual(
+            exit_code_for_runtime_result_with_policy(
+                sample_runtime_result(blocking=True),
+                fail_on_blocking_violations=False,
+            ),
+            ExitCode.SUCCESS,
         )
 
     def test_exit_code_runtime_error_defaults_to_invocation_failure(self) -> None:

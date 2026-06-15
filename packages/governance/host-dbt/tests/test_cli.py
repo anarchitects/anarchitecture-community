@@ -504,6 +504,130 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 1)
         self.assertIn("Blocking violations: 1", output.getvalue())
 
+    def test_check_allows_blocking_violations_when_ci_policy_disables_failure(
+        self,
+    ) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            report_path = project_dir / "target" / "governance-report.json"
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            write_fixture_file(
+                project_dir / "governance.yml",
+                "host:\n  ci:\n    failOnBlockingViolations: false\n",
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(project_dir)
+                with (
+                    redirect_stdout(output),
+                    patch(
+                        "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                        return_value=create_runtime_environment_result(executable_path),
+                    ),
+                    patch(
+                        "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                        return_value=create_runtime_completed_process(
+                            sample_runtime_result(blocking=True),
+                        ),
+                    ),
+                ):
+                    exit_code = main(
+                        [
+                            "check",
+                            "--report-path",
+                            str(report_path),
+                        ]
+                    )
+            finally:
+                os.chdir(previous_cwd)
+
+            payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Blocking violations: 1", output.getvalue())
+        self.assertEqual(payload["host"]["exitCode"], 0)
+        self.assertEqual(payload["result"]["violations"][0]["severity"], "error")
+
+    def test_check_non_zero_runtime_process_with_valid_json_returns_exit_code_two(
+        self,
+    ) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            with (
+                redirect_stdout(output),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                    return_value=create_runtime_environment_result(executable_path),
+                ),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                    return_value=create_runtime_completed_process(
+                        sample_runtime_result(),
+                        returncode=2,
+                    ),
+                ),
+            ):
+                exit_code = main(["check", "--project-dir", str(project_dir)])
+
+        self.assertEqual(exit_code, 2)
+        self.assertIn("runtime_process_failed", output.getvalue())
+
+    def test_check_non_zero_runtime_process_with_incompatible_metadata_returns_three(
+        self,
+    ) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            with (
+                redirect_stdout(output),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                    return_value=create_runtime_environment_result(executable_path),
+                ),
+                patch(
+                    "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                    return_value=create_runtime_completed_process(
+                        {
+                            "ok": True,
+                            "runtime": {
+                                "packageName": "@anarchitects/not-the-runtime",
+                                "version": "9.9.9",
+                            },
+                        },
+                        returncode=2,
+                    ),
+                ),
+            ):
+                exit_code = main(["check", "--project-dir", str(project_dir)])
+
+        self.assertEqual(exit_code, 3)
+        self.assertIn("incompatible_runtime_metadata", output.getvalue())
+
     def test_check_invalid_runtime_json_returns_invocation_failure(self) -> None:
         output = StringIO()
 
@@ -630,15 +754,18 @@ def create_completed_process():  # type: ignore[no-untyped-def]
 
 def create_runtime_completed_process(  # type: ignore[no-untyped-def]
     payload,
+    *,
+    returncode: int = 0,
+    stderr: str = "",
 ):
     import subprocess
 
     stdout = payload if isinstance(payload, str) else json.dumps(payload)
     return subprocess.CompletedProcess(
         args=["dbt-governance-runtime"],
-        returncode=0,
+        returncode=returncode,
         stdout=stdout,
-        stderr="",
+        stderr=stderr,
     )
 
 
