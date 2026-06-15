@@ -7,3 +7,4 @@ class ExitCode(IntEnum):
     """Exit codes reserved for the future host CLI."""
 
     SUCCESS = 0
+    HOST_ERROR = 1

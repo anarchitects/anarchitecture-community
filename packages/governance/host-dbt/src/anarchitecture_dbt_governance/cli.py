@@ -5,8 +5,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
-from .exit_codes import ExitCode
-from .runtime_invocation import RuntimeInvocation
+from .runtime_invocation import CheckCommandOptions, RuntimeInvocation
 from .runtime_manager import execute_invocation
 
 COMMANDS = ("check", "setup", "doctor", "init", "report")
@@ -21,17 +20,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    for command in COMMANDS:
+    check_parser = subparsers.add_parser(
+        "check",
+        help="detect a dbt project and resolve dbt artifacts",
+    )
+    check_parser.set_defaults(command_name="check")
+    check_parser.add_argument("--project-dir")
+    check_parser.add_argument("--profiles-dir")
+    check_parser.add_argument("--target")
+    check_parser.add_argument("--target-path")
+    check_parser.add_argument("--config")
+    check_parser.add_argument(
+        "--use-existing-artifacts",
+        action="store_true",
+        help=(
+            "Use existing artifacts only and never invoke dbt parse when "
+            "manifest.json is missing."
+        ),
+    )
+    check_parser.add_argument(
+        "--parse",
+        action="store_true",
+        help="Invoke dbt parse when manifest.json is missing.",
+    )
+
+    for command in COMMANDS[1:]:
         subparser = subparsers.add_parser(
             command,
             help=f"{command} placeholder command",
         )
         subparser.set_defaults(command_name=command)
-        subparser.add_argument(
-            "args",
-            nargs=argparse.REMAINDER,
-            help="Arguments reserved for future implementation.",
-        )
 
     return parser
 
@@ -41,12 +59,30 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     parser = build_parser()
     namespace = parser.parse_args(list(argv) if argv is not None else None)
+
+    if namespace.command_name == "check":
+        invocation = RuntimeInvocation(
+            command="check",
+            check_options=CheckCommandOptions(
+                project_dir=namespace.project_dir,
+                profiles_dir=namespace.profiles_dir,
+                target=namespace.target,
+                target_path=namespace.target_path,
+                config=namespace.config,
+                use_existing_artifacts=namespace.use_existing_artifacts,
+                parse=namespace.parse,
+            ),
+        )
+        execution_result = execute_invocation(invocation)
+        print(execution_result.output)
+        return int(execution_result.exit_code)
+
     invocation = RuntimeInvocation(
         command=namespace.command_name,
-        extra_args=list(namespace.args),
     )
-    print(execute_invocation(invocation))
-    return int(ExitCode.SUCCESS)
+    execution_result = execute_invocation(invocation)
+    print(execution_result.output)
+    return int(execution_result.exit_code)
 
 
 if __name__ == "__main__":

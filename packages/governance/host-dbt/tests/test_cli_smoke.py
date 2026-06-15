@@ -34,6 +34,33 @@ class CliSmokeTests(unittest.TestCase):
         self.assertIn("check", completed.stdout)
         self.assertIn("report", completed.stdout)
 
+    def test_check_help_succeeds(self) -> None:
+        package_root = Path(__file__).resolve().parents[1]
+        env = os.environ.copy()
+        existing_pythonpath = env.get("PYTHONPATH")
+        src_path = str(package_root / "src")
+        env["PYTHONPATH"] = (
+            src_path if not existing_pythonpath else f"{src_path}:{existing_pythonpath}"
+        )
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "anarchitecture_dbt_governance.cli",
+                "check",
+                "--help",
+            ],
+            cwd=package_root,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("--project-dir", completed.stdout)
+        self.assertIn("--parse", completed.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
