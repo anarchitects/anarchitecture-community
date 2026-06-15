@@ -12,6 +12,7 @@ from tempfile import TemporaryDirectory
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from anarchitecture_dbt_governance.compatibility import load_runtime_manifest
+from anarchitecture_dbt_governance.config import load_governance_config
 from anarchitecture_dbt_governance.runtime_manager import (
     doctor_runtime_environment,
     resolve_runtime_cache_dir,
@@ -244,6 +245,43 @@ class RuntimeManagerTests(unittest.TestCase):
             manifest.runtime_version,
         )
         self.assertTrue(result.report.runtime_compatible)
+
+    def test_doctor_reports_loaded_config_status(self) -> None:
+        manifest = load_runtime_manifest()
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "governance.yml"
+            cache_root = root / "configured-cache"
+            runtime_cache_dir = (
+                cache_root
+                / "@anarchitects"
+                / "governance-runtime-dbt"
+                / manifest.runtime_version
+            )
+            config_path.write_text(
+                "runtime:\n  cacheDir: configured-cache\n",
+                encoding="utf-8",
+            )
+            write_runtime_package(
+                runtime_cache_dir,
+                package_name=manifest.runtime_package,
+                package_version=manifest.runtime_version,
+                include_executable=True,
+            )
+            config_result = load_governance_config(
+                explicit_path=str(config_path),
+                cwd=root,
+            )
+
+            result = doctor_runtime_environment(
+                cache_root=cache_root,
+                command_runner=supported_environment_runner,
+                config_result=config_result,
+            )
+
+        self.assertTrue(result.supported)
+        self.assertTrue(result.report.config_loaded)
+        self.assertEqual(result.report.config_path, config_path.resolve())
 
 
 def completed(

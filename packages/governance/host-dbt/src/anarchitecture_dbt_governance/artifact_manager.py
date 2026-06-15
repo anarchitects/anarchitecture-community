@@ -230,18 +230,19 @@ def _with_optional_artifacts(
     context: DbtProjectContext,
     diagnostics: list[HostDiagnostic],
 ) -> DbtProjectContext:
+    configured_paths = context.artifact_paths
     catalog_path = _resolve_optional_artifact(
-        context.target_path / "catalog.json",
+        configured_paths.catalog_path or (context.target_path / "catalog.json"),
         diagnostics,
         "catalog.json",
     )
     run_results_path = _resolve_optional_artifact(
-        context.target_path / "run_results.json",
+        configured_paths.run_results_path or (context.target_path / "run_results.json"),
         diagnostics,
         "run_results.json",
     )
     sources_path = _resolve_optional_artifact(
-        context.target_path / "sources.json",
+        configured_paths.sources_path or (context.target_path / "sources.json"),
         diagnostics,
         "sources.json",
     )

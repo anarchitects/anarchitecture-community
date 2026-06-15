@@ -21,7 +21,7 @@ version = "0.0.1"
 description = "dbt-native Governance host scaffold for future runtime orchestration."
 requires-python = ">=3.9,<4"
 readme = "README.md"
-dependencies = []
+dependencies = ["PyYAML>=6.0.2"]
 
 [project.scripts]
 dbt-governance = "anarchitecture_dbt_governance.cli:main"

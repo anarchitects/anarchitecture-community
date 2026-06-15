@@ -37,9 +37,12 @@ class CliTests(unittest.TestCase):
         self.assertIn("--target-path", check_help_text)
         self.assertIn("--parse", check_help_text)
         self.assertIn("--json", check_help_text)
+        self.assertIn("--config", check_help_text)
         report_help_text = capture_help_output(["report", "--help"])
         self.assertIn("--format", report_help_text)
         self.assertIn("--report-path", report_help_text)
+        init_help_text = capture_help_output(["init", "--help"])
+        self.assertIn("--force", init_help_text)
 
     def test_check_command_resolves_project_from_current_directory(self) -> None:
         output = StringIO()
@@ -169,6 +172,186 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["host"]["command"], "check")
         self.assertEqual(payload["result"]["ok"], True)
         self.assertNotIn("dbt-governance check", output.getvalue())
+
+    def test_default_governance_yml_loads_when_present(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            write_fixture_file(
+                project_dir / "governance.yml",
+                (
+                    "runtime:\n"
+                    "  reportPath: target/from-config-report.json\n"
+                    "host:\n"
+                    "  output: json\n"
+                ),
+            )
+            executable_path = write_executable(project_dir / "dbt-governance-runtime")
+
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(project_dir)
+                with (
+                    redirect_stdout(output),
+                    patch(
+                        "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                        return_value=create_runtime_environment_result(executable_path),
+                    ),
+                    patch(
+                        "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                        return_value=create_runtime_completed_process(
+                            sample_runtime_result(),
+                        ),
+                    ),
+                ):
+                    exit_code = main(["check"])
+            finally:
+                os.chdir(previous_cwd)
+
+            payload = json.loads(output.getvalue())
+            written_report = json.loads(
+                (project_dir / "target" / "from-config-report.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["host"]["command"], "check")
+        self.assertEqual(
+            written_report["host"]["reportPath"],
+            str((project_dir / "target" / "from-config-report.json").resolve()),
+        )
+
+    def test_config_adapter_project_dir_routes_to_check_flow(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            project_dir = root / "analytics"
+            write_fixture_file(project_dir / "dbt_project.yml", "name: analytics\n")
+            write_fixture_file(
+                project_dir / "target" / "manifest.json",
+                "this is not parsed as JSON",
+            )
+            write_fixture_file(
+                root / "governance.yml",
+                (
+                    "adapter:\n"
+                    "  paths:\n"
+                    "    projectDir: analytics\n"
+                    "host:\n"
+                    "  output: json\n"
+                ),
+            )
+            executable_path = write_executable(root / "dbt-governance-runtime")
+
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with (
+                    redirect_stdout(output),
+                    patch(
+                        "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                        return_value=create_runtime_environment_result(executable_path),
+                    ),
+                    patch(
+                        "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                        return_value=create_runtime_completed_process(
+                            sample_runtime_result(),
+                        ),
+                    ),
+                ):
+                    exit_code = main(["check"])
+            finally:
+                os.chdir(previous_cwd)
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["artifacts"]["projectDir"], str(project_dir.resolve()))
+
+    def test_check_cli_flags_override_governance_yml(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_project = root / "configured"
+            cli_project = root / "cli-project"
+            write_fixture_file(config_project / "dbt_project.yml", "name: configured\n")
+            write_fixture_file(
+                config_project / "target" / "manifest.json",
+                "configured-manifest",
+            )
+            write_fixture_file(cli_project / "dbt_project.yml", "name: cli\n")
+            write_fixture_file(
+                cli_project / "target" / "manifest.json",
+                "cli-manifest",
+            )
+            write_fixture_file(
+                root / "governance.yml",
+                (
+                    "adapter:\n"
+                    "  paths:\n"
+                    "    projectDir: configured\n"
+                    "runtime:\n"
+                    "  reportPath: configured-report.json\n"
+                    "host:\n"
+                    "  output: human\n"
+                ),
+            )
+            cli_report_path = root / "cli-report.json"
+            executable_path = write_executable(root / "dbt-governance-runtime")
+
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with (
+                    redirect_stdout(output),
+                    patch(
+                        "anarchitecture_dbt_governance.runtime_manager.doctor_runtime_environment",
+                        return_value=create_runtime_environment_result(executable_path),
+                    ),
+                    patch(
+                        "anarchitecture_dbt_governance.runtime_invocation._run_runtime_process",
+                        return_value=create_runtime_completed_process(
+                            sample_runtime_result(),
+                        ),
+                    ),
+                ):
+                    exit_code = main(
+                        [
+                            "check",
+                            "--project-dir",
+                            str(cli_project),
+                            "--report-path",
+                            str(cli_report_path),
+                        ]
+                    )
+            finally:
+                os.chdir(previous_cwd)
+
+            payload = json.loads(cli_report_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(
+            payload["artifacts"]["projectDir"],
+            str(cli_project.resolve()),
+        )
+        self.assertEqual(payload["host"]["reportPath"], str(cli_report_path.resolve()))
+
+    def test_explicit_missing_config_returns_failure(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory(), redirect_stdout(output):
+            exit_code = main(["check", "--config", "missing-governance.yml"])
+
+        self.assertEqual(exit_code, 2)
+        self.assertIn("config_file_not_found", output.getvalue())
 
     def test_check_report_path_writes_json_report(self) -> None:
         output = StringIO()
@@ -373,6 +556,56 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 3)
         self.assertIn("unsupported_node_version", output.getvalue())
+
+    def test_init_creates_governance_yml(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            with redirect_stdout(output):
+                exit_code = main(["init", "--project-dir", str(project_dir)])
+
+            config_text = (project_dir / "governance.yml").read_text(encoding="utf-8")
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Created governance config:", output.getvalue())
+        self.assertIn("profile:", config_text)
+        self.assertIn("adapter:", config_text)
+        self.assertIn("extension:", config_text)
+        self.assertIn("runtime:", config_text)
+        self.assertIn("host:", config_text)
+
+    def test_init_refuses_to_overwrite_existing_config(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            write_fixture_file(
+                project_dir / "governance.yml",
+                "host:\n  output: json\n",
+            )
+            with redirect_stdout(output):
+                exit_code = main(["init", "--project-dir", str(project_dir)])
+
+        self.assertEqual(exit_code, 2)
+        self.assertIn("config_already_exists", output.getvalue())
+
+    def test_init_force_overwrites_existing_config(self) -> None:
+        output = StringIO()
+
+        with TemporaryDirectory() as temp_dir:
+            project_dir = Path(temp_dir)
+            config_path = project_dir / "governance.yml"
+            write_fixture_file(config_path, "host:\n  output: json\n")
+            with redirect_stdout(output):
+                exit_code = main(
+                    ["init", "--project-dir", str(project_dir), "--force"]
+                )
+
+            config_text = config_path.read_text(encoding="utf-8")
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("artifactMode: use-existing-or-parse", config_text)
 
 
 if __name__ == "__main__":
