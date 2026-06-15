@@ -44,7 +44,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Invoke dbt parse when manifest.json is missing.",
     )
 
-    for command in COMMANDS[1:]:
+    setup_parser = subparsers.add_parser(
+        "setup",
+        help="install or verify the pinned Node runtime package",
+    )
+    setup_parser.set_defaults(command_name="setup")
+
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="report runtime compatibility and environment diagnostics",
+    )
+    doctor_parser.set_defaults(command_name="doctor")
+
+    for command in ("init", "report"):
         subparser = subparsers.add_parser(
             command,
             help=f"{command} placeholder command",

@@ -18,7 +18,7 @@ The package exposes `dbt-governance` with these commands:
 - `init`
 - `report`
 
-`setup`, `doctor`, `init`, and `report` remain placeholders.
+`init` and `report` remain placeholders.
 
 `check` supports:
 
@@ -53,13 +53,38 @@ Artifact lookup behavior:
 - if `manifest.json` is missing, the command fails with a clear host
   diagnostic instead of falling back to `dbt parse`
 
+`setup` behavior:
+
+- validates `runtime_manifest.json`
+- requires Node.js in the pinned range `>=20 <25`
+- resolves npm first, with the repo package manager as a fallback
+- installs or verifies the exact pinned
+  `@anarchitects/governance-runtime-dbt` version in a controlled cache
+- never installs globally
+- never installs `latest`
+
+`doctor` behavior:
+
+- reports the host version
+- reports the runtime manifest values
+- reports Node.js and package-manager availability
+- reports the controlled runtime cache location
+- reports runtime package resolution, version, and executable availability
+- reports overall runtime compatibility status
+
+Default runtime cache location:
+
+- `~/.cache/anarchitecture/dbt-governance/runtimes/@anarchitects/governance-runtime-dbt/<version>/`
+
 Boundary:
 
 - the host manages dbt-native artifact lifecycle orchestration
+- the host manages pinned runtime setup and validation
 - the host only performs lightweight path existence and readability checks
 - the host does not normalize dbt artifacts
 - the host does not compute governance results
-- the host does not invoke the runtime composition boundary yet
+- the host does not compose governance-core, adapter, or extension packages
+- runtime-dbt remains the TypeScript composition boundary
 
 ## Boundary Rules
 

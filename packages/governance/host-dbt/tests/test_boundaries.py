@@ -51,12 +51,20 @@ class BoundaryTests(unittest.TestCase):
 
     def test_runtime_manifest_matches_requested_contract(self) -> None:
         manifest = load_runtime_manifest()
+        runtime_package_json = json.loads(
+            (
+                Path(__file__).resolve().parents[3]
+                / "governance"
+                / "runtime-dbt"
+                / "package.json"
+            ).read_text(encoding="utf-8")
+        )
 
         self.assertEqual(
             manifest.runtime_package,
             "@anarchitects/governance-runtime-dbt",
         )
-        self.assertEqual(manifest.runtime_version, "0.0.1")
+        self.assertEqual(manifest.runtime_version, runtime_package_json["version"])
         self.assertEqual(manifest.node_range, ">=20 <25")
         self.assertEqual(manifest.contract_version, "1.0.0")
 

@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from .artifact_manager import ArtifactResolutionResult
 from .dbt_project import HostDiagnostic
+
+if TYPE_CHECKING:
+    from .runtime_manager import RuntimeEnvironmentResult
 
 
 def render_not_implemented(command: str) -> str:
@@ -60,4 +65,69 @@ def render_check_success(result: ArtifactResolutionResult) -> str:
         )
     if artifact_paths.sources_path is not None:
         lines.append(f"Detected optional artifact: {artifact_paths.sources_path}")
+    return "\n".join(lines)
+
+
+def render_runtime_environment(
+    command: str,
+    result: RuntimeEnvironmentResult,
+) -> str:
+    """Render setup or doctor runtime environment details."""
+
+    report = result.report
+    runtime_resolution = report.runtime_resolution
+    if command == "doctor":
+        runtime_action = "Runtime action: inspected runtime environment"
+    elif report.install_performed:
+        runtime_action = "Runtime action: installed pinned runtime package"
+    elif report.runtime_compatible:
+        runtime_action = "Runtime action: verified existing pinned runtime package"
+    else:
+        runtime_action = "Runtime action: no runtime installation was performed"
+
+    lines = [
+        f"dbt-governance {command}",
+        f"Host version: {report.host_version}",
+        f"Manifest runtime package: {report.manifest.runtime_package}",
+        f"Manifest runtime version: {report.manifest.runtime_version}",
+        f"Manifest Node range: {report.manifest.node_range}",
+        f"Manifest contract version: {report.manifest.contract_version}",
+        f"Repo package manager: {report.repo_package_manager or 'unavailable'}",
+        (
+            f"Node.js: {report.node_version} "
+            f"({'compatible' if report.node_supported else 'incompatible'})"
+            if report.node_version is not None
+            else "Node.js: unavailable"
+        ),
+        (
+            f"Selected package manager: {report.package_manager.name} "
+            f"{report.package_manager.version}"
+            if report.package_manager is not None
+            else "Selected package manager: unavailable"
+        ),
+        f"Runtime cache: {runtime_resolution.cache_dir}",
+        f"Runtime package path: {runtime_resolution.package_dir}",
+        (
+            "Runtime package resolved: "
+            f"{runtime_resolution.package_name}@{runtime_resolution.package_version}"
+            if runtime_resolution.package_name and runtime_resolution.package_version
+            else "Runtime package resolved: unavailable"
+        ),
+        (
+            f"Runtime executable: {runtime_resolution.executable_path}"
+            if runtime_resolution.executable_path is not None
+            else "Runtime executable: unavailable"
+        ),
+        runtime_action,
+        (
+            "Runtime compatibility: compatible"
+            if report.runtime_compatible
+            else "Runtime compatibility: incompatible"
+        ),
+    ]
+    if result.diagnostics:
+        lines.append("")
+        lines.append("Diagnostics:")
+        lines.append(render_diagnostics(result.diagnostics))
+
     return "\n".join(lines)
