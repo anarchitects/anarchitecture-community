@@ -18,7 +18,7 @@ The package exposes `dbt-governance` with these commands:
 - `init`
 - `report`
 
-`init` and `report` remain placeholders.
+`init` remains a placeholder.
 
 `check` supports:
 
@@ -29,6 +29,21 @@ The package exposes `dbt-governance` with these commands:
 - `--config`
 - `--use-existing-artifacts`
 - `--parse`
+- `--json`
+- `--report-path`
+
+`report` supports:
+
+- `--project-dir`
+- `--profiles-dir`
+- `--target`
+- `--target-path`
+- `--config`
+- `--use-existing-artifacts`
+- `--parse`
+- `--format json`
+- `--format markdown`
+- `--report-path`
 
 Artifact lookup behavior:
 
@@ -42,9 +57,20 @@ Artifact lookup behavior:
 - After path hints are resolved, `check` invokes
   `@anarchitects/governance-runtime-dbt` through the `dbt-governance-runtime`
   process/JSON boundary.
-- Runtime `stdout` is machine-readable JSON from the runtime boundary.
+- Runtime `stdout` remains machine-readable JSON from the runtime boundary.
 - The host preserves the runtime JSON result and does not inspect
   adapter/extension internals beyond runtime package metadata validation.
+
+Output modes:
+
+- `dbt-governance check` renders a concise human summary for local use.
+- `dbt-governance check --json` writes machine-readable JSON only to stdout.
+- `dbt-governance check --report-path target/governance-report.json` writes the
+  JSON report envelope to disk and reports the path in human mode.
+- `dbt-governance report --format json` emits the JSON report envelope.
+- `dbt-governance report --format markdown` emits a minimal markdown report.
+- `dbt-governance report --report-path ...` writes the selected report format
+  to disk.
 
 `--parse` behavior:
 
@@ -87,6 +113,9 @@ Boundary:
 - the host manages dbt-native artifact lifecycle orchestration
 - the host manages pinned runtime setup and validation
 - the host constructs JSON input and invokes the runtime process boundary
+- the host renders human, JSON, and markdown outputs from the preserved runtime
+  result
+- the host maps final process exit codes for CLI and CI consumers
 - the host only performs lightweight path existence and readability checks
 - the host does not normalize dbt artifacts
 - the host does not compute governance results
@@ -94,6 +123,13 @@ Boundary:
 - runtime-dbt remains the TypeScript composition boundary
 - authoritative dbt artifact loading, validation, and normalization begin after
   the runtime handoff
+
+Exit codes:
+
+- `0`: successful check with no blocking violations
+- `1`: successful check with blocking governance violations
+- `2`: host, dbt, or runtime setup/invocation failure
+- `3`: unsupported or incompatible runtime or contract metadata
 
 ## Boundary Rules
 

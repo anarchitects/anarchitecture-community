@@ -28,6 +28,23 @@ class CheckCommandOptions:
     config: str | None = None
     use_existing_artifacts: bool = False
     parse: bool = False
+    json_output: bool = False
+    report_path: str | None = None
+
+
+@dataclass(frozen=True)
+class ReportCommandOptions:
+    """Host-owned CLI options for the report command."""
+
+    project_dir: str | None = None
+    profiles_dir: str | None = None
+    target: str | None = None
+    target_path: str | None = None
+    config: str | None = None
+    use_existing_artifacts: bool = False
+    parse: bool = False
+    format: str = "markdown"
+    report_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -36,6 +53,7 @@ class RuntimeInvocation:
 
     command: str
     check_options: CheckCommandOptions | None = None
+    report_options: ReportCommandOptions | None = None
 
 
 @dataclass(frozen=True)
