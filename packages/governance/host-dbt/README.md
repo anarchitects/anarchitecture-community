@@ -701,7 +701,7 @@ dbt parse --project-dir <project-dir> [--profiles-dir ...] [--target ...] [--tar
 Pinned runtime metadata:
 
 - package: `@anarchitects/governance-runtime-dbt`
-- version: `0.1.0`
+- version: `0.1.1`
 - executable: `dbt-governance-runtime`
 - Node range: `>=20 <25`
 
