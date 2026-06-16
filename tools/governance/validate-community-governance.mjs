@@ -19,6 +19,10 @@ const adrPath = join(
   workspaceRoot,
   'docs/adr/0001-governance-package-boundaries.md',
 );
+const hostDbtRuntimeManifestPath = join(
+  workspaceRoot,
+  'packages/governance/host-dbt/src/anarchitecture_dbt_governance/runtime_manifest.json',
+);
 const tempRoot = mkdtempSync(join(tmpdir(), 'governance-release-gate-'));
 const npmCacheDir = join(tempRoot, 'npm-cache');
 
@@ -206,6 +210,7 @@ const commands = {
     validateReadmes();
     validateAdrLinks();
     validateExportMetadata();
+    validateRuntimeVersionSync();
     validateSourceBoundaries();
     validateCanonicalContractScans();
     return validatePackedArtifacts();
@@ -221,6 +226,9 @@ const commands = {
   },
   exports() {
     validateExportMetadata();
+  },
+  runtimeVersions() {
+    validateRuntimeVersionSync();
   },
   boundaries() {
     validateSourceBoundaries();
@@ -281,6 +289,7 @@ function validatePrerequisites() {
   assertExists(
     join(workspaceRoot, 'packages/governance/runtime-dbt/src/json-boundary.ts'),
   );
+  assertExists(hostDbtRuntimeManifestPath);
   assertExists(
     join(
       workspaceRoot,
@@ -457,6 +466,45 @@ function validateExportMetadata() {
       rootExport?.['@anarchitecture-community/source'] === './src/index.ts',
       `${pkg.packageName} must point source export at src/index.ts.`,
     );
+  }
+}
+
+function validateRuntimeVersionSync() {
+  validateHostRuntimeManifestSync();
+  validateNoHardcodedGovernanceSelfVersions();
+}
+
+function validateHostRuntimeManifestSync() {
+  const runtimeManifest = readJson(
+    join(workspaceRoot, 'packages/governance/runtime-dbt/package.json'),
+  );
+  const hostRuntimeManifest = readJson(hostDbtRuntimeManifestPath);
+
+  assert(
+    hostRuntimeManifest.runtimePackage === runtimeManifest.name,
+    'governance-host-dbt runtime_manifest.json must pin @anarchitects/governance-runtime-dbt as runtimePackage.',
+  );
+  assert(
+    hostRuntimeManifest.runtimeVersion === runtimeManifest.version,
+    `governance-host-dbt runtime_manifest.json runtimeVersion must match ${runtimeManifest.name}@${runtimeManifest.version}.`,
+  );
+}
+
+function validateNoHardcodedGovernanceSelfVersions() {
+  for (const pkg of packages) {
+    const manifest = readJson(join(pkg.root, 'package.json'));
+    const versionPattern = new RegExp(
+      String.raw`['"\`]${escapeRegExp(manifest.version)}['"\`]`,
+    );
+
+    for (const filePath of collectImplementationFiles(join(pkg.root, 'src'))) {
+      const source = readFileSync(filePath, 'utf8');
+
+      assert(
+        !versionPattern.test(source),
+        `${pkg.packageName} must not hardcode its own package version in production source: ${relativePath(filePath)}.`,
+      );
+    }
   }
 }
 
@@ -789,6 +837,10 @@ function collectDependencies(manifest) {
 
 function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, 'utf8'));
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function assertExists(filePath) {

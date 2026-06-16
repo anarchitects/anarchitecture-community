@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -6,6 +7,11 @@ import { runDbtGovernanceRuntime } from './runtime.js';
 const fixturesRoot = fileURLToPath(
   new URL('../../adapter-dbt/tests/fixtures/artifacts/', import.meta.url),
 );
+const runtimePackageJson = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as {
+  version: string;
+};
 
 describe('runDbtGovernanceRuntime', () => {
   it('returns a canonical workspace with nodes, relations, and runtime metadata for the layered fixture', async () => {
@@ -47,7 +53,7 @@ describe('runDbtGovernanceRuntime', () => {
     expect(result.metadata?.runtime).toEqual({
       packageName: '@anarchitects/governance-runtime-dbt',
       id: 'governance-runtime:dbt',
-      version: '0.0.1',
+      version: runtimePackageJson.version,
       adapterPackageName: '@anarchitects/governance-adapter-dbt',
       extensionPackageName: '@anarchitects/governance-extension-dbt',
       generatedAt: expect.any(String),
@@ -155,7 +161,7 @@ describe('runDbtGovernanceRuntime', () => {
         runtime: expect.objectContaining({
           packageName: '@anarchitects/governance-runtime-dbt',
           id: 'governance-runtime:dbt',
-          version: '0.0.1',
+          version: runtimePackageJson.version,
           adapterPackageName: '@anarchitects/governance-adapter-dbt',
           extensionPackageName: '@anarchitects/governance-extension-dbt',
           invocationId: 'req-extension-1',
