@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import * as runtimeDbt from './index.js';
 import type {
   DbtGovernanceRuntimeErrorResult,
@@ -5,13 +7,21 @@ import type {
   DbtGovernanceRuntimeSuccessResult,
 } from './index.js';
 
+const runtimePackageJson = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+) as {
+  version: string;
+};
+
 describe('dbt runtime public API', () => {
   it('exports the runtime boundary metadata from the package root', () => {
     expect(runtimeDbt.DBT_GOVERNANCE_RUNTIME_ID).toBe('governance-runtime:dbt');
     expect(runtimeDbt.DBT_GOVERNANCE_RUNTIME_PACKAGE_NAME).toBe(
       '@anarchitects/governance-runtime-dbt',
     );
-    expect(runtimeDbt.DBT_GOVERNANCE_RUNTIME_VERSION).toBe('0.0.1');
+    expect(runtimeDbt.DBT_GOVERNANCE_RUNTIME_VERSION).toBe(
+      runtimePackageJson.version,
+    );
     expect(runtimeDbt.DBT_GOVERNANCE_ADAPTER_PACKAGE_NAME).toBe(
       '@anarchitects/governance-adapter-dbt',
     );
@@ -22,7 +32,7 @@ describe('dbt runtime public API', () => {
       id: 'governance-runtime:dbt',
       name: 'dbt Governance Runtime',
       packageName: '@anarchitects/governance-runtime-dbt',
-      version: '0.0.1',
+      version: runtimePackageJson.version,
       adapterPackageName: '@anarchitects/governance-adapter-dbt',
       extensionPackageName: '@anarchitects/governance-extension-dbt',
       description: 'dbt Governance runtime composition boundary.',

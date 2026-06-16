@@ -16,6 +16,13 @@ from anarchitecture_dbt_governance.compatibility import (
     load_runtime_manifest,
 )
 
+RUNTIME_PACKAGE_JSON = json.loads(
+    (Path(__file__).resolve().parents[2] / "runtime-dbt" / "package.json").read_text(
+        encoding="utf-8"
+    )
+)
+RUNTIME_PACKAGE_VERSION = RUNTIME_PACKAGE_JSON["version"]
+
 
 class CompatibilityTests(unittest.TestCase):
     """Verify runtime manifest loading and Node compatibility checks."""
@@ -27,7 +34,7 @@ class CompatibilityTests(unittest.TestCase):
             manifest.runtime_package,
             "@anarchitects/governance-runtime-dbt",
         )
-        self.assertEqual(manifest.runtime_version, "0.1.0")
+        self.assertEqual(manifest.runtime_version, RUNTIME_PACKAGE_VERSION)
         self.assertEqual(manifest.node_range, ">=20 <25")
         self.assertEqual(manifest.contract_version, "1.0.0")
 
@@ -46,7 +53,7 @@ class CompatibilityTests(unittest.TestCase):
                 json.dumps(
                     {
                         "runtimePackage": "@anarchitects/governance-runtime-dbt",
-                        "runtimeVersion": "0.1.0",
+                        "runtimeVersion": RUNTIME_PACKAGE_VERSION,
                         "nodeRange": ">=20 <25",
                     }
                 ),
@@ -55,6 +62,15 @@ class CompatibilityTests(unittest.TestCase):
 
             with self.assertRaises(RuntimeManifestError):
                 load_runtime_manifest(manifest_path)
+
+    def test_packaged_runtime_manifest_version_matches_runtime_package(self) -> None:
+        manifest = load_runtime_manifest()
+
+        self.assertEqual(
+            manifest.runtime_package,
+            RUNTIME_PACKAGE_JSON["name"],
+        )
+        self.assertEqual(manifest.runtime_version, RUNTIME_PACKAGE_VERSION)
 
     def test_node_20_is_supported(self) -> None:
         self.assertTrue(is_supported_node_version("v20.11.1", ">=20 <25"))

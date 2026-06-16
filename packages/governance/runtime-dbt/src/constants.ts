@@ -1,7 +1,14 @@
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const runtimePackageJson = require('../package.json') as {
+  version: string;
+};
+
 export const DBT_GOVERNANCE_RUNTIME_PACKAGE_NAME =
   '@anarchitects/governance-runtime-dbt' as const;
 export const DBT_GOVERNANCE_RUNTIME_ID = 'governance-runtime:dbt' as const;
-export const DBT_GOVERNANCE_RUNTIME_VERSION = '0.0.1' as const;
+export const DBT_GOVERNANCE_RUNTIME_VERSION = runtimePackageJson.version;
 export const DBT_GOVERNANCE_ADAPTER_PACKAGE_NAME =
   '@anarchitects/governance-adapter-dbt' as const;
 export const DBT_GOVERNANCE_EXTENSION_PACKAGE_NAME =

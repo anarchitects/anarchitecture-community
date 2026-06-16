@@ -26,6 +26,12 @@ FORBIDDEN_IMPORT_TOKENS = (
     "@anarchitects/governance-extension-dbt",
 )
 
+RUNTIME_PACKAGE_JSON = json.loads(
+    (Path(__file__).resolve().parents[2] / "runtime-dbt" / "package.json").read_text(
+        encoding="utf-8"
+    )
+)
+
 
 class BoundaryTests(unittest.TestCase):
     """Verify the host respects the package boundary constraints."""
@@ -56,7 +62,8 @@ class BoundaryTests(unittest.TestCase):
             manifest.runtime_package,
             "@anarchitects/governance-runtime-dbt",
         )
-        self.assertEqual(manifest.runtime_version, "0.1.0")
+        self.assertEqual(manifest.runtime_package, RUNTIME_PACKAGE_JSON["name"])
+        self.assertEqual(manifest.runtime_version, RUNTIME_PACKAGE_JSON["version"])
         self.assertEqual(manifest.node_range, ">=20 <25")
         self.assertEqual(manifest.contract_version, "1.0.0")
 
@@ -81,8 +88,9 @@ class BoundaryTests(unittest.TestCase):
 
         self.assertEqual(
             payload["runtimePackage"],
-            "@anarchitects/governance-runtime-dbt",
+            RUNTIME_PACKAGE_JSON["name"],
         )
+        self.assertEqual(payload["runtimeVersion"], RUNTIME_PACKAGE_JSON["version"])
 
 
 if __name__ == "__main__":
