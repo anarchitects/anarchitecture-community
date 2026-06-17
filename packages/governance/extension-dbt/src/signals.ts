@@ -336,6 +336,10 @@ function appendDocumentationSignals(
   resolution: DbtGovernanceMetadataResolution,
   createdAt: string,
 ): void {
+  if (isDbtTestResolution(resolution)) {
+    return;
+  }
+
   const documentationPresent = isResolvedTrue(resolution.documentationPresent);
   const documentationMissing = isMissingBooleanResolution(
     resolution.documentationPresent,
@@ -1165,4 +1169,13 @@ function asString(value: unknown): string | undefined {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function isDbtTestResolution(
+  resolution: DbtGovernanceMetadataResolution,
+): boolean {
+  return (
+    resolution.dbtUniqueId?.startsWith('test.') === true ||
+    resolution.governanceNodeId.startsWith('test.')
+  );
 }

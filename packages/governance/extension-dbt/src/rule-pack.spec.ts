@@ -370,6 +370,46 @@ describe('dbt architecture basic rule pack', () => {
     );
   });
 
+  it('does not flag documented public models', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'model.analytics.documented_public_orders',
+        layer: 'marts',
+        domain: 'finance',
+        owner: 'finance-platform',
+        publicInterface: true,
+        description: true,
+      }),
+    ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) =>
+          violation.ruleId === 'dbt/public-models-require-description',
+      ),
+    ).toBe(false);
+  });
+
+  it('does not flag dbt test nodes for missing descriptions', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'test.analytics.not_null_public_orders_order_id',
+        resourceType: 'test',
+        publicInterface: true,
+        description: false,
+      }),
+    ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) =>
+          violation.ruleId === 'dbt/public-models-require-description' &&
+          violation.subjectId ===
+            'test.analytics.not_null_public_orders_order_id',
+      ),
+    ).toBe(false);
+  });
+
   it('flags critical models without tests', () => {
     const workspace = createWorkspace([
       createProject({
