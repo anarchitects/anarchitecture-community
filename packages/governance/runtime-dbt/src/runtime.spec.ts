@@ -116,6 +116,85 @@ describe('runDbtGovernanceRuntime', () => {
     );
   });
 
+  it('disables core layer-boundary by default in dbt runtime while keeping the dbt layer rule active', async () => {
+    const result = await runFixture(
+      'valid-project',
+      buildLayerOverlapProfile(),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected runtime result to succeed.');
+    }
+
+    const ruleIds = getViolationRuleIds(result);
+
+    expect(ruleIds).toContain('dbt/no-disallowed-layer-dependency');
+    expect(ruleIds).not.toContain('layer-boundary');
+  });
+
+  it('disables core ownership and documentation rules by default in dbt runtime', async () => {
+    const result = await runFixture('valid-project', {
+      name: 'dbt',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected runtime result to succeed.');
+    }
+
+    const ruleIds = getViolationRuleIds(result);
+
+    expect(ruleIds).not.toContain('ownership-presence');
+    expect(ruleIds).not.toContain('documentation-gap');
+  });
+
+  it('lets explicit user layer-boundary config override dbt runtime defaults', async () => {
+    const result = await runFixture('valid-project', {
+      ...buildLayerOverlapProfile(),
+      rules: {
+        ...(buildLayerOverlapProfile().rules as Record<string, unknown>),
+        'layer-boundary': {
+          severity: 'warning',
+        },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected runtime result to succeed.');
+    }
+
+    const ruleIds = getViolationRuleIds(result);
+
+    expect(ruleIds).toContain('dbt/no-disallowed-layer-dependency');
+    expect(ruleIds).toContain('layer-boundary');
+  });
+
+  it('lets explicit user ownership and documentation config override dbt runtime defaults', async () => {
+    const result = await runFixture('valid-project', {
+      name: 'dbt',
+      rules: {
+        'ownership-presence': {
+          severity: 'warning',
+        },
+        'documentation-gap': {
+          severity: 'warning',
+        },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected runtime result to succeed.');
+    }
+
+    const ruleIds = getViolationRuleIds(result);
+
+    expect(ruleIds).toContain('ownership-presence');
+    expect(ruleIds).toContain('documentation-gap');
+  });
+
   it('assembles a governance assessment for the layered fixture', async () => {
     const result = await runLayeredProjectFixture();
 
@@ -261,26 +340,22 @@ describe('runDbtGovernanceRuntime', () => {
   });
 });
 
-async function runLayeredProjectFixture() {
+function getViolationRuleIds(
+  result: Awaited<ReturnType<typeof runDbtGovernanceRuntime>>,
+) {
+  return [...new Set(result.violations?.map((violation) => violation.ruleId))];
+}
+
+async function runFixture(
+  fixtureName: string,
+  profileDocument?: Record<string, unknown>,
+  requestId = `req-${fixtureName}`,
+) {
   return runDbtGovernanceRuntime({
-    profile: {
-      document: {
-        rules: {
-          'dbt/no-disallowed-layer-dependency': {
-            options: {
-              allowedUpstreamByLayer: {
-                staging: [],
-                intermediate: [],
-                marts: ['marts'],
-              },
-            },
-          },
-        },
-      },
-    },
+    ...(profileDocument ? { profile: { document: profileDocument } } : {}),
     adapter: {
       paths: {
-        projectDir: './layered-project',
+        projectDir: `./${fixtureName}`,
       },
     },
     extension: {
@@ -290,8 +365,47 @@ async function runLayeredProjectFixture() {
     },
     runtime: {
       workingDirectory: fixturesRoot,
-      requestId: 'req-extension-1',
+      requestId,
       dryRun: true,
     },
   });
+}
+
+async function runLayeredProjectFixture() {
+  return runFixture(
+    'layered-project',
+    {
+      rules: {
+        'dbt/no-disallowed-layer-dependency': {
+          options: {
+            allowedUpstreamByLayer: {
+              staging: [],
+              intermediate: [],
+              marts: ['marts'],
+            },
+          },
+        },
+      },
+    },
+    'req-extension-1',
+  );
+}
+
+function buildLayerOverlapProfile(): Record<string, unknown> {
+  return {
+    name: 'dbt',
+    layers: ['staging', 'transform', 'mart', 'history'],
+    rules: {
+      'dbt/no-disallowed-layer-dependency': {
+        options: {
+          allowedUpstreamByLayer: {
+            staging: [],
+            transform: ['transform'],
+            mart: ['mart'],
+            history: ['history'],
+          },
+        },
+      },
+    },
+  };
 }
