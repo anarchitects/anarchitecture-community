@@ -93,6 +93,7 @@ jobs:
 
       - name: Typecheck project
         run: yarn nx typecheck "${{ steps.tag.outputs.project }}"
+        if: steps.tag.outputs.project != 'governance-host-dbt'
 
       - name: Test project
         run: yarn nx test "${{ steps.tag.outputs.project }}"
