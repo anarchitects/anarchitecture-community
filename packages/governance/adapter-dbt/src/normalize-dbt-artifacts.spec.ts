@@ -486,10 +486,6 @@ describe('dbt artifact normalization', () => {
     expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
       meta: {
         lineage: 'external',
-        owner: 'raw-data-team',
-        domain: 'finance',
-        layer: 'raw',
-        criticality: 'high',
       },
       sourceMeta: {
         governance: {
@@ -497,6 +493,18 @@ describe('dbt artifact normalization', () => {
           domain: 'finance',
           layer: 'raw',
           criticality: 'high',
+        },
+      },
+      resolvedGovernanceMeta: {
+        owner: 'raw-data-team',
+        domain: 'finance',
+        layer: 'raw',
+        criticality: 'high',
+        provenance: {
+          owner: 'source.meta.governance',
+          domain: 'source.meta.governance',
+          layer: 'source.meta.governance',
+          criticality: 'source.meta.governance',
         },
       },
     });
@@ -544,10 +552,7 @@ describe('dbt artifact normalization', () => {
           layer: 'table-layer',
           criticality: 'critical',
         },
-        owner: 'table-governance-owner',
-        domain: 'table-domain',
-        layer: 'table-layer',
-        criticality: 'critical',
+        owner: 'table-meta-owner',
       },
       sourceMeta: {
         governance: {
@@ -557,6 +562,18 @@ describe('dbt artifact normalization', () => {
           criticality: 'high',
         },
         owner: 'source-meta-owner',
+      },
+      resolvedGovernanceMeta: {
+        owner: 'table-governance-owner',
+        domain: 'table-domain',
+        layer: 'table-layer',
+        criticality: 'critical',
+        provenance: {
+          owner: 'table.meta.governance',
+          domain: 'table.meta.governance',
+          layer: 'table.meta.governance',
+          criticality: 'table.meta.governance',
+        },
       },
     });
   });
@@ -589,10 +606,6 @@ describe('dbt artifact normalization', () => {
     expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
       meta: {
         lineage: 'external',
-        owner: 'source-meta-owner',
-        domain: 'source-meta-domain',
-        layer: 'source-meta-layer',
-        criticality: 'medium',
       },
       sourceMeta: {
         owner: 'source-meta-owner',
@@ -600,7 +613,118 @@ describe('dbt artifact normalization', () => {
         layer: 'source-meta-layer',
         criticality: 'medium',
       },
+      resolvedGovernanceMeta: {
+        owner: 'source-meta-owner',
+        domain: 'source-meta-domain',
+        layer: 'source-meta-layer',
+        criticality: 'medium',
+        provenance: {
+          owner: 'source.meta',
+          domain: 'source.meta',
+          layer: 'source.meta',
+          criticality: 'source.meta',
+        },
+      },
     });
+  });
+
+  it('prefers governance namespaced source table metadata over plain meta at the same level', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'source',
+      unique_id:
+        'source.valid_project.raw.synthetic_source_governance_namespace_case',
+      name: 'synthetic_source_governance_namespace_case',
+      source_name: 'raw',
+      meta: {
+        governance: {
+          owner: 'table-governance-owner',
+          domain: 'table-governance-domain',
+          layer: 'table-governance-layer',
+          criticality: 'critical',
+        },
+        owner: 'table-meta-owner',
+        domain: 'table-meta-domain',
+        layer: 'table-meta-layer',
+        criticality: 'high',
+      },
+      source_meta: {
+        governance: {
+          owner: 'source-governance-owner',
+        },
+        owner: 'source-meta-owner',
+      },
+    });
+
+    expect(node.ownership).toEqual({
+      team: 'table-governance-owner',
+      source: 'dbt-manifest',
+    });
+    expect(node.classification).toMatchObject({
+      domain: 'table-governance-domain',
+      layer: 'table-governance-layer',
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        governance: {
+          owner: 'table-governance-owner',
+          domain: 'table-governance-domain',
+          layer: 'table-governance-layer',
+          criticality: 'critical',
+        },
+        owner: 'table-meta-owner',
+        domain: 'table-meta-domain',
+        layer: 'table-meta-layer',
+        criticality: 'high',
+      },
+      sourceMeta: {
+        governance: {
+          owner: 'source-governance-owner',
+        },
+        owner: 'source-meta-owner',
+      },
+      resolvedGovernanceMeta: {
+        owner: 'table-governance-owner',
+        domain: 'table-governance-domain',
+        layer: 'table-governance-layer',
+        criticality: 'critical',
+        provenance: {
+          owner: 'table.meta.governance',
+          domain: 'table.meta.governance',
+          layer: 'table.meta.governance',
+          criticality: 'table.meta.governance',
+        },
+      },
+    });
+  });
+
+  it('keeps dbt source metadata missing when no table or source governance fields are present', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'source',
+      unique_id:
+        'source.valid_project.raw.synthetic_source_missing_metadata_case',
+      name: 'synthetic_source_missing_metadata_case',
+      source_name: 'raw',
+      meta: {
+        lineage: 'external',
+      },
+      source_meta: {
+        freshness: 'daily',
+      },
+    });
+
+    expect(node.ownership).toBeUndefined();
+    expect(node.classification).toBeUndefined();
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        lineage: 'external',
+      },
+      sourceMeta: {
+        freshness: 'daily',
+      },
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).not.toHaveProperty(
+      'resolvedGovernanceMeta',
+    );
   });
 
   it('keeps relation ids deterministic for equivalent manifest input orderings', () => {
