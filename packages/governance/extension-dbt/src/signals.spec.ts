@@ -105,6 +105,7 @@ describe('dbt governance signals', () => {
 
   function createProject(options: {
     id: string;
+    resourceType?: 'model' | 'test';
     layer: string;
     domain: string;
     owner?: string;
@@ -134,6 +135,9 @@ describe('dbt governance signals', () => {
         dbt: {
           identity: {
             uniqueId: options.id,
+            ...(options.resourceType
+              ? { resourceType: options.resourceType }
+              : {}),
           },
           resource: {
             tags: options.publicInterface ? ['public'] : [],
@@ -154,7 +158,9 @@ describe('dbt governance signals', () => {
                   },
                 }
               : {}),
-            materialization: 'table',
+            ...(options.resourceType !== 'test'
+              ? { materialization: 'table' }
+              : {}),
           },
           relation: {
             originalFilePath: `models/${options.layer}/${options.id.split('.').at(-1)}.sql`,
@@ -242,6 +248,26 @@ describe('dbt governance signals', () => {
         diagnosticCodes: expect.arrayContaining(['DBT_OWNER_MISSING']),
       },
     });
+  });
+
+  it('does not emit documentation signals for dbt test nodes', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'test.analytics.not_null_public_orders_order_id',
+        resourceType: 'test',
+        layer: 'marts',
+        domain: 'finance',
+        publicInterface: true,
+        description: false,
+      }),
+    ]);
+
+    const codes = buildDbtGovernanceSignals(createSignalInput(workspace)).map(
+      (signal) => String(signal.metadata?.code ?? ''),
+    );
+
+    expect(codes).not.toContain('DBT_DESCRIPTION_MISSING');
+    expect(codes).not.toContain('DBT_PUBLIC_MODEL_UNDOCUMENTED_CANDIDATE');
   });
 
   it('emits dependency-level dbt layering, domain, and ownership signals', () => {

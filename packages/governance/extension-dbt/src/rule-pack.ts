@@ -463,6 +463,7 @@ function evaluatePublicModelsRequireDescription(
 
   if (
     !config.enabled ||
+    isDbtTestResolution(resolution) ||
     resolution.publicInterface.status !== 'resolved' ||
     resolution.publicInterface.value !== true ||
     (resolution.documentationPresent.status === 'resolved' &&
@@ -877,4 +878,13 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function isDbtTestResolution(
+  resolution: DbtGovernanceMetadataResolution,
+): boolean {
+  return (
+    resolution.dbtUniqueId?.startsWith('test.') === true ||
+    resolution.governanceNodeId.startsWith('test.')
+  );
 }
