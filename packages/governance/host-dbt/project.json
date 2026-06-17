@@ -90,8 +90,16 @@
       }
     },
     "nx-release-publish": {
-      "executor": "@nxlv/python:publish",
-      "options": {},
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "node tools/release/publish-governance-host-dbt.cjs",
+        "cwd": "{workspaceRoot}",
+        "forwardAllArgs": true,
+        "env": {
+          "UV_CACHE_DIR": ".cache/uv"
+        }
+      },
       "outputs": []
     }
   },
