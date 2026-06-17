@@ -588,7 +588,7 @@ function normalizeDbtManifestResource(
   const fqn = readStringArray(record.fqn);
   const fullyQualifiedName = fqn.length > 0 ? fqn.join('.') : undefined;
   const classification = deriveClassification(resourceMeta, resourceTags);
-  const ownership = normalizeOwner(record.owner, group);
+  const ownership = normalizeOwnership(record, group, resourceMeta);
   const dbtMetadata = buildDbtResourceMetadata(record, {
     uniqueId,
     packageName,
@@ -797,10 +797,27 @@ function inferScope(tags: readonly string[]): string | undefined {
   return scopedTag?.split(':').slice(1).join(':');
 }
 
-function normalizeOwner(
-  owner: unknown,
+function normalizeOwnership(
+  resource: ResourceRecord,
   group?: string,
+  meta: ResourceRecord = {},
 ): GovernanceOwnershipInput | undefined {
+  const config = asRecord(resource.config);
+  const configMeta = asRecord(config?.meta);
+  const configGovernanceMeta = asRecord(configMeta?.governance);
+  const governanceMeta = asRecord(meta.governance);
+
+  return (
+    normalizeOwner(resource.owner) ??
+    normalizeOwner(group) ??
+    normalizeOwner(configGovernanceMeta?.owner) ??
+    normalizeOwner(configMeta?.owner) ??
+    normalizeOwner(governanceMeta?.owner) ??
+    normalizeOwner(meta.owner)
+  );
+}
+
+function normalizeOwner(owner: unknown): GovernanceOwnershipInput | undefined {
   if (typeof owner === 'string' && owner.trim().length > 0) {
     return {
       team: owner,
@@ -821,13 +838,6 @@ function normalizeOwner(
         source: 'dbt-manifest',
       };
     }
-  }
-
-  if (group) {
-    return {
-      team: group,
-      source: 'dbt-manifest',
-    };
   }
 
   return undefined;
