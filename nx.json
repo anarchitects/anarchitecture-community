@@ -72,8 +72,20 @@
   },
   "nxCloudId": "69c3ab46bf33a362f847a654",
   "release": {
+    "projects": [
+      "better-auth-typeorm-adapter",
+      "nest-angular-ssr",
+      "governance-core",
+      "governance-adapter-dbt",
+      "governance-adapter-typescript",
+      "governance-extension-dbt",
+      "governance-extension-typescript",
+      "governance-runtime-dbt",
+      "governance-cli",
+      "governance-host-dbt"
+    ],
     "version": {
-      "preVersionCommand": "yarn dlx nx run-many -t build",
+      "preVersionCommand": "UV_CACHE_DIR=.cache/uv yarn nx run-many -t build",
       "conventionalCommits": true,
       "updateDependents": "auto",
       "preserveMatchingDependencyRanges": false

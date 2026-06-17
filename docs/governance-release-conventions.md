@@ -136,7 +136,13 @@ That gate should pass for:
 - `@anarchitects/governance-extension-dbt`
 - `@anarchitects/governance-extension-typescript`
 - `@anarchitects/governance-runtime-dbt`
+- `anarchitecture-dbt-governance`
 - `@anarchitects/governance-cli`
+
+For `anarchitecture-dbt-governance`, release validation should also confirm that
+`packages/governance/host-dbt/src/anarchitecture_dbt_governance/runtime_manifest.json`
+remains aligned with the released `@anarchitects/governance-runtime-dbt`
+version.
 
 Representative release-gate scans:
 

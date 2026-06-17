@@ -198,6 +198,52 @@ yarn nx release publish --projects better-auth-typeorm-adapter --dry-run
 
 The release notes are expected to come from Nx's GitHub release flow using the repository's conventional commits configuration. No separate handwritten changelog file is required for the adapter.
 
+## Releasing `anarchitecture-dbt-governance`
+
+The package is released through Nx using the Python-specific `@nxlv/python`
+version actions, with one repo-local extension: if
+`governance-runtime-dbt` is version-bumped, Nx also patch-bumps
+`governance-host-dbt` and syncs
+`packages/governance/host-dbt/src/anarchitecture_dbt_governance/runtime_manifest.json`
+to the new `@anarchitects/governance-runtime-dbt` version.
+
+### First release
+
+For the first package release, use Nx's first-release flow locally:
+
+```bash
+yarn nx release --projects governance-host-dbt --skip-publish --first-release
+git push && git push --tags
+```
+
+### Ongoing releases
+
+After the package already has tags in git:
+
+```bash
+yarn nx release --projects governance-host-dbt --skip-publish
+git push && git push --tags
+```
+
+When releasing the runtime package, Nx should include the host automatically if
+the runtime version changes:
+
+```bash
+yarn nx release --projects governance-runtime-dbt --skip-publish
+```
+
+### Local verification before releasing
+
+Recommended package-scoped checks:
+
+```bash
+yarn nx run governance-host-dbt:build
+yarn nx run governance-host-dbt:lint
+yarn nx run governance-host-dbt:test
+yarn nx run governance-host-dbt:e2e
+yarn nx release publish --projects governance-host-dbt --dry-run
+```
+
 ## Documentation
 
 Public API changes should update docs in the same change.
