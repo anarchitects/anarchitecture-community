@@ -342,4 +342,106 @@ describe('dbt governance metadata resolvers', () => {
       value: true,
     });
   });
+
+  it('interprets normalized source metadata using the dbt source precedence strategy', () => {
+    const input = createInput({
+      id: 'source.valid_project.raw.orders',
+      domain: 'source-table-domain',
+      layer: 'source-table-layer',
+      ownership: {
+        team: 'source-table-owner',
+        source: 'dbt-manifest',
+      },
+      metadata: {
+        dbt: {
+          identity: {
+            uniqueId: 'source.valid_project.raw.orders',
+            resourceType: 'source',
+          },
+          resource: {
+            meta: {
+              lineage: 'external',
+              owner: 'source-table-owner',
+              domain: 'source-table-domain',
+              layer: 'source-table-layer',
+              criticality: 'high',
+            },
+            sourceMeta: {
+              governance: {
+                owner: 'raw-data-team',
+                domain: 'finance',
+                layer: 'raw',
+                criticality: 'medium',
+              },
+            },
+          },
+          relation: {
+            originalFilePath: 'models/raw/raw.yml',
+          },
+          validation: {},
+          documentation: {},
+        },
+      },
+    });
+
+    expect(resolveDbtOwner(input)).toMatchObject({
+      status: 'resolved',
+      value: 'source-table-owner',
+      sourcePaths: ['node.ownership.team'],
+    });
+    expect(resolveDbtDomain(input)).toMatchObject({
+      status: 'resolved',
+      value: 'source-table-domain',
+      sourcePaths: expect.arrayContaining(['node.classification.domain']),
+    });
+    expect(resolveDbtLayer(input)).toMatchObject({
+      status: 'resolved',
+      value: 'source-table-layer',
+      sourcePaths: expect.arrayContaining(['node.classification.layer']),
+    });
+    expect(resolveDbtCriticality(input)).toMatchObject({
+      status: 'resolved',
+      value: 'high',
+      sourcePaths: ['metadata.dbt.resource.meta.criticality'],
+    });
+  });
+
+  it('leaves dbt source metadata unresolved when neither table nor source metadata is present', () => {
+    const input = createInput({
+      id: 'source.valid_project.raw.orders',
+      metadata: {
+        dbt: {
+          identity: {
+            uniqueId: 'source.valid_project.raw.orders',
+            resourceType: 'source',
+          },
+          resource: {
+            tags: [],
+            meta: {},
+          },
+          relation: {
+            originalFilePath: 'models/raw/raw.yml',
+          },
+          validation: {},
+          documentation: {},
+        },
+      },
+    });
+
+    expect(resolveDbtOwner(input)).toMatchObject({
+      status: 'unresolved',
+    });
+    expect(
+      resolveDbtDomain(input, {
+        domain: {
+          fromPath: false,
+        },
+      }),
+    ).toMatchObject({
+      status: 'unresolved',
+    });
+    expect(resolveDbtCriticality(input)).toMatchObject({
+      status: 'unresolved',
+    });
+  });
 });

@@ -21,6 +21,7 @@ interface DbtNodeExpansionEnvelope {
   data: {
     kind: 'node';
     nodeKind: 'project' | 'resource' | 'unknown';
+    resource?: Record<string, unknown>;
   };
 }
 
@@ -455,6 +456,153 @@ describe('dbt artifact normalization', () => {
     });
   });
 
+  it('inherits source-level governance metadata for source tables', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'source',
+      unique_id: 'source.valid_project.raw.synthetic_source_case',
+      name: 'synthetic_source_case',
+      source_name: 'raw',
+      meta: {
+        lineage: 'external',
+      },
+      source_meta: {
+        governance: {
+          owner: 'raw-data-team',
+          domain: 'finance',
+          layer: 'raw',
+          criticality: 'high',
+        },
+      },
+    });
+
+    expect(node.ownership).toEqual({
+      team: 'raw-data-team',
+      source: 'dbt-manifest',
+    });
+    expect(node.classification).toMatchObject({
+      domain: 'finance',
+      layer: 'raw',
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        lineage: 'external',
+        owner: 'raw-data-team',
+        domain: 'finance',
+        layer: 'raw',
+        criticality: 'high',
+      },
+      sourceMeta: {
+        governance: {
+          owner: 'raw-data-team',
+          domain: 'finance',
+          layer: 'raw',
+          criticality: 'high',
+        },
+      },
+    });
+  });
+
+  it('prefers table-level source metadata over source-level metadata', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'source',
+      unique_id: 'source.valid_project.raw.synthetic_source_precedence_case',
+      name: 'synthetic_source_precedence_case',
+      source_name: 'raw',
+      meta: {
+        governance: {
+          owner: 'table-governance-owner',
+          domain: 'table-domain',
+          layer: 'table-layer',
+          criticality: 'critical',
+        },
+        owner: 'table-meta-owner',
+      },
+      source_meta: {
+        governance: {
+          owner: 'source-governance-owner',
+          domain: 'source-domain',
+          layer: 'source-layer',
+          criticality: 'high',
+        },
+        owner: 'source-meta-owner',
+      },
+    });
+
+    expect(node.ownership).toEqual({
+      team: 'table-governance-owner',
+      source: 'dbt-manifest',
+    });
+    expect(node.classification).toMatchObject({
+      domain: 'table-domain',
+      layer: 'table-layer',
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        governance: {
+          owner: 'table-governance-owner',
+          domain: 'table-domain',
+          layer: 'table-layer',
+          criticality: 'critical',
+        },
+        owner: 'table-governance-owner',
+        domain: 'table-domain',
+        layer: 'table-layer',
+        criticality: 'critical',
+      },
+      sourceMeta: {
+        governance: {
+          owner: 'source-governance-owner',
+          domain: 'source-domain',
+          layer: 'source-layer',
+          criticality: 'high',
+        },
+        owner: 'source-meta-owner',
+      },
+    });
+  });
+
+  it('inherits plain source-level metadata when governance namespace is absent', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'source',
+      unique_id: 'source.valid_project.raw.synthetic_source_plain_meta_case',
+      name: 'synthetic_source_plain_meta_case',
+      source_name: 'raw',
+      meta: {
+        lineage: 'external',
+      },
+      source_meta: {
+        owner: 'source-meta-owner',
+        domain: 'source-meta-domain',
+        layer: 'source-meta-layer',
+        criticality: 'medium',
+      },
+    });
+
+    expect(node.ownership).toEqual({
+      team: 'source-meta-owner',
+      source: 'dbt-manifest',
+    });
+    expect(node.classification).toMatchObject({
+      domain: 'source-meta-domain',
+      layer: 'source-meta-layer',
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        lineage: 'external',
+        owner: 'source-meta-owner',
+        domain: 'source-meta-domain',
+        layer: 'source-meta-layer',
+        criticality: 'medium',
+      },
+      sourceMeta: {
+        owner: 'source-meta-owner',
+        domain: 'source-meta-domain',
+        layer: 'source-meta-layer',
+        criticality: 'medium',
+      },
+    });
+  });
+
   it('keeps relation ids deterministic for equivalent manifest input orderings', () => {
     const context = mustResolveContext('layered-project');
     const artifacts = mustLoadArtifacts(context);
@@ -659,7 +807,12 @@ function mustLoadArtifacts(
 
 function normalizeSyntheticNode(resource: DbtManifestResource) {
   const context = mustResolveContext('valid-project');
-  const uniqueId = 'model.valid_project.synthetic_owner_case';
+  const uniqueId =
+    typeof resource.unique_id === 'string'
+      ? resource.unique_id
+      : resource.resource_type === 'source'
+        ? 'source.valid_project.raw.synthetic_source_case'
+        : 'model.valid_project.synthetic_owner_case';
   const normalized = normalizeDbtArtifacts(context, {
     manifest: buildSyntheticManifest(uniqueId, resource),
     projectConfig: {
@@ -676,23 +829,46 @@ function normalizeSyntheticNode(resource: DbtManifestResource) {
   return node;
 }
 
+function getDbtNodeExpansion(node: { extensions?: Record<string, unknown> }) {
+  return node.extensions?.['governance-extension:dbt'] as
+    | DbtNodeExpansionEnvelope
+    | undefined;
+}
+
 function buildSyntheticManifest(
   uniqueId: string,
   resource: DbtManifestResource,
 ): DbtArtifacts['manifest'] {
+  const resourceType =
+    typeof resource.resource_type === 'string'
+      ? resource.resource_type
+      : 'model';
+  const entry = {
+    resource_type: resourceType,
+    unique_id: uniqueId,
+    package_name: 'valid_project',
+    name: 'synthetic_owner_case',
+    ...(resourceType === 'source' ? { source_name: 'synthetic_source' } : {}),
+    ...resource,
+  };
+
   return {
     metadata: {
       dbt_schema_version: 'https://schemas.getdbt.com/dbt/manifest/v12.json',
       project_name: 'valid_project',
     },
-    nodes: {
-      [uniqueId]: {
-        resource_type: 'model',
-        unique_id: uniqueId,
-        package_name: 'valid_project',
-        name: 'synthetic_owner_case',
-        ...resource,
-      },
-    },
+    nodes:
+      resourceType === 'source'
+        ? {}
+        : {
+            [uniqueId]: entry,
+          },
+    ...(resourceType === 'source'
+      ? {
+          sources: {
+            [uniqueId]: entry,
+          },
+        }
+      : {}),
   };
 }
