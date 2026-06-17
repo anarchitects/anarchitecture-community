@@ -87,6 +87,12 @@ interface RelationMappingResult {
   unsupportedCount: number;
 }
 
+interface DbtSourceMetadataView {
+  tableMeta: ResourceRecord;
+  sourceMeta?: ResourceRecord;
+  normalizedMeta: ResourceRecord;
+}
+
 export function normalizeDbtArtifacts(
   projectContext: DbtProjectContext,
   artifacts: DbtArtifacts,
@@ -583,12 +589,19 @@ function normalizeDbtManifestResource(
     ? path.join(projectContext.projectDir, originalFilePath)
     : undefined;
   const resourceTags = readStringArray(record.tags);
-  const resourceMeta = asRecord(record.meta) ?? {};
+  const sourceMetadataView = readDbtSourceMetadataView(record, resourceType);
   const group = readOptionalString(record.group);
   const fqn = readStringArray(record.fqn);
   const fullyQualifiedName = fqn.length > 0 ? fqn.join('.') : undefined;
-  const classification = deriveClassification(resourceMeta, resourceTags);
-  const ownership = normalizeOwnership(record, group, resourceMeta);
+  const classification = deriveClassification(
+    sourceMetadataView.normalizedMeta,
+    resourceTags,
+  );
+  const ownership = normalizeOwnership(
+    record,
+    group,
+    sourceMetadataView.normalizedMeta,
+  );
   const dbtMetadata = buildDbtResourceMetadata(record, {
     uniqueId,
     packageName,
@@ -596,6 +609,7 @@ function normalizeDbtManifestResource(
     fullyQualifiedName,
     fqn,
     sourcePath: absoluteSourcePath,
+    sourceMetadataView,
   });
   const incompleteMetadataFields = collectIncompleteMetadataFields(
     resourceType,
@@ -651,6 +665,7 @@ function buildDbtResourceMetadata(
     fullyQualifiedName?: string;
     fqn: string[];
     sourcePath?: string;
+    sourceMetadataView: DbtSourceMetadataView;
   },
 ): Record<string, unknown> {
   const docs = asRecord(resource.docs);
@@ -675,7 +690,10 @@ function buildDbtResourceMetadata(
     },
     resource: {
       tags: readStringArray(resource.tags),
-      meta: asRecord(resource.meta) ?? {},
+      meta: options.sourceMetadataView.normalizedMeta,
+      ...(options.sourceMetadataView.sourceMeta
+        ? { sourceMeta: options.sourceMetadataView.sourceMeta }
+        : {}),
       ...(readMaterialization(resource)
         ? { materialization: readMaterialization(resource) }
         : {}),
@@ -790,6 +808,88 @@ function deriveClassification(
     ...(scope ? { scope } : {}),
     ...(tags.length > 0 ? { tags: [...tags] } : {}),
   };
+}
+
+function readDbtSourceMetadataView(
+  resource: ResourceRecord,
+  resourceType: string,
+): DbtSourceMetadataView {
+  const tableMeta = asRecord(resource.meta) ?? {};
+
+  if (resourceType !== 'source') {
+    return {
+      tableMeta,
+      normalizedMeta: tableMeta,
+    };
+  }
+
+  const sourceMeta = asRecord(resource.source_meta);
+  if (!sourceMeta) {
+    return {
+      tableMeta,
+      normalizedMeta: tableMeta,
+    };
+  }
+
+  return {
+    tableMeta,
+    sourceMeta,
+    normalizedMeta: normalizeDbtSourceTableMeta(tableMeta, sourceMeta),
+  };
+}
+
+function normalizeDbtSourceTableMeta(
+  tableMeta: ResourceRecord,
+  sourceMeta: ResourceRecord,
+): ResourceRecord {
+  const normalizedMeta: ResourceRecord = {
+    ...tableMeta,
+  };
+
+  applyNormalizedSourceField(normalizedMeta, tableMeta, sourceMeta, 'owner');
+  applyNormalizedSourceField(normalizedMeta, tableMeta, sourceMeta, 'domain');
+  applyNormalizedSourceField(normalizedMeta, tableMeta, sourceMeta, 'layer');
+  applyNormalizedSourceField(
+    normalizedMeta,
+    tableMeta,
+    sourceMeta,
+    'criticality',
+  );
+
+  return normalizedMeta;
+}
+
+function applyNormalizedSourceField(
+  normalizedMeta: ResourceRecord,
+  tableMeta: ResourceRecord,
+  sourceMeta: ResourceRecord,
+  field: 'owner' | 'domain' | 'layer' | 'criticality',
+): void {
+  const resolvedValue = resolveSourceMetadataField(
+    tableMeta,
+    sourceMeta,
+    field,
+  );
+
+  if (resolvedValue !== undefined) {
+    normalizedMeta[field] = resolvedValue;
+  }
+}
+
+function resolveSourceMetadataField(
+  tableMeta: ResourceRecord,
+  sourceMeta: ResourceRecord,
+  field: 'owner' | 'domain' | 'layer' | 'criticality',
+): string | undefined {
+  const tableGovernanceMeta = asRecord(tableMeta.governance);
+  const sourceGovernanceMeta = asRecord(sourceMeta.governance);
+
+  return readOptionalString(
+    tableGovernanceMeta?.[field] ??
+      tableMeta[field] ??
+      sourceGovernanceMeta?.[field] ??
+      sourceMeta[field],
+  );
 }
 
 function inferScope(tags: readonly string[]): string | undefined {
