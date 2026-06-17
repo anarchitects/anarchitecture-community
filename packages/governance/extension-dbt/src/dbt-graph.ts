@@ -24,6 +24,7 @@ const DBT_RELATION_KINDS = new Set([
 ]);
 
 const DBT_DEPENDENCY_RELATION_KINDS = new Set(['dependency', 'lineage']);
+const TEST_COVERAGE_RESOURCE_TYPES = new Set(['model', 'source']);
 
 export function getDbtNodes(workspace: GovernanceWorkspace): GovernanceNode[] {
   return workspace.nodes.filter((node) => isDbtNode(node));
@@ -135,7 +136,12 @@ export function getDbtMetadata(
 
 export function toResolverInput(
   node: GovernanceNode,
+  inferredTestNodeIdsByTarget?: ReadonlyMap<string, readonly string[]>,
 ): DbtGovernanceMetadataResolverInput {
+  const inferredTestNodeIds = isDbtTestCoverageTarget(node)
+    ? inferredTestNodeIdsByTarget?.get(node.id)
+    : undefined;
+
   return {
     id: node.id,
     name: node.name,
@@ -148,7 +154,41 @@ export function toResolverInput(
     metadata: getDbtMetadata(node)
       ? { dbt: getDbtMetadata(node) }
       : node.metadata,
+    ...(inferredTestNodeIds ? { inferredTestNodeIds } : {}),
   };
+}
+
+export function buildDbtInferredTestNodeIdsByTarget(
+  workspace: GovernanceWorkspace,
+): ReadonlyMap<string, readonly string[]> {
+  const nodeById = indexNodesById(workspace.nodes);
+  const inferredByTarget = new Map<string, Set<string>>();
+
+  for (const relation of getDbtRelations(workspace)) {
+    const sourceNode = nodeById.get(relation.sourceNodeId);
+    const targetNode = nodeById.get(relation.targetNodeId);
+
+    if (
+      !sourceNode ||
+      !targetNode ||
+      !isDbtTestNode(sourceNode) ||
+      !isDbtTestCoverageTarget(targetNode)
+    ) {
+      continue;
+    }
+
+    const inferredTestNodeIds =
+      inferredByTarget.get(targetNode.id) ?? new Set<string>();
+    inferredTestNodeIds.add(sourceNode.id);
+    inferredByTarget.set(targetNode.id, inferredTestNodeIds);
+  }
+
+  return new Map(
+    [...inferredByTarget.entries()].map(([targetNodeId, testNodeIds]) => [
+      targetNodeId,
+      [...testNodeIds].sort(),
+    ]),
+  );
 }
 
 export function toNodeReference(nodeId: string): GovernanceRuntimeReference {
@@ -283,4 +323,38 @@ function buildRelationDbtMetadata(
         }
       : { lineage: { relationKind: expansion.relationKind } }),
   };
+}
+
+function isDbtTestNode(node: GovernanceNode): boolean {
+  return getDbtResourceType(node) === 'test';
+}
+
+function isDbtTestCoverageTarget(node: GovernanceNode): boolean {
+  const resourceType = getDbtResourceType(node);
+  return (
+    resourceType !== undefined && TEST_COVERAGE_RESOURCE_TYPES.has(resourceType)
+  );
+}
+
+function getDbtResourceType(node: GovernanceNode): string | undefined {
+  const metadata = getDbtMetadata(node);
+  const identity = asRecord(metadata?.identity);
+  const resourceType = identity?.resourceType;
+
+  if (typeof resourceType === 'string' && resourceType.trim().length > 0) {
+    return resourceType.trim();
+  }
+
+  if (node.kind.startsWith('dbt-')) {
+    return node.kind.slice(4).replaceAll('-', '_');
+  }
+
+  if (node.id.startsWith('model.')) return 'model';
+  if (node.id.startsWith('source.')) return 'source';
+  if (node.id.startsWith('seed.')) return 'seed';
+  if (node.id.startsWith('snapshot.')) return 'snapshot';
+  if (node.id.startsWith('exposure.')) return 'exposure';
+  if (node.id.startsWith('test.')) return 'test';
+
+  return undefined;
 }

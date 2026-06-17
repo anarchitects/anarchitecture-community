@@ -12,7 +12,12 @@ import type {
   DbtGovernanceRecommendationProvider,
   DbtGovernanceRecommendationProviderInput,
 } from './contracts.js';
-import { getDbtNodes, normalizeIds, toResolverInput } from './dbt-graph.js';
+import {
+  buildDbtInferredTestNodeIdsByTarget,
+  getDbtNodes,
+  normalizeIds,
+  toResolverInput,
+} from './dbt-graph.js';
 import { buildDbtGovernanceDiagnostics } from './diagnostics.js';
 import { buildDbtGovernanceMetrics } from './metrics.js';
 import { evaluateDbtArchitectureViolations } from './rule-pack.js';
@@ -125,11 +130,16 @@ export function buildDbtGovernanceRecommendations(
 function resolveRecommendationContext(
   input: DbtGovernanceRecommendationProviderInput,
 ): RecommendationContext {
+  const inferredTestNodeIdsByTarget = buildDbtInferredTestNodeIdsByTarget(
+    input.workspace,
+  );
   const metadataResolutions =
     input.metadataResolutions && input.metadataResolutions.length > 0
       ? input.metadataResolutions
       : getDbtNodes(input.workspace).map((node) =>
-          resolveDbtGovernanceMetadata(toResolverInput(node)),
+          resolveDbtGovernanceMetadata(
+            toResolverInput(node, inferredTestNodeIdsByTarget),
+          ),
         );
   const diagnostics =
     input.diagnostics.length > 0

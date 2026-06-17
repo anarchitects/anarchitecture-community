@@ -10,7 +10,11 @@ import type {
   DbtGovernanceDiagnosticProvider,
   DbtGovernanceDiagnosticProviderInput,
 } from './contracts.js';
-import { getDbtNodes, toResolverInput } from './dbt-graph.js';
+import {
+  buildDbtInferredTestNodeIdsByTarget,
+  getDbtNodes,
+  toResolverInput,
+} from './dbt-graph.js';
 import {
   resolveDbtGovernanceMetadata,
   type DbtGovernanceMetadataResolution,
@@ -113,8 +117,14 @@ function resolveMetadataResolutions(
     return input.metadataResolutions;
   }
 
+  const inferredTestNodeIdsByTarget = buildDbtInferredTestNodeIdsByTarget(
+    input.workspace,
+  );
+
   return getDbtNodes(input.workspace).map((node) =>
-    resolveDbtGovernanceMetadata(toResolverInput(node)),
+    resolveDbtGovernanceMetadata(
+      toResolverInput(node, inferredTestNodeIdsByTarget),
+    ),
   );
 }
 

@@ -15,6 +15,7 @@ import type {
   DbtGovernanceSignalProviderInput,
 } from './contracts.js';
 import {
+  buildDbtInferredTestNodeIdsByTarget,
   getDbtMetadata,
   getDbtDependencyRelations,
   normalizeIds,
@@ -898,9 +899,17 @@ function resolveMetadataResolutions(
     return input.metadataResolutions;
   }
 
+  const inferredTestNodeIdsByTarget = buildDbtInferredTestNodeIdsByTarget(
+    input.workspace,
+  );
+
   return input.workspace.nodes
     .filter((node) => Boolean(getDbtMetadata(node)))
-    .map((node) => resolveDbtGovernanceMetadata(toResolverInput(node)));
+    .map((node) =>
+      resolveDbtGovernanceMetadata(
+        toResolverInput(node, inferredTestNodeIdsByTarget),
+      ),
+    );
 }
 
 function resolveDiagnostics(
