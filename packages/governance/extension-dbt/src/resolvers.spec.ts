@@ -343,15 +343,9 @@ describe('dbt governance metadata resolvers', () => {
     });
   });
 
-  it('interprets normalized source metadata using the dbt source precedence strategy', () => {
+  it('interprets resolved dbt source governance metadata without flattening raw source facts into resource.meta', () => {
     const input = createInput({
       id: 'source.valid_project.raw.orders',
-      domain: 'source-table-domain',
-      layer: 'source-table-layer',
-      ownership: {
-        team: 'source-table-owner',
-        source: 'dbt-manifest',
-      },
       metadata: {
         dbt: {
           identity: {
@@ -361,10 +355,6 @@ describe('dbt governance metadata resolvers', () => {
           resource: {
             meta: {
               lineage: 'external',
-              owner: 'source-table-owner',
-              domain: 'source-table-domain',
-              layer: 'source-table-layer',
-              criticality: 'high',
             },
             sourceMeta: {
               governance: {
@@ -372,6 +362,18 @@ describe('dbt governance metadata resolvers', () => {
                 domain: 'finance',
                 layer: 'raw',
                 criticality: 'medium',
+              },
+            },
+            resolvedGovernanceMeta: {
+              owner: 'source-table-owner',
+              domain: 'source-table-domain',
+              layer: 'source-table-layer',
+              criticality: 'high',
+              provenance: {
+                owner: 'table.meta',
+                domain: 'table.meta',
+                layer: 'table.meta',
+                criticality: 'table.meta',
               },
             },
           },
@@ -387,21 +389,86 @@ describe('dbt governance metadata resolvers', () => {
     expect(resolveDbtOwner(input)).toMatchObject({
       status: 'resolved',
       value: 'source-table-owner',
-      sourcePaths: ['node.ownership.team'],
+      sourcePaths: ['metadata.dbt.resource.resolvedGovernanceMeta.owner'],
     });
     expect(resolveDbtDomain(input)).toMatchObject({
       status: 'resolved',
       value: 'source-table-domain',
-      sourcePaths: expect.arrayContaining(['node.classification.domain']),
+      sourcePaths: ['metadata.dbt.resource.resolvedGovernanceMeta.domain'],
     });
     expect(resolveDbtLayer(input)).toMatchObject({
       status: 'resolved',
       value: 'source-table-layer',
-      sourcePaths: expect.arrayContaining(['node.classification.layer']),
+      sourcePaths: ['metadata.dbt.resource.resolvedGovernanceMeta.layer'],
     });
     expect(resolveDbtCriticality(input)).toMatchObject({
       status: 'resolved',
       value: 'high',
+      sourcePaths: ['metadata.dbt.resource.resolvedGovernanceMeta.criticality'],
+    });
+  });
+
+  it('falls back to legacy flattened dbt source metadata when resolved governance metadata is absent', () => {
+    const input = createInput({
+      id: 'source.valid_project.raw.orders',
+      metadata: {
+        dbt: {
+          identity: {
+            uniqueId: 'source.valid_project.raw.orders',
+            resourceType: 'source',
+          },
+          resource: {
+            meta: {
+              owner: 'legacy-source-owner',
+              domain: 'legacy-source-domain',
+              layer: 'legacy-source-layer',
+              criticality: 'legacy-criticality',
+            },
+            sourceMeta: {
+              governance: {
+                owner: 'raw-data-team',
+              },
+            },
+          },
+          relation: {
+            originalFilePath: 'models/raw/raw.yml',
+          },
+          validation: {},
+          documentation: {},
+        },
+      },
+    });
+
+    expect(resolveDbtOwner(input)).toMatchObject({
+      status: 'resolved',
+      value: 'legacy-source-owner',
+      sourcePaths: ['metadata.dbt.resource.meta.owner'],
+    });
+    expect(
+      resolveDbtDomain(input, {
+        domain: {
+          fromPath: false,
+        },
+      }),
+    ).toMatchObject({
+      status: 'resolved',
+      value: 'legacy-source-domain',
+      sourcePaths: ['metadata.dbt.resource.meta.domain'],
+    });
+    expect(
+      resolveDbtLayer(input, {
+        layer: {
+          fromPath: false,
+        },
+      }),
+    ).toMatchObject({
+      status: 'resolved',
+      value: 'legacy-source-layer',
+      sourcePaths: ['metadata.dbt.resource.meta.layer'],
+    });
+    expect(resolveDbtCriticality(input)).toMatchObject({
+      status: 'resolved',
+      value: 'legacy-criticality',
       sourcePaths: ['metadata.dbt.resource.meta.criticality'],
     });
   });

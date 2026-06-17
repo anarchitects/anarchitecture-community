@@ -90,8 +90,26 @@ interface RelationMappingResult {
 interface DbtSourceMetadataView {
   tableMeta: ResourceRecord;
   sourceMeta?: ResourceRecord;
-  normalizedMeta: ResourceRecord;
+  resolvedGovernanceMeta?: DbtResolvedSourceGovernanceMeta;
 }
+
+type DbtSourceGovernanceField = 'owner' | 'domain' | 'layer' | 'criticality';
+
+type DbtSourceGovernanceProvenance =
+  | 'table.meta.governance'
+  | 'table.meta'
+  | 'source.meta.governance'
+  | 'source.meta';
+
+type DbtSourceGovernanceProvenanceMap = Partial<
+  Record<DbtSourceGovernanceField, DbtSourceGovernanceProvenance>
+>;
+
+type DbtResolvedSourceGovernanceMeta = Partial<
+  Record<DbtSourceGovernanceField, string>
+> & {
+  provenance?: DbtSourceGovernanceProvenanceMap;
+};
 
 export function normalizeDbtArtifacts(
   projectContext: DbtProjectContext,
@@ -594,13 +612,15 @@ function normalizeDbtManifestResource(
   const fqn = readStringArray(record.fqn);
   const fullyQualifiedName = fqn.length > 0 ? fqn.join('.') : undefined;
   const classification = deriveClassification(
-    sourceMetadataView.normalizedMeta,
+    sourceMetadataView.tableMeta,
+    sourceMetadataView.resolvedGovernanceMeta,
     resourceTags,
   );
   const ownership = normalizeOwnership(
     record,
     group,
-    sourceMetadataView.normalizedMeta,
+    sourceMetadataView.tableMeta,
+    sourceMetadataView.resolvedGovernanceMeta,
   );
   const dbtMetadata = buildDbtResourceMetadata(record, {
     uniqueId,
@@ -690,9 +710,15 @@ function buildDbtResourceMetadata(
     },
     resource: {
       tags: readStringArray(resource.tags),
-      meta: options.sourceMetadataView.normalizedMeta,
+      meta: options.sourceMetadataView.tableMeta,
       ...(options.sourceMetadataView.sourceMeta
         ? { sourceMeta: options.sourceMetadataView.sourceMeta }
+        : {}),
+      ...(options.sourceMetadataView.resolvedGovernanceMeta
+        ? {
+            resolvedGovernanceMeta:
+              options.sourceMetadataView.resolvedGovernanceMeta,
+          }
         : {}),
       ...(readMaterialization(resource)
         ? { materialization: readMaterialization(resource) }
@@ -790,13 +816,18 @@ function collectIncompleteMetadataFields(
 
 function deriveClassification(
   meta: ResourceRecord,
+  resolvedGovernanceMeta: DbtResolvedSourceGovernanceMeta | undefined,
   tags: readonly string[],
 ): GovernanceClassificationInput | undefined {
   const governanceMeta = asRecord(meta.governance);
   const scope =
     readOptionalString(governanceMeta?.scope ?? meta.scope) ?? inferScope(tags);
-  const domain = readOptionalString(governanceMeta?.domain ?? meta.domain);
-  const layer = readOptionalString(governanceMeta?.layer ?? meta.layer);
+  const domain = readOptionalString(
+    resolvedGovernanceMeta?.domain ?? governanceMeta?.domain ?? meta.domain,
+  );
+  const layer = readOptionalString(
+    resolvedGovernanceMeta?.layer ?? governanceMeta?.layer ?? meta.layer,
+  );
 
   if (!domain && !layer && !scope && tags.length === 0) {
     return undefined;
@@ -819,51 +850,73 @@ function readDbtSourceMetadataView(
   if (resourceType !== 'source') {
     return {
       tableMeta,
-      normalizedMeta: tableMeta,
     };
   }
 
   const sourceMeta = asRecord(resource.source_meta);
-  if (!sourceMeta) {
-    return {
-      tableMeta,
-      normalizedMeta: tableMeta,
-    };
-  }
+  const resolvedGovernanceMeta = resolveDbtSourceGovernanceMeta(
+    tableMeta,
+    sourceMeta,
+  );
 
   return {
     tableMeta,
-    sourceMeta,
-    normalizedMeta: normalizeDbtSourceTableMeta(tableMeta, sourceMeta),
+    ...(sourceMeta ? { sourceMeta } : {}),
+    ...(resolvedGovernanceMeta ? { resolvedGovernanceMeta } : {}),
   };
 }
 
-function normalizeDbtSourceTableMeta(
+function resolveDbtSourceGovernanceMeta(
   tableMeta: ResourceRecord,
-  sourceMeta: ResourceRecord,
-): ResourceRecord {
-  const normalizedMeta: ResourceRecord = {
-    ...tableMeta,
-  };
+  sourceMeta: ResourceRecord | undefined,
+): DbtResolvedSourceGovernanceMeta | undefined {
+  const resolvedGovernanceMeta: DbtResolvedSourceGovernanceMeta = {};
+  const provenance: DbtSourceGovernanceProvenanceMap = {};
 
-  applyNormalizedSourceField(normalizedMeta, tableMeta, sourceMeta, 'owner');
-  applyNormalizedSourceField(normalizedMeta, tableMeta, sourceMeta, 'domain');
-  applyNormalizedSourceField(normalizedMeta, tableMeta, sourceMeta, 'layer');
-  applyNormalizedSourceField(
-    normalizedMeta,
+  applyResolvedSourceField(
+    resolvedGovernanceMeta,
+    provenance,
+    tableMeta,
+    sourceMeta,
+    'owner',
+  );
+  applyResolvedSourceField(
+    resolvedGovernanceMeta,
+    provenance,
+    tableMeta,
+    sourceMeta,
+    'domain',
+  );
+  applyResolvedSourceField(
+    resolvedGovernanceMeta,
+    provenance,
+    tableMeta,
+    sourceMeta,
+    'layer',
+  );
+  applyResolvedSourceField(
+    resolvedGovernanceMeta,
+    provenance,
     tableMeta,
     sourceMeta,
     'criticality',
   );
 
-  return normalizedMeta;
+  if (Object.keys(provenance).length > 0) {
+    resolvedGovernanceMeta.provenance = provenance;
+  }
+
+  return Object.keys(resolvedGovernanceMeta).length > 0
+    ? resolvedGovernanceMeta
+    : undefined;
 }
 
-function applyNormalizedSourceField(
-  normalizedMeta: ResourceRecord,
+function applyResolvedSourceField(
+  resolvedGovernanceMeta: DbtResolvedSourceGovernanceMeta,
+  provenance: DbtSourceGovernanceProvenanceMap,
   tableMeta: ResourceRecord,
-  sourceMeta: ResourceRecord,
-  field: 'owner' | 'domain' | 'layer' | 'criticality',
+  sourceMeta: ResourceRecord | undefined,
+  field: DbtSourceGovernanceField,
 ): void {
   const resolvedValue = resolveSourceMetadataField(
     tableMeta,
@@ -871,25 +924,57 @@ function applyNormalizedSourceField(
     field,
   );
 
-  if (resolvedValue !== undefined) {
-    normalizedMeta[field] = resolvedValue;
+  if (resolvedValue) {
+    resolvedGovernanceMeta[field] = resolvedValue.value;
+    provenance[field] = resolvedValue.provenance;
   }
 }
 
 function resolveSourceMetadataField(
   tableMeta: ResourceRecord,
-  sourceMeta: ResourceRecord,
-  field: 'owner' | 'domain' | 'layer' | 'criticality',
-): string | undefined {
+  sourceMeta: ResourceRecord | undefined,
+  field: DbtSourceGovernanceField,
+):
+  | {
+      value: string;
+      provenance: DbtSourceGovernanceProvenance;
+    }
+  | undefined {
   const tableGovernanceMeta = asRecord(tableMeta.governance);
-  const sourceGovernanceMeta = asRecord(sourceMeta.governance);
+  const sourceGovernanceMeta = asRecord(sourceMeta?.governance);
+  const candidates: Array<{
+    value: unknown;
+    provenance: DbtSourceGovernanceProvenance;
+  }> = [
+    {
+      value: tableGovernanceMeta?.[field],
+      provenance: 'table.meta.governance',
+    },
+    {
+      value: tableMeta[field],
+      provenance: 'table.meta',
+    },
+    {
+      value: sourceGovernanceMeta?.[field],
+      provenance: 'source.meta.governance',
+    },
+    {
+      value: sourceMeta?.[field],
+      provenance: 'source.meta',
+    },
+  ];
 
-  return readOptionalString(
-    tableGovernanceMeta?.[field] ??
-      tableMeta[field] ??
-      sourceGovernanceMeta?.[field] ??
-      sourceMeta[field],
-  );
+  for (const candidate of candidates) {
+    const value = readOptionalString(candidate.value);
+    if (value) {
+      return {
+        value,
+        provenance: candidate.provenance,
+      };
+    }
+  }
+
+  return undefined;
 }
 
 function inferScope(tags: readonly string[]): string | undefined {
@@ -901,6 +986,7 @@ function normalizeOwnership(
   resource: ResourceRecord,
   group?: string,
   meta: ResourceRecord = {},
+  resolvedGovernanceMeta?: DbtResolvedSourceGovernanceMeta,
 ): GovernanceOwnershipInput | undefined {
   const config = asRecord(resource.config);
   const configMeta = asRecord(config?.meta);
@@ -912,6 +998,7 @@ function normalizeOwnership(
     normalizeOwner(group) ??
     normalizeOwner(configGovernanceMeta?.owner) ??
     normalizeOwner(configMeta?.owner) ??
+    normalizeOwner(resolvedGovernanceMeta?.owner) ??
     normalizeOwner(governanceMeta?.owner) ??
     normalizeOwner(meta.owner)
   );

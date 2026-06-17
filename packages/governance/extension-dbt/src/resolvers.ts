@@ -127,6 +127,12 @@ export function resolveDbtLayer(
     input.layer,
     'node.classification.layer',
   );
+  collectResolvedGovernanceStringCandidate(
+    input,
+    explicitValid,
+    explicitInvalid,
+    'layer',
+  );
   collectStringCandidate(
     explicitValid,
     explicitInvalid,
@@ -188,6 +194,12 @@ export function resolveDbtDomain(
     explicitInvalid,
     input.domain,
     'node.classification.domain',
+  );
+  collectResolvedGovernanceStringCandidate(
+    input,
+    explicitValid,
+    explicitInvalid,
+    'domain',
   );
   collectStringCandidate(
     explicitValid,
@@ -254,6 +266,12 @@ export function resolveDbtOwner(
     readPathValue(input.metadata, ['dbt', 'resource', 'group']),
     'metadata.dbt.resource.group',
   );
+  collectResolvedGovernanceOwnerCandidate(
+    input,
+    metadataValid,
+    metadataInvalid,
+    'owner',
+  );
   collectStringCandidate(
     metadataValid,
     metadataInvalid,
@@ -274,6 +292,12 @@ export function resolveDbtCriticality(
   const valid: ResolutionCandidate<string>[] = [];
   const invalid: InvalidResolutionCandidate[] = [];
 
+  collectResolvedGovernanceStringCandidate(
+    input,
+    valid,
+    invalid,
+    'criticality',
+  );
   collectStringCandidate(
     valid,
     invalid,
@@ -724,6 +748,44 @@ function collectOwnerCandidate(
   });
 }
 
+function collectResolvedGovernanceStringCandidate(
+  input: DbtGovernanceMetadataResolverInput,
+  valid: ResolutionCandidate<string>[],
+  invalid: InvalidResolutionCandidate[],
+  field: 'domain' | 'layer' | 'criticality',
+): void {
+  const resolvedField = readResolvedGovernanceField(input, field);
+  if (!resolvedField) {
+    return;
+  }
+
+  collectStringCandidate(
+    valid,
+    invalid,
+    resolvedField.value,
+    resolvedField.sourcePath,
+  );
+}
+
+function collectResolvedGovernanceOwnerCandidate(
+  input: DbtGovernanceMetadataResolverInput,
+  valid: ResolutionCandidate<string>[],
+  invalid: InvalidResolutionCandidate[],
+  field: 'owner',
+): void {
+  const resolvedField = readResolvedGovernanceField(input, field);
+  if (!resolvedField) {
+    return;
+  }
+
+  collectOwnerCandidate(
+    valid,
+    invalid,
+    resolvedField.value,
+    resolvedField.sourcePath,
+  );
+}
+
 function readOwnershipTeam(
   ownership: DbtGovernanceMetadataResolverInput['ownership'],
 ): unknown {
@@ -732,6 +794,29 @@ function readOwnershipTeam(
   }
 
   return ownership.team;
+}
+
+function readResolvedGovernanceField(
+  input: DbtGovernanceMetadataResolverInput,
+  field: 'owner' | 'domain' | 'layer' | 'criticality',
+): { value: unknown; sourcePath: string } | undefined {
+  // Keep a compatibility bridge for older adapter payloads by checking
+  // resource.meta.* after this helper returns undefined.
+  const resolvedField = readPathValue(input.metadata, [
+    'dbt',
+    'resource',
+    'resolvedGovernanceMeta',
+    field,
+  ]);
+
+  if (resolvedField !== undefined) {
+    return {
+      value: resolvedField,
+      sourcePath: `metadata.dbt.resource.resolvedGovernanceMeta.${field}`,
+    };
+  }
+
+  return undefined;
 }
 
 function readPathValue(
