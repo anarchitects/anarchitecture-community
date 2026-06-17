@@ -7,6 +7,8 @@ import {
   loadDbtArtifacts,
   normalizeDbtArtifacts,
   resolveDbtProjectContext,
+  type DbtArtifacts,
+  type DbtManifestResource,
 } from './index.js';
 
 const fixturesRoot = fileURLToPath(
@@ -314,6 +316,145 @@ describe('dbt artifact normalization', () => {
     );
   });
 
+  it.each([
+    {
+      label: 'record.owner',
+      resource: {
+        owner: {
+          name: 'analytics-platform',
+          email: 'analytics@example.com',
+        },
+      },
+      expected: {
+        team: 'analytics-platform',
+        contacts: ['analytics@example.com'],
+        source: 'dbt-manifest',
+      },
+    },
+    {
+      label: 'group when record.owner is absent',
+      resource: {
+        group: 'finance',
+      },
+      expected: {
+        team: 'finance',
+        source: 'dbt-manifest',
+      },
+    },
+    {
+      label: 'config.meta.governance.owner',
+      resource: {
+        config: {
+          meta: {
+            governance: {
+              owner: 'platform-governance',
+            },
+          },
+        },
+      },
+      expected: {
+        team: 'platform-governance',
+        source: 'dbt-manifest',
+      },
+    },
+    {
+      label: 'config.meta.owner',
+      resource: {
+        config: {
+          meta: {
+            owner: 'config-meta-owner',
+          },
+        },
+      },
+      expected: {
+        team: 'config-meta-owner',
+        source: 'dbt-manifest',
+      },
+    },
+    {
+      label: 'meta.governance.owner',
+      resource: {
+        meta: {
+          governance: {
+            owner: 'resource-governance-owner',
+          },
+        },
+      },
+      expected: {
+        team: 'resource-governance-owner',
+        source: 'dbt-manifest',
+      },
+    },
+    {
+      label: 'meta.owner',
+      resource: {
+        meta: {
+          owner: 'resource-meta-owner',
+        },
+      },
+      expected: {
+        team: 'resource-meta-owner',
+        source: 'dbt-manifest',
+      },
+    },
+    {
+      label: 'missing owner',
+      resource: {},
+      expected: undefined,
+    },
+  ])('maps canonical ownership from $label', ({ resource, expected }) => {
+    expect(normalizeSyntheticNode(resource).ownership).toEqual(expected);
+  });
+
+  it('applies owner precedence before dbt meta ownership sources', () => {
+    expect(
+      normalizeSyntheticNode({
+        owner: 'record-owner',
+        group: 'resource-group',
+        config: {
+          meta: {
+            governance: {
+              owner: 'config-governance-owner',
+            },
+            owner: 'config-meta-owner',
+          },
+        },
+        meta: {
+          governance: {
+            owner: 'resource-governance-owner',
+          },
+          owner: 'resource-meta-owner',
+        },
+      }).ownership,
+    ).toEqual({
+      team: 'record-owner',
+      source: 'dbt-manifest',
+    });
+
+    expect(
+      normalizeSyntheticNode({
+        group: 'resource-group',
+        config: {
+          meta: {
+            governance: {
+              owner: 'config-governance-owner',
+            },
+            owner: 'config-meta-owner',
+          },
+        },
+        meta: {
+          governance: {
+            owner: 'resource-governance-owner',
+          },
+          owner: 'resource-meta-owner',
+        },
+      }).ownership,
+    ).toEqual({
+      team: 'resource-group',
+      source: 'dbt-manifest',
+    });
+  });
+
   it('keeps relation ids deterministic for equivalent manifest input orderings', () => {
     const context = mustResolveContext('layered-project');
     const artifacts = mustLoadArtifacts(context);
@@ -514,4 +655,44 @@ function mustLoadArtifacts(
   }
 
   return loaded.artifacts;
+}
+
+function normalizeSyntheticNode(resource: DbtManifestResource) {
+  const context = mustResolveContext('valid-project');
+  const uniqueId = 'model.valid_project.synthetic_owner_case';
+  const normalized = normalizeDbtArtifacts(context, {
+    manifest: buildSyntheticManifest(uniqueId, resource),
+    projectConfig: {
+      name: 'valid_project',
+    },
+  });
+  const node = normalized.nodes?.find((entry) => entry.id === uniqueId);
+
+  expect(node).toBeDefined();
+  if (!node) {
+    throw new Error('Expected synthetic dbt resource node to normalize.');
+  }
+
+  return node;
+}
+
+function buildSyntheticManifest(
+  uniqueId: string,
+  resource: DbtManifestResource,
+): DbtArtifacts['manifest'] {
+  return {
+    metadata: {
+      dbt_schema_version: 'https://schemas.getdbt.com/dbt/manifest/v12.json',
+      project_name: 'valid_project',
+    },
+    nodes: {
+      [uniqueId]: {
+        resource_type: 'model',
+        unique_id: uniqueId,
+        package_name: 'valid_project',
+        name: 'synthetic_owner_case',
+        ...resource,
+      },
+    },
+  };
 }
