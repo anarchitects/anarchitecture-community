@@ -14,6 +14,7 @@ import type {
   DbtGovernanceSignalProvider,
   DbtGovernanceSignalProviderInput,
 } from './contracts.js';
+import { isDbtDocumentationTarget } from './applicability.js';
 import {
   buildDbtInferredTestNodeIdsByTarget,
   getDbtMetadata,
@@ -336,7 +337,7 @@ function appendDocumentationSignals(
   resolution: DbtGovernanceMetadataResolution,
   createdAt: string,
 ): void {
-  if (isDbtTestResolution(resolution)) {
+  if (!isDbtDocumentationTarget(resolution)) {
     return;
   }
 
@@ -1169,13 +1170,4 @@ function asString(value: unknown): string | undefined {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
-}
-
-function isDbtTestResolution(
-  resolution: DbtGovernanceMetadataResolution,
-): boolean {
-  return (
-    resolution.dbtUniqueId?.startsWith('test.') === true ||
-    resolution.governanceNodeId.startsWith('test.')
-  );
 }

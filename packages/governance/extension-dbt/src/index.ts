@@ -47,6 +47,13 @@ export {
   type DbtGovernanceWorkspaceExpansionData,
 } from './contracts.js';
 export {
+  getDbtResolutionResourceType,
+  isDbtDocumentationTarget,
+  isDbtEvidenceResource,
+  isDbtGovernedAssetResolution,
+  isDbtPublicModelDocumentationTarget,
+} from './applicability.js';
+export {
   DBT_GOVERNANCE_DIAGNOSTIC_CODES,
   DBT_GOVERNANCE_DIAGNOSTIC_SOURCE,
   buildDbtGovernanceDiagnostics,

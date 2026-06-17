@@ -35,6 +35,7 @@ export interface DbtMetadataResolution<TValue> {
 export interface DbtResolvedGovernanceMetadata {
   governanceNodeId: string;
   dbtUniqueId?: string;
+  resourceType?: string;
   layer: DbtMetadataResolution<string>;
   domain: DbtMetadataResolution<string>;
   owner: DbtMetadataResolution<string>;
@@ -96,6 +97,7 @@ export function resolveDbtGovernanceMetadata(
   return {
     governanceNodeId: input.id,
     dbtUniqueId: readDbtUniqueId(input),
+    resourceType: readDbtResourceType(input),
     layer: resolveDbtLayer(input, options),
     domain: resolveDbtDomain(input, options),
     owner: resolveDbtOwner(input),
@@ -613,6 +615,19 @@ function readDbtUniqueId(
   ]);
   return typeof uniqueId === 'string' && uniqueId.trim().length > 0
     ? uniqueId.trim()
+    : undefined;
+}
+
+function readDbtResourceType(
+  input: DbtGovernanceMetadataResolverInput,
+): string | undefined {
+  const resourceType = readPathValue(input.metadata, [
+    'dbt',
+    'identity',
+    'resourceType',
+  ]);
+  return typeof resourceType === 'string' && resourceType.trim().length > 0
+    ? resourceType.trim()
     : undefined;
 }
 

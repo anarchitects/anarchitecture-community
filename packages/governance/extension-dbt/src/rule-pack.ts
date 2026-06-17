@@ -18,6 +18,7 @@ import {
   toRelationReference,
   toResolverInput,
 } from './dbt-graph.js';
+import { isDbtPublicModelDocumentationTarget } from './applicability.js';
 import { buildDbtGovernanceDiagnostics } from './diagnostics.js';
 import {
   buildDbtGovernanceSignals,
@@ -463,7 +464,7 @@ function evaluatePublicModelsRequireDescription(
 
   if (
     !config.enabled ||
-    isDbtTestResolution(resolution) ||
+    !isDbtPublicModelDocumentationTarget(resolution) ||
     resolution.publicInterface.status !== 'resolved' ||
     resolution.publicInterface.value !== true ||
     (resolution.documentationPresent.status === 'resolved' &&
@@ -878,13 +879,4 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
-function isDbtTestResolution(
-  resolution: DbtGovernanceMetadataResolution,
-): boolean {
-  return (
-    resolution.dbtUniqueId?.startsWith('test.') === true ||
-    resolution.governanceNodeId.startsWith('test.')
-  );
 }

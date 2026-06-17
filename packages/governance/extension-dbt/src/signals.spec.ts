@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import {
   DefaultGovernanceCapabilityRegistry,
   type GovernanceExtensionHostContext,
@@ -8,6 +11,7 @@ import {
 import {
   buildDbtGovernanceSignals,
   dbtGovernanceSignalProvider,
+  type DbtGovernanceMetadataResolution,
   type DbtGovernanceSignalProviderInput,
 } from './index.js';
 import {
@@ -191,6 +195,77 @@ describe('dbt governance signals', () => {
     };
   }
 
+  function createResolution(
+    overrides: Partial<DbtGovernanceMetadataResolution> = {},
+  ): DbtGovernanceMetadataResolution {
+    return {
+      governanceNodeId:
+        overrides.governanceNodeId ?? 'model.valid_project.orders',
+      ...(overrides.dbtUniqueId
+        ? { dbtUniqueId: overrides.dbtUniqueId }
+        : { dbtUniqueId: 'model.valid_project.orders' }),
+      ...(overrides.resourceType
+        ? { resourceType: overrides.resourceType }
+        : {}),
+      layer: overrides.layer ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      domain: overrides.domain ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      owner: overrides.owner ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      criticality: overrides.criticality ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      publicInterface: overrides.publicInterface ?? {
+        status: 'resolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: ['metadata.dbt.resource.meta.public'],
+        value: true,
+      },
+      materializationCategory: overrides.materializationCategory ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      documentationPresent: overrides.documentationPresent ?? {
+        status: 'resolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: ['metadata.dbt.documentation.hasDescription'],
+        value: false,
+      },
+      testsPresent: overrides.testsPresent ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      contractPresent: overrides.contractPresent ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+    };
+  }
+
   it('emits resource-level dbt signals from normalized metadata and derived diagnostics', async () => {
     const workspace = createWorkspace([
       createProject({
@@ -266,6 +341,58 @@ describe('dbt governance signals', () => {
       (signal) => String(signal.metadata?.code ?? ''),
     );
 
+    expect(codes).not.toContain('DBT_DESCRIPTION_MISSING');
+    expect(codes).not.toContain('DBT_PUBLIC_MODEL_UNDOCUMENTED_CANDIDATE');
+  });
+
+  it('uses explicit test resource types over model-like ids for documentation signals', () => {
+    const codes = buildDbtGovernanceSignals(
+      createSignalInput(createWorkspace([]), {
+        metadataResolutions: [
+          createResolution({
+            governanceNodeId: 'model.valid_project.orders_but_test',
+            dbtUniqueId: 'model.valid_project.orders_but_test',
+            resourceType: 'test',
+          }),
+        ],
+      }),
+    ).map((signal) => String(signal.metadata?.code ?? ''));
+
+    expect(codes).not.toContain('DBT_DESCRIPTION_PRESENT');
+    expect(codes).not.toContain('DBT_DESCRIPTION_MISSING');
+    expect(codes).not.toContain('DBT_PUBLIC_MODEL_UNDOCUMENTED_CANDIDATE');
+  });
+
+  it('uses explicit model resource types over legacy test-id prefixes for documentation signals', () => {
+    const codes = buildDbtGovernanceSignals(
+      createSignalInput(createWorkspace([]), {
+        metadataResolutions: [
+          createResolution({
+            governanceNodeId: 'test.valid_project.orders_but_model',
+            dbtUniqueId: 'test.valid_project.orders_but_model',
+            resourceType: 'model',
+          }),
+        ],
+      }),
+    ).map((signal) => String(signal.metadata?.code ?? ''));
+
+    expect(codes).toContain('DBT_DESCRIPTION_MISSING');
+    expect(codes).toContain('DBT_PUBLIC_MODEL_UNDOCUMENTED_CANDIDATE');
+  });
+
+  it('falls back to legacy test id prefixes when explicit resource type is absent for documentation signals', () => {
+    const codes = buildDbtGovernanceSignals(
+      createSignalInput(createWorkspace([]), {
+        metadataResolutions: [
+          createResolution({
+            governanceNodeId: 'test.valid_project.legacy_orders_test',
+            dbtUniqueId: 'test.valid_project.legacy_orders_test',
+          }),
+        ],
+      }),
+    ).map((signal) => String(signal.metadata?.code ?? ''));
+
+    expect(codes).not.toContain('DBT_DESCRIPTION_PRESENT');
     expect(codes).not.toContain('DBT_DESCRIPTION_MISSING');
     expect(codes).not.toContain('DBT_PUBLIC_MODEL_UNDOCUMENTED_CANDIDATE');
   });
@@ -370,6 +497,16 @@ describe('dbt governance signals', () => {
         ),
       },
     });
+  });
+
+  it('does not keep a local dbt test-prefix helper in signals.ts', () => {
+    const source = readFileSync(
+      fileURLToPath(new URL('./signals.ts', import.meta.url)),
+      'utf8',
+    );
+
+    expect(source).not.toContain('function isDbtTestResolution(');
+    expect(source).not.toContain("startsWith('test.')");
   });
 
   it('emits DAG shape signals using stable default thresholds', () => {
