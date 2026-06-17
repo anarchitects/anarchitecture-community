@@ -18,6 +18,7 @@ export interface DbtGovernanceMetadataResolverInput {
   layer?: string;
   ownership?: unknown;
   metadata?: Record<string, unknown>;
+  inferredTestNodeIds?: readonly string[];
 }
 
 export interface DbtMetadataResolution<TValue> {
@@ -421,6 +422,22 @@ export function resolveDbtTestPresence(
     });
   }
 
+  const inferredTestNodeIds = normalizeStringArray(input.inferredTestNodeIds);
+  if (inferredTestNodeIds.length > 0) {
+    return buildResolution(
+      input,
+      [
+        ...valid.filter((candidate) => candidate.value === true),
+        {
+          value: true,
+          sourcePath: 'runtime.dbt.inferredTestNodeIds',
+          rawValue: inferredTestNodeIds,
+        },
+      ],
+      invalid,
+    );
+  }
+
   return buildResolution(input, valid, invalid);
 }
 
@@ -721,6 +738,12 @@ function readPathValue(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function normalizeStringArray(value: readonly string[] | undefined): string[] {
+  return value
+    ? [...new Set(value.filter((entry) => entry.trim().length > 0))].sort()
+    : [];
 }
 
 function getDbtPathSegments(

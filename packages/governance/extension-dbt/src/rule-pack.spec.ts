@@ -104,6 +104,7 @@ describe('dbt architecture basic rule pack', () => {
 
   function createProject(options: {
     id: string;
+    resourceType?: 'model' | 'source' | 'test';
     layer?: string;
     domain?: string;
     owner?: string;
@@ -133,6 +134,8 @@ describe('dbt architecture basic rule pack', () => {
         dbt: {
           identity: {
             uniqueId: options.id,
+            resourceType:
+              options.resourceType ?? inferResourceTypeFromId(options.id),
           },
           resource: {
             tags: options.publicInterface ? ['public'] : [],
@@ -153,7 +156,12 @@ describe('dbt architecture basic rule pack', () => {
                   },
                 }
               : {}),
-            materialization: 'table',
+            ...((options.resourceType ??
+              inferResourceTypeFromId(options.id)) !== 'test'
+              ? {
+                  materialization: 'table',
+                }
+              : {}),
           },
           relation: {
             originalFilePath: `models/${options.layer ?? 'unknown'}/${options.id.split('.').at(-1)}.sql`,
@@ -182,6 +190,18 @@ describe('dbt architecture basic rule pack', () => {
         },
       },
     };
+  }
+
+  function inferResourceTypeFromId(id: string): 'model' | 'source' | 'test' {
+    if (id.startsWith('source.')) {
+      return 'source';
+    }
+
+    if (id.startsWith('test.')) {
+      return 'test';
+    }
+
+    return 'model';
   }
 
   it('allows configured layer dependencies', async () => {
@@ -369,6 +389,140 @@ describe('dbt architecture basic rule pack', () => {
         }),
       ]),
     );
+  });
+
+  it('keeps direct dbt validation metadata authoritative for critical model tests', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'model.analytics.critical_with_direct_tests',
+        layer: 'marts',
+        domain: 'finance',
+        owner: 'finance-platform',
+        criticality: 'critical',
+        tests: true,
+      }),
+    ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) => violation.ruleId === 'dbt/critical-models-require-tests',
+      ),
+    ).toBe(false);
+  });
+
+  it('treats critical models with dependent generic dbt test nodes as tested', () => {
+    const workspace = createWorkspace(
+      [
+        createProject({
+          id: 'model.analytics.critical_with_generic_test',
+          layer: 'marts',
+          domain: 'finance',
+          owner: 'finance-platform',
+          criticality: 'critical',
+          tests: false,
+        }),
+        createProject({
+          id: 'test.analytics.not_null_critical_with_generic_test',
+          resourceType: 'test',
+        }),
+      ],
+      [
+        {
+          source: 'test.analytics.not_null_critical_with_generic_test',
+          target: 'model.analytics.critical_with_generic_test',
+          type: 'static',
+          metadata: {
+            dbt: {
+              lineage: {
+                relationKind: 'tests',
+              },
+            },
+          },
+        },
+      ],
+    );
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) => violation.ruleId === 'dbt/critical-models-require-tests',
+      ),
+    ).toBe(false);
+  });
+
+  it('treats critical models with dependent relationship dbt test nodes as tested', () => {
+    const workspace = createWorkspace(
+      [
+        createProject({
+          id: 'model.analytics.critical_with_relationship_test',
+          layer: 'marts',
+          domain: 'finance',
+          owner: 'finance-platform',
+          criticality: 'critical',
+          tests: false,
+        }),
+        createProject({
+          id: 'source.analytics.raw.orders',
+          resourceType: 'source',
+          layer: 'staging',
+          domain: 'finance',
+        }),
+        createProject({
+          id: 'test.analytics.relationships_critical_with_relationship_test',
+          resourceType: 'test',
+        }),
+      ],
+      [
+        {
+          source:
+            'test.analytics.relationships_critical_with_relationship_test',
+          target: 'model.analytics.critical_with_relationship_test',
+          type: 'static',
+          metadata: {
+            dbt: {
+              lineage: {
+                relationKind: 'tests',
+              },
+            },
+          },
+        },
+        {
+          source:
+            'test.analytics.relationships_critical_with_relationship_test',
+          target: 'source.analytics.raw.orders',
+          type: 'static',
+          metadata: {
+            dbt: {
+              lineage: {
+                relationKind: 'tests',
+              },
+            },
+          },
+        },
+      ],
+    );
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) => violation.ruleId === 'dbt/critical-models-require-tests',
+      ),
+    ).toBe(false);
+  });
+
+  it('does not treat dbt test nodes as tested assets that require their own tests', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'test.analytics.not_null_orders_order_id',
+        resourceType: 'test',
+        tests: false,
+      }),
+    ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) =>
+          violation.subjectId === 'test.analytics.not_null_orders_order_id',
+      ),
+    ).toBe(false);
   });
 
   it('flags public models without contracts', () => {

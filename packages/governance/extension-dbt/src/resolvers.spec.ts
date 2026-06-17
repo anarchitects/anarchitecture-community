@@ -275,4 +275,71 @@ describe('dbt governance metadata resolvers', () => {
       status: 'unresolved',
     });
   });
+
+  it('treats inferred dependent dbt test nodes as sufficient test evidence', () => {
+    expect(
+      resolveDbtTestPresence(
+        createInput({
+          metadata: {
+            dbt: {
+              identity: {
+                uniqueId: 'model.valid_project.orders',
+              },
+              resource: {
+                tags: [],
+                meta: {},
+              },
+              relation: {
+                originalFilePath: 'models/marts/orders.sql',
+              },
+              validation: {
+                tests: [],
+              },
+              documentation: {},
+            },
+          },
+          inferredTestNodeIds: [
+            'test.valid_project.not_null_orders_order_id',
+            'test.valid_project.unique_orders_order_id',
+          ],
+        }),
+      ),
+    ).toMatchObject({
+      status: 'resolved',
+      value: true,
+      sourcePaths: ['runtime.dbt.inferredTestNodeIds'],
+    });
+  });
+
+  it('supports inferred dbt source test evidence when direct tests are absent', () => {
+    expect(
+      resolveDbtTestPresence(
+        createInput({
+          id: 'source.valid_project.raw.orders',
+          metadata: {
+            dbt: {
+              identity: {
+                uniqueId: 'source.valid_project.raw.orders',
+              },
+              resource: {
+                tags: [],
+                meta: {},
+              },
+              relation: {
+                originalFilePath: 'models/raw/raw.yml',
+              },
+              validation: {},
+              documentation: {},
+            },
+          },
+          inferredTestNodeIds: [
+            'test.valid_project.source_freshness_raw_orders',
+          ],
+        }),
+      ),
+    ).toMatchObject({
+      status: 'resolved',
+      value: true,
+    });
+  });
 });

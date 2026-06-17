@@ -11,6 +11,7 @@ import {
 
 import type { DbtGovernanceRulePackInput } from './contracts.js';
 import {
+  buildDbtInferredTestNodeIdsByTarget,
   getDbtDependencyRelations,
   getDbtNodes,
   toRelationKey,
@@ -169,11 +170,16 @@ function resolveDbtArchitectureContext(
   input: DbtGovernanceRulePackInput,
   options: DbtArchitectureRulePackOptions,
 ): ResolvedDbtArchitectureContext {
+  const inferredTestNodeIdsByTarget = buildDbtInferredTestNodeIdsByTarget(
+    input.workspace,
+  );
   const metadataResolutions =
     input.metadataResolutions && input.metadataResolutions.length > 0
       ? input.metadataResolutions
       : getDbtNodes(input.workspace).map((node) =>
-          resolveDbtGovernanceMetadata(toResolverInput(node)),
+          resolveDbtGovernanceMetadata(
+            toResolverInput(node, inferredTestNodeIdsByTarget),
+          ),
         );
 
   const diagnostics =

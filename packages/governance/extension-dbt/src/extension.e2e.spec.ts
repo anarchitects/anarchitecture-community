@@ -26,7 +26,10 @@ import {
   type DbtGovernanceRulePackInput,
   type DbtGovernanceSignalProviderInput,
 } from './index.js';
-import { toResolverInput } from './dbt-graph.js';
+import {
+  buildDbtInferredTestNodeIdsByTarget,
+  toResolverInput,
+} from './dbt-graph.js';
 
 const fixturesRoot = fileURLToPath(
   new URL('../fixtures/normalized/', import.meta.url),
@@ -84,9 +87,15 @@ describe('dbt Governance extension end-to-end flow', () => {
     const workspace = options.workspace ?? loadFixture(options.fixtureName);
     const profile = options.profile ?? createProfile();
     const context = createContext(workspace);
+    const inferredTestNodeIdsByTarget =
+      buildDbtInferredTestNodeIdsByTarget(workspace);
     const metadataResolutions = workspace.nodes
       .filter((node) => hasDbtMetadata(node.metadata))
-      .map((node) => resolveDbtGovernanceMetadata(toResolverInput(node)));
+      .map((node) =>
+        resolveDbtGovernanceMetadata(
+          toResolverInput(node, inferredTestNodeIdsByTarget),
+        ),
+      );
 
     const registration =
       await registerLoadedGovernanceExtensionsWithDiagnostics(context, [

@@ -12,6 +12,7 @@ import type {
   DbtGovernanceMetricProviderInput,
 } from './contracts.js';
 import {
+  buildDbtInferredTestNodeIdsByTarget,
   getDbtMetadata,
   getDbtDependencyRelations,
   getDbtNodes,
@@ -294,11 +295,16 @@ export function buildDbtGovernanceMetrics(
 function resolveDbtMetricContext(
   input: DbtGovernanceMetricProviderInput,
 ): ResolvedDbtMetricContext {
+  const inferredTestNodeIdsByTarget = buildDbtInferredTestNodeIdsByTarget(
+    input.workspace,
+  );
   const metadataResolutions =
     input.metadataResolutions && input.metadataResolutions.length > 0
       ? input.metadataResolutions
       : getDbtNodes(input.workspace).map((node) =>
-          resolveDbtGovernanceMetadata(toResolverInput(node)),
+          resolveDbtGovernanceMetadata(
+            toResolverInput(node, inferredTestNodeIdsByTarget),
+          ),
         );
   const modelIds = new Set(
     getDbtNodes(input.workspace)
