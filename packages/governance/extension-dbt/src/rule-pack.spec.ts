@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import {
   DefaultGovernanceCapabilityRegistry,
   type GovernanceExtensionHostContext,
@@ -9,6 +12,10 @@ import {
   buildDbtGovernanceDiagnostics,
   dbtArchitectureBasicRulePack,
   evaluateDbtArchitectureViolations,
+  getDbtResolutionResourceType,
+  isDbtDocumentationTarget,
+  isDbtPublicModelDocumentationTarget,
+  type DbtGovernanceMetadataResolution,
   type DbtGovernanceRulePackInput,
 } from './index.js';
 import {
@@ -204,6 +211,77 @@ describe('dbt architecture basic rule pack', () => {
     return 'model';
   }
 
+  function createResolution(
+    overrides: Partial<DbtGovernanceMetadataResolution> = {},
+  ): DbtGovernanceMetadataResolution {
+    return {
+      governanceNodeId:
+        overrides.governanceNodeId ?? 'model.valid_project.orders',
+      ...(overrides.dbtUniqueId
+        ? { dbtUniqueId: overrides.dbtUniqueId }
+        : { dbtUniqueId: 'model.valid_project.orders' }),
+      ...(overrides.resourceType
+        ? { resourceType: overrides.resourceType }
+        : {}),
+      layer: overrides.layer ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      domain: overrides.domain ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      owner: overrides.owner ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      criticality: overrides.criticality ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      publicInterface: overrides.publicInterface ?? {
+        status: 'resolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: ['metadata.dbt.resource.meta.public'],
+        value: true,
+      },
+      materializationCategory: overrides.materializationCategory ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      documentationPresent: overrides.documentationPresent ?? {
+        status: 'resolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: ['metadata.dbt.documentation.hasDescription'],
+        value: false,
+      },
+      testsPresent: overrides.testsPresent ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+      contractPresent: overrides.contractPresent ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
+    };
+  }
+
   it('allows configured layer dependencies', async () => {
     const workspace = createWorkspace(
       [
@@ -370,6 +448,35 @@ describe('dbt architecture basic rule pack', () => {
     );
   });
 
+  it('centralizes dbt documentation applicability with explicit type precedence and legacy id fallback', () => {
+    const explicitTestResolution = createResolution({
+      governanceNodeId: 'model.valid_project.orders_but_test',
+      dbtUniqueId: 'model.valid_project.orders_but_test',
+      resourceType: 'test',
+    });
+    const explicitModelResolution = createResolution({
+      governanceNodeId: 'test.valid_project.orders_but_model',
+      dbtUniqueId: 'test.valid_project.orders_but_model',
+      resourceType: 'model',
+    });
+    const legacyTestResolution = createResolution({
+      governanceNodeId: 'test.valid_project.legacy_test',
+      dbtUniqueId: 'test.valid_project.legacy_test',
+    });
+
+    expect(getDbtResolutionResourceType(explicitTestResolution)).toBe('test');
+    expect(isDbtDocumentationTarget(explicitTestResolution)).toBe(false);
+    expect(isDbtPublicModelDocumentationTarget(explicitTestResolution)).toBe(
+      false,
+    );
+    expect(getDbtResolutionResourceType(explicitModelResolution)).toBe('model');
+    expect(isDbtPublicModelDocumentationTarget(explicitModelResolution)).toBe(
+      true,
+    );
+    expect(getDbtResolutionResourceType(legacyTestResolution)).toBe('test');
+    expect(isDbtDocumentationTarget(legacyTestResolution)).toBe(false);
+  });
+
   it('does not flag documented public models', () => {
     const workspace = createWorkspace([
       createProject({
@@ -390,6 +497,47 @@ describe('dbt architecture basic rule pack', () => {
     ).toBe(false);
   });
 
+  it('uses explicit test resource types over model-like ids for documentation rules', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'model.analytics.public_orders_but_test',
+        resourceType: 'test',
+        publicInterface: true,
+        description: false,
+      }),
+    ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) =>
+          violation.ruleId === 'dbt/public-models-require-description',
+      ),
+    ).toBe(false);
+  });
+
+  it('uses explicit model resource types over legacy test-id prefixes for documentation rules', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'test.analytics.public_orders_but_model',
+        resourceType: 'model',
+        layer: 'marts',
+        domain: 'finance',
+        owner: 'finance-platform',
+        publicInterface: true,
+        description: false,
+      }),
+    ]);
+
+    expect(evaluateDbtArchitectureViolations(createInput(workspace))).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: 'dbt/public-models-require-description',
+          subjectId: 'test.analytics.public_orders_but_model',
+        }),
+      ]),
+    );
+  });
+
   it('does not flag dbt test nodes for missing descriptions', () => {
     const workspace = createWorkspace([
       createProject({
@@ -406,6 +554,26 @@ describe('dbt architecture basic rule pack', () => {
           violation.ruleId === 'dbt/public-models-require-description' &&
           violation.subjectId ===
             'test.analytics.not_null_public_orders_order_id',
+      ),
+    ).toBe(false);
+  });
+
+  it('falls back to legacy test id prefixes when explicit resource type is absent', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'test.analytics.legacy_public_orders',
+        layer: 'marts',
+        domain: 'finance',
+        owner: 'finance-platform',
+        publicInterface: true,
+        description: false,
+      }),
+    ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) =>
+          violation.ruleId === 'dbt/public-models-require-description',
       ),
     ).toBe(false);
   });
@@ -563,6 +731,16 @@ describe('dbt architecture basic rule pack', () => {
           violation.subjectId === 'test.analytics.not_null_orders_order_id',
       ),
     ).toBe(false);
+  });
+
+  it('does not keep a local dbt test-prefix helper in rule-pack.ts', () => {
+    const source = readFileSync(
+      fileURLToPath(new URL('./rule-pack.ts', import.meta.url)),
+      'utf8',
+    );
+
+    expect(source).not.toContain('function isDbtTestResolution(');
+    expect(source).not.toContain("startsWith('test.')");
   });
 
   it('flags public models without contracts', () => {
