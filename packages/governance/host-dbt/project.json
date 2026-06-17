@@ -6,7 +6,7 @@
   "sourceRoot": "packages/governance/host-dbt/src/anarchitecture_dbt_governance",
   "release": {
     "version": {
-      "versionActions": "@nxlv/python/release/version-actions"
+      "versionActions": "tools/release/governance-host-dbt-version-actions.cjs"
     }
   },
   "targets": {

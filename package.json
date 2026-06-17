@@ -76,6 +76,10 @@
         "options": {
           "commands": [
             "yarn nx run-many -t build,typecheck,test,lint -p governance-core governance-adapter-dbt governance-adapter-typescript governance-extension-dbt governance-extension-typescript governance-runtime-dbt governance-cli",
+            "UV_CACHE_DIR=.cache/uv yarn nx run governance-host-dbt:build",
+            "UV_CACHE_DIR=.cache/uv yarn nx run governance-host-dbt:lint",
+            "UV_CACHE_DIR=.cache/uv yarn nx run governance-host-dbt:test",
+            "UV_CACHE_DIR=.cache/uv yarn nx run governance-host-dbt:e2e",
             "node tools/governance/validate-community-governance.mjs all"
           ],
           "parallel": false
