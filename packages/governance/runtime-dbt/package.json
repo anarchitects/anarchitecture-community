@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/governance-runtime-dbt",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "dbt Governance runtime composition boundary for future composition of Core, adapter, and extension layers.",
   "license": "Apache-2.0",
   "type": "module",
@@ -65,8 +65,8 @@
     }
   },
   "dependencies": {
-    "@anarchitects/governance-adapter-dbt": "^0.1.4",
+    "@anarchitects/governance-adapter-dbt": "^0.1.5",
     "@anarchitects/governance-core": "^0.4.1",
-    "@anarchitects/governance-extension-dbt": "^0.1.4"
+    "@anarchitects/governance-extension-dbt": "^0.1.5"
   }
 }
