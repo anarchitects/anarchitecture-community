@@ -57,6 +57,17 @@ const DEFAULT_RUNTIME_PROFILE: GovernanceProfile = {
   name: 'dbt',
   layers: ['staging', 'intermediate', 'marts'],
   allowedDomainDependencies: {},
+  rules: {
+    'layer-boundary': {
+      enabled: false,
+    },
+    'ownership-presence': {
+      enabled: false,
+    },
+    'documentation-gap': {
+      enabled: false,
+    },
+  },
   ownership: {
     required: true,
   },
@@ -358,16 +369,7 @@ function resolveRuntimeProfile(
     } {
   if (!profileInput?.document) {
     return {
-      profile: {
-        ...DEFAULT_RUNTIME_PROFILE,
-        layers: [...DEFAULT_RUNTIME_PROFILE.layers],
-        allowedDomainDependencies: {
-          ...DEFAULT_RUNTIME_PROFILE.allowedDomainDependencies,
-        },
-        metrics: {
-          ...DEFAULT_RUNTIME_PROFILE.metrics,
-        },
-      },
+      profile: cloneDefaultRuntimeProfile(),
       diagnostics: [],
     };
   }
@@ -399,9 +401,7 @@ function resolveRuntimeProfile(
     DEFAULT_RUNTIME_PROFILE.allowedDomainDependencies;
   const metrics =
     readNumberRecord(document.metrics) ?? DEFAULT_RUNTIME_PROFILE.metrics;
-  const rules = isRecord(document.rules)
-    ? (document.rules as GovernanceProfile['rules'])
-    : undefined;
+  const rules = resolveRuntimeRules(document.rules);
   const ownership = isRecord(document.ownership)
     ? document.ownership
     : undefined;
@@ -421,7 +421,7 @@ function resolveRuntimeProfile(
         : {}),
       layers: [...layers],
       allowedDomainDependencies,
-      ...(rules ? { rules } : {}),
+      rules,
       ownership: {
         required:
           typeof ownership?.required === 'boolean'
@@ -444,6 +444,56 @@ function resolveRuntimeProfile(
     },
     diagnostics: [],
   };
+}
+
+function cloneDefaultRuntimeProfile(): GovernanceProfile {
+  return {
+    ...DEFAULT_RUNTIME_PROFILE,
+    layers: [...DEFAULT_RUNTIME_PROFILE.layers],
+    allowedDomainDependencies: {
+      ...DEFAULT_RUNTIME_PROFILE.allowedDomainDependencies,
+    },
+    rules: cloneRuntimeRules(DEFAULT_RUNTIME_PROFILE.rules),
+    metrics: {
+      ...DEFAULT_RUNTIME_PROFILE.metrics,
+    },
+  };
+}
+
+function resolveRuntimeRules(
+  input: unknown,
+): GovernanceProfile['rules'] | undefined {
+  const defaultRules = cloneRuntimeRules(DEFAULT_RUNTIME_PROFILE.rules);
+  if (!isRecord(input)) {
+    return defaultRules;
+  }
+
+  return {
+    ...defaultRules,
+    ...(input as GovernanceProfile['rules']),
+  };
+}
+
+function cloneRuntimeRules(
+  rules: GovernanceProfile['rules'] | undefined,
+): GovernanceProfile['rules'] | undefined {
+  if (!rules) {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    Object.entries(rules).map(([ruleId, ruleConfig]) => [
+      ruleId,
+      {
+        ...ruleConfig,
+        ...(isRecord(ruleConfig?.options)
+          ? { options: { ...ruleConfig.options } }
+          : ruleConfig?.options !== undefined
+            ? { options: ruleConfig.options }
+            : {}),
+      },
+    ]),
+  );
 }
 
 function toDbtGovernanceAdapterInput(input: DbtGovernanceRuntimeInput):
