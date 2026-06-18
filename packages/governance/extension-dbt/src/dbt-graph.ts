@@ -11,6 +11,7 @@ import type {
   DbtGovernanceNodeExpansionData,
   DbtGovernanceRelationExpansionData,
 } from './contracts.js';
+import { isDbtTestCoverageResourceType } from './applicability.js';
 import { getDbtGovernanceModelExpansion } from './contracts.js';
 import type { DbtGovernanceMetadataResolverInput } from './resolvers.js';
 
@@ -24,7 +25,6 @@ const DBT_RELATION_KINDS = new Set([
 ]);
 
 const DBT_DEPENDENCY_RELATION_KINDS = new Set(['dependency', 'lineage']);
-const TEST_COVERAGE_RESOURCE_TYPES = new Set(['model', 'source']);
 
 export function getDbtNodes(workspace: GovernanceWorkspace): GovernanceNode[] {
   return workspace.nodes.filter((node) => isDbtNode(node));
@@ -330,10 +330,7 @@ function isDbtTestNode(node: GovernanceNode): boolean {
 }
 
 function isDbtTestCoverageTarget(node: GovernanceNode): boolean {
-  const resourceType = getDbtResourceType(node);
-  return (
-    resourceType !== undefined && TEST_COVERAGE_RESOURCE_TYPES.has(resourceType)
-  );
+  return isDbtTestCoverageResourceType(getDbtResourceType(node));
 }
 
 function getDbtResourceType(node: GovernanceNode): string | undefined {
@@ -355,6 +352,10 @@ function getDbtResourceType(node: GovernanceNode): string | undefined {
   if (node.id.startsWith('snapshot.')) return 'snapshot';
   if (node.id.startsWith('exposure.')) return 'exposure';
   if (node.id.startsWith('test.')) return 'test';
+  if (node.id.startsWith('metric.')) return 'metric';
+  if (node.id.startsWith('semantic_model.')) return 'semantic_model';
+  if (node.id.startsWith('saved_query.')) return 'saved_query';
+  if (node.id.startsWith('dbt.project.')) return 'project';
 
   return undefined;
 }

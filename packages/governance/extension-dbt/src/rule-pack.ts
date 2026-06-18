@@ -18,7 +18,10 @@ import {
   toRelationReference,
   toResolverInput,
 } from './dbt-graph.js';
-import { isDbtPublicModelDocumentationTarget } from './applicability.js';
+import {
+  isDbtPublicModelDocumentationTarget,
+  isDbtTestCoverageTarget,
+} from './applicability.js';
 import { buildDbtGovernanceDiagnostics } from './diagnostics.js';
 import {
   buildDbtGovernanceSignals,
@@ -518,6 +521,10 @@ function evaluateCriticalModelsRequireTests(
   );
 
   if (!config.enabled) {
+    return [];
+  }
+
+  if (!isDbtTestCoverageTarget(resolution)) {
     return [];
   }
 

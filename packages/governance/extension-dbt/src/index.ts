@@ -52,6 +52,8 @@ export {
   isDbtEvidenceResource,
   isDbtGovernedAssetResolution,
   isDbtPublicModelDocumentationTarget,
+  isDbtTestCoverageResourceType,
+  isDbtTestCoverageTarget,
 } from './applicability.js';
 export {
   DBT_GOVERNANCE_DIAGNOSTIC_CODES,

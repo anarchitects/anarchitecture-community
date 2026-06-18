@@ -109,7 +109,7 @@ describe('dbt governance signals', () => {
 
   function createProject(options: {
     id: string;
-    resourceType?: 'model' | 'test';
+    resourceType?: 'model' | 'source' | 'seed' | 'test' | 'project';
     layer: string;
     domain: string;
     owner?: string;
@@ -343,6 +343,196 @@ describe('dbt governance signals', () => {
 
     expect(codes).not.toContain('DBT_DESCRIPTION_MISSING');
     expect(codes).not.toContain('DBT_PUBLIC_MODEL_UNDOCUMENTED_CANDIDATE');
+  });
+
+  it('treats generic dbt test nodes linked to a model as test coverage', () => {
+    const modelId = 'model.analytics.orders';
+    const workspace = createWorkspace(
+      [
+        createProject({
+          id: modelId,
+          layer: 'marts',
+          domain: 'finance',
+          tests: false,
+        }),
+        createProject({
+          id: 'test.analytics.not_null_orders_order_id',
+          resourceType: 'test',
+          layer: 'marts',
+          domain: 'finance',
+        }),
+      ],
+      [
+        {
+          source: 'test.analytics.not_null_orders_order_id',
+          target: modelId,
+          type: 'static',
+          metadata: {
+            dbt: {
+              lineage: {
+                relationKind: 'tests',
+              },
+            },
+          },
+        },
+      ],
+    );
+
+    const modelSignalCodes = buildDbtGovernanceSignals(
+      createSignalInput(workspace),
+    )
+      .filter((signal) => signal.nodeId === modelId)
+      .map((signal) => String(signal.metadata?.code ?? ''));
+
+    expect(modelSignalCodes).toContain('DBT_TESTS_PRESENT');
+    expect(modelSignalCodes).not.toContain('DBT_TESTS_MISSING');
+  });
+
+  it('treats dbt source tests linked to a source as test coverage', () => {
+    const sourceId = 'source.analytics.raw.orders';
+    const workspace = createWorkspace(
+      [
+        createProject({
+          id: sourceId,
+          resourceType: 'source',
+          layer: 'staging',
+          domain: 'finance',
+          tests: false,
+        }),
+        createProject({
+          id: 'test.analytics.source_freshness_raw_orders',
+          resourceType: 'test',
+          layer: 'staging',
+          domain: 'finance',
+        }),
+      ],
+      [
+        {
+          source: 'test.analytics.source_freshness_raw_orders',
+          target: sourceId,
+          type: 'static',
+          metadata: {
+            dbt: {
+              lineage: {
+                relationKind: 'tests',
+              },
+            },
+          },
+        },
+      ],
+    );
+
+    const sourceSignalCodes = buildDbtGovernanceSignals(
+      createSignalInput(workspace),
+    )
+      .filter((signal) => signal.nodeId === sourceId)
+      .map((signal) => String(signal.metadata?.code ?? ''));
+
+    expect(sourceSignalCodes).toContain('DBT_TESTS_PRESENT');
+    expect(sourceSignalCodes).not.toContain('DBT_TESTS_MISSING');
+  });
+
+  it('treats relationships dbt test nodes linked to a model as test coverage', () => {
+    const modelId = 'model.analytics.orders';
+    const workspace = createWorkspace(
+      [
+        createProject({
+          id: modelId,
+          layer: 'marts',
+          domain: 'finance',
+          tests: false,
+        }),
+        createProject({
+          id: 'source.analytics.raw.customers',
+          resourceType: 'source',
+          layer: 'staging',
+          domain: 'finance',
+        }),
+        createProject({
+          id: 'test.analytics.relationships_orders_customer_id',
+          resourceType: 'test',
+          layer: 'marts',
+          domain: 'finance',
+        }),
+      ],
+      [
+        {
+          source: 'test.analytics.relationships_orders_customer_id',
+          target: modelId,
+          type: 'static',
+          metadata: {
+            dbt: {
+              lineage: {
+                relationKind: 'tests',
+              },
+            },
+          },
+        },
+        {
+          source: 'test.analytics.relationships_orders_customer_id',
+          target: 'source.analytics.raw.customers',
+          type: 'static',
+          metadata: {
+            dbt: {
+              lineage: {
+                relationKind: 'tests',
+              },
+            },
+          },
+        },
+      ],
+    );
+
+    const modelSignalCodes = buildDbtGovernanceSignals(
+      createSignalInput(workspace),
+    )
+      .filter((signal) => signal.nodeId === modelId)
+      .map((signal) => String(signal.metadata?.code ?? ''));
+
+    expect(modelSignalCodes).toContain('DBT_TESTS_PRESENT');
+    expect(modelSignalCodes).not.toContain('DBT_TESTS_MISSING');
+  });
+
+  it('does not emit test coverage signals for dbt project, test, or seed nodes', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'dbt.project.analytics',
+        resourceType: 'project',
+        layer: 'marts',
+        domain: 'finance',
+        tests: false,
+      }),
+      createProject({
+        id: 'test.analytics.not_null_orders_order_id',
+        resourceType: 'test',
+        layer: 'marts',
+        domain: 'finance',
+        tests: false,
+      }),
+      createProject({
+        id: 'seed.analytics.calendar',
+        resourceType: 'seed',
+        layer: 'staging',
+        domain: 'finance',
+        tests: false,
+      }),
+    ]);
+
+    const testingSignals = buildDbtGovernanceSignals(
+      createSignalInput(workspace),
+    )
+      .filter((signal) =>
+        ['DBT_TESTS_PRESENT', 'DBT_TESTS_MISSING'].includes(
+          String(signal.metadata?.code ?? ''),
+        ),
+      )
+      .map((signal) => signal.nodeId);
+
+    expect(testingSignals).not.toContain('dbt.project.analytics');
+    expect(testingSignals).not.toContain(
+      'test.analytics.not_null_orders_order_id',
+    );
+    expect(testingSignals).not.toContain('seed.analytics.calendar');
   });
 
   it('uses explicit test resource types over model-like ids for documentation signals', () => {

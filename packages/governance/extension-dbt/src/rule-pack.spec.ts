@@ -15,6 +15,7 @@ import {
   getDbtResolutionResourceType,
   isDbtDocumentationTarget,
   isDbtPublicModelDocumentationTarget,
+  isDbtTestCoverageTarget,
   type DbtGovernanceMetadataResolution,
   type DbtGovernanceRulePackInput,
 } from './index.js';
@@ -111,7 +112,7 @@ describe('dbt architecture basic rule pack', () => {
 
   function createProject(options: {
     id: string;
-    resourceType?: 'model' | 'source' | 'test';
+    resourceType?: 'model' | 'source' | 'seed' | 'test' | 'project';
     layer?: string;
     domain?: string;
     owner?: string;
@@ -199,13 +200,23 @@ describe('dbt architecture basic rule pack', () => {
     };
   }
 
-  function inferResourceTypeFromId(id: string): 'model' | 'source' | 'test' {
+  function inferResourceTypeFromId(
+    id: string,
+  ): 'model' | 'source' | 'seed' | 'test' | 'project' {
     if (id.startsWith('source.')) {
       return 'source';
     }
 
+    if (id.startsWith('seed.')) {
+      return 'seed';
+    }
+
     if (id.startsWith('test.')) {
       return 'test';
+    }
+
+    if (id.startsWith('dbt.project.')) {
+      return 'project';
     }
 
     return 'model';
@@ -477,6 +488,54 @@ describe('dbt architecture basic rule pack', () => {
     expect(isDbtDocumentationTarget(legacyTestResolution)).toBe(false);
   });
 
+  it('centralizes dbt test coverage applicability for eligible and ineligible resource types', () => {
+    expect(
+      isDbtTestCoverageTarget(
+        createResolution({
+          governanceNodeId: 'model.valid_project.orders',
+          dbtUniqueId: 'model.valid_project.orders',
+          resourceType: 'model',
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isDbtTestCoverageTarget(
+        createResolution({
+          governanceNodeId: 'source.valid_project.raw.orders',
+          dbtUniqueId: 'source.valid_project.raw.orders',
+          resourceType: 'source',
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isDbtTestCoverageTarget(
+        createResolution({
+          governanceNodeId: 'dbt.project.valid_project',
+          dbtUniqueId: 'dbt.project.valid_project',
+          resourceType: 'project',
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isDbtTestCoverageTarget(
+        createResolution({
+          governanceNodeId: 'test.valid_project.orders',
+          dbtUniqueId: 'test.valid_project.orders',
+          resourceType: 'test',
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isDbtTestCoverageTarget(
+        createResolution({
+          governanceNodeId: 'seed.valid_project.calendar',
+          dbtUniqueId: 'seed.valid_project.calendar',
+          resourceType: 'seed',
+        }),
+      ),
+    ).toBe(false);
+  });
+
   it('does not flag documented public models', () => {
     const workspace = createWorkspace([
       createProject({
@@ -729,6 +788,33 @@ describe('dbt architecture basic rule pack', () => {
       evaluateDbtArchitectureViolations(createInput(workspace)).some(
         (violation) =>
           violation.subjectId === 'test.analytics.not_null_orders_order_id',
+      ),
+    ).toBe(false);
+  });
+
+  it('does not flag critical dbt project or seed nodes for missing tests', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'dbt.project.analytics',
+        resourceType: 'project',
+        layer: 'marts',
+        domain: 'finance',
+        criticality: 'critical',
+        tests: false,
+      }),
+      createProject({
+        id: 'seed.analytics.calendar',
+        resourceType: 'seed',
+        layer: 'staging',
+        domain: 'finance',
+        criticality: 'critical',
+        tests: false,
+      }),
+    ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) => violation.ruleId === 'dbt/critical-models-require-tests',
       ),
     ).toBe(false);
   });

@@ -14,7 +14,10 @@ import type {
   DbtGovernanceSignalProvider,
   DbtGovernanceSignalProviderInput,
 } from './contracts.js';
-import { isDbtDocumentationTarget } from './applicability.js';
+import {
+  isDbtDocumentationTarget,
+  isDbtTestCoverageTarget,
+} from './applicability.js';
 import {
   buildDbtInferredTestNodeIdsByTarget,
   getDbtMetadata,
@@ -417,6 +420,10 @@ function appendTestingSignals(
   resolution: DbtGovernanceMetadataResolution,
   context: DbtSignalContext,
 ): void {
+  if (!isDbtTestCoverageTarget(resolution)) {
+    return;
+  }
+
   const testsPresent = isResolvedTrue(resolution.testsPresent);
   const testsMissing = isMissingBooleanResolution(resolution.testsPresent);
   const criticalityValue =
