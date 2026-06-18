@@ -110,6 +110,7 @@ describe('dbt governance recommendations', () => {
 
   function createProject(options: {
     id: string;
+    resourceType?: 'model' | 'source' | 'seed' | 'test' | 'project';
     layer?: string;
     domain?: string;
     owner?: string;
@@ -141,7 +142,8 @@ describe('dbt governance recommendations', () => {
         dbt: {
           identity: {
             uniqueId: options.id,
-            resourceType: 'model',
+            resourceType:
+              options.resourceType ?? inferResourceTypeFromId(options.id),
           },
           resource: {
             tags: options.publicInterface ? ['public'] : [],
@@ -162,7 +164,10 @@ describe('dbt governance recommendations', () => {
                   },
                 }
               : {}),
-            materialization: 'table',
+            ...((options.resourceType ??
+              inferResourceTypeFromId(options.id)) !== 'test'
+              ? { materialization: 'table' }
+              : {}),
           },
           relation: {
             originalFilePath: `models/${options.layer ?? 'unknown'}/${leafName}.sql`,
@@ -179,6 +184,28 @@ describe('dbt governance recommendations', () => {
         },
       },
     };
+  }
+
+  function inferResourceTypeFromId(
+    id: string,
+  ): 'model' | 'source' | 'seed' | 'test' | 'project' {
+    if (id.startsWith('source.')) {
+      return 'source';
+    }
+
+    if (id.startsWith('seed.')) {
+      return 'seed';
+    }
+
+    if (id.startsWith('test.')) {
+      return 'test';
+    }
+
+    if (id.startsWith('dbt.project.')) {
+      return 'project';
+    }
+
+    return 'model';
   }
 
   function createResolution(project: TestWorkspaceProject) {
@@ -421,6 +448,77 @@ describe('dbt governance recommendations', () => {
         code: 'ADD_TESTS',
       }),
     });
+  });
+
+  it('does not emit ADD_TESTS for dbt project, test, or seed resources', () => {
+    const projectNode = createProject({
+      id: 'dbt.project.analytics',
+      resourceType: 'project',
+      layer: 'marts',
+      domain: 'finance',
+    });
+    const testNode = createProject({
+      id: 'test.analytics.not_null_orders_order_id',
+      resourceType: 'test',
+      layer: 'marts',
+      domain: 'finance',
+    });
+    const seedNode = createProject({
+      id: 'seed.analytics.calendar',
+      resourceType: 'seed',
+      layer: 'staging',
+      domain: 'finance',
+    });
+    const workspace = createWorkspace([projectNode, testNode, seedNode]);
+
+    const recommendations = buildDbtGovernanceRecommendations(
+      createRecommendationInput(workspace, {
+        metadataResolutions: [
+          createResolution(projectNode),
+          createResolution(testNode),
+          createResolution(seedNode),
+        ],
+        signals: [
+          createSignal({
+            id: 'signal-project-tests',
+            code: 'DBT_TESTS_MISSING',
+            nodeId: projectNode.id,
+            dbtUniqueId: projectNode.id,
+          }),
+          createSignal({
+            id: 'signal-test-tests',
+            code: 'DBT_TESTS_MISSING',
+            nodeId: testNode.id,
+            dbtUniqueId: testNode.id,
+          }),
+          createSignal({
+            id: 'signal-seed-tests',
+            code: 'DBT_TESTS_MISSING',
+            nodeId: seedNode.id,
+            dbtUniqueId: seedNode.id,
+          }),
+        ],
+        violations: [
+          createViolation({
+            id: 'violation-project-tests',
+            ruleId: 'dbt/critical-models-require-tests',
+            nodeId: projectNode.id,
+          }),
+          createViolation({
+            id: 'violation-test-tests',
+            ruleId: 'dbt/critical-models-require-tests',
+            nodeId: testNode.id,
+          }),
+          createViolation({
+            id: 'violation-seed-tests',
+            ruleId: 'dbt/critical-models-require-tests',
+            nodeId: seedNode.id,
+          }),
+        ],
+      }),
+    );
+
+    expect(findRecommendation(recommendations, 'ADD_TESTS')).toBeUndefined();
   });
 
   it('emits ENABLE_CONTRACT for governed models without contracts', () => {

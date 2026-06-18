@@ -18,6 +18,7 @@ import {
   normalizeIds,
   toResolverInput,
 } from './dbt-graph.js';
+import { isDbtTestCoverageTarget } from './applicability.js';
 import { buildDbtGovernanceDiagnostics } from './diagnostics.js';
 import { buildDbtGovernanceMetrics } from './metrics.js';
 import { evaluateDbtArchitectureViolations } from './rule-pack.js';
@@ -390,6 +391,11 @@ function buildAddTestsRecommendations(
       continue;
     }
 
+    const resolution = resolutionByNodeId.get(signal.nodeId);
+    if (!resolution || !isDbtTestCoverageTarget(resolution)) {
+      continue;
+    }
+
     upsertDraft(
       byNodeId,
       signal.nodeId,
@@ -409,8 +415,7 @@ function buildAddTestsRecommendations(
         category: 'documentation',
         governanceNodeId: signal.nodeId,
         dbtUniqueId:
-          asString(signal.metadata?.dbtUniqueId) ??
-          resolutionByNodeId.get(signal.nodeId)?.dbtUniqueId,
+          asString(signal.metadata?.dbtUniqueId) ?? resolution.dbtUniqueId,
         signal,
       }),
     );
@@ -423,6 +428,11 @@ function buildAddTestsRecommendations(
 
     const nodeId = readViolationNodeId(violation);
     if (!nodeId) {
+      continue;
+    }
+
+    const resolution = resolutionByNodeId.get(nodeId);
+    if (!resolution || !isDbtTestCoverageTarget(resolution)) {
       continue;
     }
 
@@ -439,7 +449,7 @@ function buildAddTestsRecommendations(
           'Add appropriate dbt tests for the critical model before treating it as governed output.',
         category: 'documentation',
         governanceNodeId: nodeId,
-        dbtUniqueId: resolutionByNodeId.get(nodeId)?.dbtUniqueId,
+        dbtUniqueId: resolution.dbtUniqueId,
         violation,
       }),
     );

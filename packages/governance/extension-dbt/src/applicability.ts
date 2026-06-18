@@ -12,6 +12,7 @@ const DBT_GOVERNED_ASSET_RESOURCE_TYPES = new Set([
   'semantic_model',
   'saved_query',
 ]);
+const DBT_TEST_COVERAGE_RESOURCE_TYPES = new Set(['model', 'source']);
 
 export function getDbtResolutionResourceType(
   resolution: DbtGovernanceMetadataResolution,
@@ -46,6 +47,23 @@ export function isDbtGovernedAssetResolution(
   }
 
   return DBT_GOVERNED_ASSET_RESOURCE_TYPES.has(resourceType);
+}
+
+export function isDbtTestCoverageResourceType(
+  resourceType: string | undefined,
+): boolean {
+  return (
+    resourceType !== undefined &&
+    DBT_TEST_COVERAGE_RESOURCE_TYPES.has(resourceType)
+  );
+}
+
+export function isDbtTestCoverageTarget(
+  resolution: DbtGovernanceMetadataResolution,
+): boolean {
+  return isDbtTestCoverageResourceType(
+    getDbtResolutionResourceType(resolution),
+  );
 }
 
 export function isDbtDocumentationTarget(
