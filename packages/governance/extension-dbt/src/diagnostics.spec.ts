@@ -127,6 +127,48 @@ describe('dbt governance diagnostics', () => {
     };
   }
 
+  function createResourceResolution(options: {
+    id: string;
+    resourceType: 'model' | 'source' | 'seed' | 'test' | 'project';
+    layer: string;
+    domain: string;
+    owner?: unknown;
+    originalFilePath: string;
+  }): DbtGovernanceMetadataResolution {
+    return resolveDbtGovernanceMetadata(
+      createResolverInput({
+        id: options.id,
+        metadata: {
+          dbt: {
+            identity: {
+              uniqueId: options.id,
+              resourceType: options.resourceType,
+            },
+            resource: {
+              tags: [],
+              meta: {
+                layer: options.layer,
+                domain: options.domain,
+              },
+              ...(options.owner !== undefined ? { owner: options.owner } : {}),
+              ...(options.resourceType !== 'test'
+                ? {
+                    materialization:
+                      options.resourceType === 'seed' ? 'seed' : 'table',
+                  }
+                : {}),
+            },
+            relation: {
+              originalFilePath: options.originalFilePath,
+            },
+            validation: {},
+            documentation: {},
+          },
+        },
+      }),
+    );
+  }
+
   it('reports unresolved layer/domain/owner metadata and skipped analysis as diagnostics', () => {
     const resolution = resolveDbtGovernanceMetadata(
       createResolverInput({
@@ -233,6 +275,98 @@ describe('dbt governance diagnostics', () => {
         rawValues: ['maybe'],
       },
     });
+  });
+
+  it('only emits owner-missing diagnostics for ownership targets and excludes seed ownership by default', () => {
+    const resolutions = [
+      createResourceResolution({
+        id: 'model.analytics.orders',
+        resourceType: 'model',
+        layer: 'marts',
+        domain: 'finance',
+        originalFilePath: 'models/marts/orders.sql',
+      }),
+      createResourceResolution({
+        id: 'source.analytics.raw.orders',
+        resourceType: 'source',
+        layer: 'staging',
+        domain: 'finance',
+        originalFilePath: 'models/staging/raw_orders.yml',
+      }),
+      createResourceResolution({
+        id: 'test.analytics.not_null_orders_order_id',
+        resourceType: 'test',
+        layer: 'marts',
+        domain: 'finance',
+        originalFilePath: 'tests/not_null_orders_order_id.sql',
+      }),
+      createResourceResolution({
+        id: 'dbt.project.analytics',
+        resourceType: 'project',
+        layer: 'marts',
+        domain: 'finance',
+        originalFilePath: 'dbt_project.yml',
+      }),
+      createResourceResolution({
+        id: 'seed.analytics.calendar',
+        resourceType: 'seed',
+        layer: 'staging',
+        domain: 'finance',
+        originalFilePath: 'seeds/calendar.csv',
+      }),
+    ];
+
+    const ownerMissingNodeIds = buildDbtGovernanceDiagnostics(
+      createProviderInput({
+        metadataResolutions: resolutions,
+      }),
+    )
+      .filter((diagnostic) => diagnostic.code === 'DBT_OWNER_MISSING')
+      .map((diagnostic) => diagnostic.reference?.nodeId);
+
+    expect(ownerMissingNodeIds).toEqual([
+      'model.analytics.orders',
+      'source.analytics.raw.orders',
+    ]);
+  });
+
+  it('only emits owner-invalid diagnostics for ownership targets', () => {
+    const resolutions = [
+      createResourceResolution({
+        id: 'model.analytics.orders',
+        resourceType: 'model',
+        layer: 'marts',
+        domain: 'finance',
+        owner: 42,
+        originalFilePath: 'models/marts/orders.sql',
+      }),
+      createResourceResolution({
+        id: 'test.analytics.not_null_orders_order_id',
+        resourceType: 'test',
+        layer: 'marts',
+        domain: 'finance',
+        owner: 42,
+        originalFilePath: 'tests/not_null_orders_order_id.sql',
+      }),
+      createResourceResolution({
+        id: 'dbt.project.analytics',
+        resourceType: 'project',
+        layer: 'marts',
+        domain: 'finance',
+        owner: 42,
+        originalFilePath: 'dbt_project.yml',
+      }),
+    ];
+
+    const ownerInvalidNodeIds = buildDbtGovernanceDiagnostics(
+      createProviderInput({
+        metadataResolutions: resolutions,
+      }),
+    )
+      .filter((diagnostic) => diagnostic.code === 'DBT_OWNER_INVALID')
+      .map((diagnostic) => diagnostic.reference?.nodeId);
+
+    expect(ownerInvalidNodeIds).toEqual(['model.analytics.orders']);
   });
 
   it('reports ambiguous interpretation and unsupported profile patterns', () => {

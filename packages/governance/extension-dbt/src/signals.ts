@@ -15,7 +15,10 @@ import type {
   DbtGovernanceSignalProviderInput,
 } from './contracts.js';
 import {
+  isDbtContractTarget,
+  isDbtDagShapeTarget,
   isDbtDocumentationTarget,
+  isDbtOwnershipTarget,
   isDbtTestCoverageTarget,
 } from './applicability.js';
 import {
@@ -211,6 +214,7 @@ function buildResourceSignals(
     context.diagnosticsByNodeId,
     resolution.governanceNodeId,
   );
+  const ownershipApplicable = isDbtOwnershipTarget(resolution);
 
   if (resolution.layer.status === 'resolved') {
     const resolvedLayer = resolution.layer.value;
@@ -276,7 +280,7 @@ function buildResourceSignals(
     );
   }
 
-  if (resolution.owner.status === 'resolved') {
+  if (ownershipApplicable && resolution.owner.status === 'resolved') {
     const resolvedOwner = resolution.owner.value;
 
     if (!resolvedOwner) {
@@ -305,7 +309,7 @@ function buildResourceSignals(
         createdAt: context.createdAt,
       }),
     );
-  } else if (resolution.owner.status === 'unresolved') {
+  } else if (ownershipApplicable && resolution.owner.status === 'unresolved') {
     signals.push(
       createSignal({
         code: 'DBT_OWNER_MISSING',
@@ -509,6 +513,10 @@ function appendContractSignals(
   resolution: DbtGovernanceMetadataResolution,
   createdAt: string,
 ): void {
+  if (!isDbtContractTarget(resolution)) {
+    return;
+  }
+
   if (isResolvedTrue(resolution.contractPresent)) {
     signals.push(
       createSignal({
@@ -563,6 +571,10 @@ function appendDagShapeSignals(
   fanOut: number,
   context: DbtSignalContext,
 ): void {
+  if (!isDbtDagShapeTarget(resolution)) {
+    return;
+  }
+
   if (fanIn >= context.options.highFanInThreshold) {
     signals.push(
       createSignal({

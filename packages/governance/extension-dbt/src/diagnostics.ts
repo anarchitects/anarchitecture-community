@@ -15,6 +15,7 @@ import {
   getDbtNodes,
   toResolverInput,
 } from './dbt-graph.js';
+import { isDbtOwnershipTarget } from './applicability.js';
 import {
   resolveDbtGovernanceMetadata,
   type DbtGovernanceMetadataResolution,
@@ -135,6 +136,7 @@ function buildDiagnosticsForResolution(
   options: DbtGovernanceDiagnosticsProviderOptions,
 ): DbtGovernanceExtensionDiagnostic[] {
   const diagnostics: DbtGovernanceExtensionDiagnostic[] = [];
+  const ownershipApplicable = isDbtOwnershipTarget(resolution);
 
   appendUnresolvedMetadataDiagnostic(
     diagnostics,
@@ -152,23 +154,27 @@ function buildDiagnosticsForResolution(
     'Domain metadata could not be resolved from normalized dbt governance input.',
     'Populate node.classification.domain or metadata.dbt.resource.meta.domain, or provide a runtime-configured domain resolver convention.',
   );
-  appendUnresolvedMetadataDiagnostic(
-    diagnostics,
-    'DBT_OWNER_MISSING',
-    resolution.owner,
-    'owner',
-    'Owner metadata is missing, so dbt governance interpretation remains incomplete.',
-    'Populate node.ownership.team, metadata.dbt.resource.owner, metadata.dbt.resource.group, or metadata.dbt.resource.meta.owner.',
-  );
+  if (ownershipApplicable) {
+    appendUnresolvedMetadataDiagnostic(
+      diagnostics,
+      'DBT_OWNER_MISSING',
+      resolution.owner,
+      'owner',
+      'Owner metadata is missing, so dbt governance interpretation remains incomplete.',
+      'Populate node.ownership.team, metadata.dbt.resource.owner, metadata.dbt.resource.group, or metadata.dbt.resource.meta.owner.',
+    );
+  }
 
-  appendInvalidMetadataDiagnostic(
-    diagnostics,
-    'DBT_OWNER_INVALID',
-    resolution.owner,
-    'owner',
-    'Owner metadata was present but not in a supported string form.',
-    'Normalize owner metadata to a non-empty string value before running governance interpretation.',
-  );
+  if (ownershipApplicable) {
+    appendInvalidMetadataDiagnostic(
+      diagnostics,
+      'DBT_OWNER_INVALID',
+      resolution.owner,
+      'owner',
+      'Owner metadata was present but not in a supported string form.',
+      'Normalize owner metadata to a non-empty string value before running governance interpretation.',
+    );
+  }
   appendInvalidMetadataDiagnostic(
     diagnostics,
     'DBT_CRITICALITY_INVALID',
@@ -206,7 +212,13 @@ function buildDiagnosticsForResolution(
   );
 
   if (options.includeSkippedRuleDiagnostics ?? true) {
-    appendSkippedRuleDiagnostic(diagnostics, resolution, profile, profileName);
+    appendSkippedRuleDiagnostic(
+      diagnostics,
+      resolution,
+      profile,
+      profileName,
+      ownershipApplicable,
+    );
   }
 
   return diagnostics;
@@ -356,6 +368,7 @@ function appendSkippedRuleDiagnostic(
   resolution: DbtGovernanceMetadataResolution,
   profile: GovernanceProfile,
   profileName: string,
+  ownershipApplicable: boolean,
 ): void {
   const missingMetadata: string[] = [];
   const skippedRuleIds: string[] = [];
@@ -370,7 +383,11 @@ function appendSkippedRuleDiagnostic(
     skippedRuleIds.push('domain-boundary');
   }
 
-  if (profile.ownership.required && resolution.owner.status === 'unresolved') {
+  if (
+    ownershipApplicable &&
+    profile.ownership.required &&
+    resolution.owner.status === 'unresolved'
+  ) {
     missingMetadata.push('owner');
     skippedRuleIds.push('ownership-presence');
   }

@@ -19,6 +19,8 @@ import {
   toResolverInput,
 } from './dbt-graph.js';
 import {
+  isDbtContractTarget,
+  isDbtOwnershipTarget,
   isDbtPublicModelDocumentationTarget,
   isDbtTestCoverageTarget,
 } from './applicability.js';
@@ -401,6 +403,10 @@ function evaluateCriticalModelsRequireOwner(
     return [];
   }
 
+  if (!isDbtOwnershipTarget(resolution)) {
+    return [];
+  }
+
   if (
     resolution.criticality.status !== 'resolved' ||
     !resolution.criticality.value
@@ -594,6 +600,7 @@ function evaluatePublicModelsRequireContract(
 
   if (
     !config.enabled ||
+    !isDbtContractTarget(resolution) ||
     resolution.publicInterface.status !== 'resolved' ||
     resolution.publicInterface.value !== true ||
     (resolution.contractPresent.status === 'resolved' &&

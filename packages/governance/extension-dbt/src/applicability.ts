@@ -1,7 +1,9 @@
 import type { DbtGovernanceMetadataResolution } from './resolvers.js';
 
 const DBT_EVIDENCE_RESOURCE_TYPES = new Set(['test']);
+const DBT_WORKSPACE_CONTEXT_RESOURCE_TYPES = new Set(['project']);
 const DBT_PUBLIC_MODEL_DOCUMENTATION_RESOURCE_TYPES = new Set(['model']);
+const DBT_OWNERSHIP_RESOURCE_TYPES = new Set(['model', 'source']);
 const DBT_GOVERNED_ASSET_RESOURCE_TYPES = new Set([
   'model',
   'seed',
@@ -37,6 +39,16 @@ export function isDbtEvidenceResource(
   );
 }
 
+export function isDbtWorkspaceContextResource(
+  resolution: DbtGovernanceMetadataResolution,
+): boolean {
+  const resourceType = getDbtResolutionResourceType(resolution);
+  return (
+    resourceType !== undefined &&
+    DBT_WORKSPACE_CONTEXT_RESOURCE_TYPES.has(resourceType)
+  );
+}
+
 export function isDbtGovernedAssetResolution(
   resolution: DbtGovernanceMetadataResolution,
 ): boolean {
@@ -47,6 +59,20 @@ export function isDbtGovernedAssetResolution(
   }
 
   return DBT_GOVERNED_ASSET_RESOURCE_TYPES.has(resourceType);
+}
+
+export function isDbtOwnershipResourceType(
+  resourceType: string | undefined,
+): boolean {
+  return (
+    resourceType !== undefined && DBT_OWNERSHIP_RESOURCE_TYPES.has(resourceType)
+  );
+}
+
+export function isDbtOwnershipTarget(
+  resolution: DbtGovernanceMetadataResolution,
+): boolean {
+  return isDbtOwnershipResourceType(getDbtResolutionResourceType(resolution));
 }
 
 export function isDbtTestCoverageResourceType(
@@ -82,6 +108,23 @@ export function isDbtPublicModelDocumentationTarget(
   }
 
   return DBT_PUBLIC_MODEL_DOCUMENTATION_RESOURCE_TYPES.has(resourceType);
+}
+
+export function isDbtContractTarget(
+  resolution: DbtGovernanceMetadataResolution,
+): boolean {
+  const resourceType = getDbtResolutionResourceType(resolution);
+
+  return isDbtGovernedAssetResolution(resolution) && resourceType !== 'source';
+}
+
+export function isDbtDagShapeTarget(
+  resolution: DbtGovernanceMetadataResolution,
+): boolean {
+  return (
+    !isDbtEvidenceResource(resolution) &&
+    !isDbtWorkspaceContextResource(resolution)
+  );
 }
 
 function normalizeResourceType(value: unknown): string | undefined {

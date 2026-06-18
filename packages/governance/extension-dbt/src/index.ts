@@ -47,13 +47,18 @@ export {
   type DbtGovernanceWorkspaceExpansionData,
 } from './contracts.js';
 export {
+  isDbtContractTarget,
+  isDbtDagShapeTarget,
   getDbtResolutionResourceType,
   isDbtDocumentationTarget,
   isDbtEvidenceResource,
   isDbtGovernedAssetResolution,
+  isDbtOwnershipResourceType,
+  isDbtOwnershipTarget,
   isDbtPublicModelDocumentationTarget,
   isDbtTestCoverageResourceType,
   isDbtTestCoverageTarget,
+  isDbtWorkspaceContextResource,
 } from './applicability.js';
 export {
   DBT_GOVERNANCE_DIAGNOSTIC_CODES,
