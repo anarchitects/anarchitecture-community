@@ -18,7 +18,10 @@ import {
   normalizeIds,
   toResolverInput,
 } from './dbt-graph.js';
-import { isDbtTestCoverageTarget } from './applicability.js';
+import {
+  isDbtOwnershipTarget,
+  isDbtTestCoverageTarget,
+} from './applicability.js';
 import { buildDbtGovernanceDiagnostics } from './diagnostics.js';
 import { buildDbtGovernanceMetrics } from './metrics.js';
 import { evaluateDbtArchitectureViolations } from './rule-pack.js';
@@ -217,6 +220,11 @@ function buildAddOwnerRecommendations(
       continue;
     }
 
+    const resolution = resolutionByNodeId.get(nodeId);
+    if (!resolution || !isDbtOwnershipTarget(resolution)) {
+      continue;
+    }
+
     upsertDraft(
       byNodeId,
       nodeId,
@@ -230,7 +238,7 @@ function buildAddOwnerRecommendations(
           'Add owner metadata using node.ownership.team, metadata.dbt.resource.owner, metadata.dbt.resource.group, or metadata.dbt.resource.meta.owner.',
         category: 'ownership',
         governanceNodeId: nodeId,
-        dbtUniqueId: resolutionByNodeId.get(nodeId)?.dbtUniqueId,
+        dbtUniqueId: resolution.dbtUniqueId,
         diagnostic: {
           id: diagnostic.id,
           code: diagnostic.code,
@@ -241,6 +249,11 @@ function buildAddOwnerRecommendations(
 
   for (const signal of context.signals) {
     if (signal.metadata?.code !== 'DBT_OWNER_MISSING' || !signal.nodeId) {
+      continue;
+    }
+
+    const resolution = resolutionByNodeId.get(signal.nodeId);
+    if (!resolution || !isDbtOwnershipTarget(resolution)) {
       continue;
     }
 
@@ -258,8 +271,7 @@ function buildAddOwnerRecommendations(
         category: 'ownership',
         governanceNodeId: signal.nodeId,
         dbtUniqueId:
-          asString(signal.metadata?.dbtUniqueId) ??
-          resolutionByNodeId.get(signal.nodeId)?.dbtUniqueId,
+          asString(signal.metadata?.dbtUniqueId) ?? resolution.dbtUniqueId,
         signal,
       }),
     );
@@ -272,6 +284,11 @@ function buildAddOwnerRecommendations(
 
     const nodeId = readViolationNodeId(violation);
     if (!nodeId) {
+      continue;
+    }
+
+    const resolution = resolutionByNodeId.get(nodeId);
+    if (!resolution || !isDbtOwnershipTarget(resolution)) {
       continue;
     }
 
@@ -288,7 +305,7 @@ function buildAddOwnerRecommendations(
           'Add explicit owner metadata so the critical model has a clear accountable team.',
         category: 'ownership',
         governanceNodeId: nodeId,
-        dbtUniqueId: resolutionByNodeId.get(nodeId)?.dbtUniqueId,
+        dbtUniqueId: resolution.dbtUniqueId,
         violation,
       }),
     );

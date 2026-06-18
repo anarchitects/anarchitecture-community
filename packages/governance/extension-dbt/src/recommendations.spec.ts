@@ -385,6 +385,151 @@ describe('dbt governance recommendations', () => {
     });
   });
 
+  it('only emits ADD_OWNER for ownership targets and excludes seed ownership by default', () => {
+    const modelNode = createProject({
+      id: 'model.analytics.orders',
+      resourceType: 'model',
+      layer: 'marts',
+      domain: 'finance',
+    });
+    const sourceNode = createProject({
+      id: 'source.analytics.raw.orders',
+      resourceType: 'source',
+      layer: 'staging',
+      domain: 'finance',
+    });
+    const projectNode = createProject({
+      id: 'dbt.project.analytics',
+      resourceType: 'project',
+      layer: 'marts',
+      domain: 'finance',
+    });
+    const testNode = createProject({
+      id: 'test.analytics.not_null_orders_order_id',
+      resourceType: 'test',
+      layer: 'marts',
+      domain: 'finance',
+    });
+    const seedNode = createProject({
+      id: 'seed.analytics.calendar',
+      resourceType: 'seed',
+      layer: 'staging',
+      domain: 'finance',
+    });
+    const workspace = createWorkspace([
+      modelNode,
+      sourceNode,
+      projectNode,
+      testNode,
+      seedNode,
+    ]);
+
+    const addOwnerNodeIds = buildDbtGovernanceRecommendations(
+      createRecommendationInput(workspace, {
+        metadataResolutions: [
+          createResolution(modelNode),
+          createResolution(sourceNode),
+          createResolution(projectNode),
+          createResolution(testNode),
+          createResolution(seedNode),
+        ],
+        diagnostics: [
+          createDiagnostic({
+            id: 'diag-model-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: modelNode.id,
+          }),
+          createDiagnostic({
+            id: 'diag-source-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: sourceNode.id,
+          }),
+          createDiagnostic({
+            id: 'diag-project-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: projectNode.id,
+          }),
+          createDiagnostic({
+            id: 'diag-test-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: testNode.id,
+          }),
+          createDiagnostic({
+            id: 'diag-seed-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: seedNode.id,
+          }),
+        ],
+        signals: [
+          createSignal({
+            id: 'signal-model-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: modelNode.id,
+            dbtUniqueId: modelNode.id,
+          }),
+          createSignal({
+            id: 'signal-source-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: sourceNode.id,
+            dbtUniqueId: sourceNode.id,
+          }),
+          createSignal({
+            id: 'signal-project-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: projectNode.id,
+            dbtUniqueId: projectNode.id,
+          }),
+          createSignal({
+            id: 'signal-test-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: testNode.id,
+            dbtUniqueId: testNode.id,
+          }),
+          createSignal({
+            id: 'signal-seed-owner',
+            code: 'DBT_OWNER_MISSING',
+            nodeId: seedNode.id,
+            dbtUniqueId: seedNode.id,
+          }),
+        ],
+        violations: [
+          createViolation({
+            id: 'violation-model-owner',
+            ruleId: 'dbt/critical-models-require-owner',
+            nodeId: modelNode.id,
+          }),
+          createViolation({
+            id: 'violation-source-owner',
+            ruleId: 'dbt/critical-models-require-owner',
+            nodeId: sourceNode.id,
+          }),
+          createViolation({
+            id: 'violation-project-owner',
+            ruleId: 'dbt/critical-models-require-owner',
+            nodeId: projectNode.id,
+          }),
+          createViolation({
+            id: 'violation-test-owner',
+            ruleId: 'dbt/critical-models-require-owner',
+            nodeId: testNode.id,
+          }),
+          createViolation({
+            id: 'violation-seed-owner',
+            ruleId: 'dbt/critical-models-require-owner',
+            nodeId: seedNode.id,
+          }),
+        ],
+      }),
+    )
+      .filter((recommendation) => recommendation.metadata?.code === 'ADD_OWNER')
+      .map((recommendation) => recommendation.reference?.nodeId);
+
+    expect(addOwnerNodeIds).toEqual([
+      'model.analytics.orders',
+      'source.analytics.raw.orders',
+    ]);
+  });
+
   it('emits ADD_DESCRIPTION from missing-description findings', () => {
     const project = createProject({
       id: 'model.analytics.public_orders',

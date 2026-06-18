@@ -13,9 +13,13 @@ import {
   dbtArchitectureBasicRulePack,
   evaluateDbtArchitectureViolations,
   getDbtResolutionResourceType,
+  isDbtContractTarget,
+  isDbtDagShapeTarget,
   isDbtDocumentationTarget,
+  isDbtOwnershipTarget,
   isDbtPublicModelDocumentationTarget,
   isDbtTestCoverageTarget,
+  isDbtWorkspaceContextResource,
   type DbtGovernanceMetadataResolution,
   type DbtGovernanceRulePackInput,
 } from './index.js';
@@ -437,6 +441,38 @@ describe('dbt architecture basic rule pack', () => {
     );
   });
 
+  it('does not flag critical dbt test, project, or seed nodes for missing owners', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'test.analytics.not_null_critical_orders_order_id',
+        resourceType: 'test',
+        layer: 'marts',
+        domain: 'finance',
+        criticality: 'high',
+      }),
+      createProject({
+        id: 'dbt.project.analytics',
+        resourceType: 'project',
+        layer: 'marts',
+        domain: 'finance',
+        criticality: 'high',
+      }),
+      createProject({
+        id: 'seed.analytics.calendar',
+        resourceType: 'seed',
+        layer: 'staging',
+        domain: 'finance',
+        criticality: 'high',
+      }),
+    ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) => violation.ruleId === 'dbt/critical-models-require-owner',
+      ),
+    ).toBe(false);
+  });
+
   it('flags public models without descriptions', () => {
     const workspace = createWorkspace([
       createProject({
@@ -486,6 +522,54 @@ describe('dbt architecture basic rule pack', () => {
     );
     expect(getDbtResolutionResourceType(legacyTestResolution)).toBe('test');
     expect(isDbtDocumentationTarget(legacyTestResolution)).toBe(false);
+  });
+
+  it('centralizes dbt ownership, workspace-context, contract, and dag-shape applicability', () => {
+    const modelResolution = createResolution({
+      governanceNodeId: 'model.valid_project.orders',
+      dbtUniqueId: 'model.valid_project.orders',
+      resourceType: 'model',
+    });
+    const sourceResolution = createResolution({
+      governanceNodeId: 'source.valid_project.raw.orders',
+      dbtUniqueId: 'source.valid_project.raw.orders',
+      resourceType: 'source',
+    });
+    const projectResolution = createResolution({
+      governanceNodeId: 'dbt.project.valid_project',
+      dbtUniqueId: 'dbt.project.valid_project',
+      resourceType: 'project',
+    });
+    const testResolution = createResolution({
+      governanceNodeId: 'test.valid_project.orders',
+      dbtUniqueId: 'test.valid_project.orders',
+      resourceType: 'test',
+    });
+    const seedResolution = createResolution({
+      governanceNodeId: 'seed.valid_project.calendar',
+      dbtUniqueId: 'seed.valid_project.calendar',
+      resourceType: 'seed',
+    });
+
+    expect(isDbtOwnershipTarget(modelResolution)).toBe(true);
+    expect(isDbtOwnershipTarget(sourceResolution)).toBe(true);
+    expect(isDbtOwnershipTarget(projectResolution)).toBe(false);
+    expect(isDbtOwnershipTarget(testResolution)).toBe(false);
+    expect(isDbtOwnershipTarget(seedResolution)).toBe(false);
+
+    expect(isDbtWorkspaceContextResource(projectResolution)).toBe(true);
+    expect(isDbtWorkspaceContextResource(modelResolution)).toBe(false);
+
+    expect(isDbtContractTarget(modelResolution)).toBe(true);
+    expect(isDbtContractTarget(sourceResolution)).toBe(false);
+    expect(isDbtContractTarget(projectResolution)).toBe(false);
+    expect(isDbtContractTarget(testResolution)).toBe(false);
+
+    expect(isDbtDagShapeTarget(modelResolution)).toBe(true);
+    expect(isDbtDagShapeTarget(sourceResolution)).toBe(true);
+    expect(isDbtDagShapeTarget(seedResolution)).toBe(true);
+    expect(isDbtDagShapeTarget(projectResolution)).toBe(false);
+    expect(isDbtDagShapeTarget(testResolution)).toBe(false);
   });
 
   it('centralizes dbt test coverage applicability for eligible and ineligible resource types', () => {
@@ -849,6 +933,43 @@ describe('dbt architecture basic rule pack', () => {
         }),
       ]),
     );
+  });
+
+  it('does not flag public dbt source, project, or test nodes without contracts', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'source.analytics.raw.orders',
+        resourceType: 'source',
+        layer: 'staging',
+        domain: 'finance',
+        owner: 'finance-platform',
+        publicInterface: true,
+        contract: false,
+      }),
+      createProject({
+        id: 'dbt.project.analytics',
+        resourceType: 'project',
+        layer: 'marts',
+        domain: 'finance',
+        publicInterface: true,
+        contract: false,
+      }),
+      createProject({
+        id: 'test.analytics.not_null_public_orders_order_id',
+        resourceType: 'test',
+        layer: 'marts',
+        domain: 'finance',
+        publicInterface: true,
+        contract: false,
+      }),
+    ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) =>
+          violation.ruleId === 'dbt/public-models-require-contract',
+      ),
+    ).toBe(false);
   });
 
   it('flags cross-domain dependencies without approval metadata', () => {

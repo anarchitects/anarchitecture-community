@@ -325,6 +325,101 @@ describe('dbt governance signals', () => {
     });
   });
 
+  it('only emits ownership-gap signals for ownership targets and excludes seed ownership by default', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'model.analytics.orders',
+        resourceType: 'model',
+        layer: 'marts',
+        domain: 'finance',
+      }),
+      createProject({
+        id: 'source.analytics.raw.orders',
+        resourceType: 'source',
+        layer: 'staging',
+        domain: 'finance',
+      }),
+      createProject({
+        id: 'test.analytics.not_null_orders_order_id',
+        resourceType: 'test',
+        layer: 'marts',
+        domain: 'finance',
+      }),
+      createProject({
+        id: 'dbt.project.analytics',
+        resourceType: 'project',
+        layer: 'marts',
+        domain: 'finance',
+      }),
+      createProject({
+        id: 'seed.analytics.calendar',
+        resourceType: 'seed',
+        layer: 'staging',
+        domain: 'finance',
+      }),
+    ]);
+
+    const ownershipGapNodeIds = buildDbtGovernanceSignals(
+      createSignalInput(workspace),
+    )
+      .filter((signal) => signal.type === 'ownership-gap')
+      .map((signal) => signal.nodeId)
+      .sort();
+
+    expect(ownershipGapNodeIds).toEqual(
+      ['source.analytics.raw.orders', 'model.analytics.orders'].sort(),
+    );
+  });
+
+  it('does not emit contract signals for dbt project, test, or source nodes', () => {
+    const workspace = createWorkspace([
+      createProject({
+        id: 'model.analytics.public_orders',
+        resourceType: 'model',
+        layer: 'marts',
+        domain: 'finance',
+        publicInterface: true,
+        contract: false,
+      }),
+      createProject({
+        id: 'source.analytics.raw.orders',
+        resourceType: 'source',
+        layer: 'staging',
+        domain: 'finance',
+        publicInterface: true,
+        contract: false,
+      }),
+      createProject({
+        id: 'test.analytics.not_null_public_orders_order_id',
+        resourceType: 'test',
+        layer: 'marts',
+        domain: 'finance',
+        publicInterface: true,
+        contract: false,
+      }),
+      createProject({
+        id: 'dbt.project.analytics',
+        resourceType: 'project',
+        layer: 'marts',
+        domain: 'finance',
+        publicInterface: true,
+        contract: false,
+      }),
+    ]);
+
+    const contractSignalNodeIds = buildDbtGovernanceSignals(
+      createSignalInput(workspace),
+    )
+      .filter(
+        (signal) =>
+          String(signal.metadata?.code ?? '') ===
+          'DBT_CONTRACT_MISSING_FOR_PUBLIC_MODEL_CANDIDATE',
+      )
+      .map((signal) => signal.nodeId);
+
+    expect(contractSignalNodeIds).toEqual(['model.analytics.public_orders']);
+  });
+
   it('does not emit documentation signals for dbt test nodes', () => {
     const workspace = createWorkspace([
       createProject({
