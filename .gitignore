@@ -56,3 +56,5 @@ vitest.config.*.timestamp*
 
 .yarn
 .nx/self-healing
+
+.nx/migrate-runs
