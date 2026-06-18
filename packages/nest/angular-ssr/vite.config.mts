@@ -24,7 +24,7 @@ export default defineConfig(() => ({
       fileName: 'index',
       formats: ['es' as const],
     },
-    rollupOptions: {
+    rolldownOptions: {
       external: [
         /^@angular\/ssr(?:\/.*)?$/,
         /^@nestjs\/common(?:\/.*)?$/,

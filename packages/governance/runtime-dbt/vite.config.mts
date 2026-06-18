@@ -63,7 +63,7 @@ export default defineConfig(() => ({
       fileName: (_format, entryName) => `${entryName}.js`,
       formats: ['es' as const],
     },
-    rollupOptions: {
+    rolldownOptions: {
       external: [
         /^node:.+$/,
         'tslib',
