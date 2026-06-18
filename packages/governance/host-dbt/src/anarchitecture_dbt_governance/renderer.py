@@ -225,6 +225,11 @@ def render_markdown_report(report: Mapping[str, Any]) -> str:
         lines.extend(["", "## Violations"])
         lines.extend(_render_markdown_violations(violations))
 
+    advisory_findings = _read_advisory_findings(result)
+    if advisory_findings:
+        lines.extend(["", "## Advisory Findings"])
+        lines.extend(_render_markdown_advisory_findings(advisory_findings))
+
     recommendations = _read_recommendations(result)
     if recommendations:
         lines.extend(["", "## Recommendations"])
@@ -511,6 +516,21 @@ def _read_recommendations(result: Any) -> list[Mapping[str, Any]]:
     return []
 
 
+def _read_advisory_findings(result: Any) -> list[Mapping[str, Any]]:
+    if not isinstance(result, Mapping):
+        return []
+
+    assessment = result.get("assessment")
+    if isinstance(assessment, Mapping) and isinstance(
+        assessment.get("topIssues"), list
+    ):
+        return [
+            issue for issue in assessment["topIssues"] if isinstance(issue, Mapping)
+        ]
+
+    return []
+
+
 def _render_markdown_diagnostics(diagnostics: Any) -> list[str]:
     lines: list[str] = []
     for diagnostic in diagnostics if isinstance(diagnostics, list) else []:
@@ -532,6 +552,47 @@ def _render_markdown_violations(violations: list[Mapping[str, Any]]) -> list[str
     return lines or ["- None"]
 
 
+def _render_markdown_advisory_findings(
+    advisory_findings: list[Mapping[str, Any]],
+) -> list[str]:
+    lines: list[str] = []
+    for issue in advisory_findings:
+        message = _read_mapping_string(issue, "message") or "Advisory finding"
+        details: list[str] = []
+
+        issue_type = _read_mapping_string(issue, "type")
+        if issue_type:
+            details.append(f"type: `{issue_type}`")
+
+        severity = _read_mapping_string(issue, "severity")
+        if severity:
+            details.append(f"severity: `{severity}`")
+
+        code = _read_mapping_string(issue, "code")
+        if code:
+            details.append(f"code: `{code}`")
+
+        rule_id = _read_mapping_string(issue, "ruleId")
+        if rule_id:
+            details.append(f"rule: `{rule_id}`")
+
+        details.extend(
+            _render_subject_context(_read_mapping_string_values(issue, "subjects"))
+        )
+        details.extend(
+            _render_reference_context(
+                reference=issue.get("reference"),
+                metadata=issue.get("metadata"),
+                node_id=_read_mapping_string(issue, "nodeId"),
+                relation_id=_read_mapping_string(issue, "relationId"),
+            )
+        )
+
+        lines.append(_append_markdown_details(f"- {message}", details))
+
+    return lines or ["- None"]
+
+
 def _render_markdown_recommendations(
     recommendations: list[Mapping[str, Any]],
 ) -> list[str]:
@@ -542,11 +603,139 @@ def _render_markdown_recommendations(
             or "Untitled recommendation"
         )
         reason = _read_mapping_string(recommendation, "reason")
+        details = _render_reference_context(
+            reference=recommendation.get("reference"),
+            metadata=recommendation.get("metadata"),
+        )
         if reason:
-            lines.append(f"- **{title}**: {reason}")
+            lines.append(_append_markdown_details(f"- **{title}**: {reason}", details))
         else:
-            lines.append(f"- **{title}**")
+            lines.append(_append_markdown_details(f"- **{title}**", details))
     return lines or ["- None"]
+
+
+def _render_reference_context(
+    *,
+    reference: Any,
+    metadata: Any,
+    node_id: str | None = None,
+    relation_id: str | None = None,
+) -> list[str]:
+    details: list[str] = []
+    reference_mapping = reference if isinstance(reference, Mapping) else None
+
+    resolved_node_id = (
+        _read_mapping_string(reference_mapping, "nodeId") if reference_mapping else None
+    ) or node_id
+    resolved_relation_id = (
+        _read_mapping_string(reference_mapping, "relationId")
+        if reference_mapping
+        else None
+    ) or relation_id
+    related_node_ids = (
+        _read_mapping_string_values(reference_mapping, "relatedNodeIds")
+        if reference_mapping
+        else []
+    )
+
+    if resolved_node_id:
+        details.append(f"node: `{resolved_node_id}`")
+    if resolved_relation_id:
+        details.append(f"relation: `{resolved_relation_id}`")
+
+    metadata_mapping = metadata if isinstance(metadata, Mapping) else None
+    governance_node_id = _read_mapping_string(metadata_mapping, "governanceNodeId")
+    if governance_node_id and governance_node_id != resolved_node_id:
+        details.append(f"governance: `{governance_node_id}`")
+
+    dbt_unique_id = _read_mapping_string(metadata_mapping, "dbtUniqueId")
+    if dbt_unique_id and dbt_unique_id != resolved_node_id:
+        details.append(f"dbt: `{dbt_unique_id}`")
+
+    dependency_key = _read_mapping_string(metadata_mapping, "dependencyKey")
+    if dependency_key:
+        details.append(f"dependency: `{dependency_key}`")
+
+    related_details = _render_related_node_context(
+        related_node_ids,
+        resolved_node_id=resolved_node_id,
+        dbt_unique_id=dbt_unique_id,
+    )
+    if related_details:
+        details.append(related_details)
+
+    return details
+
+
+def _render_related_node_context(
+    related_node_ids: list[str],
+    *,
+    resolved_node_id: str | None,
+    dbt_unique_id: str | None,
+) -> str | None:
+    deduped_related_node_ids = _dedupe_strings(related_node_ids)
+    if not deduped_related_node_ids:
+        return None
+
+    has_test_reference = _is_generated_test_node_id(
+        resolved_node_id
+    ) or _is_generated_test_node_id(dbt_unique_id)
+    if has_test_reference:
+        non_test_related_node_ids = [
+            node_id
+            for node_id in deduped_related_node_ids
+            if not _is_generated_test_node_id(node_id)
+        ]
+        if non_test_related_node_ids:
+            deduped_related_node_ids = non_test_related_node_ids
+
+    label = "affected" if has_test_reference else "related"
+    rendered_related_node_ids = ", ".join(
+        f"`{node_id}`" for node_id in deduped_related_node_ids
+    )
+    return f"{label}: {rendered_related_node_ids}"
+
+
+def _render_subject_context(subjects: list[str]) -> list[str]:
+    deduped_subjects = _dedupe_strings(subjects)
+    if not deduped_subjects:
+        return []
+    rendered_subjects = ", ".join(f"`{subject}`" for subject in deduped_subjects)
+    return [f"subjects: {rendered_subjects}"]
+
+
+def _append_markdown_details(base: str, details: list[str]) -> str:
+    if not details:
+        return base
+    return f"{base} | {' | '.join(details)}"
+
+
+def _read_mapping_string_values(payload: Any, key: str) -> list[str]:
+    if not isinstance(payload, Mapping):
+        return []
+    return _read_string_values(payload.get(key))
+
+
+def _read_string_values(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str)]
+    return []
+
+
+def _dedupe_strings(values: list[str]) -> list[str]:
+    deduped_values: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if value and value not in seen:
+            seen.add(value)
+            deduped_values.append(value)
+    return deduped_values
+
+
+def _is_generated_test_node_id(value: str | None) -> bool:
+    return isinstance(value, str) and value.startswith("test.")
 
 
 def _read_mapping_string(payload: Any, key: str) -> str | None:

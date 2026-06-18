@@ -137,7 +137,83 @@ class RendererTests(unittest.TestCase):
         self.assertIn("## Summary", rendered)
         self.assertIn("## Diagnostics", rendered)
         self.assertIn("## Violations", rendered)
+        self.assertIn("## Advisory Findings", rendered)
         self.assertIn("## Recommendations", rendered)
+
+    def test_markdown_report_renders_advisory_findings_without_violations(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            report = build_report_document(
+                command="report",
+                host_version=HOST_VERSION,
+                exit_code=ExitCode.SUCCESS,
+                artifact_result=create_artifact_result(Path(temp_dir)),
+                runtime_result=create_runtime_handoff(),
+                diagnostics=[],
+            )
+
+        rendered = render_markdown_report(report)
+        self.assertIn("## Advisory Findings", rendered)
+        self.assertIn("Owner metadata missing", rendered)
+        self.assertIn("type: `ownership`", rendered)
+        self.assertIn("subjects: `model.demo.dim_customers`", rendered)
+        self.assertNotIn("## Violations", rendered)
+
+    def test_markdown_report_renders_recommendation_context(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            report = build_report_document(
+                command="report",
+                host_version=HOST_VERSION,
+                exit_code=ExitCode.SUCCESS,
+                artifact_result=create_artifact_result(Path(temp_dir)),
+                runtime_result=create_runtime_handoff(),
+                diagnostics=[],
+            )
+
+        rendered = render_markdown_report(report)
+        self.assertIn(
+            "node: `test.demo.unique_stg_orders_order_id.abc`",
+            rendered,
+        )
+        self.assertIn(
+            "affected: `model.demo.stg_orders`",
+            rendered,
+        )
+
+    def test_markdown_report_renders_metadata_context_without_reference_node(
+        self,
+    ) -> None:
+        runtime_result = sample_runtime_result()
+        recommendations = runtime_result["assessment"]["recommendations"]
+        self.assertIsInstance(recommendations, list)
+        recommendations[0] = {
+            "title": "Add dbt owner metadata",
+            "reason": "Owner metadata is missing.",
+            "metadata": {
+                "dbtUniqueId": "model.demo.dim_customers",
+                "dependencyKey": "model.demo.dim_customers->owner",
+            },
+        }
+
+        with TemporaryDirectory() as temp_dir:
+            report = build_report_document(
+                command="report",
+                host_version=HOST_VERSION,
+                exit_code=ExitCode.SUCCESS,
+                artifact_result=create_artifact_result(Path(temp_dir)),
+                runtime_result=RuntimeHandoffResult(
+                    supported=True,
+                    diagnostics=[],
+                    runtime_result=runtime_result,
+                ),
+                diagnostics=[],
+            )
+
+        rendered = render_markdown_report(report)
+        self.assertIn("dbt: `model.demo.dim_customers`", rendered)
+        self.assertIn(
+            "dependency: `model.demo.dim_customers->owner`",
+            rendered,
+        )
 
     def test_human_report_contains_useful_summary_fields(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -221,11 +297,26 @@ def sample_runtime_result(*, blocking: bool = False) -> dict[str, object]:
                 "score": 82 if blocking else 97,
                 "grade": "B" if blocking else "A",
             },
-            "topIssues": [{"message": "Fill in missing ownership metadata."}],
+            "topIssues": [
+                {
+                    "message": "Owner metadata missing",
+                    "type": "ownership",
+                    "subjects": ["model.demo.dim_customers"],
+                }
+            ],
             "recommendations": [
                 {
-                    "title": "Add owners",
-                    "reason": "Ownership metadata is required.",
+                    "title": "Add dbt owner metadata",
+                    "reason": "Owner metadata is missing.",
+                    "reference": {
+                        "nodeId": "test.demo.unique_stg_orders_order_id.abc",
+                        "relatedNodeIds": ["model.demo.stg_orders"],
+                    },
+                    "metadata": {
+                        "code": "ADD_OWNER",
+                        "dbtUniqueId": "test.demo.unique_stg_orders_order_id.abc",
+                        "governanceNodeId": "test.demo.unique_stg_orders_order_id.abc",
+                    },
                 }
             ],
         },
