@@ -1,0 +1,7 @@
+name: governance_dbt_package_smoke
+version: 0.1.0
+config-version: 2
+
+profile: governance_dbt_package_smoke
+
+model-paths: ['models']
