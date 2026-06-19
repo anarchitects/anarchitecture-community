@@ -1,8 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { validateDbtGovernanceModelExpansion } from '@anarchitects/governance-extension-dbt';
-
 import {
   loadDbtArtifacts,
   normalizeDbtArtifacts,
@@ -30,7 +28,18 @@ interface DbtRelationExpansionEnvelope {
   contractVersion: string;
   data: {
     kind: 'relation';
+    technology?: string;
     relationKind: string;
+  };
+}
+
+interface DbtWorkspaceExpansionEnvelope {
+  extensionId: string;
+  contractVersion: string;
+  data: {
+    kind: 'workspace';
+    technology?: string;
+    projectName: string;
   };
 }
 
@@ -845,13 +854,14 @@ describe('dbt artifact normalization', () => {
     );
   });
 
-  it('emits dbt expansion envelopes that remain valid for the extension validator', () => {
+  it('emits dbt expansion envelopes using the stable extension protocol shape', () => {
     const context = mustResolveContext('valid-project');
     const artifacts = mustLoadArtifacts(context);
     const normalized = normalizeDbtArtifacts(context, artifacts);
 
-    const workspaceExpansion =
-      normalized.extensions?.['governance-extension:dbt'];
+    const workspaceExpansion = normalized.extensions?.[
+      'governance-extension:dbt'
+    ] as DbtWorkspaceExpansionEnvelope | undefined;
     const projectNodeExpansion = normalized.nodes
       ?.flatMap((node) => {
         const expansion = node.extensions?.['governance-extension:dbt'] as
@@ -894,7 +904,34 @@ describe('dbt artifact normalization', () => {
         extensionId: 'governance-extension:dbt',
         contractVersion: '1',
       });
-      expect(validateDbtGovernanceModelExpansion(expansion)).toEqual([]);
+    });
+
+    expect(workspaceExpansion).toMatchObject({
+      data: {
+        kind: 'workspace',
+        technology: 'dbt',
+        projectName: 'valid_project',
+      },
+    });
+    expect(projectNodeExpansion).toMatchObject({
+      data: {
+        kind: 'node',
+        technology: 'dbt',
+        nodeKind: 'project',
+      },
+    });
+    expect(resourceNodeExpansion).toMatchObject({
+      data: {
+        kind: 'node',
+        technology: 'dbt',
+        nodeKind: 'resource',
+      },
+    });
+    expect(relationExpansion).toMatchObject({
+      data: {
+        kind: 'relation',
+        technology: 'dbt',
+      },
     });
   });
 });
