@@ -245,6 +245,225 @@ describe('dbt artifact normalization', () => {
     });
   });
 
+  it('preserves nested companion governance metadata for models without interpreting it yet', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'model',
+      unique_id: 'model.valid_project.synthetic_companion_model',
+      name: 'synthetic_companion_model',
+      relation_name: '"analytics"."marts"."synthetic_companion_model"',
+      description: 'Synthetic companion model',
+      tests: ['not_null:id'],
+      config: {
+        materialized: 'table',
+        contract: {
+          enforced: true,
+        },
+      },
+      meta: {
+        anarchitects: {
+          governance: {
+            layer: 'marts',
+            domain: 'sales',
+            owner: {
+              team: 'analytics',
+            },
+            criticality: 'high',
+            publicInterface: true,
+            crossDomainApproved: false,
+          },
+        },
+        customFlag: 'preserved',
+      },
+    });
+
+    expect(node.classification).toBeUndefined();
+    expect(node.ownership).toBeUndefined();
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        anarchitects: {
+          governance: {
+            layer: 'marts',
+            domain: 'sales',
+            owner: {
+              team: 'analytics',
+            },
+            criticality: 'high',
+            publicInterface: true,
+            crossDomainApproved: false,
+          },
+        },
+        customFlag: 'preserved',
+      },
+    });
+  });
+
+  it('preserves nested companion governance metadata for source nodes without interpreting it yet', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'source',
+      unique_id: 'source.valid_project.raw.synthetic_companion_source',
+      name: 'synthetic_companion_source',
+      source_name: 'raw',
+      relation_name: '"warehouse"."raw"."synthetic_companion_source"',
+      description: 'Synthetic companion source',
+      tests: ['freshness'],
+      meta: {
+        anarchitects: {
+          governance: {
+            layer: 'staging',
+            domain: 'sales',
+            owner: {
+              team: 'analytics-engineering',
+            },
+            criticality: 'medium',
+            publicInterface: false,
+            crossDomainApproved: true,
+          },
+        },
+      },
+      source_meta: {
+        anarchitects: {
+          governance: {
+            layer: 'landing',
+            domain: 'source-sales',
+          },
+        },
+      },
+    });
+
+    expect(node.classification).toBeUndefined();
+    expect(node.ownership).toBeUndefined();
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        anarchitects: {
+          governance: {
+            layer: 'staging',
+            domain: 'sales',
+            owner: {
+              team: 'analytics-engineering',
+            },
+            criticality: 'medium',
+            publicInterface: false,
+            crossDomainApproved: true,
+          },
+        },
+      },
+      sourceMeta: {
+        anarchitects: {
+          governance: {
+            layer: 'landing',
+            domain: 'source-sales',
+          },
+        },
+      },
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).not.toHaveProperty(
+      'resolvedGovernanceMeta',
+    );
+  });
+
+  it('keeps legacy governance metadata behavior while also preserving companion metadata', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'model',
+      unique_id: 'model.valid_project.synthetic_compatible_model',
+      name: 'synthetic_compatible_model',
+      relation_name: '"analytics"."marts"."synthetic_compatible_model"',
+      description: 'Synthetic compatibility model',
+      tests: ['not_null:id'],
+      config: {
+        materialized: 'table',
+        contract: {
+          enforced: true,
+        },
+      },
+      meta: {
+        governance: {
+          layer: 'mart',
+          domain: 'finance',
+          owner: 'finance-platform',
+        },
+        anarchitects: {
+          governance: {
+            layer: 'marts',
+            domain: 'sales',
+            owner: {
+              team: 'analytics',
+            },
+            criticality: 'high',
+            publicInterface: true,
+            crossDomainApproved: false,
+          },
+        },
+      },
+    });
+
+    expect(node.classification).toMatchObject({
+      layer: 'mart',
+      domain: 'finance',
+    });
+    expect(node.ownership).toEqual({
+      team: 'finance-platform',
+      source: 'dbt-manifest',
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        governance: {
+          layer: 'mart',
+          domain: 'finance',
+          owner: 'finance-platform',
+        },
+        anarchitects: {
+          governance: {
+            layer: 'marts',
+            domain: 'sales',
+            owner: {
+              team: 'analytics',
+            },
+            criticality: 'high',
+            publicInterface: true,
+            crossDomainApproved: false,
+          },
+        },
+      },
+    });
+  });
+
+  it('keeps normalization valid when companion metadata is absent', () => {
+    const context = mustResolveContext('valid-project');
+    const normalized = normalizeDbtArtifacts(context, {
+      manifest: buildSyntheticManifest('model.valid_project.synthetic_plain', {
+        resource_type: 'model',
+        unique_id: 'model.valid_project.synthetic_plain',
+        name: 'synthetic_plain',
+        relation_name: '"analytics"."marts"."synthetic_plain"',
+        description: 'Plain synthetic model',
+        tests: ['not_null:id'],
+        config: {
+          materialized: 'table',
+          contract: {
+            enforced: true,
+          },
+        },
+      }),
+      projectConfig: {
+        name: 'valid_project',
+      },
+    });
+    const node = normalized.nodes?.find(
+      (entry) => entry.id === 'model.valid_project.synthetic_plain',
+    );
+
+    expect(node).toBeDefined();
+    if (!node) {
+      throw new Error('Expected synthetic_plain node to normalize.');
+    }
+    expect(node?.classification).toBeUndefined();
+    expect(node?.ownership).toBeUndefined();
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {},
+    });
+    expect(normalized.diagnostics).toEqual([]);
+  });
+
   it('maps model, seed, snapshot, source, and exposure lineage through canonical relations', () => {
     const context = mustResolveContext('valid-project');
     const artifacts = mustLoadArtifacts(context);
