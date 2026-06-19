@@ -44,7 +44,7 @@ jobs:
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
 
       - run: yarn install --immutable
-      - run: python -m pip install "dbt-core>=1.11,<1.12" "dbt-duckdb>=1.11,<1.12"
+      - run: python -m pip install "dbt-core>=1.11,<1.12" "dbt-duckdb>=1.10,<1.11"
 
       # Prepend any command with "nx record --" to record its logs to Nx Cloud
       # - run: yarn nx record -- echo Hello World
