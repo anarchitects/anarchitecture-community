@@ -80,16 +80,16 @@ packages:
   - local: ../anarchitecture-community/packages/governance/dbt-package
 ```
 
-Planned Git tag and GitHub release install model:
+Git tag and GitHub release install model:
 
 ```yaml
 packages:
   - git: 'https://github.com/anarchitects/anarchitecture-community.git'
-    revision: '<tag>'
+    revision: 'governance-dbt-package@0.1.0'
     subdirectory: 'packages/governance/dbt-package'
 ```
 
-The exact Git tag naming convention is tracked in [#461](https://github.com/anarchitects/anarchitecture-community/issues/461).
+This repo uses the existing Nx Release tag convention `<project>@<version>`. For the companion dbt package, that means tags such as `governance-dbt-package@0.1.0`.
 
 Planned dbt Hub installation will be documented after [#462](https://github.com/anarchitects/anarchitecture-community/issues/462) is complete. Do not treat dbt Hub installation as available yet.
 
@@ -603,7 +603,7 @@ Run the local dbt smoke test fixture:
 yarn nx run governance-dbt-package:test
 ```
 
-Assemble a distributable copy under `dist/packages/governance/dbt-package`:
+Assemble a distributable copy under `packages/governance/dbt-package/dist`:
 
 ```bash
 yarn nx run governance-dbt-package:pack
@@ -613,9 +613,9 @@ Target behavior:
 
 - `validate` checks that the expected scaffold files and directories exist
 - `test` runs `dbt deps`, `dbt parse`, `dbt test`, and the helper `run-operation` macros against a tiny local DuckDB fixture
-- `pack` assembles the dbt package under `dist/packages/governance/dbt-package`
+- `pack` assembles the dbt package under `packages/governance/dbt-package/dist`
 - `pack` does not publish anything
-- Git tag and GitHub release support is tracked by [#461](https://github.com/anarchitects/anarchitecture-community/issues/461)
+- Git tag and GitHub release support is implemented through the repo's Nx Release flow and documented in [RELEASE.md](./RELEASE.md)
 - dbt Hub publication is tracked by [#462](https://github.com/anarchitects/anarchitecture-community/issues/462)
 
 ## Release And Distribution
@@ -623,7 +623,7 @@ Target behavior:
 Staged release model:
 
 1. Local development install via `packages.yml` with `local:`
-2. Git tag and GitHub release install via repository subdirectory, tracked in [#461](https://github.com/anarchitects/anarchitecture-community/issues/461)
+2. Git tag and GitHub release install via repository subdirectory using tags such as `governance-dbt-package@0.1.0`
 3. dbt Hub publication, tracked in [#462](https://github.com/anarchitects/anarchitecture-community/issues/462)
 
 Guidance:
@@ -631,8 +631,9 @@ Guidance:
 - this dbt package has its own version in [dbt_project.yml](./dbt_project.yml)
 - its version should not be confused with the Python CLI package version
 - compatibility may be coordinated across the CLI, runtime, and companion package, but installation remains separate
-- GitHub releases are the first planned public distribution target
+- GitHub releases are the first public distribution target
 - dbt Hub should not be documented as available until publication is real
+- the detailed release steps live in [RELEASE.md](./RELEASE.md)
 
 ## Release Checklist
 
@@ -646,11 +647,12 @@ Guidance:
 - Confirm host docs link back to companion package docs.
 - Confirm dbt Hub docs are updated only after publication.
 
-Automation and exact release mechanics are tracked separately in [#461](https://github.com/anarchitects/anarchitecture-community/issues/461) and [#462](https://github.com/anarchitects/anarchitecture-community/issues/462).
+The detailed release flow is documented in [RELEASE.md](./RELEASE.md). dbt Hub publication remains separate future work under [#462](https://github.com/anarchitects/anarchitecture-community/issues/462).
 
 ## Related Work
 
 - [Companion package strategy](../../../docs/governance/dbt-companion-package-strategy.md)
+- [Release guide](./RELEASE.md)
 - [Python CLI and host package docs](../host-dbt/README.md)
 - [Governance host behavior reference](../../../docs/governance/dbt-governance-host.md)
 - Current governance profile input guidance lives in the `governance.profile.yml Reference` section of [packages/governance/host-dbt/README.md](../host-dbt/README.md)
