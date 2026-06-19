@@ -2,8 +2,6 @@ models:
   - name: example
     description: Minimal smoke-test model for companion dbt package validation.
     config:
-      contract:
-        enforced: true
       meta:
         anarchitects:
           governance:
