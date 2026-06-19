@@ -1,0 +1,35 @@
+models:
+  - name: example
+    description: Minimal smoke-test model for companion dbt package validation.
+    config:
+      contract:
+        enforced: true
+      meta:
+        anarchitects:
+          governance:
+            layer: marts
+            domain: sales
+            owner:
+              team: analytics
+            criticality: high
+            publicInterface: true
+            crossDomainApproved: false
+    data_tests:
+      - anarchitects_governance.has_governance_layer
+      - anarchitects_governance.has_governance_domain
+      - anarchitects_governance.has_governance_owner
+      - anarchitects_governance.has_governance_criticality
+      - anarchitects_governance.has_allowed_governance_layer:
+          arguments:
+            allowed_layers:
+              - staging
+              - intermediate
+              - marts
+      - anarchitects_governance.has_allowed_criticality:
+          arguments:
+            allowed_values:
+              - low
+              - medium
+              - high
+              - critical
+            required: true

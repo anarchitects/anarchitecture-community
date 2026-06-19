@@ -1,7 +1,7 @@
 {% docs anarchitects_governance_metadata %}
 Anarchitects governance metadata is the recommended dbt-side convention for describing layer, domain, ownership, criticality, and interface intent inside a dbt project.
 
-Use the nested `meta.anarchitects.governance` namespace for new projects so metadata stays explicit and consistent. These docs blocks explain the convention, but they do not run governance checks by themselves.
+Use the nested `meta.anarchitects.governance` namespace for new projects so metadata stays explicit and consistent. The companion package also provides lightweight generic tests for early metadata feedback, but those tests do not replace `dbt-governance check`.
 {% enddocs %}
 
 {% docs anarchitects_governance_layer %}
@@ -55,5 +55,11 @@ This package documents the expectation and provides helper templates, but it doe
 {% docs anarchitects_governance_runtime_boundary %}
 The companion dbt package lives inside a dbt project and helps with metadata, docs, and helper macros.
 
-`dbt-governance` remains outside dbt as the authoritative evaluation and reporting path. Installing this package with `dbt deps` does not install the Python CLI or Node runtime, and these docs blocks do not execute governance checks.
+`dbt-governance` remains outside dbt as the authoritative evaluation and reporting path. Installing this package with `dbt deps` does not install the Python CLI or Node runtime, and the package's generic tests only inspect local dbt metadata rather than performing full governance evaluation.
+{% enddocs %}
+
+{% docs anarchitects_governance_generic_tests %}
+The companion package includes lightweight generic tests such as `has_governance_layer`, `has_governance_domain`, `has_governance_owner`, `has_allowed_governance_layer`, and `has_allowed_criticality`.
+
+These tests use dbt graph metadata inspection during test execution to provide early developer feedback about the recommended `meta.anarchitects.governance` convention. They do not evaluate graph-level policies such as lineage boundaries or cross-domain dependency rules.
 {% enddocs %}

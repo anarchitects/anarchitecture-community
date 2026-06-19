@@ -1,0 +1,7 @@
+governance_dbt_package_smoke:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: target/governance-dbt-package-smoke.duckdb
+      threads: 1

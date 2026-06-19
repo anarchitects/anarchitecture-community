@@ -13,9 +13,34 @@
           "test -f packages/governance/dbt-package/dbt_project.yml",
           "test -f packages/governance/dbt-package/project.json",
           "test -f packages/governance/dbt-package/README.md",
+          "test -f packages/governance/dbt-package/macros/governance_metadata_tests.sql",
           "test -d packages/governance/dbt-package/macros",
           "test -d packages/governance/dbt-package/docs",
-          "test -d packages/governance/dbt-package/tests"
+          "test -d packages/governance/dbt-package/tests",
+          "test -f packages/governance/dbt-package/tests/fixtures/smoke/dbt_project.yml",
+          "test -f packages/governance/dbt-package/tests/fixtures/smoke/packages.yml",
+          "test -f packages/governance/dbt-package/tests/fixtures/smoke/profiles.yml",
+          "test -f packages/governance/dbt-package/tests/fixtures/smoke/models/example.sql",
+          "test -f packages/governance/dbt-package/tests/fixtures/smoke/models/schema.yml"
+        ],
+        "parallel": false
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["validate"],
+      "outputs": [],
+      "options": {
+        "cwd": "packages/governance/dbt-package/tests/fixtures/smoke",
+        "commands": [
+          "command -v dbt",
+          "dbt --version",
+          "dbt deps --profiles-dir .",
+          "dbt parse --profiles-dir .",
+          "sh -c 'dbt debug --profiles-dir . || { echo \"governance-dbt-package:test requires a local DuckDB-capable dbt installation. Install dbt-core plus dbt-duckdb, then retry.\" >&2; exit 1; }'",
+          "dbt test --profiles-dir .",
+          "dbt run-operation governance_print_metadata_template --profiles-dir .",
+          "dbt run-operation governance_print_profile_template --profiles-dir ."
         ],
         "parallel": false
       }
@@ -23,11 +48,11 @@
     "pack": {
       "executor": "nx:run-commands",
       "dependsOn": ["validate"],
-      "outputs": ["{workspaceRoot}/dist/packages/governance/dbt-package"],
+      "outputs": ["{workspaceRoot}/packages/governance/dbt-package/dist"],
       "options": {
         "commands": [
-          "mkdir -p dist/packages/governance/dbt-package",
-          "rsync -a --delete --exclude target --exclude dbt_packages --exclude logs packages/governance/dbt-package/ packages/governance/dbt-package/dist"
+          "mkdir -p packages/governance/dbt-package/dist",
+          "rsync -a --delete --exclude target --exclude dbt_packages --exclude logs packages/governance/dbt-package/ packages/governance/dbt-package/dist/"
         ],
         "parallel": false
       }

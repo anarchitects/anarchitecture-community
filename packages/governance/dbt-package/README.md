@@ -81,6 +81,7 @@ Suggested manual validation from a consuming dbt project:
 dbt deps
 dbt parse
 dbt docs generate
+dbt test
 dbt run-operation governance_print_metadata_template
 dbt run-operation governance_print_profile_template
 ```
@@ -91,6 +92,183 @@ If you prefer explicit package qualification when invoking a macro from an insta
 dbt run-operation anarchitects_governance.governance_print_metadata_template
 dbt run-operation anarchitects_governance.governance_print_profile_template
 ```
+
+The Nx `test` target uses a tiny local DuckDB-backed fixture project under [tests/fixtures/smoke](./tests/fixtures/smoke). It requires a local dbt installation with a DuckDB adapter such as `dbt-duckdb`; it does not install dbt for you. A plain Homebrew `dbt-fusion` preview install without a working DuckDB driver is not sufficient for this target.
+
+## Generic Metadata Tests
+
+Feasibility note:
+
+- dbt generic tests receive the target `model` plus explicit test arguments
+- these tests do not inspect row data
+- they use dbt graph metadata and Jinja inspection at test execution time
+- dbt documents that `graph` is incomplete during parsing, so the implementation only reads graph metadata when `execute` is true
+- on success they render synthetic zero-row SQL
+- on failure they render one synthetic failing row
+
+That keeps the tests lightweight and adapter-neutral while staying inside the dbt package boundary.
+
+Implemented tests:
+
+### `has_governance_layer`
+
+Purpose:
+
+- verifies that `meta.anarchitects.governance.layer` exists and is a non-empty string
+
+Example:
+
+```yaml
+models:
+  - name: fct_orders
+    data_tests:
+      - anarchitects_governance.has_governance_layer
+```
+
+What it checks:
+
+- local dbt metadata presence for the recommended nested layer field
+
+What it does not check:
+
+- whether the layer value is valid for your architecture
+- graph-level layer dependency rules
+
+### `has_governance_domain`
+
+Purpose:
+
+- verifies that `meta.anarchitects.governance.domain` exists and is a non-empty string
+
+Example:
+
+```yaml
+models:
+  - name: fct_orders
+    data_tests:
+      - anarchitects_governance.has_governance_domain
+```
+
+What it checks:
+
+- local dbt metadata presence for the recommended nested domain field
+
+What it does not check:
+
+- cross-domain lineage policy
+
+### `has_governance_owner`
+
+Purpose:
+
+- verifies that `meta.anarchitects.governance.owner.team` exists and is a non-empty string
+
+Example:
+
+```yaml
+models:
+  - name: fct_orders
+    data_tests:
+      - anarchitects_governance.has_governance_owner
+```
+
+What it checks:
+
+- local dbt metadata presence for the recommended nested owner team field
+
+What it does not check:
+
+- broader ownership coverage or graph-level ownership rules
+
+### `has_governance_criticality`
+
+Purpose:
+
+- verifies that `meta.anarchitects.governance.criticality` exists and is a non-empty string
+
+Example:
+
+```yaml
+models:
+  - name: fct_orders
+    data_tests:
+      - anarchitects_governance.has_governance_criticality
+```
+
+What it checks:
+
+- local dbt metadata presence for the criticality field
+
+What it does not check:
+
+- whether the value belongs to an approved set
+
+### `has_allowed_governance_layer`
+
+Purpose:
+
+- verifies that the governance layer exists and is one of the configured allowed values
+
+Example:
+
+```yaml
+models:
+  - name: fct_orders
+    data_tests:
+      - anarchitects_governance.has_allowed_governance_layer:
+          arguments:
+            allowed_layers:
+              - staging
+              - intermediate
+              - marts
+```
+
+What it checks:
+
+- local dbt metadata value validation for `meta.anarchitects.governance.layer`
+
+What it does not check:
+
+- whether upstream or downstream dependencies obey layer policy
+
+### `has_allowed_criticality`
+
+Purpose:
+
+- verifies that `meta.anarchitects.governance.criticality`, when present or required, is one of the configured allowed values
+
+Example:
+
+```yaml
+models:
+  - name: fct_orders
+    data_tests:
+      - anarchitects_governance.has_allowed_criticality:
+          arguments:
+            allowed_values:
+              - low
+              - medium
+              - high
+              - critical
+            required: false
+```
+
+Behavior:
+
+- with `required: false`, missing criticality passes and present criticality must be in `allowed_values`
+- with `required: true`, missing criticality fails
+
+What it does not check:
+
+- criticality-driven graph rules
+- test coverage expectations for critical models
+
+Boundary reminder for all generic tests:
+
+- these tests provide early developer feedback only
+- they do not evaluate cross-model graph governance
+- they do not replace `dbt-governance check`
+- they do not guarantee full compliance
 
 ## Recommended Metadata Convention
 
@@ -163,6 +341,12 @@ Validate the scaffold:
 yarn nx run governance-dbt-package:validate
 ```
 
+Run the local dbt smoke test fixture:
+
+```bash
+yarn nx run governance-dbt-package:test
+```
+
 Assemble a distributable copy under `dist/packages/governance/dbt-package`:
 
 ```bash
@@ -172,6 +356,7 @@ yarn nx run governance-dbt-package:pack
 Target behavior:
 
 - `validate` checks that the expected scaffold files and directories exist
+- `test` runs `dbt deps`, `dbt parse`, `dbt test`, and the helper `run-operation` macros against a tiny local DuckDB fixture
 - `pack` assembles the dbt package under `dist/packages/governance/dbt-package`
 - `pack` does not publish anything
 - Git tag and GitHub release support is tracked by [#461](https://github.com/anarchitects/anarchitecture-community/issues/461)

@@ -58,3 +58,11 @@ vitest.config.*.timestamp*
 .nx/self-healing
 
 .nx/migrate-runs
+
+# dbt
+packages/governance/dbt-package/tests/fixtures/smoke/target
+packages/governance/dbt-package/tests/fixtures/smoke/logs
+packages/governance/dbt-package/tests/fixtures/smoke/dbt_packages
+packages/governance/dbt-package/tests/fixtures/smoke/package-lock.yml
+packages/governance/dbt-package/tests/fixtures/smoke/.user.yml
+packages/governance/dbt-package/tests/fixtures/smoke/*.duckdb
