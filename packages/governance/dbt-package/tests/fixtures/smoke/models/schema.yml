@@ -2,6 +2,8 @@ models:
   - name: example
     description: Minimal smoke-test model for companion dbt package validation.
     config:
+      contract:
+        enforced: true
       meta:
         anarchitects:
           governance:
@@ -12,6 +14,9 @@ models:
             criticality: high
             publicInterface: true
             crossDomainApproved: false
+    columns:
+      - name: id
+        data_type: integer
     data_tests:
       - anarchitects_governance.has_governance_layer
       - anarchitects_governance.has_governance_domain

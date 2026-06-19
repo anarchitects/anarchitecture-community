@@ -63,3 +63,21 @@ The companion package includes lightweight generic tests such as `has_governance
 
 These tests use dbt graph metadata inspection during test execution to provide early developer feedback about the recommended `meta.anarchitects.governance` convention. They do not evaluate graph-level policies such as lineage boundaries or cross-domain dependency rules.
 {% enddocs %}
+
+{% docs anarchitects_governance_metadata_template_helper %}
+Use `dbt run-operation governance_print_metadata_template` to print a starter model properties snippet that follows the recommended `meta.anarchitects.governance` convention.
+
+The helper prints text only. It does not modify files, inspect warehouses, or run governance evaluation.
+{% enddocs %}
+
+{% docs anarchitects_governance_profile_template_helper %}
+Use `dbt run-operation governance_print_profile_template` to print a starter Anarchitects governance profile template.
+
+This is a starter template for `dbt-governance` configuration, not a dbt-native runtime profile. Review and adapt it before using it in a real project.
+{% enddocs %}
+
+{% docs anarchitects_governance_validate_metadata_helper %}
+Use `dbt run-operation governance_validate_metadata` for lightweight local metadata linting after `dbt parse`.
+
+This helper inspects dbt graph metadata for the recommended nested governance keys and can optionally fail explicitly when you set `fail_on_error: true`. It does not perform full governance evaluation or graph-level policy checks.
+{% enddocs %}

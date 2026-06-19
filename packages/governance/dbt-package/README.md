@@ -84,6 +84,7 @@ dbt docs generate
 dbt test
 dbt run-operation governance_print_metadata_template
 dbt run-operation governance_print_profile_template
+dbt run-operation governance_validate_metadata
 ```
 
 If you prefer explicit package qualification when invoking a macro from an installed package:
@@ -91,9 +92,203 @@ If you prefer explicit package qualification when invoking a macro from an insta
 ```bash
 dbt run-operation anarchitects_governance.governance_print_metadata_template
 dbt run-operation anarchitects_governance.governance_print_profile_template
+dbt run-operation anarchitects_governance.governance_validate_metadata
 ```
 
 The Nx `test` target uses a tiny local DuckDB-backed fixture project under [tests/fixtures/smoke](./tests/fixtures/smoke). It requires a local dbt installation with a DuckDB adapter such as `dbt-duckdb`; it does not install dbt for you. A plain Homebrew `dbt-fusion` preview install without a working DuckDB driver is not sufficient for this target.
+
+## Run-Operation Helpers
+
+These helpers support onboarding and local setup:
+
+- they print templates only
+- they do not mutate files
+- they do not install Python or Node dependencies
+- they do not run `dbt-governance`
+- they do not perform full governance policy evaluation
+
+You still need to install and run the Python CLI separately for authoritative governance reports.
+
+### `dbt run-operation governance_print_metadata_template`
+
+Command:
+
+```bash
+dbt run-operation governance_print_metadata_template
+```
+
+Optional args:
+
+```bash
+dbt run-operation governance_print_metadata_template --args '{model_name: fct_orders, layer: marts, domain: sales, owner_team: analytics}'
+```
+
+Supported args:
+
+- `model_name`
+- `description`
+- `layer`
+- `domain`
+- `owner_team`
+- `criticality`
+- `public_interface`
+- `cross_domain_approved`
+- `contract_enforced`
+
+Sample output:
+
+```yaml
+models:
+  - name: fct_orders
+    description: 'Fact table for order analytics.'
+    config:
+      contract:
+        enforced: true
+    meta:
+      anarchitects:
+        governance:
+          layer: marts
+          domain: sales
+          owner:
+            team: analytics
+          criticality: high
+          publicInterface: true
+          crossDomainApproved: false
+```
+
+Intended use:
+
+- bootstrap a model properties snippet that follows the recommended convention
+
+Limitations:
+
+- prints text only
+- does not inspect the project
+- does not apply the template automatically
+
+Relationship to `dbt-governance check`:
+
+- helpful for authoring metadata
+- not an evaluator
+
+### `dbt run-operation governance_print_profile_template`
+
+Command:
+
+```bash
+dbt run-operation governance_print_profile_template
+```
+
+Optional args:
+
+```bash
+dbt run-operation governance_print_profile_template --args '{profile_name: dbt, layers: [staging, intermediate, marts], require_ownership: true, require_documentation: true}'
+```
+
+Supported args:
+
+- `profile_name`
+- `layers`
+- `require_ownership`
+- `require_documentation`
+
+Sample output:
+
+```yaml
+# Starter Anarchitects governance.profile.yml content
+# Mirror this into governance.yml -> profile.document today when using dbt-governance.
+name: dbt
+layers:
+  - staging
+  - intermediate
+  - marts
+allowedDomainDependencies: {}
+ownership:
+  required: true
+health:
+  statusThresholds:
+    goodMinScore: 85
+    warningMinScore: 70
+metrics: {}
+rules:
+  dbt/no-disallowed-layer-dependency:
+    enabled: true
+    severity: error
+    options:
+      allowedUpstreamByLayer:
+        staging:
+          - staging
+        intermediate:
+          - staging
+          - intermediate
+        marts:
+          - staging
+          - intermediate
+          - marts
+```
+
+Intended use:
+
+- bootstrap a starter Anarchitects governance profile template aligned with the current host-dbt docs
+
+Limitations:
+
+- this is a starter template, not an exhaustive schema reference
+- it is consumed by `dbt-governance`, not by dbt itself
+- it is not automatically written to `governance.profile.yml`
+
+Relationship to `dbt-governance check`:
+
+- helpful for starting profile configuration
+- not a runtime validator
+
+### `dbt run-operation governance_validate_metadata`
+
+Command:
+
+```bash
+dbt parse
+dbt run-operation governance_validate_metadata
+```
+
+Optional args:
+
+```bash
+dbt run-operation governance_validate_metadata --args '{allowed_layers: [staging, intermediate, marts], allowed_criticality_values: [low, medium, high, critical], required: [layer, domain, owner], fail_on_error: false}'
+```
+
+Supported args:
+
+- `allowed_layers`
+- `allowed_criticality_values`
+- `required`
+- `fail_on_error`
+
+Intended use:
+
+- lightweight local metadata linting against the recommended nested convention
+
+What it checks:
+
+- missing `meta.anarchitects.governance.layer`
+- missing `meta.anarchitects.governance.domain`
+- missing `meta.anarchitects.governance.owner.team`
+- optional criticality presence and allowed-value checks
+- optional allowed-layer checks
+
+Limitations:
+
+- inspects dbt graph metadata only
+- does not execute SQL
+- does not evaluate lineage or cross-model policy
+- does not replace generic tests or `dbt-governance check`
+
+Relationship to `dbt-governance check`:
+
+- convenience lint helper for local metadata quality
+- not authoritative governance evaluation
+
+Full runtime interpretation of `meta.anarchitects.governance.*` still depends on [#457](https://github.com/anarchitects/anarchitecture-community/issues/457), [#458](https://github.com/anarchitects/anarchitecture-community/issues/458), and [#459](https://github.com/anarchitects/anarchitecture-community/issues/459).
 
 ## Generic Metadata Tests
 
@@ -367,6 +562,7 @@ Target behavior:
 - [Companion package strategy](../../../docs/governance/dbt-companion-package-strategy.md)
 - [Parent epic #422](https://github.com/anarchitects/anarchitecture-community/issues/422)
 - [This scaffold issue #426](https://github.com/anarchitects/anarchitecture-community/issues/426)
+- [Run-operation helpers issue #428](https://github.com/anarchitects/anarchitecture-community/issues/428)
 - [Follow-up adapter support #457](https://github.com/anarchitects/anarchitecture-community/issues/457)
 - [Follow-up extension support #458](https://github.com/anarchitects/anarchitecture-community/issues/458)
 - [Follow-up runtime coverage #459](https://github.com/anarchitects/anarchitecture-community/issues/459)

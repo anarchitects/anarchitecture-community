@@ -137,6 +137,9 @@ select '{{ message | replace("'", "''") }}' as validation_error
   {% endif %}
 
   {% set meta = node.meta if node.meta is defined and node.meta is mapping else {} %}
+  {% if meta == {} and node.config is defined and node.config is mapping and node.config.meta is defined and node.config.meta is mapping %}
+    {% set meta = node.config.meta %}
+  {% endif %}
   {% set anarchitects = meta.anarchitects if meta.anarchitects is defined and meta.anarchitects is mapping else {} %}
   {% set governance = anarchitects.governance if anarchitects.governance is defined and anarchitects.governance is mapping else {} %}
 
