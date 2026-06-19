@@ -3,6 +3,12 @@
   "name": "governance-dbt-package",
   "projectType": "library",
   "sourceRoot": "packages/governance/dbt-package",
+  "release": {
+    "version": {
+      "currentVersionResolver": "disk",
+      "versionActions": "tools/release/governance-dbt-package-version-actions.cjs"
+    }
+  },
   "tags": ["scope:governance", "type:dbt-package"],
   "targets": {
     "validate": {
@@ -53,13 +59,31 @@
     "pack": {
       "executor": "nx:run-commands",
       "dependsOn": ["validate"],
-      "outputs": ["{workspaceRoot}/packages/governance/dbt-package/dist"],
+      "outputs": ["{projectRoot}/dist"],
       "options": {
         "commands": [
           "mkdir -p packages/governance/dbt-package/dist",
-          "rsync -a --delete --exclude target --exclude dbt_packages --exclude logs packages/governance/dbt-package/ packages/governance/dbt-package/dist/"
+          "rsync -a --delete --exclude dist --exclude target --exclude dbt_packages --exclude logs packages/governance/dbt-package/ packages/governance/dbt-package/dist/"
         ],
         "parallel": false
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["pack"],
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "command": "echo 'dbt package assembled by pack target.'"
+      }
+    },
+    "nx-release-publish": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["pack"],
+      "outputs": [],
+      "options": {
+        "command": "node tools/release/publish-governance-dbt-package.cjs",
+        "cwd": "{workspaceRoot}",
+        "forwardAllArgs": true
       }
     }
   }

@@ -85,6 +85,7 @@
       "governance-adapter-typescript",
       "governance-extension-dbt",
       "governance-extension-typescript",
+      "governance-dbt-package",
       "governance-runtime-dbt",
       "governance-cli",
       "governance-host-dbt"

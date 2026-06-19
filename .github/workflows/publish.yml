@@ -88,15 +88,23 @@ jobs:
         run: |
           yarn nx show project "${{ steps.tag.outputs.project }}" > /dev/null
 
+      - name: Validate and pack governance-dbt-package
+        if: steps.tag.outputs.project == 'governance-dbt-package'
+        run: |
+          yarn nx run governance-dbt-package:validate
+          yarn nx run governance-dbt-package:pack
+
       - name: Build project
+        if: steps.tag.outputs.project != 'governance-dbt-package'
         run: yarn nx build "${{ steps.tag.outputs.project }}"
 
       - name: Typecheck project
         run: yarn nx typecheck "${{ steps.tag.outputs.project }}"
-        if: steps.tag.outputs.project != 'governance-host-dbt'
+        if: steps.tag.outputs.project != 'governance-host-dbt' && steps.tag.outputs.project != 'governance-dbt-package'
 
       - name: Test project
         run: yarn nx test "${{ steps.tag.outputs.project }}"
+        if: steps.tag.outputs.project != 'governance-dbt-package'
 
       - name: Run Better Auth TypeORM Adapter Postgres tests
         if: steps.tag.outputs.project == 'better-auth-typeorm-adapter'
