@@ -1,0 +1,7 @@
+name: anarchitects_governance
+version: 0.1.0
+config-version: 2
+
+macro-paths: ['macros']
+docs-paths: ['docs']
+test-paths: ['tests']
