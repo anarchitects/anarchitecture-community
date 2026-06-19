@@ -91,7 +91,7 @@ packages:
 
 This repo uses the existing Nx Release tag convention `<project>@<version>`. For the companion dbt package, that means tags such as `governance-dbt-package@0.1.0`.
 
-Planned dbt Hub installation will be documented after [#462](https://github.com/anarchitects/anarchitecture-community/issues/462) is complete. Do not treat dbt Hub installation as available yet.
+Planned dbt Hub installation is documented in [docs/governance/dbt-companion-dbt-hub-publication.md](../../../docs/governance/dbt-companion-dbt-hub-publication.md). Do not treat dbt Hub installation as available yet.
 
 If you want the full workflow, install the Python CLI separately. Recommended CLI installers:
 
@@ -634,6 +634,18 @@ Guidance:
 - GitHub releases are the first public distribution target
 - dbt Hub should not be documented as available until publication is real
 - the detailed release steps live in [RELEASE.md](./RELEASE.md)
+- the planned dbt Hub repository model is documented in [docs/governance/dbt-companion-dbt-hub-publication.md](../../../docs/governance/dbt-companion-dbt-hub-publication.md)
+
+Distribution summary:
+
+- Current stable distribution: Git tag and GitHub release from this monorepo, consumed through `git` plus `subdirectory`
+- Planned distribution: dbt Hub publication after the repository model in [docs/governance/dbt-companion-dbt-hub-publication.md](../../../docs/governance/dbt-companion-dbt-hub-publication.md) is implemented
+
+Important note:
+
+- dbt itself supports `git` plus `subdirectory` installs from a monorepo
+- current dbt Hub ingestion appears repository-oriented and semver-tag-oriented
+- until dbt Hub publication is real, install this package through a released Git tag or a local path
 
 ## Release Checklist
 
@@ -652,6 +664,7 @@ The detailed release flow is documented in [RELEASE.md](./RELEASE.md). dbt Hub p
 ## Related Work
 
 - [Companion package strategy](../../../docs/governance/dbt-companion-package-strategy.md)
+- [dbt Hub publication decision](../../../docs/governance/dbt-companion-dbt-hub-publication.md)
 - [Release guide](./RELEASE.md)
 - [Python CLI and host package docs](../host-dbt/README.md)
 - [Governance host behavior reference](../../../docs/governance/dbt-governance-host.md)

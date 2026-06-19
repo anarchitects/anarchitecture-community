@@ -13,6 +13,12 @@
 
 This repo already uses Nx Release with independent project versioning and project-scoped tags. The companion dbt package follows that existing repo convention instead of introducing a second tag format.
 
+dbt Hub note:
+
+- the monorepo Git release flow in this document is the current supported public distribution path
+- dbt Hub preparation is documented in [docs/governance/dbt-companion-dbt-hub-publication.md](../../../docs/governance/dbt-companion-dbt-hub-publication.md)
+- current Hubcap guidance expects semver-style release names such as `0.1.0` or `v0.1.0`, so the monorepo project-scoped tag `governance-dbt-package@0.1.0` should be treated as the Git-install release format, not the eventual dbt Hub-facing release format
+
 ## Versioning
 
 The package version lives in [dbt_project.yml](./dbt_project.yml).
@@ -25,6 +31,8 @@ Example:
 
 - `dbt_project.yml` version: `0.1.0`
 - Git tag: `governance-dbt-package@0.1.0`
+
+If a dbt Hub-facing mirror or dedicated repository is introduced later, keep the same package version and use a Hubcap-compatible semver release name such as `v0.1.0`.
 
 ## Installation Revision
 
