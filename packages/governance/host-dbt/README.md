@@ -37,6 +37,7 @@ Notes:
 
 - This package is a Python CLI used alongside dbt.
 - It is not a dbt package.
+- For the planned dbt-side enablement layer, see [`docs/governance/dbt-companion-package-strategy.md`](../../../docs/governance/dbt-companion-package-strategy.md).
 - It is not installed through `packages.yml`.
 - It does not use `dbt deps`.
 - The runtime executable it manages internally is
