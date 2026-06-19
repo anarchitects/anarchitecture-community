@@ -1,0 +1,36 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "governance-dbt-package",
+  "projectType": "library",
+  "sourceRoot": "packages/governance/dbt-package",
+  "tags": ["scope:governance", "type:dbt-package"],
+  "targets": {
+    "validate": {
+      "executor": "nx:run-commands",
+      "outputs": [],
+      "options": {
+        "commands": [
+          "test -f packages/governance/dbt-package/dbt_project.yml",
+          "test -f packages/governance/dbt-package/project.json",
+          "test -f packages/governance/dbt-package/README.md",
+          "test -d packages/governance/dbt-package/macros",
+          "test -d packages/governance/dbt-package/docs",
+          "test -d packages/governance/dbt-package/tests"
+        ],
+        "parallel": false
+      }
+    },
+    "pack": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["validate"],
+      "outputs": ["{workspaceRoot}/dist/packages/governance/dbt-package"],
+      "options": {
+        "commands": [
+          "mkdir -p dist/packages/governance/dbt-package",
+          "rsync -a --delete --exclude target --exclude dbt_packages --exclude logs packages/governance/dbt-package/ packages/governance/dbt-package/dist"
+        ],
+        "parallel": false
+      }
+    }
+  }
+}
