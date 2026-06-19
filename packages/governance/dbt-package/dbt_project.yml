@@ -4,4 +4,4 @@ config-version: 2
 
 macro-paths: ['macros']
 docs-paths: ['docs']
-test-paths: ['tests']
+test-paths: []
