@@ -37,11 +37,34 @@ Notes:
 
 - This package is a Python CLI used alongside dbt.
 - It is not a dbt package.
-- For the planned dbt-side enablement layer, see [`docs/governance/dbt-companion-package-strategy.md`](../../../docs/governance/dbt-companion-package-strategy.md).
+- For the companion dbt package strategy, see [`docs/governance/dbt-companion-package-strategy.md`](../../../docs/governance/dbt-companion-package-strategy.md).
 - It is not installed through `packages.yml`.
 - It does not use `dbt deps`.
 - The runtime executable it manages internally is
   `dbt-governance-runtime`.
+
+## Optional Companion dbt Package
+
+`anarchitecture-dbt-governance` provides the `dbt-governance` CLI and remains the authoritative governance evaluator.
+
+For dbt-native metadata helpers, docs blocks, template printers, and lightweight metadata tests, use the optional companion dbt package `anarchitects_governance` installed through `dbt deps`.
+
+The CLI and companion package are installed separately:
+
+- CLI: `pipx`, `uv tool`, or `pip`
+- companion dbt package: dbt `packages.yml` plus `dbt deps`
+
+Important boundary:
+
+- `dbt deps` does not install `dbt-governance`
+- the companion dbt package does not run governance checks
+- use the companion package to help author metadata inside dbt
+- use `dbt-governance check` to evaluate dbt artifacts and generate reports
+
+Companion package docs:
+
+- [Companion package README](../dbt-package/README.md)
+- [Companion package strategy](../../../docs/governance/dbt-companion-package-strategy.md)
 
 ## Quickstart
 

@@ -7,10 +7,11 @@ Initial scope:
 - dbt docs blocks for governance concepts
 - safe helper macros that print recommended metadata and profile templates
 - optional tag helper macros for consistent tag naming
+- lightweight dbt-native generic tests for early feedback inside dbt projects
 
 Planned later scope:
 
-- lightweight dbt-native generic tests for early feedback inside dbt projects
+- broader dbt-native metadata test coverage as the package surface stabilizes
 
 ## What This Package Is
 
@@ -41,6 +42,33 @@ dbt project
 
 This package improves metadata consistency inside dbt. The authoritative evaluation and reporting path remains `dbt-governance check`.
 
+## Two-Package Model
+
+Use the companion package and the Python CLI as separate tools with separate installation paths.
+
+Companion dbt package:
+
+- installed through dbt `packages.yml` and `dbt deps`
+- lives inside the dbt project
+- provides dbt-native docs blocks, template macros, helper operations, and lightweight metadata tests
+- helps teams author governance-friendly metadata consistently
+
+Python CLI:
+
+- installed with `pipx`, `uv tool`, or `pip`
+- provides the `dbt-governance` command
+- reads dbt artifacts
+- invokes the governance runtime
+- performs authoritative governance evaluation
+- writes governance reports
+
+Important boundary:
+
+- `dbt deps` does not install `dbt-governance`
+- this package does not install Python or Node tooling
+- this package does not run governance evaluation
+- install the CLI separately when you want governance checks and reports
+
 ## Installation
 
 Install this package through `packages.yml`.
@@ -52,17 +80,7 @@ packages:
   - local: ../anarchitecture-community/packages/governance/dbt-package
 ```
 
-Then install and parse:
-
-```bash
-dbt deps
-dbt parse
-dbt docs generate
-```
-
-Future public distribution may support Git-based installation, but that is not the current release model. Until then, prefer local monorepo or explicit Git checkout workflows.
-
-Future Git tag and GitHub release based distribution example:
+Planned Git tag and GitHub release install model:
 
 ```yaml
 packages:
@@ -71,7 +89,33 @@ packages:
     subdirectory: 'packages/governance/dbt-package'
 ```
 
-That flow is not configured by this package scaffold. Git tag and GitHub release support is tracked separately in [#461](https://github.com/anarchitects/anarchitecture-community/issues/461). dbt Hub publication is also not available yet and is tracked separately in [#462](https://github.com/anarchitects/anarchitecture-community/issues/462).
+The exact Git tag naming convention is tracked in [#461](https://github.com/anarchitects/anarchitecture-community/issues/461).
+
+Planned dbt Hub installation will be documented after [#462](https://github.com/anarchitects/anarchitecture-community/issues/462) is complete. Do not treat dbt Hub installation as available yet.
+
+If you want the full workflow, install the Python CLI separately. Recommended CLI installers:
+
+```bash
+pipx install anarchitecture-dbt-governance
+```
+
+```bash
+uv tool install anarchitecture-dbt-governance
+```
+
+```bash
+pip install anarchitecture-dbt-governance
+```
+
+Then install the dbt package and parse:
+
+```bash
+dbt deps
+dbt parse
+dbt docs generate
+```
+
+CLI installation, packaging, and public usage guidance for `anarchitecture-dbt-governance` are tracked alongside [#421](https://github.com/anarchitects/anarchitecture-community/issues/421) and documented in [packages/governance/host-dbt/README.md](../host-dbt/README.md).
 
 ## Basic Usage
 
@@ -96,6 +140,23 @@ dbt run-operation anarchitects_governance.governance_validate_metadata
 ```
 
 The Nx `test` target uses a tiny local DuckDB-backed fixture project under [tests/fixtures/smoke](./tests/fixtures/smoke). It requires a local dbt installation with a DuckDB adapter such as `dbt-duckdb`; it does not install dbt for you. A plain Homebrew `dbt-fusion` preview install without a working DuckDB driver is not sufficient for this target.
+
+## When To Use Which Package
+
+Use only `dbt-governance` when:
+
+- you want to evaluate an existing dbt project from artifacts
+- you do not want dbt-side helpers, macros, or tests in the project
+- you only need governance checks and reports
+
+Use `dbt-governance` plus this companion dbt package when:
+
+- you want dbt-native metadata templates
+- you want docs blocks for governance conventions
+- you want lightweight dbt generic tests for metadata presence and allowed values
+- you want onboarding help for teams authoring governance metadata inside dbt
+
+The companion package is optional. The CLI remains the authoritative evaluator in both cases.
 
 ## Run-Operation Helpers
 
@@ -557,10 +618,44 @@ Target behavior:
 - Git tag and GitHub release support is tracked by [#461](https://github.com/anarchitects/anarchitecture-community/issues/461)
 - dbt Hub publication is tracked by [#462](https://github.com/anarchitects/anarchitecture-community/issues/462)
 
+## Release And Distribution
+
+Staged release model:
+
+1. Local development install via `packages.yml` with `local:`
+2. Git tag and GitHub release install via repository subdirectory, tracked in [#461](https://github.com/anarchitects/anarchitecture-community/issues/461)
+3. dbt Hub publication, tracked in [#462](https://github.com/anarchitects/anarchitecture-community/issues/462)
+
+Guidance:
+
+- this dbt package has its own version in [dbt_project.yml](./dbt_project.yml)
+- its version should not be confused with the Python CLI package version
+- compatibility may be coordinated across the CLI, runtime, and companion package, but installation remains separate
+- GitHub releases are the first planned public distribution target
+- dbt Hub should not be documented as available until publication is real
+
+## Release Checklist
+
+- Validate the dbt package project.
+- Confirm the `dbt_project.yml` version.
+- Confirm README install examples still match the supported release stage.
+- Confirm docs examples parse where feasible.
+- Confirm companion package demo references point to the correct repo.
+- Confirm compatibility notes with `anarchitecture-dbt-governance`.
+- Confirm Git tag and GitHub release notes for the current stage.
+- Confirm host docs link back to companion package docs.
+- Confirm dbt Hub docs are updated only after publication.
+
+Automation and exact release mechanics are tracked separately in [#461](https://github.com/anarchitects/anarchitecture-community/issues/461) and [#462](https://github.com/anarchitects/anarchitecture-community/issues/462).
+
 ## Related Work
 
 - [Companion package strategy](../../../docs/governance/dbt-companion-package-strategy.md)
+- [Python CLI and host package docs](../host-dbt/README.md)
+- [Governance host behavior reference](../../../docs/governance/dbt-governance-host.md)
+- Current governance profile input guidance lives in the `governance.profile.yml Reference` section of [packages/governance/host-dbt/README.md](../host-dbt/README.md)
 - [Parent epic #422](https://github.com/anarchitects/anarchitecture-community/issues/422)
+- [Python CLI package story #421](https://github.com/anarchitects/anarchitecture-community/issues/421)
 - [This scaffold issue #426](https://github.com/anarchitects/anarchitecture-community/issues/426)
 - [Run-operation helpers issue #428](https://github.com/anarchitects/anarchitecture-community/issues/428)
 - [Follow-up adapter support #457](https://github.com/anarchitects/anarchitecture-community/issues/457)
@@ -569,6 +664,8 @@ Target behavior:
 - [Follow-up docs alignment #460](https://github.com/anarchitects/anarchitecture-community/issues/460)
 - [Follow-up Git tag and GitHub release flow #461](https://github.com/anarchitects/anarchitecture-community/issues/461)
 - [Follow-up dbt Hub publication flow #462](https://github.com/anarchitects/anarchitecture-community/issues/462)
+- [Demo tracking reference #429](https://github.com/anarchitects/anarchitecture-community/issues/429)
+- [Demo implementation issue](https://github.com/anarchitects/governance-demo-dbt-governance/issues/5)
 
 ## Boundary Reminder
 
