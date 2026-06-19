@@ -8,7 +8,7 @@ resolution-markers = [
 
 [[package]]
 name = "anarchitecture-dbt-governance"
-version = "0.0.5"
+version = "0.0.6"
 source = { editable = "." }
 dependencies = [
     { name = "pyyaml" },

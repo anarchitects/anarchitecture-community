@@ -17,7 +17,7 @@ addopts = """
 
 [project]
 name = "anarchitecture-dbt-governance"
-version = "0.0.5"
+version = "0.0.6"
 description = "dbt-native Python CLI for running Anarchitects Governance checks against dbt projects."
 requires-python = ">=3.9,<4"
 readme = "README.md"
