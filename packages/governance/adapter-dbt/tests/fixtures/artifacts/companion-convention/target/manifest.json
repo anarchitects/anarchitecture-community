@@ -1,0 +1,207 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+    "dbt_version": "1.8.0",
+    "project_name": "demo"
+  },
+  "nodes": {
+    "model.demo.stg_orders": {
+      "unique_id": "model.demo.stg_orders",
+      "resource_type": "model",
+      "package_name": "demo",
+      "name": "stg_orders",
+      "alias": "stg_orders",
+      "database": "analytics",
+      "schema": "staging",
+      "path": "stg_orders.sql",
+      "original_file_path": "models/staging/stg_orders.sql",
+      "fqn": ["demo", "staging", "stg_orders"],
+      "relation_name": "\"analytics\".\"staging\".\"stg_orders\"",
+      "description": "Staging orders model.",
+      "tags": ["staging"],
+      "meta": {
+        "anarchitects": {
+          "governance": {
+            "layer": "staging",
+            "domain": "sales",
+            "owner": {
+              "team": "analytics"
+            },
+            "criticality": "medium",
+            "publicInterface": false,
+            "crossDomainApproved": true
+          }
+        }
+      },
+      "tests": ["not_null:order_id"],
+      "config": {
+        "materialized": "view"
+      },
+      "depends_on": {
+        "nodes": ["source.demo.raw.orders"]
+      }
+    },
+    "model.demo.dim_customers": {
+      "unique_id": "model.demo.dim_customers",
+      "resource_type": "model",
+      "package_name": "demo",
+      "name": "dim_customers",
+      "alias": "dim_customers",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "dim_customers.sql",
+      "original_file_path": "models/marts/dim_customers.sql",
+      "fqn": ["demo", "marts", "dim_customers"],
+      "relation_name": "\"analytics\".\"marts\".\"dim_customers\"",
+      "description": "Customer dimension model.",
+      "tags": ["marts"],
+      "meta": {
+        "anarchitects": {
+          "governance": {
+            "layer": "marts",
+            "domain": "finance",
+            "owner": {
+              "team": "finance-platform"
+            },
+            "criticality": "medium",
+            "publicInterface": false,
+            "crossDomainApproved": false
+          }
+        }
+      },
+      "tests": ["unique:customer_id"],
+      "config": {
+        "materialized": "table"
+      }
+    },
+    "model.demo.fct_orders": {
+      "unique_id": "model.demo.fct_orders",
+      "resource_type": "model",
+      "package_name": "demo",
+      "name": "fct_orders",
+      "alias": "fct_orders",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "fct_orders.sql",
+      "original_file_path": "models/marts/fct_orders.sql",
+      "fqn": ["demo", "marts", "fct_orders"],
+      "relation_name": "\"analytics\".\"marts\".\"fct_orders\"",
+      "description": "Fact table for order analytics.",
+      "tags": ["published"],
+      "meta": {
+        "anarchitects": {
+          "governance": {
+            "layer": "marts",
+            "domain": "sales",
+            "owner": {
+              "team": "analytics"
+            },
+            "criticality": "high",
+            "publicInterface": true,
+            "crossDomainApproved": false
+          }
+        }
+      },
+      "tests": [],
+      "config": {
+        "materialized": "table",
+        "contract": {
+          "enforced": true
+        }
+      },
+      "depends_on": {
+        "nodes": ["model.demo.stg_orders", "model.demo.dim_customers"]
+      }
+    },
+    "model.demo.fct_shipments": {
+      "unique_id": "model.demo.fct_shipments",
+      "resource_type": "model",
+      "package_name": "demo",
+      "name": "fct_shipments",
+      "alias": "fct_shipments",
+      "database": "analytics",
+      "schema": "marts",
+      "path": "fct_shipments.sql",
+      "original_file_path": "models/marts/fct_shipments.sql",
+      "fqn": ["demo", "marts", "fct_shipments"],
+      "relation_name": "\"analytics\".\"marts\".\"fct_shipments\"",
+      "description": "Fact table for shipment analytics.",
+      "tags": [],
+      "meta": {
+        "anarchitects": {
+          "governance": {
+            "layer": "marts",
+            "domain": "sales",
+            "owner": {
+              "team": "analytics"
+            },
+            "criticality": "medium",
+            "publicInterface": false,
+            "crossDomainApproved": true
+          }
+        }
+      },
+      "tests": ["not_null:shipment_id"],
+      "config": {
+        "materialized": "table"
+      },
+      "depends_on": {
+        "nodes": ["model.demo.dim_customers"]
+      }
+    }
+  },
+  "sources": {
+    "source.demo.raw.orders": {
+      "unique_id": "source.demo.raw.orders",
+      "resource_type": "source",
+      "package_name": "demo",
+      "name": "orders",
+      "source_name": "raw",
+      "alias": "orders",
+      "database": "warehouse",
+      "schema": "raw",
+      "path": "raw.yml",
+      "original_file_path": "models/raw/raw.yml",
+      "fqn": ["demo", "raw", "orders"],
+      "relation_name": "\"warehouse\".\"raw\".\"orders\"",
+      "description": "Raw orders source.",
+      "tags": ["raw"],
+      "meta": {
+        "anarchitects": {
+          "governance": {
+            "layer": "staging",
+            "domain": "sales",
+            "owner": {
+              "team": "analytics"
+            },
+            "criticality": "medium",
+            "publicInterface": false,
+            "crossDomainApproved": true
+          }
+        }
+      },
+      "tests": ["freshness"]
+    }
+  },
+  "exposures": {},
+  "parent_map": {
+    "model.demo.stg_orders": ["source.demo.raw.orders"],
+    "model.demo.dim_customers": [],
+    "model.demo.fct_orders": [
+      "model.demo.stg_orders",
+      "model.demo.dim_customers"
+    ],
+    "model.demo.fct_shipments": ["model.demo.dim_customers"],
+    "source.demo.raw.orders": []
+  },
+  "child_map": {
+    "model.demo.stg_orders": ["model.demo.fct_orders"],
+    "model.demo.dim_customers": [
+      "model.demo.fct_orders",
+      "model.demo.fct_shipments"
+    ],
+    "model.demo.fct_orders": [],
+    "model.demo.fct_shipments": [],
+    "source.demo.raw.orders": ["model.demo.stg_orders"]
+  }
+}
