@@ -66,9 +66,7 @@ def resolve_artifacts(
         diagnostics.append(
             HostDiagnostic(
                 code="governance.host_dbt.missing_manifest",
-                message=(
-                    f'Required manifest.json was not found at "{manifest_path}".'
-                ),
+                message=(f'Required manifest.json was not found at "{manifest_path}".'),
                 path=str(manifest_path),
                 recommendation=(
                     "Generate target/manifest.json before using "
@@ -88,9 +86,7 @@ def resolve_artifacts(
         diagnostics.append(
             HostDiagnostic(
                 code="governance.host_dbt.missing_manifest",
-                message=(
-                    f'Required manifest.json was not found at "{manifest_path}".'
-                ),
+                message=(f'Required manifest.json was not found at "{manifest_path}".'),
                 path=str(manifest_path),
                 recommendation=(
                     "Generate target/manifest.json first or rerun with --parse to "
@@ -314,7 +310,8 @@ def _is_readable_file(
 
 def _has_artifact_path_failure(diagnostics: list[HostDiagnostic]) -> bool:
     return any(
-        diagnostic.code in {
+        diagnostic.code
+        in {
             "governance.host_dbt.invalid_target_path",
             "governance.host_dbt.unreadable_artifact_file",
         }

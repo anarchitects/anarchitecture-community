@@ -66,6 +66,55 @@ Companion package docs:
 - [Companion package README](../dbt-package/README.md)
 - [Companion package strategy](../../../docs/governance/dbt-companion-package-strategy.md)
 
+## Optional Companion Install Helper
+
+`dbt-governance companion install` is an optional convenience command for
+writing the companion dbt package entry into `packages.yml`.
+
+Important boundary:
+
+- it helps author dbt package install metadata only
+- it does not install the Python CLI
+- it does not install or manage the Node runtime
+- it does not run governance evaluation
+- `dbt-governance check` remains the authoritative evaluation and reporting command
+- `dbt deps` still installs only the companion dbt package, not `dbt-governance`
+
+Print the Git-based install fragment only:
+
+```bash
+dbt-governance companion install --print
+```
+
+Create or update `packages.yml` explicitly:
+
+```bash
+dbt-governance companion install \
+  --write \
+  --revision governance-dbt-package@0.0.1
+```
+
+Optionally run `dbt deps` after a successful write:
+
+```bash
+dbt-governance companion install \
+  --write \
+  --revision governance-dbt-package@0.0.1 \
+  --run-dbt-deps
+```
+
+The helper defaults to a safe dry-run mode when `--write` is omitted. It can:
+
+- print the YAML fragment
+- create a new `packages.yml`
+- append the companion package entry to an existing `packages.yml`
+- avoid duplicate Git/subdirectory entries
+
+It does not claim dbt Hub availability. The Git tag / release flow is tracked in
+[#461](https://github.com/anarchitects/anarchitecture-community/issues/461), and
+host/companion docs alignment is tracked in
+[#460](https://github.com/anarchitects/anarchitecture-community/issues/460).
+
 ## Quickstart
 
 From an existing dbt project root:

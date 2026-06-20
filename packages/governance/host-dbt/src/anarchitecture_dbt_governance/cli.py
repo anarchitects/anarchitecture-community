@@ -5,6 +5,16 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
+from .companion import (
+    DEFAULT_COMPANION_GIT_URL,
+    DEFAULT_COMPANION_REVISION,
+    DEFAULT_COMPANION_SUBDIRECTORY,
+    DEFAULT_PACKAGES_FILE,
+    CompanionInstallOptions,
+    handle_companion_install,
+)
+from .exit_codes import ExitCode, exit_code_for_diagnostics
+from .renderer import render_diagnostics
 from .runtime_invocation import (
     CheckCommandOptions,
     InitCommandOptions,
@@ -13,7 +23,7 @@ from .runtime_invocation import (
 )
 from .runtime_manager import execute_invocation
 
-COMMANDS = ("check", "setup", "doctor", "init", "report")
+COMMANDS = ("check", "setup", "doctor", "init", "report", "companion")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -118,6 +128,57 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write the rendered report output to a file.",
     )
 
+    companion_parser = subparsers.add_parser(
+        "companion",
+        help="print or update dbt packages.yml for the companion dbt package",
+    )
+    companion_parser.set_defaults(command_name="companion")
+    companion_subparsers = companion_parser.add_subparsers(
+        dest="companion_command",
+        required=True,
+    )
+    companion_install_parser = companion_subparsers.add_parser(
+        "install",
+        help="print or update packages.yml for the companion dbt package",
+    )
+    companion_install_parser.set_defaults(command_name="companion-install")
+    companion_install_parser.add_argument(
+        "--print",
+        action="store_true",
+        dest="print_only",
+        help="Print the packages.yml fragment only.",
+    )
+    companion_install_parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Create or update packages.yml.",
+    )
+    companion_install_parser.add_argument(
+        "--packages-file",
+        default=DEFAULT_PACKAGES_FILE,
+        help="Path to the dbt packages.yml file. Defaults to packages.yml.",
+    )
+    companion_install_parser.add_argument(
+        "--git",
+        default=DEFAULT_COMPANION_GIT_URL,
+        help="Git repository URL for the companion dbt package.",
+    )
+    companion_install_parser.add_argument(
+        "--revision",
+        default=DEFAULT_COMPANION_REVISION,
+        help="Git revision or tag for the companion dbt package.",
+    )
+    companion_install_parser.add_argument(
+        "--subdirectory",
+        default=DEFAULT_COMPANION_SUBDIRECTORY,
+        help="Git subdirectory containing the companion dbt package.",
+    )
+    companion_install_parser.add_argument(
+        "--run-dbt-deps",
+        action="store_true",
+        help="Run dbt deps after a successful --write.",
+    )
+
     return parser
 
 
@@ -177,6 +238,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         execution_result = execute_invocation(invocation)
         print(execution_result.output)
         return int(execution_result.exit_code)
+
+    if namespace.command_name == "companion-install":
+        result = handle_companion_install(
+            CompanionInstallOptions(
+                print_only=namespace.print_only,
+                write=namespace.write,
+                packages_file=namespace.packages_file,
+                git=namespace.git,
+                revision=namespace.revision,
+                subdirectory=namespace.subdirectory,
+                run_dbt_deps=namespace.run_dbt_deps,
+            )
+        )
+        if result.supported:
+            print(result.output)
+            return int(ExitCode.SUCCESS)
+
+        print(render_diagnostics(result.diagnostics))
+        return int(exit_code_for_diagnostics(result.diagnostics))
 
     invocation = RuntimeInvocation(
         command=namespace.command_name,

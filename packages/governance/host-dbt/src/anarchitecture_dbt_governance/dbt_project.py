@@ -87,9 +87,7 @@ def resolve_dbt_path_hints(
         diagnostics.append(
             HostDiagnostic(
                 code="governance.host_dbt.invalid_project_dir",
-                message=(
-                    "dbt project directory does not exist or is not a directory."
-                ),
+                message=("dbt project directory does not exist or is not a directory."),
                 path=str(resolved_project_dir),
                 recommendation=(
                     "Pass --project-dir with a valid dbt project directory or run "
