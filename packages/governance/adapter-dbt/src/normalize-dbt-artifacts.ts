@@ -710,14 +710,19 @@ function buildDbtResourceMetadata(
     },
     resource: {
       tags: readStringArray(resource.tags),
-      meta: options.sourceMetadataView.tableMeta,
+      meta: cloneStructuredValue(options.sourceMetadataView.tableMeta),
       ...(options.sourceMetadataView.sourceMeta
-        ? { sourceMeta: options.sourceMetadataView.sourceMeta }
+        ? {
+            sourceMeta: cloneStructuredValue(
+              options.sourceMetadataView.sourceMeta,
+            ),
+          }
         : {}),
       ...(options.sourceMetadataView.resolvedGovernanceMeta
         ? {
-            resolvedGovernanceMeta:
+            resolvedGovernanceMeta: cloneStructuredValue(
               options.sourceMetadataView.resolvedGovernanceMeta,
+            ),
           }
         : {}),
       ...(readMaterialization(resource)
@@ -1043,6 +1048,23 @@ function readContract(resource: ResourceRecord): unknown {
   return (
     readOptionalValue(config?.contract) ?? readOptionalValue(resource.contract)
   );
+}
+
+function cloneStructuredValue<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((entry) => cloneStructuredValue(entry)) as T;
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        key,
+        cloneStructuredValue(entry),
+      ]),
+    ) as T;
+  }
+
+  return value;
 }
 
 function buildDbtProjectNodeId(projectName: string): string {
