@@ -263,6 +263,196 @@ describe('runDbtGovernanceRuntime', () => {
     );
   });
 
+  it('flows companion metadata through assessment workspace and extension outputs', async () => {
+    const result = await runCompanionConventionFixture();
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected runtime result to succeed.');
+    }
+
+    const assessmentModel = findAssessmentNode(result, 'model.demo.fct_orders');
+    const assessmentSource = findAssessmentNode(
+      result,
+      'source.demo.raw.orders',
+    );
+
+    expect(assessmentModel).toMatchObject({
+      extensions: {
+        'governance-extension:dbt': expect.objectContaining({
+          data: expect.objectContaining({
+            resourceType: 'model',
+            resource: expect.objectContaining({
+              meta: {
+                anarchitects: {
+                  governance: {
+                    layer: 'marts',
+                    domain: 'sales',
+                    owner: {
+                      team: 'analytics',
+                    },
+                    criticality: 'high',
+                    publicInterface: true,
+                    crossDomainApproved: false,
+                  },
+                },
+              },
+            }),
+          }),
+        }),
+      },
+    });
+    expect(assessmentSource).toMatchObject({
+      extensions: {
+        'governance-extension:dbt': expect.objectContaining({
+          data: expect.objectContaining({
+            resourceType: 'source',
+            resource: expect.objectContaining({
+              meta: {
+                anarchitects: {
+                  governance: {
+                    layer: 'staging',
+                    domain: 'sales',
+                    owner: {
+                      team: 'analytics',
+                    },
+                    criticality: 'medium',
+                    publicInterface: false,
+                    crossDomainApproved: true,
+                  },
+                },
+              },
+            }),
+          }),
+        }),
+      },
+    });
+
+    expect(getNodeDiagnosticCodes(result, 'model.demo.fct_orders')).not.toEqual(
+      expect.arrayContaining([
+        'DBT_LAYER_UNRESOLVED',
+        'DBT_DOMAIN_UNRESOLVED',
+        'DBT_OWNER_MISSING',
+      ]),
+    );
+    expect(
+      getNodeDiagnosticCodes(result, 'source.demo.raw.orders'),
+    ).not.toEqual(
+      expect.arrayContaining([
+        'DBT_LAYER_UNRESOLVED',
+        'DBT_DOMAIN_UNRESOLVED',
+        'DBT_OWNER_MISSING',
+        'DBT_PUBLIC_MARKER_INVALID',
+      ]),
+    );
+    expect(
+      getNodeRecommendationCodes(result, 'model.demo.fct_orders'),
+    ).not.toEqual(expect.arrayContaining(['ADD_OWNER']));
+
+    expect(
+      hasNodeSignal(result, 'model.demo.fct_orders', 'DBT_LAYER_RESOLVED', {
+        sourceLayer: 'marts',
+      }),
+    ).toBe(true);
+    expect(
+      hasNodeSignal(result, 'model.demo.fct_orders', 'DBT_DOMAIN_RESOLVED', {
+        sourceDomain: 'sales',
+      }),
+    ).toBe(true);
+    expect(
+      hasNodeSignal(result, 'model.demo.fct_orders', 'DBT_OWNER_RESOLVED', {
+        sourceOwner: 'analytics',
+      }),
+    ).toBe(true);
+    expect(
+      hasNodeSignal(result, 'source.demo.raw.orders', 'DBT_LAYER_RESOLVED', {
+        sourceLayer: 'staging',
+      }),
+    ).toBe(true);
+    expect(
+      hasNodeSignal(result, 'source.demo.raw.orders', 'DBT_DOMAIN_RESOLVED', {
+        sourceDomain: 'sales',
+      }),
+    ).toBe(true);
+    expect(
+      hasNodeSignal(result, 'source.demo.raw.orders', 'DBT_OWNER_RESOLVED', {
+        sourceOwner: 'analytics',
+      }),
+    ).toBe(true);
+    expect(
+      hasNodeSignal(result, 'model.demo.fct_orders', 'DBT_CONTRACT_ENABLED', {
+        contractPresent: true,
+      }),
+    ).toBe(true);
+    expect(
+      hasNodeSignal(
+        result,
+        'model.demo.fct_orders',
+        'DBT_CONTRACT_MISSING_FOR_PUBLIC_MODEL_CANDIDATE',
+      ),
+    ).toBe(false);
+    expect(
+      hasNodeSignal(
+        result,
+        'model.demo.fct_orders',
+        'DBT_CRITICAL_MODEL_WITHOUT_TESTS_CANDIDATE',
+        {
+          criticality: 'high',
+          testsPresent: false,
+        },
+      ),
+    ).toBe(true);
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: 'dbt/critical-models-require-tests',
+          subjectId: 'model.demo.fct_orders',
+        }),
+      ]),
+    );
+  });
+
+  it('reflects companion cross-domain approval metadata in runtime rule output', async () => {
+    const result = await runCompanionConventionFixture();
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected runtime result to succeed.');
+    }
+
+    expect(
+      result.signals?.filter(
+        (signal) =>
+          signal.metadata?.code === 'DBT_CROSS_DOMAIN_DEPENDENCY_DETECTED',
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          relationId:
+            'dbt:lineage:model.demo.fct_orders->model.demo.dim_customers',
+        }),
+        expect.objectContaining({
+          relationId:
+            'dbt:lineage:model.demo.fct_shipments->model.demo.dim_customers',
+        }),
+      ]),
+    );
+
+    const approvalViolationSubjects = (result.violations ?? [])
+      .filter(
+        (violation) =>
+          violation.ruleId === 'dbt/cross-domain-dependencies-require-approval',
+      )
+      .map((violation) => violation.subjectId);
+
+    expect(approvalViolationSubjects).toContain(
+      'dbt:lineage:model.demo.fct_orders->model.demo.dim_customers',
+    );
+    expect(approvalViolationSubjects).not.toContain(
+      'dbt:lineage:model.demo.fct_shipments->model.demo.dim_customers',
+    );
+  });
+
   it('returns a structured runtime error when dbt artifacts cannot be loaded', async () => {
     const result = await runDbtGovernanceRuntime({
       adapter: {
@@ -389,6 +579,87 @@ async function runLayeredProjectFixture() {
     },
     'req-extension-1',
   );
+}
+
+async function runCompanionConventionFixture() {
+  return runFixture('companion-convention', {
+    name: 'dbt',
+    layers: ['staging', 'intermediate', 'marts'],
+    rules: {
+      'dbt/no-disallowed-layer-dependency': {
+        options: {
+          allowedUpstreamByLayer: {
+            staging: ['staging'],
+            intermediate: ['staging', 'intermediate'],
+            marts: ['staging', 'intermediate', 'marts'],
+          },
+        },
+      },
+    },
+  });
+}
+
+function findAssessmentNode(
+  result: Awaited<ReturnType<typeof runDbtGovernanceRuntime>>,
+  nodeId: string,
+) {
+  const node = result.assessment?.workspace.nodes.find(
+    (entry) => entry.id === nodeId,
+  );
+
+  expect(node).toBeDefined();
+  if (!node) {
+    throw new Error(`Expected assessment workspace node "${nodeId}".`);
+  }
+
+  return node;
+}
+
+function getNodeDiagnosticCodes(
+  result: Awaited<ReturnType<typeof runDbtGovernanceRuntime>>,
+  nodeId: string,
+) {
+  return (result.extensionDiagnostics ?? [])
+    .filter((diagnostic) => diagnostic.reference?.nodeId === nodeId)
+    .map((diagnostic) => diagnostic.code);
+}
+
+function getNodeRecommendationCodes(
+  result: Awaited<ReturnType<typeof runDbtGovernanceRuntime>>,
+  nodeId: string,
+) {
+  return (result.assessment?.recommendations ?? [])
+    .filter(
+      (recommendation) =>
+        asRecord(recommendation.metadata)?.governanceNodeId === nodeId,
+    )
+    .map(
+      (recommendation) =>
+        asRecord(recommendation.metadata)?.code as string | undefined,
+    )
+    .filter((code): code is string => code !== undefined);
+}
+
+function hasNodeSignal(
+  result: Awaited<ReturnType<typeof runDbtGovernanceRuntime>>,
+  nodeId: string,
+  code: string,
+  metadata: Record<string, unknown> = {},
+) {
+  return (result.signals ?? []).some(
+    (signal) =>
+      signal.nodeId === nodeId &&
+      signal.metadata?.code === code &&
+      Object.entries(metadata).every(
+        ([key, value]) => signal.metadata?.[key] === value,
+      ),
+  );
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 function buildLayerOverlapProfile(): Record<string, unknown> {

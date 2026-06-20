@@ -17,6 +17,7 @@ const fixturesRoot = fileURLToPath(
 describe('dbt fixture smoke coverage', () => {
   it('loads the representative valid fixture projects from disk', () => {
     for (const fixtureName of [
+      'companion-convention',
       'simple-project',
       'layered-project',
       'metadata-rich',
