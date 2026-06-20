@@ -41,6 +41,7 @@ export interface DbtResolvedGovernanceMetadata {
   owner: DbtMetadataResolution<string>;
   criticality: DbtMetadataResolution<string>;
   publicInterface: DbtMetadataResolution<boolean>;
+  crossDomainApproved: DbtMetadataResolution<boolean>;
   materializationCategory: DbtMetadataResolution<string>;
   documentationPresent: DbtMetadataResolution<boolean>;
   testsPresent: DbtMetadataResolution<boolean>;
@@ -103,6 +104,7 @@ export function resolveDbtGovernanceMetadata(
     owner: resolveDbtOwner(input),
     criticality: resolveDbtCriticality(input),
     publicInterface: resolveDbtPublicInterface(input, options),
+    crossDomainApproved: resolveDbtCrossDomainApproval(input),
     materializationCategory: resolveDbtMaterializationCategory(input),
     documentationPresent: resolveDbtDocumentationPresence(input),
     testsPresent: resolveDbtTestPresence(input),
@@ -115,27 +117,37 @@ export function resolveDbtLayer(
   options: DbtGovernanceMetadataResolverOptions = {},
 ): DbtMetadataResolution<string> {
   const layerOptions = options.layer ?? {};
-  const explicitValid: ResolutionCandidate<string>[] = [];
-  const explicitInvalid: InvalidResolutionCandidate[] = [];
+  const normalizedValid: ResolutionCandidate<string>[] = [];
+  const normalizedInvalid: InvalidResolutionCandidate[] = [];
+  const companionValid: ResolutionCandidate<string>[] = [];
+  const companionInvalid: InvalidResolutionCandidate[] = [];
+  const metadataValid: ResolutionCandidate<string>[] = [];
+  const metadataInvalid: InvalidResolutionCandidate[] = [];
   const tagValid: ResolutionCandidate<string>[] = [];
   const tagInvalid: InvalidResolutionCandidate[] = [];
   const pathValid: ResolutionCandidate<string>[] = [];
 
   collectStringCandidate(
-    explicitValid,
-    explicitInvalid,
+    normalizedValid,
+    normalizedInvalid,
     input.layer,
     'node.classification.layer',
   );
+  collectCompanionGovernanceStringCandidate(
+    input,
+    companionValid,
+    companionInvalid,
+    'layer',
+  );
   collectResolvedGovernanceStringCandidate(
     input,
-    explicitValid,
-    explicitInvalid,
+    metadataValid,
+    metadataInvalid,
     'layer',
   );
   collectStringCandidate(
-    explicitValid,
-    explicitInvalid,
+    metadataValid,
+    metadataInvalid,
     readPathValue(input.metadata, ['dbt', 'resource', 'meta', 'layer']),
     'metadata.dbt.resource.meta.layer',
   );
@@ -172,9 +184,23 @@ export function resolveDbtLayer(
     }
   }
 
+  const explicitGroup =
+    companionValid.length > 0 || companionInvalid.length > 0
+      ? {
+          valid: [...normalizedValid, ...companionValid],
+          invalid: [...normalizedInvalid, ...companionInvalid],
+        }
+      : {
+          valid: [...normalizedValid, ...metadataValid],
+          invalid: [...normalizedInvalid, ...metadataInvalid],
+        };
+
   return buildResolutionFromGroups(
     input,
-    { valid: explicitValid, invalid: explicitInvalid },
+    explicitGroup,
+    ...(companionValid.length > 0 || companionInvalid.length > 0
+      ? [{ valid: metadataValid, invalid: metadataInvalid }]
+      : []),
     { valid: tagValid, invalid: tagInvalid },
     { valid: pathValid, invalid: [] },
   );
@@ -185,25 +211,35 @@ export function resolveDbtDomain(
   options: DbtGovernanceMetadataResolverOptions = {},
 ): DbtMetadataResolution<string> {
   const domainOptions = options.domain ?? {};
-  const explicitValid: ResolutionCandidate<string>[] = [];
-  const explicitInvalid: InvalidResolutionCandidate[] = [];
+  const normalizedValid: ResolutionCandidate<string>[] = [];
+  const normalizedInvalid: InvalidResolutionCandidate[] = [];
+  const companionValid: ResolutionCandidate<string>[] = [];
+  const companionInvalid: InvalidResolutionCandidate[] = [];
+  const metadataValid: ResolutionCandidate<string>[] = [];
+  const metadataInvalid: InvalidResolutionCandidate[] = [];
   const pathValid: ResolutionCandidate<string>[] = [];
 
   collectStringCandidate(
-    explicitValid,
-    explicitInvalid,
+    normalizedValid,
+    normalizedInvalid,
     input.domain,
     'node.classification.domain',
   );
+  collectCompanionGovernanceStringCandidate(
+    input,
+    companionValid,
+    companionInvalid,
+    'domain',
+  );
   collectResolvedGovernanceStringCandidate(
     input,
-    explicitValid,
-    explicitInvalid,
+    metadataValid,
+    metadataInvalid,
     'domain',
   );
   collectStringCandidate(
-    explicitValid,
-    explicitInvalid,
+    metadataValid,
+    metadataInvalid,
     readPathValue(input.metadata, ['dbt', 'resource', 'meta', 'domain']),
     'metadata.dbt.resource.meta.domain',
   );
@@ -233,9 +269,23 @@ export function resolveDbtDomain(
     }
   }
 
+  const explicitGroup =
+    companionValid.length > 0 || companionInvalid.length > 0
+      ? {
+          valid: [...normalizedValid, ...companionValid],
+          invalid: [...normalizedInvalid, ...companionInvalid],
+        }
+      : {
+          valid: [...normalizedValid, ...metadataValid],
+          invalid: [...normalizedInvalid, ...metadataInvalid],
+        };
+
   return buildResolutionFromGroups(
     input,
-    { valid: explicitValid, invalid: explicitInvalid },
+    explicitGroup,
+    ...(companionValid.length > 0 || companionInvalid.length > 0
+      ? [{ valid: metadataValid, invalid: metadataInvalid }]
+      : []),
     { valid: pathValid, invalid: [] },
   );
 }
@@ -245,6 +295,8 @@ export function resolveDbtOwner(
 ): DbtMetadataResolution<string> {
   const normalizedValid: ResolutionCandidate<string>[] = [];
   const normalizedInvalid: InvalidResolutionCandidate[] = [];
+  const companionValid: ResolutionCandidate<string>[] = [];
+  const companionInvalid: InvalidResolutionCandidate[] = [];
   const metadataValid: ResolutionCandidate<string>[] = [];
   const metadataInvalid: InvalidResolutionCandidate[] = [];
 
@@ -253,6 +305,11 @@ export function resolveDbtOwner(
     normalizedInvalid,
     readOwnershipTeam(input.ownership),
     'node.ownership.team',
+  );
+  collectCompanionGovernanceOwnerCandidate(
+    input,
+    companionValid,
+    companionInvalid,
   );
   collectOwnerCandidate(
     metadataValid,
@@ -282,30 +339,47 @@ export function resolveDbtOwner(
   return buildResolutionFromGroups(
     input,
     { valid: normalizedValid, invalid: normalizedInvalid },
-    { valid: metadataValid, invalid: metadataInvalid },
+    ...(companionValid.length > 0 || companionInvalid.length > 0
+      ? [
+          { valid: companionValid, invalid: companionInvalid },
+          { valid: metadataValid, invalid: metadataInvalid },
+        ]
+      : [{ valid: metadataValid, invalid: metadataInvalid }]),
   );
 }
 
 export function resolveDbtCriticality(
   input: DbtGovernanceMetadataResolverInput,
 ): DbtMetadataResolution<string> {
-  const valid: ResolutionCandidate<string>[] = [];
-  const invalid: InvalidResolutionCandidate[] = [];
+  const companionValid: ResolutionCandidate<string>[] = [];
+  const companionInvalid: InvalidResolutionCandidate[] = [];
+  const metadataValid: ResolutionCandidate<string>[] = [];
+  const metadataInvalid: InvalidResolutionCandidate[] = [];
 
+  collectCompanionGovernanceStringCandidate(
+    input,
+    companionValid,
+    companionInvalid,
+    'criticality',
+  );
   collectResolvedGovernanceStringCandidate(
     input,
-    valid,
-    invalid,
+    metadataValid,
+    metadataInvalid,
     'criticality',
   );
   collectStringCandidate(
-    valid,
-    invalid,
+    metadataValid,
+    metadataInvalid,
     readPathValue(input.metadata, ['dbt', 'resource', 'meta', 'criticality']),
     'metadata.dbt.resource.meta.criticality',
   );
 
-  return buildResolution(input, valid, invalid);
+  return buildResolutionFromGroups(
+    input,
+    { valid: companionValid, invalid: companionInvalid },
+    { valid: metadataValid, invalid: metadataInvalid },
+  );
 }
 
 export function resolveDbtPublicInterface(
@@ -313,19 +387,27 @@ export function resolveDbtPublicInterface(
   options: DbtGovernanceMetadataResolverOptions = {},
 ): DbtMetadataResolution<boolean> {
   const interfaceOptions = options.publicInterface ?? {};
-  const explicitValid: ResolutionCandidate<boolean>[] = [];
-  const explicitInvalid: InvalidResolutionCandidate[] = [];
+  const companionValid: ResolutionCandidate<boolean>[] = [];
+  const companionInvalid: InvalidResolutionCandidate[] = [];
+  const metadataValid: ResolutionCandidate<boolean>[] = [];
+  const metadataInvalid: InvalidResolutionCandidate[] = [];
   const tagValid: ResolutionCandidate<boolean>[] = [];
 
+  collectCompanionGovernanceBooleanCandidate(
+    input,
+    companionValid,
+    companionInvalid,
+    ['publicInterface'],
+  );
   collectBooleanCandidate(
-    explicitValid,
-    explicitInvalid,
+    metadataValid,
+    metadataInvalid,
     readPathValue(input.metadata, ['dbt', 'resource', 'meta', 'public']),
     'metadata.dbt.resource.meta.public',
   );
   collectBooleanCandidate(
-    explicitValid,
-    explicitInvalid,
+    metadataValid,
+    metadataInvalid,
     readPathValue(input.metadata, ['dbt', 'resource', 'meta', 'governed']),
     'metadata.dbt.resource.meta.governed',
   );
@@ -355,8 +437,84 @@ export function resolveDbtPublicInterface(
 
   return buildResolutionFromGroups(
     input,
-    { valid: explicitValid, invalid: explicitInvalid },
+    { valid: companionValid, invalid: companionInvalid },
+    { valid: metadataValid, invalid: metadataInvalid },
     { valid: tagValid, invalid: [] },
+  );
+}
+
+export function resolveDbtCrossDomainApproval(
+  input: DbtGovernanceMetadataResolverInput,
+): DbtMetadataResolution<boolean> {
+  const companionValid: ResolutionCandidate<boolean>[] = [];
+  const companionInvalid: InvalidResolutionCandidate[] = [];
+  const metadataValid: ResolutionCandidate<boolean>[] = [];
+  const metadataInvalid: InvalidResolutionCandidate[] = [];
+
+  collectCompanionGovernanceBooleanCandidate(
+    input,
+    companionValid,
+    companionInvalid,
+    ['crossDomainApproved'],
+  );
+  collectResolvedGovernanceBooleanCandidate(
+    input,
+    metadataValid,
+    metadataInvalid,
+    'crossDomainApproved',
+  );
+  collectBooleanCandidate(
+    metadataValid,
+    metadataInvalid,
+    readPathValue(input.metadata, [
+      'dbt',
+      'resource',
+      'meta',
+      'crossDomainApproved',
+    ]),
+    'metadata.dbt.resource.meta.crossDomainApproved',
+  );
+  collectBooleanCandidate(
+    metadataValid,
+    metadataInvalid,
+    readPathValue(input.metadata, [
+      'dbt',
+      'resource',
+      'meta',
+      'governance',
+      'crossDomainApproved',
+    ]),
+    'metadata.dbt.resource.meta.governance.crossDomainApproved',
+  );
+  collectBooleanCandidate(
+    metadataValid,
+    metadataInvalid,
+    readPathValue(input.metadata, [
+      'dbt',
+      'resource',
+      'meta',
+      'lineage',
+      'crossDomainApproved',
+    ]),
+    'metadata.dbt.resource.meta.lineage.crossDomainApproved',
+  );
+  collectBooleanCandidate(
+    metadataValid,
+    metadataInvalid,
+    readPathValue(input.metadata, [
+      'dbt',
+      'resource',
+      'meta',
+      'lineage',
+      'approved',
+    ]),
+    'metadata.dbt.resource.meta.lineage.approved',
+  );
+
+  return buildResolutionFromGroups(
+    input,
+    { valid: companionValid, invalid: companionInvalid },
+    { valid: metadataValid, invalid: metadataInvalid },
   );
 }
 
@@ -767,6 +925,25 @@ function collectResolvedGovernanceStringCandidate(
   );
 }
 
+function collectResolvedGovernanceBooleanCandidate(
+  input: DbtGovernanceMetadataResolverInput,
+  valid: ResolutionCandidate<boolean>[],
+  invalid: InvalidResolutionCandidate[],
+  field: 'crossDomainApproved',
+): void {
+  const resolvedField = readResolvedGovernanceField(input, field);
+  if (!resolvedField) {
+    return;
+  }
+
+  collectBooleanCandidate(
+    valid,
+    invalid,
+    resolvedField.value,
+    resolvedField.sourcePath,
+  );
+}
+
 function collectResolvedGovernanceOwnerCandidate(
   input: DbtGovernanceMetadataResolverInput,
   valid: ResolutionCandidate<string>[],
@@ -786,6 +963,62 @@ function collectResolvedGovernanceOwnerCandidate(
   );
 }
 
+function collectCompanionGovernanceStringCandidate(
+  input: DbtGovernanceMetadataResolverInput,
+  valid: ResolutionCandidate<string>[],
+  invalid: InvalidResolutionCandidate[],
+  field: 'domain' | 'layer' | 'criticality',
+): void {
+  const companionField = readCompanionGovernanceField(input, [field]);
+  if (!companionField) {
+    return;
+  }
+
+  collectStringCandidate(
+    valid,
+    invalid,
+    companionField.value,
+    companionField.sourcePath,
+  );
+}
+
+function collectCompanionGovernanceBooleanCandidate(
+  input: DbtGovernanceMetadataResolverInput,
+  valid: ResolutionCandidate<boolean>[],
+  invalid: InvalidResolutionCandidate[],
+  path: readonly ['publicInterface'] | readonly ['crossDomainApproved'],
+): void {
+  const companionField = readCompanionGovernanceField(input, path);
+  if (!companionField) {
+    return;
+  }
+
+  collectBooleanCandidate(
+    valid,
+    invalid,
+    companionField.value,
+    companionField.sourcePath,
+  );
+}
+
+function collectCompanionGovernanceOwnerCandidate(
+  input: DbtGovernanceMetadataResolverInput,
+  valid: ResolutionCandidate<string>[],
+  invalid: InvalidResolutionCandidate[],
+): void {
+  const companionField = readCompanionGovernanceField(input, ['owner', 'team']);
+  if (!companionField) {
+    return;
+  }
+
+  collectStringCandidate(
+    valid,
+    invalid,
+    companionField.value,
+    companionField.sourcePath,
+  );
+}
+
 function readOwnershipTeam(
   ownership: DbtGovernanceMetadataResolverInput['ownership'],
 ): unknown {
@@ -798,7 +1031,7 @@ function readOwnershipTeam(
 
 function readResolvedGovernanceField(
   input: DbtGovernanceMetadataResolverInput,
-  field: 'owner' | 'domain' | 'layer' | 'criticality',
+  field: 'owner' | 'domain' | 'layer' | 'criticality' | 'crossDomainApproved',
 ): { value: unknown; sourcePath: string } | undefined {
   // Keep a compatibility bridge for older adapter payloads by checking
   // resource.meta.* after this helper returns undefined.
@@ -817,6 +1050,29 @@ function readResolvedGovernanceField(
   }
 
   return undefined;
+}
+
+function readCompanionGovernanceField(
+  input: DbtGovernanceMetadataResolverInput,
+  path: readonly string[],
+): { value: unknown; sourcePath: string } | undefined {
+  const companionField = readPathValue(input.metadata, [
+    'dbt',
+    'resource',
+    'meta',
+    'anarchitects',
+    'governance',
+    ...path,
+  ]);
+
+  if (companionField === undefined) {
+    return undefined;
+  }
+
+  return {
+    value: companionField,
+    sourcePath: `metadata.dbt.resource.meta.anarchitects.governance.${path.join('.')}`,
+  };
 }
 
 function readPathValue(

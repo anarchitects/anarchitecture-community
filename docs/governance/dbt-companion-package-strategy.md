@@ -147,7 +147,7 @@ Recommendation details:
 - `owner.contacts` may be added later, but should be treated as future-facing until adapter/extension support is explicit
 - `criticality` is the recommended risk/importance marker
 - `publicInterface` marks resources intended as governed public interfaces
-- `crossDomainApproved` is the recommended approval marker for intentional cross-domain use, but current runtime support is not yet wired from this proposed location
+- `crossDomainApproved` is the recommended approval marker for intentional cross-domain use
 
 Documentation and contract expectations:
 
@@ -160,6 +160,8 @@ Compatibility note:
 - flat metadata aliases may exist for backward compatibility
 - they should not be the primary documented convention for new adopters
 - this convention is Anarchitects-specific guidance, not a dbt default
+- extension resolution should prefer `meta.anarchitects.governance.*` over legacy flat dbt metadata paths
+- legacy paths remain compatibility fallbacks, and adapter/runtime integration coverage still needs to be verified separately
 
 ## Mapping To Canonical Governance Concepts
 
@@ -171,7 +173,7 @@ Compatibility note:
 | `meta.anarchitects.governance.owner.contacts[*]`   | `ownership.contacts[*]`                              | future-oriented unless explicit support is added |
 | `meta.anarchitects.governance.criticality`         | dbt governance metadata / criticality interpretation | extension-owned semantics                        |
 | `meta.anarchitects.governance.publicInterface`     | public/governed interface interpretation             | dbt extension semantics                          |
-| `meta.anarchitects.governance.crossDomainApproved` | cross-domain approval evidence                       | should inform dbt-specific rules once wired      |
+| `meta.anarchitects.governance.crossDomainApproved` | cross-domain approval evidence                       | used by dbt-specific approval rules when present |
 | dbt `description`                                  | documentation evidence                               | dbt-native documentation                         |
 | `config.contract.enforced`                         | contract evidence                                    | dbt-native contract config                       |
 
