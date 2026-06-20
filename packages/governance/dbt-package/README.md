@@ -85,11 +85,11 @@ Git tag and GitHub release install model:
 ```yaml
 packages:
   - git: 'https://github.com/anarchitects/anarchitecture-community.git'
-    revision: 'governance-dbt-package@0.1.0'
+    revision: 'governance-dbt-package@0.0.1'
     subdirectory: 'packages/governance/dbt-package'
 ```
 
-This repo uses the existing Nx Release tag convention `<project>@<version>`. For the companion dbt package, that means tags such as `governance-dbt-package@0.1.0`.
+This repo uses the existing Nx Release tag convention `<project>@<version>`. For the companion dbt package, that means tags such as `governance-dbt-package@0.0.1`.
 
 Planned dbt Hub installation is documented in [docs/governance/dbt-companion-dbt-hub-publication.md](../../../docs/governance/dbt-companion-dbt-hub-publication.md). Do not treat dbt Hub installation as available yet.
 
@@ -623,7 +623,7 @@ Target behavior:
 Staged release model:
 
 1. Local development install via `packages.yml` with `local:`
-2. Git tag and GitHub release install via repository subdirectory using tags such as `governance-dbt-package@0.1.0`
+2. Git tag and GitHub release install via repository subdirectory using tags such as `governance-dbt-package@0.0.1`
 3. dbt Hub publication, tracked in [#462](https://github.com/anarchitects/anarchitecture-community/issues/462)
 
 Guidance:
