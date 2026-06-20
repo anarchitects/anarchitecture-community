@@ -118,6 +118,7 @@ export {
   DBT_METADATA_RESOLUTION_STATUSES,
   resolveDbtContractPresence,
   resolveDbtCriticality,
+  resolveDbtCrossDomainApproval,
   resolveDbtDocumentationPresence,
   resolveDbtDomain,
   resolveDbtGovernanceMetadata,

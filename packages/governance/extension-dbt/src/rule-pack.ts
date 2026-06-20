@@ -670,14 +670,18 @@ function evaluateCrossDomainDependenciesRequireApproval(
   }
 
   const approvalPaths = config.options.approvalMetadataPaths ?? [];
-  if (approvalPaths.length === 0) {
-    return [];
-  }
-
+  const nodeMetadataApproved =
+    source.crossDomainApproved.status === 'resolved' &&
+    source.crossDomainApproved.value === true;
   const matchedApprovalPath = approvalPaths.find((path) =>
     readBooleanishPath(relation.metadata, path),
   );
-  if (matchedApprovalPath) {
+
+  if (nodeMetadataApproved || matchedApprovalPath) {
+    return [];
+  }
+
+  if (approvalPaths.length === 0) {
     return [];
   }
 
@@ -691,6 +695,11 @@ function evaluateCrossDomainDependenciesRequireApproval(
       details: {
         sourceDomain,
         targetDomain,
+        ...(nodeMetadataApproved
+          ? {
+              sourceCrossDomainApproved: source.crossDomainApproved.value,
+            }
+          : {}),
         checkedApprovalMetadataPaths: approvalPaths,
         supportingSignalIds: getDependencySignalIds(context.signals, relation, [
           'DBT_CROSS_DOMAIN_DEPENDENCY_DETECTED',

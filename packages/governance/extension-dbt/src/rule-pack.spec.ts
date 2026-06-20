@@ -269,6 +269,12 @@ describe('dbt architecture basic rule pack', () => {
         sourcePaths: ['metadata.dbt.resource.meta.public'],
         value: true,
       },
+      crossDomainApproved: overrides.crossDomainApproved ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
       materializationCategory: overrides.materializationCategory ?? {
         status: 'unresolved',
         governanceNodeId: 'model.valid_project.orders',
@@ -1011,6 +1017,76 @@ describe('dbt architecture basic rule pack', () => {
         }),
       ]),
     );
+  });
+
+  it('uses companion cross-domain approval metadata from the source node as approval evidence', () => {
+    const workspace = createWorkspace(
+      [
+        {
+          id: 'model.analytics.finance_orders',
+          name: 'finance_orders',
+          root: 'models/finance/marts/finance_orders.sql',
+          type: 'library',
+          tags: [],
+          metadata: {
+            dbt: {
+              identity: {
+                uniqueId: 'model.analytics.finance_orders',
+                resourceType: 'model',
+              },
+              resource: {
+                tags: [],
+                meta: {
+                  anarchitects: {
+                    governance: {
+                      layer: 'marts',
+                      domain: 'finance',
+                      owner: {
+                        team: 'finance-platform',
+                      },
+                      crossDomainApproved: true,
+                    },
+                  },
+                },
+                materialization: 'table',
+              },
+              relation: {
+                originalFilePath: 'models/finance/marts/finance_orders.sql',
+              },
+              validation: {},
+              documentation: {},
+            },
+          },
+        },
+        createProject({
+          id: 'model.analytics.sales_orders',
+          layer: 'intermediate',
+          domain: 'sales',
+          owner: 'sales-platform',
+        }),
+      ],
+      [
+        {
+          source: 'model.analytics.finance_orders',
+          target: 'model.analytics.sales_orders',
+          type: 'static',
+          metadata: {
+            dbt: {
+              lineage: {
+                dependencyKind: 'ref',
+              },
+            },
+          },
+        },
+      ],
+    );
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) =>
+          violation.ruleId === 'dbt/cross-domain-dependencies-require-approval',
+      ),
+    ).toBe(false);
   });
 
   it('skips metadata-dependent rules when layer metadata is unresolved and diagnostics explain why', () => {

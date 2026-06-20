@@ -238,6 +238,12 @@ describe('dbt governance signals', () => {
         sourcePaths: ['metadata.dbt.resource.meta.public'],
         value: true,
       },
+      crossDomainApproved: overrides.crossDomainApproved ?? {
+        status: 'unresolved',
+        governanceNodeId: 'model.valid_project.orders',
+        dbtUniqueId: 'model.valid_project.orders',
+        sourcePaths: [],
+      },
       materializationCategory: overrides.materializationCategory ?? {
         status: 'unresolved',
         governanceNodeId: 'model.valid_project.orders',

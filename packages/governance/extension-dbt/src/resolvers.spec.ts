@@ -1,6 +1,7 @@
 import {
   resolveDbtContractPresence,
   resolveDbtCriticality,
+  resolveDbtCrossDomainApproval,
   resolveDbtDocumentationPresence,
   resolveDbtDomain,
   resolveDbtGovernanceMetadata,
@@ -163,6 +164,215 @@ describe('dbt governance metadata resolvers', () => {
     ).toMatchObject({
       status: 'resolved',
       value: 'finance',
+    });
+  });
+
+  it('resolves the companion nested governance convention from dbt metadata', () => {
+    const input = createInput({
+      metadata: {
+        dbt: {
+          identity: {
+            uniqueId: 'model.valid_project.orders',
+          },
+          resource: {
+            tags: [],
+            meta: {
+              anarchitects: {
+                governance: {
+                  layer: 'marts',
+                  domain: 'sales',
+                  owner: {
+                    team: 'analytics',
+                  },
+                  criticality: 'high',
+                  publicInterface: true,
+                  crossDomainApproved: false,
+                },
+              },
+            },
+          },
+          relation: {
+            originalFilePath: 'models/marts/orders.sql',
+          },
+          validation: {},
+          documentation: {},
+        },
+      },
+    });
+
+    const resolved = resolveDbtGovernanceMetadata(input);
+
+    expect(resolved.layer).toMatchObject({
+      status: 'resolved',
+      value: 'marts',
+      sourcePaths: ['metadata.dbt.resource.meta.anarchitects.governance.layer'],
+    });
+    expect(resolved.domain).toMatchObject({
+      status: 'resolved',
+      value: 'sales',
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.domain',
+      ],
+    });
+    expect(resolved.owner).toMatchObject({
+      status: 'resolved',
+      value: 'analytics',
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.owner.team',
+      ],
+    });
+    expect(resolved.criticality).toMatchObject({
+      status: 'resolved',
+      value: 'high',
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.criticality',
+      ],
+    });
+    expect(resolved.publicInterface).toMatchObject({
+      status: 'resolved',
+      value: true,
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.publicInterface',
+      ],
+    });
+    expect(resolved.crossDomainApproved).toMatchObject({
+      status: 'resolved',
+      value: false,
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.crossDomainApproved',
+      ],
+    });
+  });
+
+  it('prefers the companion nested convention over legacy flat dbt metadata paths', () => {
+    const input = createInput({
+      metadata: {
+        dbt: {
+          identity: {
+            uniqueId: 'model.valid_project.orders',
+          },
+          resource: {
+            tags: [],
+            meta: {
+              layer: 'staging',
+              domain: 'legacy-domain',
+              owner: 'legacy-owner',
+              criticality: 'medium',
+              public: false,
+              lineage: {
+                approved: true,
+              },
+              anarchitects: {
+                governance: {
+                  layer: 'marts',
+                  domain: 'sales',
+                  owner: {
+                    team: 'analytics',
+                  },
+                  criticality: 'high',
+                  publicInterface: true,
+                  crossDomainApproved: false,
+                },
+              },
+            },
+          },
+          relation: {
+            originalFilePath: 'models/staging/orders.sql',
+          },
+          validation: {},
+          documentation: {},
+        },
+      },
+    });
+
+    expect(
+      resolveDbtLayer(input, { layer: { fromPath: false } }),
+    ).toMatchObject({
+      status: 'resolved',
+      value: 'marts',
+      sourcePaths: ['metadata.dbt.resource.meta.anarchitects.governance.layer'],
+    });
+    expect(
+      resolveDbtDomain(input, {
+        domain: {
+          fromPath: false,
+        },
+      }),
+    ).toMatchObject({
+      status: 'resolved',
+      value: 'sales',
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.domain',
+      ],
+    });
+    expect(resolveDbtOwner(input)).toMatchObject({
+      status: 'resolved',
+      value: 'analytics',
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.owner.team',
+      ],
+    });
+    expect(resolveDbtCriticality(input)).toMatchObject({
+      status: 'resolved',
+      value: 'high',
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.criticality',
+      ],
+    });
+    expect(resolveDbtPublicInterface(input)).toMatchObject({
+      status: 'resolved',
+      value: true,
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.publicInterface',
+      ],
+    });
+    expect(resolveDbtCrossDomainApproval(input)).toMatchObject({
+      status: 'resolved',
+      value: false,
+      sourcePaths: [
+        'metadata.dbt.resource.meta.anarchitects.governance.crossDomainApproved',
+      ],
+    });
+  });
+
+  it('preserves explicit false boolean values in companion governance metadata', () => {
+    const input = createInput({
+      metadata: {
+        dbt: {
+          identity: {
+            uniqueId: 'model.valid_project.orders',
+          },
+          resource: {
+            tags: ['public'],
+            meta: {
+              public: true,
+              lineage: {
+                approved: true,
+              },
+              anarchitects: {
+                governance: {
+                  publicInterface: false,
+                  crossDomainApproved: false,
+                },
+              },
+            },
+          },
+          relation: {
+            originalFilePath: 'models/marts/orders.sql',
+          },
+          validation: {},
+          documentation: {},
+        },
+      },
+    });
+
+    expect(resolveDbtPublicInterface(input)).toMatchObject({
+      status: 'resolved',
+      value: false,
+    });
+    expect(resolveDbtCrossDomainApproval(input)).toMatchObject({
+      status: 'resolved',
+      value: false,
     });
   });
 
