@@ -205,9 +205,8 @@ def execute_invocation(invocation: RuntimeInvocation) -> InvocationExecutionResu
             diagnostics=result.diagnostics,
             report_path=report_path,
         )
-        report_format = (
-            invocation.report_options.format
-            or ("json" if config_result.config.host.output == "json" else "markdown")
+        report_format = invocation.report_options.format or (
+            "json" if config_result.config.host.output == "json" else "markdown"
         )
         rendered_output = (
             render_json_report(report_document)
@@ -303,8 +302,7 @@ def _execute_governance_command(
         ),
         profiles_dir=options.profiles_dir,
         target=options.target,
-        target_path=options.target_path
-        or _resolve_target_path_from_config(config),
+        target_path=options.target_path or _resolve_target_path_from_config(config),
         manifest_path=resolve_config_relative_path(
             config.adapter.paths.manifest_path,
             config,
@@ -384,9 +382,7 @@ def _execute_governance_command(
         supported=True,
         exit_code=exit_code_for_runtime_result_with_policy(
             runtime_handoff.runtime_result or {},
-            fail_on_blocking_violations=(
-                config.host.ci.fail_on_blocking_violations
-            ),
+            fail_on_blocking_violations=(config.host.ci.fail_on_blocking_violations),
         ),
         diagnostics=runtime_handoff.diagnostics,
         host_version=runtime_environment.report.host_version,
@@ -422,8 +418,7 @@ def _write_report_output(
             message="Writing the requested report output failed.",
             path=str(output_path),
             recommendation=(
-                "Ensure the report output directory is writable and retry the "
-                "command."
+                "Ensure the report output directory is writable and retry the command."
             ),
             details={"reason": str(error)},
         )
@@ -874,8 +869,7 @@ def _inspect_runtime_package(
                 ),
                 path=str(package_json_path),
                 recommendation=(
-                    "Reinstall the pinned runtime package through "
-                    "dbt-governance setup."
+                    "Reinstall the pinned runtime package through dbt-governance setup."
                 ),
             )
         )
@@ -889,8 +883,7 @@ def _inspect_runtime_package(
                 ),
                 path=str(package_json_path),
                 recommendation=(
-                    "Reinstall the pinned runtime package through "
-                    "dbt-governance setup."
+                    "Reinstall the pinned runtime package through dbt-governance setup."
                 ),
             )
         )
@@ -929,9 +922,7 @@ def _install_runtime_package(
     package_manager: PackageManagerResolution,
     command_runner,
 ) -> tuple[list[HostDiagnostic], bool]:
-    pinned_package_spec = (
-        f"{manifest.runtime_package}@{manifest.runtime_version}"
-    )
+    pinned_package_spec = f"{manifest.runtime_package}@{manifest.runtime_version}"
     args, cwd = _build_install_command(
         package_manager,
         cache_dir,
@@ -1009,9 +1000,7 @@ def _ensure_runtime_cache_project(
         diagnostics.append(
             HostDiagnostic(
                 code="governance.host_dbt.runtime_cache_creation_failed",
-                message=(
-                    "Creating the controlled runtime cache directory failed."
-                ),
+                message=("Creating the controlled runtime cache directory failed."),
                 path=str(cache_dir),
                 recommendation=(
                     "Ensure the runtime cache path is writable before running "

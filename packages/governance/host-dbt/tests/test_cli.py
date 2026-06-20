@@ -55,6 +55,13 @@ class CliTests(unittest.TestCase):
         self.assertIn("--report-path", report_help_text)
         init_help_text = capture_help_output(["init", "--help"])
         self.assertIn("--force", init_help_text)
+        companion_help_text = capture_help_output(["companion", "--help"])
+        self.assertIn("install", companion_help_text)
+        companion_install_help_text = capture_help_output(
+            ["companion", "install", "--help"]
+        )
+        self.assertIn("--packages-file", companion_install_help_text)
+        self.assertIn("--run-dbt-deps", companion_install_help_text)
 
     def test_check_command_resolves_project_from_current_directory(self) -> None:
         output = StringIO()
@@ -734,9 +741,7 @@ class CliTests(unittest.TestCase):
             config_path = project_dir / "governance.yml"
             write_fixture_file(config_path, "host:\n  output: json\n")
             with redirect_stdout(output):
-                exit_code = main(
-                    ["init", "--project-dir", str(project_dir), "--force"]
-                )
+                exit_code = main(["init", "--project-dir", str(project_dir), "--force"])
 
             config_text = config_path.read_text(encoding="utf-8")
 

@@ -255,8 +255,7 @@ def init_governance_config(
                 HostDiagnostic(
                     code="governance.host_dbt.invalid_project_dir",
                     message=(
-                        "dbt project directory does not exist or is not a "
-                        "directory."
+                        "dbt project directory does not exist or is not a directory."
                     ),
                     path=str(resolved_project_dir),
                     recommendation=(
@@ -274,8 +273,7 @@ def init_governance_config(
                 HostDiagnostic(
                     code="governance.host_dbt.config_already_exists",
                     message=(
-                        "governance.yml already exists and will not be "
-                        "overwritten."
+                        "governance.yml already exists and will not be overwritten."
                     ),
                     path=str(target_path),
                     recommendation=(
@@ -389,9 +387,7 @@ def _read_profile_section(
     if section is None:
         return ProfileConfig()
     if not isinstance(section, dict):
-        diagnostics.append(
-            _section_type_diagnostic("profile", config_path)
-        )
+        diagnostics.append(_section_type_diagnostic("profile", config_path))
         return ProfileConfig()
 
     _append_unknown_key_diagnostics(

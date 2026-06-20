@@ -418,9 +418,7 @@ def write_runtime_package(
     package_payload = {
         "name": package_name,
         "version": package_version,
-        "bin": {
-            "dbt-governance-runtime": "./dist/bin/dbt-governance-runtime.js"
-        },
+        "bin": {"dbt-governance-runtime": "./dist/bin/dbt-governance-runtime.js"},
     }
     (package_dir / "package.json").write_text(
         json.dumps(package_payload) + "\n",

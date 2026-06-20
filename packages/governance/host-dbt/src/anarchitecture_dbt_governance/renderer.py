@@ -29,8 +29,7 @@ def render_diagnostics(diagnostics: list[HostDiagnostic]) -> str:
     lines: list[str] = []
     for diagnostic in diagnostics:
         lines.append(
-            f"{diagnostic.severity.upper()} [{diagnostic.code}] "
-            f"{diagnostic.message}"
+            f"{diagnostic.severity.upper()} [{diagnostic.code}] {diagnostic.message}"
         )
         if diagnostic.path:
             lines.append(f"Path: {diagnostic.path}")
@@ -342,9 +341,7 @@ def _serialize_artifact_result(
         "usedExistingArtifacts": artifact_result.used_existing_artifacts,
         "invokedParse": artifact_result.invoked_parse,
         "artifactSource": (
-            "dbt parse"
-            if artifact_result.invoked_parse
-            else "existing manifest.json"
+            "dbt parse" if artifact_result.invoked_parse else "existing manifest.json"
         ),
     }
     if artifact_paths.catalog_path is not None:
@@ -469,9 +466,7 @@ def _read_runtime_diagnostics(result: Mapping[str, Any]) -> list[Mapping[str, An
         payload = result.get(key)
         if isinstance(payload, list):
             diagnostics.extend(
-                diagnostic
-                for diagnostic in payload
-                if isinstance(diagnostic, Mapping)
+                diagnostic for diagnostic in payload if isinstance(diagnostic, Mapping)
             )
     return diagnostics
 
@@ -492,9 +487,7 @@ def _read_violations(result: Any) -> list[Mapping[str, Any]]:
 
     violations = result.get("violations")
     if isinstance(violations, list):
-        return [
-            violation for violation in violations if isinstance(violation, Mapping)
-        ]
+        return [violation for violation in violations if isinstance(violation, Mapping)]
 
     return []
 
@@ -599,8 +592,7 @@ def _render_markdown_recommendations(
     lines: list[str] = []
     for recommendation in recommendations:
         title = (
-            _read_mapping_string(recommendation, "title")
-            or "Untitled recommendation"
+            _read_mapping_string(recommendation, "title") or "Untitled recommendation"
         )
         reason = _read_mapping_string(recommendation, "reason")
         details = _render_reference_context(

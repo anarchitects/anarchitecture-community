@@ -34,8 +34,7 @@ def exit_code_for_diagnostics(diagnostics: Sequence[HostDiagnostic]) -> ExitCode
     """Map host diagnostics to a deterministic process exit code."""
 
     if any(
-        diagnostic.code in INCOMPATIBLE_DIAGNOSTIC_CODES
-        for diagnostic in diagnostics
+        diagnostic.code in INCOMPATIBLE_DIAGNOSTIC_CODES for diagnostic in diagnostics
     ):
         return ExitCode.INCOMPATIBLE_RUNTIME
     return ExitCode.INVOCATION_FAILURE

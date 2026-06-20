@@ -517,8 +517,7 @@ def create_runtime_cache_package(
                 "name": package_name,
                 "version": package_version,
                 "bin": {
-                    "dbt-governance-runtime": "./dist/bin/"
-                    "dbt-governance-runtime.js"
+                    "dbt-governance-runtime": "./dist/bin/dbt-governance-runtime.js"
                 },
             },
             indent=2,
@@ -536,8 +535,10 @@ def runtime_package_dir(cache_root: Path) -> Path:
         *RUNTIME_MANIFEST.runtime_package.split("/"),
         RUNTIME_MANIFEST.runtime_version,
     )
-    return install_root / "node_modules" / Path(
-        *RUNTIME_MANIFEST.runtime_package.split("/")
+    return (
+        install_root
+        / "node_modules"
+        / Path(*RUNTIME_MANIFEST.runtime_package.split("/"))
     )
 
 

@@ -252,9 +252,7 @@ def invoke_runtime_handoff(
             diagnostics=[
                 HostDiagnostic(
                     code="governance.host_dbt.runtime_process_timeout",
-                    message=(
-                        "Runtime process exceeded the allowed execution timeout."
-                    ),
+                    message=("Runtime process exceeded the allowed execution timeout."),
                     path=str(executable_path),
                     recommendation=(
                         "Inspect runtime stderr/stdout context and retry once the "
@@ -480,8 +478,7 @@ def _runtime_returned_error_diagnostic(
     return HostDiagnostic(
         code="governance.host_dbt.runtime_returned_error",
         message=(
-            'Runtime returned a structured error result '
-            f'(error code: "{error_code}").'
+            f'Runtime returned a structured error result (error code: "{error_code}").'
         ),
         path=str(executable_path),
         recommendation=(
@@ -506,8 +503,7 @@ def _validate_runtime_handoff_context(
             HostDiagnostic(
                 code="governance.host_dbt.incomplete_runtime_context",
                 message=(
-                    "Runtime handoff requires project path hints plus "
-                    "manifestPath."
+                    "Runtime handoff requires project path hints plus manifestPath."
                 ),
                 recommendation=(
                     "Resolve dbt artifact path hints successfully before invoking "
@@ -550,8 +546,7 @@ def _validate_runtime_handoff_context(
                 message="Pinned runtime executable path does not point to a file.",
                 path=str(resolved_runtime.executable_path),
                 recommendation=(
-                    "Reinstall the pinned runtime package through "
-                    "dbt-governance setup."
+                    "Reinstall the pinned runtime package through dbt-governance setup."
                 ),
             )
         )
