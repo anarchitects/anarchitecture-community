@@ -52,6 +52,34 @@ dbt-governance
   -> render host output and map final exit code
 ```
 
+## Companion Package Relationship
+
+`anarchitecture-dbt-governance` and the companion dbt package
+`anarchitects_governance` are separate tools with separate install paths.
+
+- `anarchitecture-dbt-governance` is the Python CLI package installed with
+  `pipx`, `uv tool`, or `pip`
+- `anarchitects_governance` is a dbt package installed inside the dbt project
+  with `packages.yml` and `dbt deps`
+
+Use the companion package when you want dbt-native templates, docs blocks, and
+lightweight metadata tests while authoring metadata inside dbt. Use
+`dbt-governance check` when you want authoritative governance evaluation from
+dbt artifacts.
+
+Important boundary:
+
+- `dbt deps` does not install `dbt-governance`
+- the companion dbt package does not install the host runtime
+- the companion dbt package does not replace `dbt-governance check`
+- the host remains the authoritative evaluator and report generator
+
+See:
+
+- [packages/governance/host-dbt/README.md](../../packages/governance/host-dbt/README.md)
+- [packages/governance/dbt-package/README.md](../../packages/governance/dbt-package/README.md)
+- [docs/governance/dbt-companion-package-strategy.md](./dbt-companion-package-strategy.md)
+
 ## Command Lifecycle
 
 `dbt-governance check` and `dbt-governance report` follow this host-owned

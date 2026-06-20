@@ -45,11 +45,19 @@ Notes:
 
 ## Optional Companion dbt Package
 
-`anarchitecture-dbt-governance` provides the `dbt-governance` CLI and remains the authoritative governance evaluator.
+The companion dbt package is optional. `anarchitecture-dbt-governance` remains
+the authoritative governance evaluation and reporting path because it provides
+the `dbt-governance` CLI, reads dbt artifacts, invokes the runtime, and renders
+reports.
 
-For dbt-native metadata helpers, docs blocks, template printers, and lightweight metadata tests, use the optional companion dbt package `anarchitects_governance` installed through `dbt deps`.
+The companion dbt package `anarchitects_governance` is a separate dbt-side
+enablement layer. It lives inside the dbt project, installs through
+`packages.yml` plus `dbt deps`, and provides dbt-native helpers such as
+metadata templates, docs blocks, and lightweight metadata tests.
 
-The CLI and companion package are installed separately:
+### Installation Model
+
+Install the CLI and the companion package separately:
 
 - CLI: `pipx`, `uv tool`, or `pip`
 - companion dbt package: dbt `packages.yml` plus `dbt deps`
@@ -57,28 +65,77 @@ The CLI and companion package are installed separately:
 Important boundary:
 
 - `dbt deps` does not install `dbt-governance`
-- the companion dbt package does not run governance checks
-- use the companion package to help author metadata inside dbt
+- `dbt deps` does not install the Node runtime used by the host
+- the companion dbt package does not run the governance engine
+- the companion dbt package does not replace `dbt-governance check`
+- use the companion package to help author dbt-side governance metadata
 - use `dbt-governance check` to evaluate dbt artifacts and generate reports
 
-Companion package docs:
+### Example `packages.yml`
 
-- [Companion package README](../dbt-package/README.md)
-- [Companion package strategy](../../../docs/governance/dbt-companion-package-strategy.md)
+Use a released companion package tag from the release notes. The current repo
+tag convention is `<project>@<version>`.
 
-## Optional Companion Install Helper
+Git/subdirectory install example:
+
+```yaml
+packages:
+  - git: 'https://github.com/anarchitects/anarchitecture-community.git'
+    revision: 'governance-dbt-package@0.0.1'
+    subdirectory: 'packages/governance/dbt-package'
+```
+
+Local development example:
+
+```yaml
+packages:
+  - local: ../anarchitecture-community/packages/governance/dbt-package
+```
+
+`dbt deps` installs only the companion dbt package from that entry. It does not
+install the Python CLI.
+
+### Typical Workflow
+
+```bash
+# 1. Install the Python CLI
+pipx install anarchitecture-dbt-governance
+# or:
+uv tool install anarchitecture-dbt-governance
+
+# 2. Add the companion dbt package to packages.yml, then install dbt deps
+dbt deps
+
+# 3. Let dbt parse and test the project locally
+dbt parse
+dbt test
+
+# 4. Run authoritative governance evaluation
+dbt-governance check
+
+# 5. Optionally generate reports
+dbt-governance report --format markdown --report-path target/governance-report.md
+```
+
+### When To Use Which Package
+
+Use only `dbt-governance` when:
+
+- you want to evaluate an existing dbt project from dbt artifacts
+- you do not want dbt-side helpers or tests in the project
+- you only need governance checks and reports
+
+Use `dbt-governance` plus the companion dbt package when:
+
+- you want dbt-native metadata templates
+- you want docs blocks for governance conventions
+- you want lightweight dbt metadata tests
+- you want to help teams author governance metadata consistently
+
+### Optional Companion Install Helper
 
 `dbt-governance companion install` is an optional convenience command for
-writing the companion dbt package entry into `packages.yml`.
-
-Important boundary:
-
-- it helps author dbt package install metadata only
-- it does not install the Python CLI
-- it does not install or manage the Node runtime
-- it does not run governance evaluation
-- `dbt-governance check` remains the authoritative evaluation and reporting command
-- `dbt deps` still installs only the companion dbt package, not `dbt-governance`
+printing or updating the companion package entry in `packages.yml`.
 
 Print the Git-based install fragment only:
 
@@ -110,10 +167,14 @@ The helper defaults to a safe dry-run mode when `--write` is omitted. It can:
 - append the companion package entry to an existing `packages.yml`
 - avoid duplicate Git/subdirectory entries
 
+Companion package docs:
+
+- [Companion package README](../dbt-package/README.md)
+- [Companion package strategy](../../../docs/governance/dbt-companion-package-strategy.md)
+- [dbt Governance host reference](../../../docs/governance/dbt-governance-host.md)
+
 It does not claim dbt Hub availability. The Git tag / release flow is tracked in
-[#461](https://github.com/anarchitects/anarchitecture-community/issues/461), and
-host/companion docs alignment is tracked in
-[#460](https://github.com/anarchitects/anarchitecture-community/issues/460).
+[#461](https://github.com/anarchitects/anarchitecture-community/issues/461).
 
 ## Quickstart
 
