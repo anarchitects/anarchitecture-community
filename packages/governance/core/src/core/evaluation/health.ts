@@ -121,15 +121,18 @@ function weightedAverage(
   for (const measurement of measurements) {
     const configuredWeight = metricWeights[measurement.id] ?? 1;
     const safeWeight = configuredWeight > 0 ? configuredWeight : 0;
+    const normalizedScore = normalizeMeasurementScore(measurement);
 
-    weightedSum += measurement.score * safeWeight;
+    weightedSum += normalizedScore * safeWeight;
     totalWeight += safeWeight;
   }
 
   if (totalWeight === 0) {
     return (
-      measurements.reduce((sum, measurement) => sum + measurement.score, 0) /
-      measurements.length
+      measurements.reduce(
+        (sum, measurement) => sum + normalizeMeasurementScore(measurement),
+        0,
+      ) / measurements.length
     );
   }
 
@@ -187,12 +190,20 @@ function buildMetricHotspots(
   measurements: Measurement[],
 ): HealthMetricHotspot[] {
   return [...measurements]
-    .filter((measurement) => measurement.score < 60)
-    .sort((a, b) => a.score - b.score || a.id.localeCompare(b.id))
     .map((measurement) => ({
-      id: measurement.id,
-      name: measurement.name,
-      score: measurement.score,
+      measurement,
+      normalizedScore: normalizeMeasurementScore(measurement),
+    }))
+    .filter(({ normalizedScore }) => normalizedScore < 60)
+    .sort(
+      (a, b) =>
+        a.normalizedScore - b.normalizedScore ||
+        a.measurement.id.localeCompare(b.measurement.id),
+    )
+    .map((measurement) => ({
+      id: measurement.measurement.id,
+      name: measurement.measurement.name,
+      score: measurement.normalizedScore,
     }));
 }
 
@@ -200,14 +211,34 @@ function buildWeakestMetrics(
   measurements: Measurement[],
 ): HealthMetricHotspot[] {
   return [...measurements]
-    .filter((measurement) => measurement.score < 100)
-    .sort((a, b) => a.score - b.score || a.id.localeCompare(b.id))
+    .map((measurement) => ({
+      measurement,
+      normalizedScore: normalizeMeasurementScore(measurement),
+    }))
+    .filter(({ normalizedScore }) => normalizedScore < 100)
+    .sort(
+      (a, b) =>
+        a.normalizedScore - b.normalizedScore ||
+        a.measurement.id.localeCompare(b.measurement.id),
+    )
     .slice(0, 3)
     .map((measurement) => ({
-      id: measurement.id,
-      name: measurement.name,
-      score: measurement.score,
+      id: measurement.measurement.id,
+      name: measurement.measurement.name,
+      score: measurement.normalizedScore,
     }));
+}
+
+function normalizeMeasurementScore(measurement: Measurement): number {
+  if (!Number.isFinite(measurement.score)) {
+    return 0;
+  }
+
+  return clampHealthScore(measurement.score);
+}
+
+function clampHealthScore(score: number): number {
+  return Math.max(0, Math.min(100, score));
 }
 
 function buildDominantIssues(

@@ -243,9 +243,12 @@ describe('dbt governance metrics', () => {
 
     expect(byId.get('dbt-model-count')).toMatchObject({
       value: 3,
+      score: 100,
+      maxScore: 100,
       unit: 'count',
       metadata: {
         count: 3,
+        healthSemantics: 'informational-count',
         countedNodeIds: [
           'model.analytics.orders_intermediate',
           'model.analytics.orders_mart',
@@ -255,8 +258,10 @@ describe('dbt governance metrics', () => {
     });
     expect(byId.get('dbt-dependency-count')).toMatchObject({
       value: 2,
+      score: 100,
       metadata: {
         count: 2,
+        healthSemantics: 'informational-count',
         countedRelationIds: [
           'dbt:lineage:model.analytics.orders_mart->model.analytics.orders_intermediate',
           'dbt:lineage:model.analytics.orders_staging->model.analytics.orders_intermediate',
@@ -265,8 +270,12 @@ describe('dbt governance metrics', () => {
     });
     expect(byId.get('dbt-cross-domain-dependency-count')).toMatchObject({
       value: 1,
+      score: 75,
+      maxScore: 100,
       metadata: {
         count: 1,
+        healthSemantics: 'defect-count',
+        penaltyPerOccurrence: 25,
         countedRelationIds: [
           'dbt:lineage:model.analytics.orders_mart->model.analytics.orders_intermediate',
         ],
@@ -274,22 +283,29 @@ describe('dbt governance metrics', () => {
     });
     expect(byId.get('dbt-layer-violation-count')).toMatchObject({
       value: 1,
+      score: 75,
       metadata: {
         count: 1,
+        healthSemantics: 'defect-count',
+        penaltyPerOccurrence: 25,
       },
     });
     expect(byId.get('dbt-ownership-completeness-ratio')).toMatchObject({
       value: 0.6667,
+      score: 66.67,
+      maxScore: 100,
       unit: 'ratio',
       metadata: {
         numerator: 2,
         denominator: 3,
         ratio: 0.6667,
         zeroDenominator: false,
+        healthSemantics: 'coverage-ratio',
       },
     });
     expect(byId.get('dbt-documentation-coverage-ratio')).toMatchObject({
       value: 0.6667,
+      score: 66.67,
       metadata: {
         numerator: 2,
         denominator: 3,
@@ -297,6 +313,7 @@ describe('dbt governance metrics', () => {
     });
     expect(byId.get('dbt-test-coverage-ratio')).toMatchObject({
       value: 0.3333,
+      score: 33.33,
       metadata: {
         numerator: 1,
         denominator: 3,
@@ -304,6 +321,7 @@ describe('dbt governance metrics', () => {
     });
     expect(byId.get('dbt-contract-adoption-ratio')).toMatchObject({
       value: 0.3333,
+      score: 33.33,
       metadata: {
         numerator: 1,
         denominator: 3,
@@ -311,22 +329,29 @@ describe('dbt governance metrics', () => {
     });
     expect(byId.get('dbt-hotspot-count')).toMatchObject({
       value: 0,
+      score: 100,
       metadata: {
         count: 0,
+        healthSemantics: 'defect-count',
       },
     });
     expect(byId.get('dbt-unresolved-layer-count')).toMatchObject({
       value: 1,
+      score: 75,
       metadata: {
         count: 1,
+        healthSemantics: 'defect-count',
+        penaltyPerOccurrence: 25,
         countedNodeIds: ['source.analytics.raw_orders'],
         countedDiagnosticCodes: ['DBT_LAYER_UNRESOLVED'],
       },
     });
     expect(byId.get('dbt-unresolved-domain-count')).toMatchObject({
       value: 0,
+      score: 100,
       metadata: {
         count: 0,
+        healthSemantics: 'defect-count',
         countedDiagnosticCodes: ['DBT_DOMAIN_UNRESOLVED'],
       },
     });
@@ -409,16 +434,98 @@ describe('dbt governance metrics', () => {
         measurements.find((measurement) => measurement.id === metricId),
       ).toMatchObject({
         value: 0,
-        score: 0,
-        maxScore: 1,
+        score: 100,
+        maxScore: 100,
         unit: 'ratio',
         metadata: {
           numerator: 0,
           denominator: 0,
           ratio: 0,
           zeroDenominator: true,
+          healthSemantics: 'coverage-ratio',
         },
       });
     }
+  });
+
+  it('emits ratio health scores on a 0..100 scale while preserving raw ratio values', () => {
+    const workspace = createWorkspace(
+      Array.from({ length: 8 }, (_, index) =>
+        createProject({
+          id: `model.analytics.orders_${index + 1}`,
+          layer: 'marts',
+          domain: 'finance',
+          ...(index < 7 ? { owner: 'finance-platform' } : {}),
+          description: true,
+          tests: true,
+          contract: true,
+        }),
+      ),
+    );
+
+    const measurements = buildDbtGovernanceMetrics(
+      createMetricInput(workspace),
+    );
+    const ownershipCoverage = measurements.find(
+      (measurement) => measurement.id === 'dbt-ownership-completeness-ratio',
+    );
+
+    expect(ownershipCoverage).toMatchObject({
+      value: 0.875,
+      score: 87.5,
+      maxScore: 100,
+      unit: 'ratio',
+      metadata: {
+        numerator: 7,
+        denominator: 8,
+        ratio: 0.875,
+        zeroDenominator: false,
+        healthSemantics: 'coverage-ratio',
+      },
+    });
+  });
+
+  it('keeps zero defect counts healthy and applies deterministic penalties to nonzero defect counts', () => {
+    const workspace = createWorkspace(
+      [
+        createProject({
+          id: 'model.analytics.orders',
+          layer: 'marts',
+          domain: 'finance',
+          owner: 'finance-platform',
+          description: true,
+          tests: true,
+          contract: true,
+        }),
+        createProject({
+          id: 'model.analytics.stg_customers',
+          layer: 'staging',
+          domain: 'finance',
+          owner: 'finance-platform',
+          description: true,
+          tests: true,
+          contract: false,
+        }),
+      ],
+      [],
+    );
+
+    const measurements = buildDbtGovernanceMetrics(
+      createMetricInput(workspace),
+    );
+    const byId = new Map(
+      measurements.map((measurement) => [measurement.id, measurement]),
+    );
+
+    expect(byId.get('dbt-cross-domain-dependency-count')).toMatchObject({
+      value: 0,
+      score: 100,
+      maxScore: 100,
+    });
+    expect(byId.get('dbt-hotspot-count')).toMatchObject({
+      value: 0,
+      score: 100,
+      maxScore: 100,
+    });
   });
 });
