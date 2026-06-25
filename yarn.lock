@@ -21,11 +21,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@anarchitects/governance-adapter-dbt@npm:^0.1.7, @anarchitects/governance-adapter-dbt@workspace:packages/governance/adapter-dbt":
+"@anarchitects/governance-adapter-dbt@npm:^0.1.8, @anarchitects/governance-adapter-dbt@workspace:packages/governance/adapter-dbt":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-adapter-dbt@workspace:packages/governance/adapter-dbt"
   dependencies:
-    "@anarchitects/governance-core": "npm:^0.4.1"
+    "@anarchitects/governance-core": "npm:^0.4.2"
     yaml: "npm:^2.8.1"
   languageName: unknown
   linkType: soft
@@ -34,7 +34,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-adapter-typescript@workspace:packages/governance/adapter-typescript"
   dependencies:
-    "@anarchitects/governance-core": "npm:^0.4.1"
+    "@anarchitects/governance-core": "npm:^0.4.2"
     minimatch: "npm:^10.1.1"
     typescript: "npm:~5.9.2"
     yaml: "npm:^2.8.1"
@@ -45,24 +45,24 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-cli@workspace:packages/governance/cli"
   dependencies:
-    "@anarchitects/governance-core": "npm:^0.4.1"
+    "@anarchitects/governance-core": "npm:^0.4.2"
     yaml: "npm:^2.8.1"
   bin:
     agov: ./dist/bin/agov.js
   languageName: unknown
   linkType: soft
 
-"@anarchitects/governance-core@npm:^0.4.1, @anarchitects/governance-core@workspace:packages/governance/core":
+"@anarchitects/governance-core@npm:^0.4.2, @anarchitects/governance-core@workspace:packages/governance/core":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-core@workspace:packages/governance/core"
   languageName: unknown
   linkType: soft
 
-"@anarchitects/governance-extension-dbt@npm:^0.1.8, @anarchitects/governance-extension-dbt@workspace:packages/governance/extension-dbt":
+"@anarchitects/governance-extension-dbt@npm:^0.1.9, @anarchitects/governance-extension-dbt@workspace:packages/governance/extension-dbt":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-extension-dbt@workspace:packages/governance/extension-dbt"
   dependencies:
-    "@anarchitects/governance-core": "npm:^0.4.1"
+    "@anarchitects/governance-core": "npm:^0.4.2"
   languageName: unknown
   linkType: soft
 
@@ -70,7 +70,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-extension-typescript@workspace:packages/governance/extension-typescript"
   dependencies:
-    "@anarchitects/governance-core": "npm:^0.4.1"
+    "@anarchitects/governance-core": "npm:^0.4.2"
   languageName: unknown
   linkType: soft
 
@@ -78,9 +78,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-runtime-dbt@workspace:packages/governance/runtime-dbt"
   dependencies:
-    "@anarchitects/governance-adapter-dbt": "npm:^0.1.7"
-    "@anarchitects/governance-core": "npm:^0.4.1"
-    "@anarchitects/governance-extension-dbt": "npm:^0.1.8"
+    "@anarchitects/governance-adapter-dbt": "npm:^0.1.8"
+    "@anarchitects/governance-core": "npm:^0.4.2"
+    "@anarchitects/governance-extension-dbt": "npm:^0.1.9"
   bin:
     dbt-governance-runtime: ./dist/bin/dbt-governance-runtime.js
   languageName: unknown

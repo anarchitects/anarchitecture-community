@@ -1,5 +1,5 @@
 name: anarchitects_governance
-version: 0.0.1
+version: 0.0.2
 config-version: 2
 
 macro-paths: ['macros']
