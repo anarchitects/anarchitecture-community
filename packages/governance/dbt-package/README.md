@@ -131,6 +131,58 @@ dbt run-operation governance_print_profile_template
 dbt run-operation governance_validate_metadata
 ```
 
+## Inline SQL Model Config
+
+For SQL models, this package also exposes an inline config macro:
+
+```jinja
+{{ anarchitects_governance.governance(
+    owner='analytics',
+    layer='marts',
+    domain='ecommerce',
+    criticality='high',
+    public_interface=true,
+    cross_domain_approved=false,
+    contract_enforced=true
+) }}
+```
+
+This expands to dbt `config(...)` and writes the recommended nested metadata convention:
+
+- `meta.anarchitects.governance.layer`
+- `meta.anarchitects.governance.domain`
+- `meta.anarchitects.governance.owner.team`
+- `meta.anarchitects.governance.criticality`
+- `meta.anarchitects.governance.publicInterface`
+- `meta.anarchitects.governance.crossDomainApproved`
+- `config.contract.enforced`
+
+Optional arguments:
+
+- `tags`
+
+Example with tags:
+
+```jinja
+{{ anarchitects_governance.governance(
+    owner='analytics',
+    layer='marts',
+    domain='ecommerce',
+    criticality='high',
+    public_interface=true,
+    cross_domain_approved=false,
+    contract_enforced=true,
+    tags=['layer:marts', 'domain:ecommerce', 'published']
+) }}
+```
+
+Important boundary:
+
+- this configures governance metadata and optional contract and tags inside the SQL model
+- dbt model descriptions and column documentation still belong in properties YAML
+- this complements `governance_print_metadata_template` and `governance_print_profile_template`; it does not replace those template-printing helpers
+- this macro does not run `dbt-governance` and does not mutate YAML files
+
 If you prefer explicit package qualification when invoking a macro from an installed package:
 
 ```bash
@@ -559,6 +611,8 @@ Meaning of the recommended fields:
 - `crossDomainApproved`: whether intentional cross-domain use has been explicitly approved
 - dbt `description`: the primary dbt-native documentation evidence
 - `config.contract.enforced`: the primary dbt-native contract evidence where model contracts apply
+
+For SQL models, `{{ anarchitects_governance.governance(...) }}` is the recommended way to set these fields inline without duplicating the nested `meta` structure manually. Keep descriptions and column docs in YAML.
 
 ## Tag Helper Macros
 

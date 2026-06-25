@@ -46,6 +46,7 @@
           "dbt --version",
           "dbt deps --profiles-dir .",
           "dbt parse --profiles-dir .",
+          "dbt run-operation anarchitects_governance_assert_model_config --profiles-dir . --args '{model_name: example, layer: marts, domain: ecommerce, owner_team: analytics, criticality: high, public_interface: true, cross_domain_approved: false, contract_enforced: true, tags: [layer:marts, domain:ecommerce, published]}'",
           "dbt run-operation governance_print_metadata_template --profiles-dir . --args '{model_name: example, layer: marts, domain: sales, owner_team: analytics}'",
           "dbt run-operation governance_print_profile_template --profiles-dir .",
           "dbt run-operation governance_validate_metadata --profiles-dir . --args '{allowed_layers: [staging, intermediate, marts], allowed_criticality_values: [low, medium, high, critical], required: [layer, domain, owner, criticality], fail_on_error: true}'",
