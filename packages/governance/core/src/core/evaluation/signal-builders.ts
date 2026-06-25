@@ -13,6 +13,10 @@ import { isAllowedDomainDependency } from './domain-dependency-policy.js';
 export interface GovernanceGraphSnapshotProject {
   id: string;
   domain?: string;
+  classification?: {
+    domain?: string;
+    scope?: string;
+  };
 }
 
 export interface GovernanceGraphSnapshotRelation {
@@ -99,8 +103,8 @@ export function buildGovernanceGraphSignals(
     const sourceNode = nodesById.get(relation.sourceNodeId);
     const targetNode = nodesById.get(relation.targetNodeId);
     const dependencyRelation = isDependencyRelation(relation);
-    const sourceDomain = normalizeText(sourceNode?.domain);
-    const targetDomain = normalizeText(targetNode?.domain);
+    const sourceDomain = resolveSnapshotNodeDomain(sourceNode);
+    const targetDomain = resolveSnapshotNodeDomain(targetNode);
     const relatedNodeIds = normalizeRelatedIds([
       relation.sourceNodeId,
       relation.targetNodeId,
@@ -471,6 +475,16 @@ function normalizeText(value: unknown): string | undefined {
 
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
+}
+
+function resolveSnapshotNodeDomain(
+  node: GovernanceGraphSnapshotProject | undefined,
+): string | undefined {
+  return (
+    normalizeText(node?.domain) ??
+    normalizeText(node?.classification?.domain) ??
+    normalizeText(node?.classification?.scope)
+  );
 }
 
 function isDependencyRelation(

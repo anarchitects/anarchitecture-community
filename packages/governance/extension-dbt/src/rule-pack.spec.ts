@@ -4,11 +4,13 @@ import { fileURLToPath } from 'node:url';
 import {
   DefaultGovernanceCapabilityRegistry,
   type GovernanceExtensionHostContext,
+  type GovernanceNode,
   type GovernanceProfile,
   type GovernanceWorkspace,
 } from '@anarchitects/governance-core';
 
 import {
+  attachDbtGovernanceModelExpansion,
   buildDbtGovernanceDiagnostics,
   dbtArchitectureBasicRulePack,
   evaluateDbtArchitectureViolations,
@@ -637,6 +639,66 @@ describe('dbt architecture basic rule pack', () => {
         description: true,
       }),
     ]);
+
+    expect(
+      evaluateDbtArchitectureViolations(createInput(workspace)).some(
+        (violation) =>
+          violation.ruleId === 'dbt/public-models-require-description',
+      ),
+    ).toBe(false);
+  });
+
+  it('does not flag adapter-normalized public models with standard dbt descriptions', () => {
+    const documentedPublicOrdersNode: GovernanceNode = {
+      id: 'model.analytics.documented_public_orders',
+      name: 'documented_public_orders',
+      kind: 'resource',
+      technology: 'dbt',
+      sourceSystem: 'dbt',
+      root: 'models/marts/documented_public_orders.sql',
+      path: 'models/marts/documented_public_orders.sql',
+      tags: [],
+      metadata: {},
+    };
+    const workspace: GovernanceWorkspace = {
+      id: 'workspace',
+      name: 'workspace',
+      root: '/repo',
+      nodes: [
+        attachDbtGovernanceModelExpansion(
+          documentedPublicOrdersNode,
+          {
+            kind: 'node',
+            technology: 'dbt',
+            nodeKind: 'resource',
+            resourceType: 'model',
+            identity: {
+              uniqueId: 'model.analytics.documented_public_orders',
+              resourceType: 'model',
+            },
+            resource: {
+              tags: [],
+              meta: {
+                anarchitects: {
+                  governance: {
+                    publicInterface: true,
+                  },
+                },
+              },
+            },
+            relation: {
+              originalFilePath: 'models/marts/documented_public_orders.sql',
+            },
+            documentation: {
+              description: 'Documented through standard dbt YAML metadata.',
+              hasDescription: true,
+              hasDocs: true,
+            },
+          },
+        ),
+      ],
+      relations: [],
+    };
 
     expect(
       evaluateDbtArchitectureViolations(createInput(workspace)).some(

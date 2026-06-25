@@ -178,6 +178,42 @@ describe('signal builders', () => {
     ]);
   });
 
+  it('reads canonical classification domains from graph snapshot nodes', () => {
+    const graphSignals = buildGovernanceGraphSignals({
+      extractedAt: '2026-05-23T10:00:00.000Z',
+      nodes: [
+        {
+          id: 'model.demo.fct_orders',
+          classification: {
+            domain: 'sales',
+          },
+        },
+        {
+          id: 'model.demo.dim_customers',
+          classification: {
+            domain: 'customer',
+          },
+        },
+      ],
+      relations: [
+        {
+          id: 'model.demo.fct_orders->model.demo.dim_customers',
+          sourceNodeId: 'model.demo.fct_orders',
+          targetNodeId: 'model.demo.dim_customers',
+          kind: 'dependency',
+        },
+      ],
+    });
+
+    expect(graphSignals.map((signal) => signal.type)).toEqual([
+      'structural-dependency',
+      'cross-domain-dependency',
+    ]);
+    expect(
+      graphSignals.some((signal) => signal.type === 'missing-domain-context'),
+    ).toBe(false);
+  });
+
   it('does not emit boundary warning signals for non-dependency relations', () => {
     const graphSignals = buildGovernanceGraphSignals({
       extractedAt: '2026-05-23T10:00:00.000Z',

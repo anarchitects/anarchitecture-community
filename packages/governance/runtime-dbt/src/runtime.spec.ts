@@ -86,7 +86,7 @@ describe('runDbtGovernanceRuntime', () => {
       rulePackCount: 1,
       signalProviderCount: 1,
       metricProviderCount: 1,
-      enricherCount: 0,
+      enricherCount: 1,
       diagnosticProviderCount: 1,
       recommendationProviderCount: 1,
     });
