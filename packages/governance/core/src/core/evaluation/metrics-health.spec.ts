@@ -583,6 +583,102 @@ describe('metrics and health', () => {
       },
     ]);
   });
+
+  it('keeps dbt-like healthy measurements on the canonical 0..100 health scale', () => {
+    const health = calculateGovernanceHealth([
+      {
+        id: 'dbt-model-count',
+        name: 'dbt Model Count',
+        family: 'architecture',
+        value: 12,
+        score: 100,
+        maxScore: 100,
+        unit: 'count',
+      },
+      {
+        id: 'dbt-dependency-count',
+        name: 'dbt Dependency Count',
+        family: 'architecture',
+        value: 18,
+        score: 100,
+        maxScore: 100,
+        unit: 'count',
+      },
+      {
+        id: 'dbt-layer-violation-count',
+        name: 'dbt Layer Violation Count',
+        family: 'boundaries',
+        value: 0,
+        score: 100,
+        maxScore: 100,
+        unit: 'count',
+      },
+      {
+        id: 'dbt-cross-domain-dependency-count',
+        name: 'dbt Cross-Domain Dependency Count',
+        family: 'boundaries',
+        value: 0,
+        score: 100,
+        maxScore: 100,
+        unit: 'count',
+      },
+      {
+        id: 'dbt-hotspot-count',
+        name: 'dbt Hotspot Count',
+        family: 'architecture',
+        value: 0,
+        score: 100,
+        maxScore: 100,
+        unit: 'count',
+      },
+      {
+        id: 'dbt-ownership-completeness-ratio',
+        name: 'dbt Ownership Completeness Ratio',
+        family: 'ownership',
+        value: 0.875,
+        score: 87.5,
+        maxScore: 100,
+        unit: 'ratio',
+      },
+      {
+        id: 'dbt-test-coverage-ratio',
+        name: 'dbt Test Coverage Ratio',
+        family: 'documentation',
+        value: 0.875,
+        score: 87.5,
+        maxScore: 100,
+        unit: 'ratio',
+      },
+      {
+        id: 'dbt-documentation-coverage-ratio',
+        name: 'dbt Documentation Coverage Ratio',
+        family: 'documentation',
+        value: 1,
+        score: 100,
+        maxScore: 100,
+        unit: 'ratio',
+      },
+    ]);
+
+    expect(health).toMatchObject({
+      score: 97,
+      status: 'good',
+      grade: 'A',
+    });
+  });
+
+  it('clamps out-of-range measurement scores before averaging health', () => {
+    const health = calculateGovernanceHealth([
+      measurement('too-low', 'Too Low', -25),
+      measurement('too-high', 'Too High', 140),
+    ]);
+
+    expect(health).toMatchObject({
+      score: 50,
+      status: 'critical',
+      grade: 'F',
+    });
+  });
 });
 
 function createWorkspace(

@@ -355,6 +355,21 @@ describe('runDbtGovernanceRuntime', () => {
     );
   });
 
+  it('keeps metadata-rich runtime health out of the artificially low critical band', async () => {
+    const result = await runFixture('metadata-rich', {
+      name: 'dbt',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected runtime result to succeed.');
+    }
+
+    expect(result.assessment?.health.status).toBe('warning');
+    expect(result.assessment?.health.grade).toBe('C');
+    expect(result.assessment?.health.score).toBeGreaterThanOrEqual(70);
+  });
+
   it('flows companion metadata through assessment workspace and extension outputs', async () => {
     const result = await runCompanionConventionFixture();
 

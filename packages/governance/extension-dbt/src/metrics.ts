@@ -49,11 +49,13 @@ export type DbtGovernanceMetricId = (typeof DBT_GOVERNANCE_METRIC_IDS)[number];
 export interface DbtGovernanceMetricMetadata extends Record<string, unknown> {
   metricId: DbtGovernanceMetricId;
   rawKind: 'count' | 'ratio';
+  healthSemantics?: 'informational-count' | 'defect-count' | 'coverage-ratio';
   count?: number;
   numerator?: number;
   denominator?: number;
   ratio?: number;
   zeroDenominator?: boolean;
+  penaltyPerOccurrence?: number;
   eligibleNodeIds?: string[];
   countedNodeIds?: string[];
   countedRelationIds?: string[];
@@ -159,14 +161,14 @@ export function buildDbtGovernanceMetrics(
     .sort();
 
   return [
-    createCountMeasurement({
+    createInformationalCountMeasurement({
       id: 'dbt-model-count',
       name: 'dbt Model Count',
       family: 'architecture',
       count: context.modelIds.size,
       countedNodeIds: [...context.modelIds].sort(),
     }),
-    createCountMeasurement({
+    createInformationalCountMeasurement({
       id: 'dbt-dependency-count',
       name: 'dbt Dependency Count',
       family: 'architecture',
@@ -175,7 +177,7 @@ export function buildDbtGovernanceMetrics(
         .map((relation) => relation.id)
         .sort(),
     }),
-    createCountMeasurement({
+    createDefectCountMeasurement({
       id: 'dbt-cross-domain-dependency-count',
       name: 'dbt Cross-Domain Dependency Count',
       family: 'boundaries',
@@ -184,7 +186,7 @@ export function buildDbtGovernanceMetrics(
       countedSignalIds: crossDomainSignals.map((signal) => signal.id).sort(),
       signalIds: crossDomainSignals.map((signal) => signal.id).sort(),
     }),
-    createCountMeasurement({
+    createDefectCountMeasurement({
       id: 'dbt-layer-violation-count',
       name: 'dbt Layer Violation Count',
       family: 'boundaries',
@@ -256,7 +258,7 @@ export function buildDbtGovernanceMetrics(
         .map((resolution) => resolution.governanceNodeId)
         .sort(),
     }),
-    createCountMeasurement({
+    createDefectCountMeasurement({
       id: 'dbt-hotspot-count',
       name: 'dbt Hotspot Count',
       family: 'architecture',
@@ -265,7 +267,7 @@ export function buildDbtGovernanceMetrics(
       countedSignalIds: hotspotSignals.map((signal) => signal.id).sort(),
       signalIds: hotspotSignals.map((signal) => signal.id).sort(),
     }),
-    createCountMeasurement({
+    createDefectCountMeasurement({
       id: 'dbt-unresolved-layer-count',
       name: 'dbt Unresolved Layer Count',
       family: 'boundaries',
@@ -277,7 +279,7 @@ export function buildDbtGovernanceMetrics(
         .sort(),
       countedDiagnosticCodes: ['DBT_LAYER_UNRESOLVED'],
     }),
-    createCountMeasurement({
+    createDefectCountMeasurement({
       id: 'dbt-unresolved-domain-count',
       name: 'dbt Unresolved Domain Count',
       family: 'boundaries',
@@ -356,7 +358,7 @@ function resolveDbtMetricContext(
   };
 }
 
-function createCountMeasurement(options: {
+function createInformationalCountMeasurement(options: {
   id: DbtGovernanceMetricId;
   name: string;
   family: Measurement['family'];
@@ -370,13 +372,65 @@ function createCountMeasurement(options: {
   signalIds?: string[];
   metadata?: Record<string, unknown>;
 }): DbtGovernanceMeasurement {
+  return createCountMeasurement(options, {
+    score: 100,
+    healthSemantics: 'informational-count',
+  });
+}
+
+function createDefectCountMeasurement(options: {
+  id: DbtGovernanceMetricId;
+  name: string;
+  family: Measurement['family'];
+  count: number;
+  countedNodeIds?: string[];
+  countedRelationIds?: string[];
+  countedSignalIds?: string[];
+  countedDiagnosticIds?: string[];
+  countedViolationIds?: string[];
+  countedDiagnosticCodes?: string[];
+  signalIds?: string[];
+  metadata?: Record<string, unknown>;
+  penaltyPerOccurrence?: number;
+}): DbtGovernanceMeasurement {
+  const penaltyPerOccurrence = options.penaltyPerOccurrence ?? 25;
+  const score = Math.max(0, 100 - options.count * penaltyPerOccurrence);
+
+  return createCountMeasurement(options, {
+    score,
+    healthSemantics: 'defect-count',
+    ...(options.count > 0 ? { penaltyPerOccurrence } : {}),
+  });
+}
+
+function createCountMeasurement(
+  options: {
+    id: DbtGovernanceMetricId;
+    name: string;
+    family: Measurement['family'];
+    count: number;
+    countedNodeIds?: string[];
+    countedRelationIds?: string[];
+    countedSignalIds?: string[];
+    countedDiagnosticIds?: string[];
+    countedViolationIds?: string[];
+    countedDiagnosticCodes?: string[];
+    signalIds?: string[];
+    metadata?: Record<string, unknown>;
+  },
+  scoreOptions: {
+    score: number;
+    healthSemantics: DbtGovernanceMetricMetadata['healthSemantics'];
+    penaltyPerOccurrence?: number;
+  },
+): DbtGovernanceMeasurement {
   return {
     id: options.id,
     name: options.name,
     family: options.family,
     value: options.count,
-    score: options.count,
-    maxScore: options.count,
+    score: scoreOptions.score,
+    maxScore: 100,
     unit: 'count',
     ...(options.signalIds && options.signalIds.length > 0
       ? { signalIds: options.signalIds }
@@ -384,7 +438,13 @@ function createCountMeasurement(options: {
     metadata: {
       metricId: options.id,
       rawKind: 'count',
+      ...(scoreOptions.healthSemantics
+        ? { healthSemantics: scoreOptions.healthSemantics }
+        : {}),
       count: options.count,
+      ...(scoreOptions.penaltyPerOccurrence !== undefined
+        ? { penaltyPerOccurrence: scoreOptions.penaltyPerOccurrence }
+        : {}),
       ...(options.countedNodeIds
         ? { countedNodeIds: options.countedNodeIds }
         : {}),
@@ -418,21 +478,25 @@ function createRatioMeasurement(options: {
   const denominator = options.eligibleNodeIds.length;
   const numerator = options.countedNodeIds.length;
   const ratio = denominator === 0 ? 0 : numerator / denominator;
+  const roundedRatio = Number(ratio.toFixed(4));
+  const score =
+    denominator === 0 ? 100 : Number((roundedRatio * 100).toFixed(2));
 
   return {
     id: options.id,
     name: options.name,
     family: options.family,
-    value: Number(ratio.toFixed(4)),
-    score: Number(ratio.toFixed(4)),
-    maxScore: 1,
+    value: roundedRatio,
+    score,
+    maxScore: 100,
     unit: 'ratio',
     metadata: {
       metricId: options.id,
       rawKind: 'ratio',
+      healthSemantics: 'coverage-ratio',
       numerator,
       denominator,
-      ratio: Number(ratio.toFixed(4)),
+      ratio: roundedRatio,
       zeroDenominator: denominator === 0,
       eligibleNodeIds: options.eligibleNodeIds,
       countedNodeIds: options.countedNodeIds,
