@@ -363,7 +363,9 @@ def _execute_governance_command(
         _resolved_runtime_executable(runtime_environment.report),
         host_version=runtime_environment.report.host_version,
         profile_path=resolve_config_relative_path(config.profile.path, config),
-        profile_document=config.profile.document,
+        profile_document=(
+            config.profile.document if config.profile.document_provided else None
+        ),
         adapter_options=config.adapter.options,
         extension_options=config.extension.options,
         working_directory=resolved.context.project_dir,

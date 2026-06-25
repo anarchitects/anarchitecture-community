@@ -129,6 +129,25 @@ class RuntimeInvocationTests(unittest.TestCase):
             True,
         )
 
+    def test_runtime_input_omits_profile_document_when_not_explicitly_provided(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            project_dir = create_project_fixture(Path(temp_dir), include_manifest=True)
+            detection = resolve_dbt_path_hints(project_dir=str(project_dir))
+            payload = build_runtime_input(
+                detection.context,  # type: ignore[arg-type]
+                host_version=HOST_VERSION,
+                profile_path=str((project_dir / "governance.profile.yml").resolve()),
+            )
+
+        self.assertEqual(
+            payload["profile"]["path"],
+            str((project_dir / "governance.profile.yml").resolve()),
+        )
+        self.assertEqual(payload["profile"]["format"], "yaml")
+        self.assertNotIn("document", payload["profile"])
+
     def test_successful_runtime_invocation_parses_json_output(self) -> None:
         with TemporaryDirectory() as temp_dir:
             project_dir = create_project_fixture(Path(temp_dir), include_manifest=True)

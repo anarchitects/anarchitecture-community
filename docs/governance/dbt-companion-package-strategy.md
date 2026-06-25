@@ -232,7 +232,7 @@ This section is intentionally conservative and reflects the current repository c
 - Support for `publicInterface` from the recommended namespace instead of today's `meta.public` / `meta.governed` conventions
 - Support for `crossDomainApproved` from the recommended namespace, including any required projection from resource metadata to relation-level approval evidence
 - Any dbt-native tests or helper macros that validate the new convention before the external host runs
-- Automatic loading of a separate `governance.profile.yml` via `profile.path` if that becomes a desired host behavior
+- Clear documentation for `profile.path` plus `profile.document` precedence when both are used
 
 Bottom line:
 
@@ -259,13 +259,13 @@ Important clarification:
 
 Current host behavior:
 
-- `profile.document` is the active evaluated profile input today
-- `profile.path` is validated and forwarded as path metadata, but a separate `governance.profile.yml` file is not automatically loaded by the current host/runtime path
+- `profile.path` can point at a separate YAML or JSON governance profile file
+- `profile.document` can overlay that file for explicitly provided fields
 
 Practical recommendation:
 
 - teams may keep a `governance.profile.yml` file as their intended policy document
-- until the host/runtime adds automatic loading, they should mirror its effective content into `governance.yml -> profile.document`
+- use `profile.document` only for inline overrides or small environment-specific adjustments
 
 Starter profile example aligned with the current host-dbt documentation:
 

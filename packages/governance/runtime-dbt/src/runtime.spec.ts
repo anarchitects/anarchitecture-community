@@ -1,7 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import type { DbtGovernanceRuntimeInput } from './contracts.js';
 import { runDbtGovernanceRuntime } from './runtime.js';
 
 const fixturesRoot = fileURLToPath(
@@ -193,6 +195,96 @@ describe('runDbtGovernanceRuntime', () => {
 
     expect(ruleIds).toContain('ownership-presence');
     expect(ruleIds).toContain('documentation-gap');
+  });
+
+  it('loads governance profile settings from profile.path and overlays explicit inline fields', async () => {
+    const tempRoot = mkdtempSync(
+      path.join(tmpdir(), 'governance-runtime-dbt-profile-'),
+    );
+    const profilePath = path.join(tempRoot, 'governance.profile.yml');
+
+    writeFileSync(
+      profilePath,
+      [
+        'name: file-backed-profile',
+        'layers:',
+        '  - raw',
+        '  - staging',
+        '  - intermediate',
+        '  - marts',
+        'rules:',
+        '  dbt/no-disallowed-layer-dependency:',
+        '    options:',
+        '      allowedUpstreamByLayer:',
+        '        raw:',
+        '          - raw',
+        '        staging:',
+        '          - raw',
+        '          - staging',
+        '        intermediate:',
+        '          - staging',
+        '          - intermediate',
+        '        marts:',
+        '          - intermediate',
+        '          - marts',
+      ].join('\n'),
+      'utf8',
+    );
+
+    try {
+      const result = await runFixtureWithProfileConfig('valid-project', {
+        path: profilePath,
+        format: 'yaml',
+        document: {
+          name: 'dbt-demo',
+        },
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error('Expected runtime result to succeed.');
+      }
+
+      expect(result.metadata?.profile).toEqual({
+        name: 'dbt-demo',
+      });
+      expect(getViolationRuleIds(result)).not.toContain(
+        'dbt/no-disallowed-layer-dependency',
+      );
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('returns a structured profile error for an unreadable explicit profile.path', async () => {
+    const result = await runFixtureWithProfileConfig('valid-project', {
+      path: path.join(fixturesRoot, 'missing.profile.yml'),
+      format: 'yaml',
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected invalid profile path to fail.');
+    }
+
+    expect(result.error).toEqual({
+      code: 'governance.runtime.profile_invalid',
+      stage: 'profile',
+      message: 'Governance profile input is invalid.',
+      details: {
+        inputField: 'profile.path',
+        path: path.join(fixturesRoot, 'missing.profile.yml'),
+        reason: expect.any(String),
+      },
+    });
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'governance.runtime.profile_invalid',
+          message: expect.stringContaining('could not be read'),
+        }),
+      ]),
+    );
   });
 
   it('assembles a governance assessment for the layered fixture', async () => {
@@ -541,8 +633,20 @@ async function runFixture(
   profileDocument?: Record<string, unknown>,
   requestId = `req-${fixtureName}`,
 ) {
+  return runFixtureWithProfileConfig(
+    fixtureName,
+    profileDocument ? { document: profileDocument } : undefined,
+    requestId,
+  );
+}
+
+async function runFixtureWithProfileConfig(
+  fixtureName: string,
+  profile?: DbtGovernanceRuntimeInput['profile'],
+  requestId = `req-${fixtureName}`,
+) {
   return runDbtGovernanceRuntime({
-    ...(profileDocument ? { profile: { document: profileDocument } } : {}),
+    ...(profile ? { profile } : {}),
     adapter: {
       paths: {
         projectDir: `./${fixtureName}`,

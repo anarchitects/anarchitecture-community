@@ -28,6 +28,7 @@ class ProfileConfig:
     """Canonical governance profile configuration routed by the host."""
 
     path: str | None = None
+    document_provided: bool = False
     document: dict[str, Any] = field(
         default_factory=lambda: dict(DEFAULT_PROFILE_DOCUMENT)
     )
@@ -404,6 +405,7 @@ def _read_profile_section(
         config_path,
     )
     document = section.get("document")
+    document_provided = "document" in section
     if document is None:
         document_value = dict(DEFAULT_PROFILE_DOCUMENT)
     elif isinstance(document, dict):
@@ -418,7 +420,11 @@ def _read_profile_section(
         )
         document_value = dict(DEFAULT_PROFILE_DOCUMENT)
 
-    return ProfileConfig(path=path_value, document=document_value)
+    return ProfileConfig(
+        path=path_value,
+        document_provided=document_provided,
+        document=document_value,
+    )
 
 
 def _read_adapter_section(
