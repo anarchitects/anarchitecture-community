@@ -1,11 +1,16 @@
 import {
+  buildGovernanceAssessmentArtifacts,
   DefaultGovernanceCapabilityRegistry,
   registerLoadedGovernanceExtensionsWithDiagnostics,
   type GovernanceExtensionHostContext,
+  type GovernanceNode,
+  type GovernanceProfile,
+  type GovernanceWorkspace,
 } from '@anarchitects/governance-core';
 
 import {
   DBT_GOVERNANCE_EXTENSION_ID,
+  attachDbtGovernanceModelExpansion,
   createDbtGovernanceExtension,
   dbtArchitectureBasicRulePack,
   dbtGovernanceExtension,
@@ -90,6 +95,7 @@ describe('dbt Governance extension', () => {
     expect(result.registry.metricProviders[0]?.contribution).toBe(
       dbtGovernanceMetricProvider,
     );
+    expect(result.registry.enrichers).toHaveLength(1);
     expect(
       getDbtGovernanceDiagnosticProviders({
         context,
@@ -117,4 +123,170 @@ describe('dbt Governance extension', () => {
     expect(created).not.toBe(dbtGovernanceExtension);
     expect(created.register).toBe(dbtGovernanceExtension.register);
   });
+
+  it('projects resolved dbt domains into canonical nodes before core graph signals run', async () => {
+    const workspace = createWorkspaceWithCompanionDomains();
+    const profile: GovernanceProfile = {
+      name: 'dbt',
+      layers: ['staging', 'intermediate', 'marts'],
+      allowedDomainDependencies: {
+        sales: [],
+        customer: [],
+      },
+      ownership: {
+        required: false,
+      },
+      health: {
+        statusThresholds: {
+          goodMinScore: 85,
+          warningMinScore: 70,
+        },
+      },
+      metrics: {},
+    };
+    const enrichedContext: GovernanceExtensionHostContext = {
+      ...context,
+      inventory: workspace,
+      capabilities: new DefaultGovernanceCapabilityRegistry(),
+    };
+    const registration =
+      await registerLoadedGovernanceExtensionsWithDiagnostics(enrichedContext, [
+        {
+          sourceSpecifier: '@anarchitects/governance-extension-dbt',
+          moduleSpecifier: '@anarchitects/governance-extension-dbt',
+          definition: dbtGovernanceExtension,
+        },
+      ]);
+
+    const artifacts = await buildGovernanceAssessmentArtifacts({
+      workspace,
+      profile,
+      extensionRegistry: registration.registry,
+      extensionContext: enrichedContext,
+    });
+
+    expect(
+      artifacts.workspace.nodes.find(
+        (node) => node.id === 'model.demo.fct_orders',
+      )?.classification,
+    ).toMatchObject({
+      domain: 'sales',
+    });
+    expect(
+      artifacts.workspace.nodes.find(
+        (node) => node.id === 'model.demo.dim_customers',
+      )?.classification,
+    ).toMatchObject({
+      domain: 'customer',
+    });
+    expect(
+      artifacts.signals.some(
+        (signal) => signal.type === 'missing-domain-context',
+      ),
+    ).toBe(false);
+  });
 });
+
+function createWorkspaceWithCompanionDomains(): GovernanceWorkspace {
+  const ordersBaseNode: GovernanceNode = {
+    id: 'model.demo.fct_orders',
+    name: 'fct_orders',
+    kind: 'resource',
+    technology: 'dbt',
+    sourceSystem: 'dbt',
+    root: 'models/marts/fct_orders.sql',
+    path: 'models/marts/fct_orders.sql',
+    tags: [],
+    metadata: {},
+  };
+  const ordersNode = attachDbtGovernanceModelExpansion(
+    ordersBaseNode,
+    {
+      kind: 'node',
+      technology: 'dbt',
+      nodeKind: 'resource',
+      resourceType: 'model',
+      identity: {
+        uniqueId: 'model.demo.fct_orders',
+        resourceType: 'model',
+      },
+      resource: {
+        tags: [],
+        meta: {
+          anarchitects: {
+            governance: {
+              domain: 'sales',
+              publicInterface: true,
+            },
+          },
+        },
+      },
+      relation: {
+        originalFilePath: 'models/marts/fct_orders.sql',
+      },
+      documentation: {
+        description: 'Fact table for order analytics.',
+        hasDescription: true,
+        hasDocs: true,
+      },
+    },
+  );
+  const customersBaseNode: GovernanceNode = {
+    id: 'model.demo.dim_customers',
+    name: 'dim_customers',
+    kind: 'resource',
+    technology: 'dbt',
+    sourceSystem: 'dbt',
+    root: 'models/marts/dim_customers.sql',
+    path: 'models/marts/dim_customers.sql',
+    tags: [],
+    metadata: {},
+  };
+  const customersNode = attachDbtGovernanceModelExpansion(
+    customersBaseNode,
+    {
+      kind: 'node',
+      technology: 'dbt',
+      nodeKind: 'resource',
+      resourceType: 'model',
+      identity: {
+        uniqueId: 'model.demo.dim_customers',
+        resourceType: 'model',
+      },
+      resource: {
+        tags: [],
+        meta: {
+          anarchitects: {
+            governance: {
+              domain: 'customer',
+            },
+          },
+        },
+      },
+      relation: {
+        originalFilePath: 'models/marts/dim_customers.sql',
+      },
+      documentation: {
+        description: 'Customer dimension.',
+        hasDescription: true,
+        hasDocs: true,
+      },
+    },
+  );
+
+  return {
+    id: 'workspace',
+    name: 'workspace',
+    root: '/repo',
+    nodes: [ordersNode, customersNode],
+    relations: [
+      {
+        id: 'dbt:lineage:model.demo.fct_orders->model.demo.dim_customers',
+        sourceNodeId: 'model.demo.fct_orders',
+        targetNodeId: 'model.demo.dim_customers',
+        kind: 'dependency',
+        metadata: {},
+      },
+    ],
+  };
+}

@@ -17,6 +17,7 @@ import type {
   GovernanceSignal,
   GovernanceSignalProvider,
   GovernanceSignalProviderInput,
+  GovernanceWorkspaceEnricher,
   Measurement,
   Recommendation,
   Violation,
@@ -195,6 +196,7 @@ export interface DbtGovernanceProviderCapabilityData<TProvider> {
 }
 
 export interface DbtGovernanceExtensionContributions {
+  enrichers?: readonly GovernanceWorkspaceEnricher[];
   rulePacks?: readonly GovernanceExtensionRulePack[];
   signalProviders?: readonly DbtGovernanceSignalProvider[];
   metricProviders?: readonly DbtGovernanceMetricProvider[];
@@ -211,6 +213,10 @@ export function registerDbtGovernanceExtensionContributions(
   host: GovernanceExtensionHost,
   contributions: DbtGovernanceExtensionContributions = {},
 ): void {
+  for (const enricher of contributions.enrichers ?? []) {
+    host.registerEnricher(enricher);
+  }
+
   for (const rulePack of contributions.rulePacks ?? []) {
     host.registerRulePack(rulePack);
   }

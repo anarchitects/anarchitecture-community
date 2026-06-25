@@ -6,6 +6,7 @@ import type {
 import { DBT_GOVERNANCE_EXTENSION_ID } from './constants.js';
 import type { DbtGovernanceExtensionContributions } from './contracts.js';
 import { dbtGovernanceDiagnosticsProvider } from './diagnostics.js';
+import { dbtCanonicalMetadataEnricher } from './enricher.js';
 import { dbtGovernanceMetricProvider } from './metrics.js';
 import { dbtGovernanceRecommendationProvider } from './recommendations.js';
 import { dbtArchitectureBasicRulePack } from './rule-pack.js';
@@ -71,6 +72,10 @@ export function registerDbtGovernanceExtension(
 ): void {
   registerDbtGovernanceExtensionContributions(host, {
     ...contributions,
+    enrichers: [
+      dbtCanonicalMetadataEnricher,
+      ...(contributions.enrichers ?? []),
+    ],
     rulePacks: [
       dbtArchitectureBasicRulePack,
       ...(contributions.rulePacks ?? []),
