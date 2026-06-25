@@ -10,6 +10,7 @@ describe('dbt Governance runtime package boundary', () => {
     '@anarchitects/governance-adapter-dbt',
     '@anarchitects/governance-core',
     '@anarchitects/governance-extension-dbt',
+    'yaml',
   ];
 
   it('depends only on public Governance adapter, extension, and Core packages at runtime', () => {

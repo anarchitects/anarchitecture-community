@@ -62,10 +62,7 @@ class CliE2ETests(unittest.TestCase):
             self.assertIn("Blocking violations: 0", completed.stdout)
 
             runtime_input = json.loads(capture_path.read_text(encoding="utf-8"))
-            self.assertEqual(
-                runtime_input["profile"]["document"]["name"],
-                "dbt",
-            )
+            self.assertEqual(runtime_input["profile"], {})
             self.assertEqual(
                 sorted(runtime_input["adapter"].keys()),
                 ["options", "paths"],
@@ -85,6 +82,43 @@ class CliE2ETests(unittest.TestCase):
                 runtime_input["runtime"]["metadata"]["hostPackage"],
                 "anarchitecture-dbt-governance",
             )
+
+    def test_check_resolves_profile_path_relative_to_governance_yml(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            project_dir = copy_fixture(
+                ADAPTER_FIXTURES_ROOT / "simple-project",
+                temp_root / "project",
+            )
+            write_governance_config(
+                project_dir,
+                profile_path="profiles/governance.profile.yml",
+            )
+            write_fixture_file(
+                project_dir / "profiles" / "governance.profile.yml",
+                "name: dbt-demo\n",
+            )
+            create_runtime_cache_package(project_dir / "runtime-cache")
+
+            env = create_fake_environment(temp_root)
+            capture_path = temp_root / "runtime-input.json"
+            env["FAKE_RUNTIME_CAPTURE"] = str(capture_path)
+
+            completed = run_cli(["check"], cwd=project_dir, env=env)
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+
+            runtime_input = json.loads(capture_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                runtime_input["profile"]["path"],
+                str(
+                    (
+                        project_dir / "profiles" / "governance.profile.yml"
+                    ).resolve()
+                ),
+            )
+            self.assertEqual(runtime_input["profile"]["format"], "yaml")
+            self.assertNotIn("document", runtime_input["profile"])
 
     def test_check_returns_exit_code_one_for_blocking_violations(self) -> None:
         with TemporaryDirectory() as temp_dir:
@@ -447,27 +481,43 @@ def copy_fixture(source: Path, destination: Path) -> Path:
     return destination
 
 
+def write_fixture_file(path: Path, content: str) -> None:
+    """Write a fixture file and create any missing parent directories."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
 def write_governance_config(
     project_dir: Path,
     *,
     fail_on_blocking_violations: bool = True,
+    profile_path: str | None = None,
+    profile_document: dict[str, object] | None = None,
 ) -> Path:
     """Write the minimal config required for hermetic runtime resolution."""
 
     config_path = project_dir / "governance.yml"
     blocking_policy = str(fail_on_blocking_violations).lower()
-    config_path.write_text(
-        textwrap.dedent(
-            f"""\
-            runtime:
-              cacheDir: runtime-cache
-            host:
-              ci:
-                failOnBlockingViolations: {blocking_policy}
-            """
-        ),
-        encoding="utf-8",
+    lines: list[str] = []
+    if profile_path is not None or profile_document is not None:
+        lines.append("profile:")
+        if profile_path is not None:
+            lines.append(f"  path: {profile_path}")
+        if profile_document is not None:
+            lines.append("  document:")
+            for key, value in profile_document.items():
+                lines.append(f"    {key}: {json.dumps(value)}")
+    lines.extend(
+        [
+            "runtime:",
+            "  cacheDir: runtime-cache",
+            "host:",
+            "  ci:",
+            f"    failOnBlockingViolations: {blocking_policy}",
+        ]
     )
+    config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return config_path
 
 

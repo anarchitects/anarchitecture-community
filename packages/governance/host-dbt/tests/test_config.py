@@ -26,6 +26,7 @@ class ConfigTests(unittest.TestCase):
         self.assertFalse(result.config.loaded_from_file)
         self.assertEqual(result.config.host.artifact_mode, "require-existing")
         self.assertEqual(result.config.host.output, "human")
+        self.assertFalse(result.config.profile.document_provided)
         self.assertEqual(result.config.profile.document["name"], "dbt")
 
     def test_explicit_config_file_loads(self) -> None:
@@ -53,8 +54,27 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(result.supported)
         self.assertTrue(result.config.loaded_from_file)
         self.assertEqual(result.config.profile.path, "governance.profile.yml")
+        self.assertFalse(result.config.profile.document_provided)
         self.assertEqual(result.config.adapter.options["validationMode"], "relaxed")
         self.assertEqual(result.config.host.output, "json")
+
+    def test_explicit_profile_document_is_marked_as_provided(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "governance.yml"
+            write_fixture_file(
+                config_path,
+                "profile:\n  document:\n    name: dbt-demo\n",
+            )
+
+            result = load_governance_config(
+                explicit_path=str(config_path),
+                cwd=root,
+            )
+
+        self.assertTrue(result.supported)
+        self.assertTrue(result.config.profile.document_provided)
+        self.assertEqual(result.config.profile.document["name"], "dbt-demo")
 
     def test_default_governance_yml_loads_from_project_dir(self) -> None:
         with TemporaryDirectory() as temp_dir:

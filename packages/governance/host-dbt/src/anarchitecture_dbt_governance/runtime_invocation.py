@@ -126,13 +126,12 @@ def build_runtime_input(
     if runtime_metadata is not None:
         metadata.update(runtime_metadata)
 
-    resolved_profile_document = dict(profile_document or {"name": "dbt"})
     profile_payload: dict[str, Any] = {}
     if profile_path is not None:
         profile_payload["path"] = profile_path
         profile_payload["format"] = _infer_profile_format(profile_path)
-    if resolved_profile_document:
-        profile_payload["document"] = resolved_profile_document
+    if profile_document is not None:
+        profile_payload["document"] = dict(profile_document)
 
     resolved_adapter_options = {"validationMode": "strict"}
     if adapter_options is not None:

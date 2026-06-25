@@ -229,13 +229,13 @@ The host lifecycle is:
 Current implementation detail:
 
 - The host validates `profile.path` as a string and `profile.document` as an object.
-- The runtime evaluates `profile.document`.
-- `profile.path` is forwarded as metadata and path context, but the current host/runtime path does not load a separate `governance.profile.yml` file for semantic evaluation.
+- The host resolves `profile.path` relative to `governance.yml` before invoking the runtime.
+- The runtime evaluates the effective governance profile by loading `profile.path` when present and overlaying `profile.document` field-by-field when both are provided.
 
 Practical consequence:
 
-- Put effective governance profile content under `profile.document` today.
-- If you also keep a separate `governance.profile.yml` in your repository, treat it as your own companion file and keep it in sync yourself.
+- A separate `governance.profile.yml` can be the primary governance policy document.
+- Use `profile.document` for small inline overrides when you want to override only specific fields from the loaded file.
 
 Config precedence is:
 
@@ -324,8 +324,8 @@ host:
 
 ### `profile`
 
-- `path`: optional string path hint. The host validates and forwards it, but does not load that file for semantic evaluation.
-- `document`: optional object. This is the effective governance profile input used by the runtime.
+- `path`: optional string path to a YAML or JSON governance profile file. Relative paths resolve from the `governance.yml` directory.
+- `document`: optional object overlay. When both `path` and `document` are provided, document fields override only the corresponding loaded profile fields.
 
 The host only validates that `profile.document` is an object. Profile semantics are owned by the runtime, core, and dbt extension.
 
@@ -354,7 +354,7 @@ These are path hints passed through to the dbt adapter/runtime boundary. The hos
 For end users, the stable configuration surface today is primarily:
 
 - dbt metadata inside your dbt project
-- governance profile rules under `profile.document.rules`
+- governance profile rules under the effective profile `rules`
 
 The host does not validate extension-owned option keys beyond requiring `extension.options` to be an object.
 
@@ -384,9 +384,9 @@ The governance profile is the semantic input that drives core and dbt-specific g
 
 Current implementation note:
 
-- `profile.document` is the active evaluated profile input.
-- A separate `governance.profile.yml` file is not automatically loaded by the current host/runtime path.
-- If you keep `governance.profile.yml` in your repository, treat the schema below as the content you must mirror into `profile.document`.
+- `profile.path` may point at a YAML or JSON profile file.
+- When `profile.path` and `profile.document` are both present, the runtime loads the file first and then applies inline document fields as overrides.
+- If neither `profile.path` nor `profile.document` contributes profile content, the runtime falls back to its default dbt profile.
 
 Example effective profile document:
 
@@ -437,7 +437,7 @@ Confirmed profile fields evaluated by the runtime today:
 - `metrics`
 - `rules`
 
-If `profile.document` is omitted entirely, the runtime defaults to:
+If neither `profile.path` nor `profile.document` supplies profile content, the runtime defaults to:
 
 - `name: dbt`
 - `layers: ["staging", "intermediate", "marts"]`
@@ -449,7 +449,7 @@ If `profile.document` is omitted entirely, the runtime defaults to:
 
 Important honesty point:
 
-- `allowedLayerDependencies` exists in the canonical core profile model, but this host/runtime path does not currently parse it from `profile.document`.
+- `allowedLayerDependencies` exists in the canonical core profile model, but this host/runtime path does not currently parse it from the effective profile document.
 - For layer behavior today, prefer `layers` plus explicit rule configuration such as `dbt/no-disallowed-layer-dependency` and `layer-boundary`.
 
 If a profile field is not listed above, assume it is not part of the stable evaluated surface for this CLI path yet.
@@ -608,7 +608,7 @@ Default upstream behavior for the dbt-specific rule:
 - `intermediate` may depend on `staging` and `intermediate`
 - `marts` may depend on `intermediate` and `marts`
 
-For custom layer names, the dbt rule uses the order from `profile.document.layers`. If you want to remove ambiguity, set `allowedUpstreamByLayer` explicitly.
+For custom layer names, the dbt rule uses the order from the effective profile `layers`. If you want to remove ambiguity, set `allowedUpstreamByLayer` explicitly.
 
 Example:
 

@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
@@ -49,9 +50,11 @@ import {
 import type {
   DbtGovernanceRuntimeError,
   DbtGovernanceRuntimeInput,
+  DbtGovernanceRuntimeProfileFormat,
   DbtGovernanceRuntimeResult,
   DbtGovernanceRuntimeResultMetadata,
 } from './contracts.js';
+import { parse as parseYaml } from 'yaml';
 
 const DEFAULT_RUNTIME_PROFILE: GovernanceProfile = {
   name: 'dbt',
@@ -85,7 +88,10 @@ export async function runDbtGovernanceRuntime(
 ): Promise<DbtGovernanceRuntimeResult> {
   const generatedAt = new Date().toISOString();
   const runtimeMetadata = buildRuntimeMetadata(input.runtime, generatedAt);
-  const profileResult = resolveRuntimeProfile(input.profile);
+  const profileResult = await resolveRuntimeProfile(
+    input.profile,
+    input.runtime?.workingDirectory,
+  );
 
   if ('error' in profileResult) {
     return buildErrorResult(profileResult.error, {
@@ -356,9 +362,10 @@ export async function runDbtGovernanceRuntime(
   };
 }
 
-function resolveRuntimeProfile(
+async function resolveRuntimeProfile(
   profileInput: DbtGovernanceRuntimeInput['profile'],
-):
+  workingDirectory?: string,
+): Promise<
   | {
       profile: GovernanceProfile;
       diagnostics: GovernanceDiagnostic[];
@@ -366,34 +373,24 @@ function resolveRuntimeProfile(
   | {
       diagnostics: GovernanceDiagnostic[];
       error: DbtGovernanceRuntimeError;
-    } {
-  if (!profileInput?.document) {
+    }
+> {
+  const documentResult = await resolveRuntimeProfileDocument(
+    profileInput,
+    workingDirectory,
+  );
+
+  if ('error' in documentResult) {
+    return documentResult;
+  }
+
+  if (!documentResult.document) {
     return {
       profile: cloneDefaultRuntimeProfile(),
       diagnostics: [],
     };
   }
-
-  if (!isRecord(profileInput.document)) {
-    return {
-      diagnostics: [
-        buildRuntimeDiagnostic(
-          'governance.runtime.profile_invalid',
-          'profile.document must be a JSON object.',
-        ),
-      ],
-      error: {
-        code: 'governance.runtime.profile_invalid',
-        stage: 'profile',
-        message: 'Governance profile input is invalid.',
-        details: {
-          inputField: 'profile.document',
-        },
-      },
-    };
-  }
-
-  const document = profileInput.document;
+  const document = documentResult.document;
   const layers =
     readStringArray(document.layers) ?? DEFAULT_RUNTIME_PROFILE.layers;
   const allowedDomainDependencies =
@@ -444,6 +441,230 @@ function resolveRuntimeProfile(
     },
     diagnostics: [],
   };
+}
+
+async function resolveRuntimeProfileDocument(
+  profileInput: DbtGovernanceRuntimeInput['profile'],
+  workingDirectory?: string,
+): Promise<
+  | {
+      document?: Record<string, unknown>;
+    }
+  | {
+      diagnostics: GovernanceDiagnostic[];
+      error: DbtGovernanceRuntimeError;
+    }
+> {
+  const inlineDocumentResult = normalizeInlineProfileDocument(profileInput);
+  if ('error' in inlineDocumentResult) {
+    return inlineDocumentResult;
+  }
+
+  const pathDocumentResult = await loadRuntimeProfilePathDocument(
+    profileInput,
+    workingDirectory,
+  );
+  if ('error' in pathDocumentResult) {
+    return pathDocumentResult;
+  }
+
+  const mergedDocument = mergeProfileDocuments(
+    pathDocumentResult.document,
+    inlineDocumentResult.document,
+  );
+
+  if (!mergedDocument || Object.keys(mergedDocument).length === 0) {
+    return {};
+  }
+
+  return {
+    document: mergedDocument,
+  };
+}
+
+function normalizeInlineProfileDocument(
+  profileInput: DbtGovernanceRuntimeInput['profile'],
+):
+  | {
+      document?: Record<string, unknown>;
+    }
+  | {
+      diagnostics: GovernanceDiagnostic[];
+      error: DbtGovernanceRuntimeError;
+    } {
+  if (!profileInput || profileInput.document === undefined) {
+    return {};
+  }
+
+  if (!isRecord(profileInput.document)) {
+    return invalidRuntimeProfileResult(
+      'profile.document must be a JSON object.',
+      'profile.document',
+    );
+  }
+
+  return {
+    document: profileInput.document,
+  };
+}
+
+async function loadRuntimeProfilePathDocument(
+  profileInput: DbtGovernanceRuntimeInput['profile'],
+  workingDirectory?: string,
+): Promise<
+  | {
+      document?: Record<string, unknown>;
+    }
+  | {
+      diagnostics: GovernanceDiagnostic[];
+      error: DbtGovernanceRuntimeError;
+    }
+> {
+  if (!profileInput?.path) {
+    return {};
+  }
+
+  const resolvedPath = resolveRuntimeProfilePath(
+    profileInput.path,
+    workingDirectory,
+  );
+  const format = resolveRuntimeProfileFormat(profileInput, resolvedPath);
+
+  if (!format) {
+    return invalidRuntimeProfileResult(
+      `profile.path "${resolvedPath}" must end in .json, .yaml, or .yml, or specify profile.format.`,
+      'profile.path',
+      {
+        path: resolvedPath,
+      },
+    );
+  }
+
+  let sourceText: string;
+  try {
+    sourceText = await readFile(resolvedPath, 'utf8');
+  } catch (error) {
+    return invalidRuntimeProfileResult(
+      `profile.path "${resolvedPath}" could not be read.`,
+      'profile.path',
+      {
+        path: resolvedPath,
+        reason: toErrorMessage(error),
+      },
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed =
+      format === 'json'
+        ? JSON.parse(sourceText)
+        : (parseYaml(sourceText) ?? {});
+  } catch (error) {
+    return invalidRuntimeProfileResult(
+      `profile.path "${resolvedPath}" contains invalid ${format.toUpperCase()}.`,
+      'profile.path',
+      {
+        path: resolvedPath,
+        format,
+        reason: toErrorMessage(error),
+      },
+    );
+  }
+
+  if (parsed === null) {
+    return {
+      document: {},
+    };
+  }
+
+  if (!isRecord(parsed)) {
+    return invalidRuntimeProfileResult(
+      `profile.path "${resolvedPath}" must contain a top-level object.`,
+      'profile.path',
+      {
+        path: resolvedPath,
+        format,
+      },
+    );
+  }
+
+  return {
+    document: parsed,
+  };
+}
+
+function resolveRuntimeProfilePath(
+  profilePath: string,
+  workingDirectory?: string,
+): string {
+  if (path.isAbsolute(profilePath)) {
+    return profilePath;
+  }
+
+  return path.resolve(workingDirectory ?? process.cwd(), profilePath);
+}
+
+function resolveRuntimeProfileFormat(
+  profileInput: DbtGovernanceRuntimeInput['profile'],
+  resolvedPath: string,
+): DbtGovernanceRuntimeProfileFormat | undefined {
+  if (profileInput?.format === 'json' || profileInput?.format === 'yaml') {
+    return profileInput.format;
+  }
+
+  const extension = path.extname(resolvedPath).toLowerCase();
+  if (extension === '.json') {
+    return 'json';
+  }
+  if (extension === '.yaml' || extension === '.yml') {
+    return 'yaml';
+  }
+
+  return undefined;
+}
+
+function mergeProfileDocuments(
+  base: Record<string, unknown> | undefined,
+  override: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!base) {
+    return override ? { ...override } : undefined;
+  }
+  if (!override) {
+    return { ...base };
+  }
+
+  const merged = new Map<string, unknown>();
+  for (const [key, value] of Object.entries(base)) {
+    merged.set(key, cloneProfileValue(value));
+  }
+  for (const [key, value] of Object.entries(override)) {
+    const current = merged.get(key);
+    if (isRecord(current) && isRecord(value)) {
+      merged.set(key, mergeProfileDocuments(current, value));
+      continue;
+    }
+    merged.set(key, cloneProfileValue(value));
+  }
+
+  return Object.fromEntries(merged);
+}
+
+function cloneProfileValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => cloneProfileValue(entry));
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        cloneProfileValue(entry),
+      ]),
+    );
+  }
+
+  return value;
 }
 
 function cloneDefaultRuntimeProfile(): GovernanceProfile {
@@ -695,6 +916,30 @@ function buildRuntimeDiagnostic(
     kind: 'error',
     category: 'configuration',
     source: dbtGovernanceRuntimeMetadata.id,
+  };
+}
+
+function invalidRuntimeProfileResult(
+  message: string,
+  inputField: string,
+  details?: Record<string, unknown>,
+): {
+  diagnostics: GovernanceDiagnostic[];
+  error: DbtGovernanceRuntimeError;
+} {
+  return {
+    diagnostics: [
+      buildRuntimeDiagnostic('governance.runtime.profile_invalid', message),
+    ],
+    error: {
+      code: 'governance.runtime.profile_invalid',
+      stage: 'profile',
+      message: 'Governance profile input is invalid.',
+      details: {
+        inputField,
+        ...(details ?? {}),
+      },
+    },
   };
 }
 
