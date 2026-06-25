@@ -70,6 +70,12 @@ Use `dbt run-operation governance_print_metadata_template` to print a starter mo
 The helper prints text only. It does not modify files, inspect warehouses, or run governance evaluation.
 {% enddocs %}
 
+{% docs anarchitects_governance_inline_model_config %}
+Use `{% raw %}{{ anarchitects_governance.governance(...) }}{% endraw %}` at the top of a SQL model when you want dbt-native inline configuration for the recommended `meta.anarchitects.governance` convention.
+
+The inline macro configures nested governance metadata, optional tags, and `config.contract.enforced`. dbt model descriptions and column documentation still belong in properties YAML.
+{% enddocs %}
+
 {% docs anarchitects_governance_profile_template_helper %}
 Use `dbt run-operation governance_print_profile_template` to print a starter Anarchitects governance profile template.
 

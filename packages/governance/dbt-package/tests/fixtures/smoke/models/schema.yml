@@ -1,19 +1,6 @@
 models:
   - name: example
     description: Minimal smoke-test model for companion dbt package validation.
-    config:
-      contract:
-        enforced: true
-      meta:
-        anarchitects:
-          governance:
-            layer: marts
-            domain: sales
-            owner:
-              team: analytics
-            criticality: high
-            publicInterface: true
-            crossDomainApproved: false
     columns:
       - name: id
         data_type: integer
