@@ -27,6 +27,7 @@ import type {
   GovernanceRuleContext,
   GovernanceRuleResult,
 } from './rules.js';
+import { readGovernancePolicySubjectKind } from './rules.js';
 
 type SynchronousGovernanceRule<TOptions = unknown> =
   GovernanceRule<TOptions> & {
@@ -144,7 +145,7 @@ export const ownershipPresenceRule: SynchronousGovernanceRule = {
     }
 
     return {
-      violations: getApplicableProjectLikeNodes(
+      violations: getApplicableGovernedAssetNodes(
         workspace,
         ownershipPresenceRule,
       ).flatMap((node) => evaluateOwnershipPresence(workspace, node, severity)),
@@ -181,7 +182,7 @@ export const projectNameConventionRule: SynchronousGovernanceRule = {
       ruleConfig.severity ?? projectNameConventionRule.defaultSeverity;
 
     return {
-      violations: getApplicableProjectLikeNodes(
+      violations: getApplicableGovernedAssetNodes(
         workspace,
         projectNameConventionRule,
       ).flatMap((node) =>
@@ -221,7 +222,7 @@ export const tagConventionRule: SynchronousGovernanceRule = {
       : undefined;
 
     return {
-      violations: getApplicableProjectLikeNodes(
+      violations: getApplicableGovernedAssetNodes(
         workspace,
         tagConventionRule,
       ).flatMap((node) =>
@@ -253,7 +254,7 @@ export const missingDomainRule: SynchronousGovernanceRule = {
     const severity = ruleConfig.severity ?? missingDomainRule.defaultSeverity;
 
     return {
-      violations: getApplicableProjectLikeNodes(
+      violations: getApplicableGovernedAssetNodes(
         workspace,
         missingDomainRule,
       ).flatMap((node) => evaluateMissingDomain(node, severity)),
@@ -283,7 +284,7 @@ export const missingLayerRule: SynchronousGovernanceRule = {
     const severity = ruleConfig.severity ?? missingLayerRule.defaultSeverity;
 
     return {
-      violations: getApplicableProjectLikeNodes(
+      violations: getApplicableGovernedAssetNodes(
         workspace,
         missingLayerRule,
       ).flatMap((node) => evaluateMissingLayer(node, severity)),
@@ -315,7 +316,7 @@ export const documentationGapRule: SynchronousGovernanceRule = {
       ruleConfig?.severity ?? documentationGapRule.defaultSeverity;
 
     return {
-      violations: getApplicableProjectLikeNodes(
+      violations: getApplicableGovernedAssetNodes(
         workspace,
         documentationGapRule,
       ).flatMap((node) => evaluateDocumentationGap(node, options, severity)),
@@ -931,13 +932,11 @@ function getApplicableNodes(
     .sort(compareNodes);
 }
 
-function getApplicableProjectLikeNodes(
+function getApplicableGovernedAssetNodes(
   workspace: GovernanceWorkspace,
   rule: GovernanceRule,
 ): GovernanceNode[] {
-  return getApplicableNodes(workspace, rule).filter(
-    isProjectLikeGovernanceNode,
-  );
+  return getApplicableNodes(workspace, rule).filter(isGovernedAssetNode);
 }
 
 function getApplicableRelations(
@@ -1015,6 +1014,20 @@ function matchesNodeApplicability(
 
 function isProjectLikeGovernanceNode(node: GovernanceNode): boolean {
   return !NON_PROJECT_LIKE_NODE_KINDS.has(node.kind);
+}
+
+function isGovernedAssetNode(node: GovernanceNode): boolean {
+  const subjectKind = readGovernancePolicySubjectKind(node.metadata);
+
+  if (subjectKind === 'evidence' || subjectKind === 'context') {
+    return false;
+  }
+
+  if (subjectKind === 'asset') {
+    return true;
+  }
+
+  return isProjectLikeGovernanceNode(node);
 }
 
 function matchesRelationApplicability(

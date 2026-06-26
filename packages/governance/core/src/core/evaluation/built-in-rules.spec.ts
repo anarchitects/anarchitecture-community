@@ -511,6 +511,103 @@ describe('Core built-in policy rules', () => {
     ).toEqual([]);
   });
 
+  it('skips evidence and context nodes for generic governed-asset rules, including dbt-shaped nodes', async () => {
+    const workspace = createWorkspace(
+      [
+        {
+          id: 'model.valid_project.orders',
+          name: 'orders',
+          kind: 'resource',
+          technology: 'dbt',
+          sourceSystem: 'dbt',
+          tags: [],
+          classification: {},
+          metadata: {
+            governance: {
+              kind: 'asset',
+            },
+          },
+        },
+        {
+          id: 'test.valid_project.not_null_orders_order_id',
+          name: 'not_null_orders_order_id',
+          kind: 'resource',
+          technology: 'dbt',
+          sourceSystem: 'dbt',
+          tags: [],
+          classification: {},
+          metadata: {
+            governance: {
+              kind: 'evidence',
+            },
+          },
+        },
+        {
+          id: 'dbt.project.valid_project',
+          name: 'valid_project',
+          kind: 'project',
+          technology: 'dbt',
+          sourceSystem: 'dbt',
+          tags: [],
+          classification: {},
+          metadata: {
+            governance: {
+              kind: 'context',
+            },
+          },
+        },
+      ],
+      [],
+    );
+
+    const result = await evaluateRulePack(coreBuiltInRulePack, {
+      workspace,
+      profile: {
+        ...baseProfile,
+        rules: {
+          'missing-domain': {
+            enabled: true,
+            options: {
+              required: true,
+            },
+          },
+          'missing-layer': {
+            enabled: true,
+            options: {
+              required: true,
+            },
+          },
+        },
+      },
+    });
+
+    const ruleIdsByNodeId = new Map<string, string[]>();
+    for (const violation of result.violations) {
+      const nodeId = violation.reference?.nodeId;
+      if (!nodeId) {
+        continue;
+      }
+
+      ruleIdsByNodeId.set(nodeId, [
+        ...(ruleIdsByNodeId.get(nodeId) ?? []),
+        violation.ruleId,
+      ]);
+    }
+
+    expect(
+      (ruleIdsByNodeId.get('model.valid_project.orders') ?? []).sort(),
+    ).toEqual([
+      'documentation-gap',
+      'missing-domain',
+      'missing-layer',
+      'ownership-presence',
+    ]);
+    expect(
+      ruleIdsByNodeId.get('test.valid_project.not_null_orders_order_id') ?? [],
+    ).toEqual([]);
+    expect(ruleIdsByNodeId.get('dbt.project.valid_project') ?? []).toEqual([]);
+  });
+
   it('does not require legacy compatibility workspace views', async () => {
     const workspace = createWorkspace(baseNodes, baseRelations);
 
