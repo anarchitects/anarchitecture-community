@@ -122,6 +122,9 @@ describe('dbt artifact normalization', () => {
         scope: 'analytics',
         tags: ['finance', 'published', 'scope:analytics'],
       },
+      metadata: {
+        documentation: true,
+      },
       extensions: {
         'governance-extension:dbt': expect.objectContaining({
           data: expect.objectContaining({
@@ -429,7 +432,7 @@ describe('dbt artifact normalization', () => {
     });
   });
 
-  it('preserves nested companion governance metadata for models without interpreting it yet', () => {
+  it('projects companion nested governance metadata for models into canonical fields', () => {
     const node = normalizeSyntheticNode({
       resource_type: 'model',
       unique_id: 'model.valid_project.synthetic_companion_model',
@@ -460,8 +463,17 @@ describe('dbt artifact normalization', () => {
       },
     });
 
-    expect(node.classification).toBeUndefined();
-    expect(node.ownership).toBeUndefined();
+    expect(node.classification).toMatchObject({
+      domain: 'sales',
+      layer: 'marts',
+    });
+    expect(node.ownership).toEqual({
+      team: 'analytics',
+      source: 'dbt-manifest',
+    });
+    expect(node.metadata).toMatchObject({
+      documentation: true,
+    });
     expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
       meta: {
         anarchitects: {
@@ -478,10 +490,26 @@ describe('dbt artifact normalization', () => {
         },
         customFlag: 'preserved',
       },
+      resolvedGovernanceMeta: {
+        domain: 'sales',
+        layer: 'marts',
+        owner: 'analytics',
+        criticality: 'high',
+        publicInterface: true,
+        crossDomainApproved: false,
+        provenance: {
+          domain: 'table.meta.anarchitects.governance',
+          layer: 'table.meta.anarchitects.governance',
+          owner: 'table.meta.anarchitects.governance',
+          criticality: 'table.meta.anarchitects.governance',
+          publicInterface: 'table.meta.anarchitects.governance',
+          crossDomainApproved: 'table.meta.anarchitects.governance',
+        },
+      },
     });
   });
 
-  it('preserves nested companion governance metadata for source nodes without interpreting it yet', () => {
+  it('projects table-level companion metadata for source nodes into canonical fields', () => {
     const node = normalizeSyntheticNode({
       resource_type: 'source',
       unique_id: 'source.valid_project.raw.synthetic_companion_source',
@@ -514,8 +542,17 @@ describe('dbt artifact normalization', () => {
       },
     });
 
-    expect(node.classification).toBeUndefined();
-    expect(node.ownership).toBeUndefined();
+    expect(node.classification).toMatchObject({
+      domain: 'sales',
+      layer: 'staging',
+    });
+    expect(node.ownership).toEqual({
+      team: 'analytics-engineering',
+      source: 'dbt-manifest',
+    });
+    expect(node.metadata).toEqual({
+      documentation: true,
+    });
     expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
       meta: {
         anarchitects: {
@@ -531,6 +568,22 @@ describe('dbt artifact normalization', () => {
           },
         },
       },
+      resolvedGovernanceMeta: {
+        domain: 'sales',
+        layer: 'staging',
+        owner: 'analytics-engineering',
+        criticality: 'medium',
+        publicInterface: false,
+        crossDomainApproved: true,
+        provenance: {
+          domain: 'table.meta.anarchitects.governance',
+          layer: 'table.meta.anarchitects.governance',
+          owner: 'table.meta.anarchitects.governance',
+          criticality: 'table.meta.anarchitects.governance',
+          publicInterface: 'table.meta.anarchitects.governance',
+          crossDomainApproved: 'table.meta.anarchitects.governance',
+        },
+      },
       sourceMeta: {
         anarchitects: {
           governance: {
@@ -540,12 +593,9 @@ describe('dbt artifact normalization', () => {
         },
       },
     });
-    expect(getDbtNodeExpansion(node)?.data.resource).not.toHaveProperty(
-      'resolvedGovernanceMeta',
-    );
   });
 
-  it('keeps legacy governance metadata behavior while also preserving companion metadata', () => {
+  it('prefers companion governance projection over legacy governance metadata while preserving both', () => {
     const node = normalizeSyntheticNode({
       resource_type: 'model',
       unique_id: 'model.valid_project.synthetic_compatible_model',
@@ -581,11 +631,11 @@ describe('dbt artifact normalization', () => {
     });
 
     expect(node.classification).toMatchObject({
-      layer: 'mart',
-      domain: 'finance',
+      layer: 'marts',
+      domain: 'sales',
     });
     expect(node.ownership).toEqual({
-      team: 'finance-platform',
+      team: 'analytics',
       source: 'dbt-manifest',
     });
     expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
@@ -606,6 +656,67 @@ describe('dbt artifact normalization', () => {
             publicInterface: true,
             crossDomainApproved: false,
           },
+        },
+      },
+      resolvedGovernanceMeta: {
+        domain: 'sales',
+        layer: 'marts',
+        owner: 'analytics',
+        criticality: 'high',
+        publicInterface: true,
+        crossDomainApproved: false,
+      },
+    });
+  });
+
+  it('projects companion governance metadata from config.meta into canonical fields', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'model',
+      unique_id: 'model.valid_project.synthetic_config_companion_model',
+      name: 'synthetic_config_companion_model',
+      relation_name: '"analytics"."marts"."synthetic_config_companion_model"',
+      description: 'Synthetic config companion model',
+      tests: ['not_null:id'],
+      config: {
+        materialized: 'table',
+        contract: {
+          enforced: true,
+        },
+        meta: {
+          anarchitects: {
+            governance: {
+              layer: 'marts',
+              domain: 'operations',
+              owner: {
+                team: 'platform-analytics',
+              },
+              criticality: 'high',
+            },
+          },
+        },
+      },
+    });
+
+    expect(node.classification).toMatchObject({
+      domain: 'operations',
+      layer: 'marts',
+    });
+    expect(node.ownership).toEqual({
+      team: 'platform-analytics',
+      source: 'dbt-manifest',
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {},
+      resolvedGovernanceMeta: {
+        domain: 'operations',
+        layer: 'marts',
+        owner: 'platform-analytics',
+        criticality: 'high',
+        provenance: {
+          domain: 'config.meta.anarchitects.governance',
+          layer: 'config.meta.anarchitects.governance',
+          owner: 'config.meta.anarchitects.governance',
+          criticality: 'config.meta.anarchitects.governance',
         },
       },
     });
@@ -772,6 +883,44 @@ describe('dbt artifact normalization', () => {
       },
     },
     {
+      label: 'config.meta.anarchitects.governance.owner.team',
+      resource: {
+        config: {
+          meta: {
+            anarchitects: {
+              governance: {
+                owner: {
+                  team: 'config-companion-owner',
+                },
+              },
+            },
+          },
+        },
+      },
+      expected: {
+        team: 'config-companion-owner',
+        source: 'dbt-manifest',
+      },
+    },
+    {
+      label: 'meta.anarchitects.governance.owner.team',
+      resource: {
+        meta: {
+          anarchitects: {
+            governance: {
+              owner: {
+                team: 'resource-companion-owner',
+              },
+            },
+          },
+        },
+      },
+      expected: {
+        team: 'resource-companion-owner',
+        source: 'dbt-manifest',
+      },
+    },
+    {
       label: 'config.meta.governance.owner',
       resource: {
         config: {
@@ -843,6 +992,13 @@ describe('dbt artifact normalization', () => {
         group: 'resource-group',
         config: {
           meta: {
+            anarchitects: {
+              governance: {
+                owner: {
+                  team: 'config-companion-owner',
+                },
+              },
+            },
             governance: {
               owner: 'config-governance-owner',
             },
@@ -850,6 +1006,13 @@ describe('dbt artifact normalization', () => {
           },
         },
         meta: {
+          anarchitects: {
+            governance: {
+              owner: {
+                team: 'resource-companion-owner',
+              },
+            },
+          },
           governance: {
             owner: 'resource-governance-owner',
           },
@@ -866,6 +1029,13 @@ describe('dbt artifact normalization', () => {
         group: 'resource-group',
         config: {
           meta: {
+            anarchitects: {
+              governance: {
+                owner: {
+                  team: 'config-companion-owner',
+                },
+              },
+            },
             governance: {
               owner: 'config-governance-owner',
             },
@@ -873,6 +1043,13 @@ describe('dbt artifact normalization', () => {
           },
         },
         meta: {
+          anarchitects: {
+            governance: {
+              owner: {
+                team: 'resource-companion-owner',
+              },
+            },
+          },
           governance: {
             owner: 'resource-governance-owner',
           },
@@ -882,6 +1059,112 @@ describe('dbt artifact normalization', () => {
     ).toEqual({
       team: 'resource-group',
       source: 'dbt-manifest',
+    });
+
+    expect(
+      normalizeSyntheticNode({
+        config: {
+          meta: {
+            anarchitects: {
+              governance: {
+                owner: {
+                  team: 'config-companion-owner',
+                },
+              },
+            },
+            governance: {
+              owner: 'config-governance-owner',
+            },
+            owner: 'config-meta-owner',
+          },
+        },
+        meta: {
+          anarchitects: {
+            governance: {
+              owner: {
+                team: 'resource-companion-owner',
+              },
+            },
+          },
+          governance: {
+            owner: 'resource-governance-owner',
+          },
+          owner: 'resource-meta-owner',
+        },
+      }).ownership,
+    ).toEqual({
+      team: 'config-companion-owner',
+      source: 'dbt-manifest',
+    });
+  });
+
+  it('inherits source-level companion governance metadata for source tables when table metadata is absent', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'source',
+      unique_id: 'source.valid_project.raw.synthetic_source_companion_case',
+      name: 'synthetic_source_companion_case',
+      source_name: 'raw',
+      meta: {
+        lineage: 'external',
+      },
+      source_meta: {
+        anarchitects: {
+          governance: {
+            owner: {
+              team: 'raw-data-team',
+            },
+            domain: 'finance',
+            layer: 'raw',
+            criticality: 'high',
+            publicInterface: true,
+            crossDomainApproved: false,
+          },
+        },
+      },
+    });
+
+    expect(node.ownership).toEqual({
+      team: 'raw-data-team',
+      source: 'dbt-manifest',
+    });
+    expect(node.classification).toMatchObject({
+      domain: 'finance',
+      layer: 'raw',
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        lineage: 'external',
+      },
+      sourceMeta: {
+        anarchitects: {
+          governance: {
+            owner: {
+              team: 'raw-data-team',
+            },
+            domain: 'finance',
+            layer: 'raw',
+            criticality: 'high',
+            publicInterface: true,
+            crossDomainApproved: false,
+          },
+        },
+      },
+      resolvedGovernanceMeta: {
+        owner: 'raw-data-team',
+        domain: 'finance',
+        layer: 'raw',
+        criticality: 'high',
+        publicInterface: true,
+        crossDomainApproved: false,
+        provenance: {
+          owner: 'source.meta.anarchitects.governance',
+          domain: 'source.meta.anarchitects.governance',
+          layer: 'source.meta.anarchitects.governance',
+          criticality: 'source.meta.anarchitects.governance',
+          publicInterface: 'source.meta.anarchitects.governance',
+          crossDomainApproved: 'source.meta.anarchitects.governance',
+        },
+      },
     });
   });
 

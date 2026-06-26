@@ -84,28 +84,46 @@ interface RelationMappingResult {
 
 type CanonicalDbtRelationKind = 'lineage' | 'exposes';
 
-interface DbtSourceMetadataView {
-  tableMeta: ResourceRecord;
+interface DbtResourceMetadataView {
+  resourceMeta: ResourceRecord;
   sourceMeta?: ResourceRecord;
-  resolvedGovernanceMeta?: DbtResolvedSourceGovernanceMeta;
+  resolvedGovernanceMeta?: DbtResolvedGovernanceMeta;
 }
 
-type DbtSourceGovernanceField = 'owner' | 'domain' | 'layer' | 'criticality';
+type DbtResolvedGovernanceField =
+  | 'owner'
+  | 'domain'
+  | 'layer'
+  | 'criticality'
+  | 'publicInterface'
+  | 'crossDomainApproved';
 
-type DbtSourceGovernanceProvenance =
+type DbtGovernanceFieldValueMap = {
+  owner: string;
+  domain: string;
+  layer: string;
+  criticality: string;
+  publicInterface: boolean;
+  crossDomainApproved: boolean;
+};
+
+type DbtResolvedGovernanceProvenance =
+  | 'config.meta.anarchitects.governance'
+  | 'config.meta.governance'
+  | 'config.meta'
+  | 'table.meta.anarchitects.governance'
   | 'table.meta.governance'
   | 'table.meta'
+  | 'source.meta.anarchitects.governance'
   | 'source.meta.governance'
   | 'source.meta';
 
-type DbtSourceGovernanceProvenanceMap = Partial<
-  Record<DbtSourceGovernanceField, DbtSourceGovernanceProvenance>
+type DbtResolvedGovernanceProvenanceMap = Partial<
+  Record<DbtResolvedGovernanceField, DbtResolvedGovernanceProvenance>
 >;
 
-type DbtResolvedSourceGovernanceMeta = Partial<
-  Record<DbtSourceGovernanceField, string>
-> & {
-  provenance?: DbtSourceGovernanceProvenanceMap;
+type DbtResolvedGovernanceMeta = Partial<DbtGovernanceFieldValueMap> & {
+  provenance?: DbtResolvedGovernanceProvenanceMap;
 };
 
 export function normalizeDbtArtifacts(
@@ -564,20 +582,19 @@ function normalizeDbtManifestResource(
     ? path.join(projectContext.projectDir, originalFilePath)
     : undefined;
   const resourceTags = readStringArray(record.tags);
-  const sourceMetadataView = readDbtSourceMetadataView(record, resourceType);
+  const metadataView = readDbtResourceMetadataView(record, resourceType);
   const group = readOptionalString(record.group);
   const fqn = readStringArray(record.fqn);
   const fullyQualifiedName = fqn.length > 0 ? fqn.join('.') : undefined;
   const classification = deriveClassification(
-    sourceMetadataView.tableMeta,
-    sourceMetadataView.resolvedGovernanceMeta,
+    metadataView.resourceMeta,
+    metadataView.resolvedGovernanceMeta,
     resourceTags,
   );
   const ownership = normalizeOwnership(
     record,
     group,
-    sourceMetadataView.tableMeta,
-    sourceMetadataView.resolvedGovernanceMeta,
+    metadataView.resolvedGovernanceMeta,
   );
   const dbtMetadata = buildDbtResourceMetadata(record, {
     uniqueId,
@@ -586,7 +603,7 @@ function normalizeDbtManifestResource(
     fullyQualifiedName,
     fqn,
     sourcePath: absoluteSourcePath,
-    sourceMetadataView,
+    metadataView,
   });
   const incompleteMetadataFields = collectIncompleteMetadataFields(
     resourceType,
@@ -628,7 +645,7 @@ function normalizeDbtManifestResource(
           dbtMetadata,
         ),
       },
-      metadata: {},
+      metadata: buildCanonicalNodeMetadata(resourceType, dbtMetadata),
     },
   };
 }
@@ -682,7 +699,7 @@ function buildDbtResourceMetadata(
     fullyQualifiedName?: string;
     fqn: string[];
     sourcePath?: string;
-    sourceMetadataView: DbtSourceMetadataView;
+    metadataView: DbtResourceMetadataView;
   },
 ): Record<string, unknown> {
   const docs = asRecord(resource.docs);
@@ -707,18 +724,16 @@ function buildDbtResourceMetadata(
     },
     resource: {
       tags: readStringArray(resource.tags),
-      meta: cloneStructuredValue(options.sourceMetadataView.tableMeta),
-      ...(options.sourceMetadataView.sourceMeta
+      meta: cloneStructuredValue(options.metadataView.resourceMeta),
+      ...(options.metadataView.sourceMeta
         ? {
-            sourceMeta: cloneStructuredValue(
-              options.sourceMetadataView.sourceMeta,
-            ),
+            sourceMeta: cloneStructuredValue(options.metadataView.sourceMeta),
           }
         : {}),
-      ...(options.sourceMetadataView.resolvedGovernanceMeta
+      ...(options.metadataView.resolvedGovernanceMeta
         ? {
             resolvedGovernanceMeta: cloneStructuredValue(
-              options.sourceMetadataView.resolvedGovernanceMeta,
+              options.metadataView.resolvedGovernanceMeta,
             ),
           }
         : {}),
@@ -816,9 +831,24 @@ function collectIncompleteMetadataFields(
   return missingFields;
 }
 
+function buildCanonicalNodeMetadata(
+  resourceType: string,
+  dbtMetadata: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!isCanonicalGovernedDbtAssetResourceType(resourceType)) {
+    return {};
+  }
+
+  const documentation = asRecord(dbtMetadata.documentation);
+  const documented =
+    documentation?.hasDescription === true || documentation?.hasDocs === true;
+
+  return documented ? { documentation: true } : {};
+}
+
 function deriveClassification(
   meta: ResourceRecord,
-  resolvedGovernanceMeta: DbtResolvedSourceGovernanceMeta | undefined,
+  resolvedGovernanceMeta: DbtResolvedGovernanceMeta | undefined,
   tags: readonly string[],
 ): GovernanceClassificationInput | undefined {
   const governanceMeta = asRecord(meta.governance);
@@ -843,65 +873,82 @@ function deriveClassification(
   };
 }
 
-function readDbtSourceMetadataView(
+function readDbtResourceMetadataView(
   resource: ResourceRecord,
   resourceType: string,
-): DbtSourceMetadataView {
-  const tableMeta = asRecord(resource.meta) ?? {};
-
-  if (resourceType !== 'source') {
-    return {
-      tableMeta,
-    };
-  }
-
-  const sourceMeta = asRecord(resource.source_meta);
-  const resolvedGovernanceMeta = resolveDbtSourceGovernanceMeta(
-    tableMeta,
+): DbtResourceMetadataView {
+  const resourceMeta = asRecord(resource.meta) ?? {};
+  const configMeta = asRecord(asRecord(resource.config)?.meta) ?? {};
+  const sourceMeta =
+    resourceType === 'source' ? asRecord(resource.source_meta) : undefined;
+  const resolvedGovernanceMeta = resolveDbtGovernanceMeta(
+    resourceMeta,
+    configMeta,
     sourceMeta,
   );
 
   return {
-    tableMeta,
+    resourceMeta,
     ...(sourceMeta ? { sourceMeta } : {}),
     ...(resolvedGovernanceMeta ? { resolvedGovernanceMeta } : {}),
   };
 }
 
-function resolveDbtSourceGovernanceMeta(
-  tableMeta: ResourceRecord,
+function resolveDbtGovernanceMeta(
+  resourceMeta: ResourceRecord,
+  configMeta: ResourceRecord,
   sourceMeta: ResourceRecord | undefined,
-): DbtResolvedSourceGovernanceMeta | undefined {
-  const resolvedGovernanceMeta: DbtResolvedSourceGovernanceMeta = {};
-  const provenance: DbtSourceGovernanceProvenanceMap = {};
+): DbtResolvedGovernanceMeta | undefined {
+  const resolvedGovernanceMeta: DbtResolvedGovernanceMeta = {};
+  const provenance: DbtResolvedGovernanceProvenanceMap = {};
 
-  applyResolvedSourceField(
+  applyResolvedGovernanceStringField(
     resolvedGovernanceMeta,
     provenance,
-    tableMeta,
+    resourceMeta,
+    configMeta,
     sourceMeta,
     'owner',
   );
-  applyResolvedSourceField(
+  applyResolvedGovernanceStringField(
     resolvedGovernanceMeta,
     provenance,
-    tableMeta,
+    resourceMeta,
+    configMeta,
     sourceMeta,
     'domain',
   );
-  applyResolvedSourceField(
+  applyResolvedGovernanceStringField(
     resolvedGovernanceMeta,
     provenance,
-    tableMeta,
+    resourceMeta,
+    configMeta,
     sourceMeta,
     'layer',
   );
-  applyResolvedSourceField(
+  applyResolvedGovernanceStringField(
     resolvedGovernanceMeta,
     provenance,
-    tableMeta,
+    resourceMeta,
+    configMeta,
     sourceMeta,
     'criticality',
+  );
+  applyResolvedGovernanceBooleanField(
+    resolvedGovernanceMeta,
+    provenance,
+    resourceMeta,
+    configMeta,
+    sourceMeta,
+    'publicInterface',
+  );
+  applyResolvedGovernanceBooleanField(
+    resolvedGovernanceMeta,
+    provenance,
+    resourceMeta,
+    configMeta,
+    sourceMeta,
+    'crossDomainApproved',
   );
 
   if (Object.keys(provenance).length > 0) {
@@ -913,15 +960,17 @@ function resolveDbtSourceGovernanceMeta(
     : undefined;
 }
 
-function applyResolvedSourceField(
-  resolvedGovernanceMeta: DbtResolvedSourceGovernanceMeta,
-  provenance: DbtSourceGovernanceProvenanceMap,
-  tableMeta: ResourceRecord,
+function applyResolvedGovernanceStringField(
+  resolvedGovernanceMeta: DbtResolvedGovernanceMeta,
+  provenance: DbtResolvedGovernanceProvenanceMap,
+  resourceMeta: ResourceRecord,
+  configMeta: ResourceRecord,
   sourceMeta: ResourceRecord | undefined,
-  field: DbtSourceGovernanceField,
+  field: 'owner' | 'domain' | 'layer' | 'criticality',
 ): void {
-  const resolvedValue = resolveSourceMetadataField(
-    tableMeta,
+  const resolvedValue = resolveGovernanceStringField(
+    resourceMeta,
+    configMeta,
     sourceMeta,
     field,
   );
@@ -932,29 +981,85 @@ function applyResolvedSourceField(
   }
 }
 
-function resolveSourceMetadataField(
-  tableMeta: ResourceRecord,
+function applyResolvedGovernanceBooleanField(
+  resolvedGovernanceMeta: DbtResolvedGovernanceMeta,
+  provenance: DbtResolvedGovernanceProvenanceMap,
+  resourceMeta: ResourceRecord,
+  configMeta: ResourceRecord,
   sourceMeta: ResourceRecord | undefined,
-  field: DbtSourceGovernanceField,
+  field: 'publicInterface' | 'crossDomainApproved',
+): void {
+  const resolvedValue = resolveGovernanceBooleanField(
+    resourceMeta,
+    configMeta,
+    sourceMeta,
+    field,
+  );
+
+  if (resolvedValue) {
+    resolvedGovernanceMeta[field] = resolvedValue.value;
+    provenance[field] = resolvedValue.provenance;
+  }
+}
+
+function resolveGovernanceStringField(
+  resourceMeta: ResourceRecord,
+  configMeta: ResourceRecord,
+  sourceMeta: ResourceRecord | undefined,
+  field: 'owner' | 'domain' | 'layer' | 'criticality',
 ):
   | {
       value: string;
-      provenance: DbtSourceGovernanceProvenance;
+      provenance: DbtResolvedGovernanceProvenance;
     }
   | undefined {
-  const tableGovernanceMeta = asRecord(tableMeta.governance);
+  const configCompanionGovernanceMeta = readCompanionGovernanceMeta(configMeta);
+  const resourceCompanionGovernanceMeta =
+    readCompanionGovernanceMeta(resourceMeta);
+  const sourceCompanionGovernanceMeta = readCompanionGovernanceMeta(sourceMeta);
+  const configGovernanceMeta = asRecord(configMeta.governance);
+  const resourceGovernanceMeta = asRecord(resourceMeta.governance);
   const sourceGovernanceMeta = asRecord(sourceMeta?.governance);
   const candidates: Array<{
     value: unknown;
-    provenance: DbtSourceGovernanceProvenance;
+    provenance: DbtResolvedGovernanceProvenance;
   }> = [
     {
-      value: tableGovernanceMeta?.[field],
+      value: readCompanionGovernanceFieldValue(
+        configCompanionGovernanceMeta,
+        field,
+      ),
+      provenance: 'config.meta.anarchitects.governance',
+    },
+    {
+      value: configGovernanceMeta?.[field],
+      provenance: 'config.meta.governance',
+    },
+    {
+      value: configMeta[field],
+      provenance: 'config.meta',
+    },
+    {
+      value: readCompanionGovernanceFieldValue(
+        resourceCompanionGovernanceMeta,
+        field,
+      ),
+      provenance: 'table.meta.anarchitects.governance',
+    },
+    {
+      value: resourceGovernanceMeta?.[field],
       provenance: 'table.meta.governance',
     },
     {
-      value: tableMeta[field],
+      value: resourceMeta[field],
       provenance: 'table.meta',
+    },
+    {
+      value: readCompanionGovernanceFieldValue(
+        sourceCompanionGovernanceMeta,
+        field,
+      ),
+      provenance: 'source.meta.anarchitects.governance',
     },
     {
       value: sourceGovernanceMeta?.[field],
@@ -979,30 +1084,93 @@ function resolveSourceMetadataField(
   return undefined;
 }
 
+function resolveGovernanceBooleanField(
+  resourceMeta: ResourceRecord,
+  configMeta: ResourceRecord,
+  sourceMeta: ResourceRecord | undefined,
+  field: 'publicInterface' | 'crossDomainApproved',
+):
+  | {
+      value: boolean;
+      provenance: DbtResolvedGovernanceProvenance;
+    }
+  | undefined {
+  const configCompanionGovernanceMeta = readCompanionGovernanceMeta(configMeta);
+  const resourceCompanionGovernanceMeta =
+    readCompanionGovernanceMeta(resourceMeta);
+  const sourceCompanionGovernanceMeta = readCompanionGovernanceMeta(sourceMeta);
+  const candidates: Array<{
+    value: unknown;
+    provenance: DbtResolvedGovernanceProvenance;
+  }> = [
+    {
+      value: configCompanionGovernanceMeta?.[field],
+      provenance: 'config.meta.anarchitects.governance',
+    },
+    {
+      value: resourceCompanionGovernanceMeta?.[field],
+      provenance: 'table.meta.anarchitects.governance',
+    },
+    {
+      value: sourceCompanionGovernanceMeta?.[field],
+      provenance: 'source.meta.anarchitects.governance',
+    },
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate.value === 'boolean') {
+      return {
+        value: candidate.value,
+        provenance: candidate.provenance,
+      };
+    }
+  }
+
+  return undefined;
+}
+
+function readCompanionGovernanceMeta(
+  meta: ResourceRecord | undefined,
+): ResourceRecord | undefined {
+  return asRecord(asRecord(meta?.anarchitects)?.governance);
+}
+
+function readCompanionGovernanceFieldValue(
+  companionGovernanceMeta: ResourceRecord | undefined,
+  field: 'owner' | 'domain' | 'layer' | 'criticality',
+): unknown {
+  if (field === 'owner') {
+    return asRecord(companionGovernanceMeta?.owner)?.team;
+  }
+
+  return companionGovernanceMeta?.[field];
+}
+
 function inferScope(tags: readonly string[]): string | undefined {
   const scopedTag = tags.find((tag) => tag.startsWith('scope:'));
   return scopedTag?.split(':').slice(1).join(':');
 }
 
+function isCanonicalGovernedDbtAssetResourceType(
+  resourceType: string,
+): boolean {
+  return (
+    resourceType === 'model' ||
+    resourceType === 'source' ||
+    resourceType === 'seed' ||
+    resourceType === 'snapshot'
+  );
+}
+
 function normalizeOwnership(
   resource: ResourceRecord,
   group?: string,
-  meta: ResourceRecord = {},
-  resolvedGovernanceMeta?: DbtResolvedSourceGovernanceMeta,
+  resolvedGovernanceMeta?: DbtResolvedGovernanceMeta,
 ): GovernanceOwnershipInput | undefined {
-  const config = asRecord(resource.config);
-  const configMeta = asRecord(config?.meta);
-  const configGovernanceMeta = asRecord(configMeta?.governance);
-  const governanceMeta = asRecord(meta.governance);
-
   return (
     normalizeOwner(resource.owner) ??
     normalizeOwner(group) ??
-    normalizeOwner(configGovernanceMeta?.owner) ??
-    normalizeOwner(configMeta?.owner) ??
-    normalizeOwner(resolvedGovernanceMeta?.owner) ??
-    normalizeOwner(governanceMeta?.owner) ??
-    normalizeOwner(meta.owner)
+    normalizeOwner(resolvedGovernanceMeta?.owner)
   );
 }
 
