@@ -44,6 +44,7 @@ export {
   type DbtGovernanceSignalProvider,
   type DbtGovernanceSignalProviderInput,
   type DbtGovernanceRuntimeContextExpansionData,
+  type DbtGovernanceWorkspaceSemanticResource,
   type DbtGovernanceWorkspaceExpansionData,
 } from './contracts.js';
 export {
