@@ -401,7 +401,17 @@ Relationship to `dbt-governance check`:
 - convenience lint helper for local metadata quality
 - not authoritative governance evaluation
 
-Full runtime interpretation of `meta.anarchitects.governance.*` still depends on [#457](https://github.com/anarchitects/anarchitecture-community/issues/457), [#458](https://github.com/anarchitects/anarchitecture-community/issues/458), and [#459](https://github.com/anarchitects/anarchitecture-community/issues/459).
+Current runtime note:
+
+- `dbt-governance check` now interprets the recommended
+  `meta.anarchitects.governance.*` namespace for governed dbt assets through
+  the adapter/extension boundary.
+- Legacy dbt metadata paths remain compatibility fallbacks.
+- Canonical ownership, domain, layer, and documentation projection is supported
+  for governed dbt assets.
+- dbt-specific semantics such as `publicInterface`,
+  `crossDomainApproved`, semantic resources, tests, and project context remain
+  extension-owned rather than Core-owned.
 
 ## Generic Metadata Tests
 
@@ -631,15 +641,29 @@ Important boundary:
 - tags do not replace the metadata convention
 - macros cannot inject tags into existing YAML automatically
 
-## Known Support Gap
+## Runtime Coverage And Current Gaps
 
-This package documents and helps produce the recommended convention. Full end-to-end support in `dbt-governance check` still depends on follow-up runtime work:
+This package documents and helps produce the recommended convention. The current
+runtime contract is:
 
-- [#457](https://github.com/anarchitects/anarchitecture-community/issues/457) for adapter-dbt support for `meta.anarchitects.governance.*`
-- [#458](https://github.com/anarchitects/anarchitecture-community/issues/458) for extension-dbt resolver support for `meta.anarchitects.governance.*`
-- [#459](https://github.com/anarchitects/anarchitecture-community/issues/459) for runtime-dbt integration coverage
+- canonical governed data assets: `model`, `source`, `seed`, `snapshot`
+- canonical governed semantic assets: `metric`, `semantic_model`,
+  `saved_query`
+- consumer/context resources preserved in extension-owned payload:
+  `exposure`, `project`
+- evidence preserved in extension-owned payload: `test`
+- canonical data lineage limited to data-asset to data-asset dependencies
+- semantic dependencies preserved in extension-owned `semanticResources`, not
+  canonical lineage relations
 
-Do not assume the nested convention is already fully interpreted by the runtime path just because this package documents it.
+Current caveats:
+
+- Core remains dbt-agnostic and does not interpret dbt resource types directly.
+- Semantic resource dependencies are preserved, but they are not emitted as
+  canonical data-lineage relations.
+- Resource-level `crossDomainApproved` metadata is preserved in dbt extension
+  metadata/provenance, but any projection into relation-level approval evidence
+  remains follow-up work if a rule should consume that field directly.
 
 ## Nx Targets
 
@@ -727,9 +751,6 @@ The detailed release flow is documented in [RELEASE.md](./RELEASE.md). dbt Hub p
 - [Python CLI package story #421](https://github.com/anarchitects/anarchitecture-community/issues/421)
 - [This scaffold issue #426](https://github.com/anarchitects/anarchitecture-community/issues/426)
 - [Run-operation helpers issue #428](https://github.com/anarchitects/anarchitecture-community/issues/428)
-- [Follow-up adapter support #457](https://github.com/anarchitects/anarchitecture-community/issues/457)
-- [Follow-up extension support #458](https://github.com/anarchitects/anarchitecture-community/issues/458)
-- [Follow-up runtime coverage #459](https://github.com/anarchitects/anarchitecture-community/issues/459)
 - [Follow-up docs alignment #460](https://github.com/anarchitects/anarchitecture-community/issues/460)
 - [Follow-up Git tag and GitHub release flow #461](https://github.com/anarchitects/anarchitecture-community/issues/461)
 - [Follow-up dbt Hub publication flow #462](https://github.com/anarchitects/anarchitecture-community/issues/462)
