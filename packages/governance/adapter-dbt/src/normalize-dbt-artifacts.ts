@@ -44,6 +44,12 @@ const SUPPORTED_RESOURCE_TYPES = new Set([
   'semantic_model',
   'saved_query',
 ]);
+const CANONICAL_DBT_ASSET_RESOURCE_TYPES = new Set([
+  'model',
+  'seed',
+  'snapshot',
+  'source',
+]);
 const MANIFEST_RESOURCE_COLLECTION_FIELDS = [
   'nodes',
   'sources',
@@ -98,8 +104,10 @@ type DbtResolvedGovernanceField =
   | 'publicInterface'
   | 'crossDomainApproved';
 
+type DbtResolvedGovernanceOwnerValue = string | Record<string, unknown>;
+
 type DbtGovernanceFieldValueMap = {
-  owner: string;
+  owner: DbtResolvedGovernanceOwnerValue;
   domain: string;
   layer: string;
   criticality: string;
@@ -287,10 +295,8 @@ function mapDbtRelations(
         targetManifestResource,
       );
       if (
-        isDbtTestEvidenceRelation(
-          sourceResource.resourceType,
-          targetResourceType,
-        )
+        isSupportedResourceType(targetResourceType) &&
+        !isCanonicalDbtAssetResourceType(targetResourceType)
       ) {
         continue;
       }
@@ -907,13 +913,12 @@ function resolveDbtGovernanceMeta(
   const resolvedGovernanceMeta: DbtResolvedGovernanceMeta = {};
   const provenance: DbtResolvedGovernanceProvenanceMap = {};
 
-  applyResolvedGovernanceStringField(
+  applyResolvedGovernanceOwnerField(
     resolvedGovernanceMeta,
     provenance,
     resourceMeta,
     configMeta,
     sourceMeta,
-    'owner',
   );
   applyResolvedGovernanceStringField(
     resolvedGovernanceMeta,
@@ -965,13 +970,32 @@ function resolveDbtGovernanceMeta(
     : undefined;
 }
 
+function applyResolvedGovernanceOwnerField(
+  resolvedGovernanceMeta: DbtResolvedGovernanceMeta,
+  provenance: DbtResolvedGovernanceProvenanceMap,
+  resourceMeta: ResourceRecord,
+  configMeta: ResourceRecord,
+  sourceMeta: ResourceRecord | undefined,
+): void {
+  const resolvedValue = resolveGovernanceOwnerField(
+    resourceMeta,
+    configMeta,
+    sourceMeta,
+  );
+
+  if (resolvedValue) {
+    resolvedGovernanceMeta.owner = resolvedValue.value;
+    provenance.owner = resolvedValue.provenance;
+  }
+}
+
 function applyResolvedGovernanceStringField(
   resolvedGovernanceMeta: DbtResolvedGovernanceMeta,
   provenance: DbtResolvedGovernanceProvenanceMap,
   resourceMeta: ResourceRecord,
   configMeta: ResourceRecord,
   sourceMeta: ResourceRecord | undefined,
-  field: 'owner' | 'domain' | 'layer' | 'criticality',
+  field: 'domain' | 'layer' | 'criticality',
 ): void {
   const resolvedValue = resolveGovernanceStringField(
     resourceMeta,
@@ -1007,11 +1031,83 @@ function applyResolvedGovernanceBooleanField(
   }
 }
 
+function resolveGovernanceOwnerField(
+  resourceMeta: ResourceRecord,
+  configMeta: ResourceRecord,
+  sourceMeta: ResourceRecord | undefined,
+):
+  | {
+      value: DbtResolvedGovernanceOwnerValue;
+      provenance: DbtResolvedGovernanceProvenance;
+    }
+  | undefined {
+  const configCompanionGovernanceMeta = readCompanionGovernanceMeta(configMeta);
+  const resourceCompanionGovernanceMeta =
+    readCompanionGovernanceMeta(resourceMeta);
+  const sourceCompanionGovernanceMeta = readCompanionGovernanceMeta(sourceMeta);
+  const configGovernanceMeta = asRecord(configMeta.governance);
+  const resourceGovernanceMeta = asRecord(resourceMeta.governance);
+  const sourceGovernanceMeta = asRecord(sourceMeta?.governance);
+  const candidates: Array<{
+    value: unknown;
+    provenance: DbtResolvedGovernanceProvenance;
+  }> = [
+    {
+      value: configCompanionGovernanceMeta?.owner,
+      provenance: 'config.meta.anarchitects.governance',
+    },
+    {
+      value: configGovernanceMeta?.owner,
+      provenance: 'config.meta.governance',
+    },
+    {
+      value: configMeta.owner,
+      provenance: 'config.meta',
+    },
+    {
+      value: resourceCompanionGovernanceMeta?.owner,
+      provenance: 'table.meta.anarchitects.governance',
+    },
+    {
+      value: resourceGovernanceMeta?.owner,
+      provenance: 'table.meta.governance',
+    },
+    {
+      value: resourceMeta.owner,
+      provenance: 'table.meta',
+    },
+    {
+      value: sourceCompanionGovernanceMeta?.owner,
+      provenance: 'source.meta.anarchitects.governance',
+    },
+    {
+      value: sourceGovernanceMeta?.owner,
+      provenance: 'source.meta.governance',
+    },
+    {
+      value: sourceMeta?.owner,
+      provenance: 'source.meta',
+    },
+  ];
+
+  for (const candidate of candidates) {
+    const value = normalizeResolvedGovernanceOwnerValue(candidate.value);
+    if (value) {
+      return {
+        value,
+        provenance: candidate.provenance,
+      };
+    }
+  }
+
+  return undefined;
+}
+
 function resolveGovernanceStringField(
   resourceMeta: ResourceRecord,
   configMeta: ResourceRecord,
   sourceMeta: ResourceRecord | undefined,
-  field: 'owner' | 'domain' | 'layer' | 'criticality',
+  field: 'domain' | 'layer' | 'criticality',
 ):
   | {
       value: string;
@@ -1142,13 +1238,40 @@ function readCompanionGovernanceMeta(
 
 function readCompanionGovernanceFieldValue(
   companionGovernanceMeta: ResourceRecord | undefined,
-  field: 'owner' | 'domain' | 'layer' | 'criticality',
+  field: 'domain' | 'layer' | 'criticality',
 ): unknown {
-  if (field === 'owner') {
-    return asRecord(companionGovernanceMeta?.owner)?.team;
+  return companionGovernanceMeta?.[field];
+}
+
+function normalizeResolvedGovernanceOwnerValue(
+  value: unknown,
+): DbtResolvedGovernanceOwnerValue | undefined {
+  const owner = normalizeOwner(value);
+  if (!owner) {
+    return undefined;
   }
 
-  return companionGovernanceMeta?.[field];
+  const team = readOptionalString(owner.team);
+  const contact = owner.contacts?.[0];
+
+  if (typeof value === 'string' && team) {
+    return team;
+  }
+
+  const record = asRecord(value);
+  if (record) {
+    return {
+      ...(readOptionalString(record.name)
+        ? { name: readOptionalString(record.name) }
+        : {}),
+      ...(readOptionalString(record.team)
+        ? { team: readOptionalString(record.team) }
+        : {}),
+      ...(contact ? { email: contact } : {}),
+    };
+  }
+
+  return team;
 }
 
 function inferScope(tags: readonly string[]): string | undefined {
@@ -1269,21 +1392,11 @@ function readDbtTestType(resource: ResourceRecord): string | undefined {
 }
 
 function isCanonicalDbtAssetResourceType(resourceType: string): boolean {
-  return resourceType !== 'test' && isSupportedResourceType(resourceType);
+  return CANONICAL_DBT_ASSET_RESOURCE_TYPES.has(resourceType);
 }
 
 function isDbtTestEvidenceResourceType(resourceType: string): boolean {
   return resourceType === 'test';
-}
-
-function isDbtTestEvidenceRelation(
-  sourceResourceType: string,
-  targetResourceType: string,
-): boolean {
-  return (
-    isDbtTestEvidenceResourceType(sourceResourceType) ||
-    isDbtTestEvidenceResourceType(targetResourceType)
-  );
 }
 
 function isSupportedResourceType(resourceType: string): boolean {

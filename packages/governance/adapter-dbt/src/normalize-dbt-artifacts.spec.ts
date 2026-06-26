@@ -64,7 +64,7 @@ describe('dbt artifact normalization', () => {
     expect(normalized.relations?.length).toBeGreaterThan(0);
   });
 
-  it('normalizes models, sources, seeds, snapshots, and exposures into canonical nodes while keeping project context at workspace level', () => {
+  it('normalizes models, sources, seeds, and snapshots into canonical nodes while keeping project context at workspace level', () => {
     const context = mustResolveContext('valid-project');
     const artifacts = mustLoadArtifacts(context);
     const normalized = normalizeDbtArtifacts(context, artifacts);
@@ -81,9 +81,9 @@ describe('dbt artifact normalization', () => {
         'source.valid_project.raw.orders',
         'seed.valid_project.countries',
         'snapshot.valid_project.orders_snapshot',
-        'exposure.valid_project.executive_dashboard',
       ]),
     );
+    expect(nodeIds).not.toContain('exposure.valid_project.executive_dashboard');
     expect(nodeIds).not.toContain('dbt.project.valid_project');
     expect(nodeIds.some((nodeId) => nodeId.startsWith('dbt.project.'))).toBe(
       false,
@@ -412,39 +412,214 @@ describe('dbt artifact normalization', () => {
     ).toBe(false);
   });
 
-  it('preserves stable dbt identifiers and metadata on canonical nodes', () => {
+  it('makes canonical dbt asset scope explicit for supported resource types', () => {
     const context = mustResolveContext('valid-project');
-    const artifacts = mustLoadArtifacts(context);
-    const normalized = normalizeDbtArtifacts(context, artifacts);
-    const node = normalized.nodes?.find(
-      (entry) => entry.id === 'exposure.valid_project.executive_dashboard',
-    );
-
-    expect(node).toMatchObject({
-      id: 'exposure.valid_project.executive_dashboard',
-      name: 'executive_dashboard',
-      kind: 'resource',
-      extensions: {
-        'governance-extension:dbt': expect.objectContaining({
-          data: expect.objectContaining({
-            resourceType: 'exposure',
-            identity: expect.objectContaining({
-              uniqueId: 'exposure.valid_project.executive_dashboard',
-              packageName: 'valid_project',
-              resourceName: 'executive_dashboard',
-              fullyQualifiedName: 'valid_project.executive_dashboard',
-              resourceType: 'exposure',
-            }),
-            resource: expect.objectContaining({
-              owner: {
-                name: 'analytics-team',
+    const normalized = normalizeDbtArtifacts(context, {
+      manifest: buildSyntheticManifestFromResources([
+        [
+          'source.valid_project.raw.orders',
+          {
+            resource_type: 'source',
+            unique_id: 'source.valid_project.raw.orders',
+            package_name: 'valid_project',
+            name: 'orders',
+            source_name: 'raw',
+            relation_name: '"warehouse"."raw"."orders"',
+            original_file_path: 'models/raw/raw.yml',
+            tests: ['freshness'],
+          },
+        ],
+        [
+          'seed.valid_project.countries',
+          {
+            resource_type: 'seed',
+            unique_id: 'seed.valid_project.countries',
+            package_name: 'valid_project',
+            name: 'countries',
+            relation_name: '"analytics"."reference"."countries"',
+            original_file_path: 'seeds/countries.csv',
+            tests: ['unique:country_code'],
+            config: {
+              materialized: 'seed',
+            },
+          },
+        ],
+        [
+          'model.valid_project.orders',
+          {
+            resource_type: 'model',
+            unique_id: 'model.valid_project.orders',
+            package_name: 'valid_project',
+            name: 'orders',
+            relation_name: '"analytics"."marts"."orders"',
+            original_file_path: 'models/marts/orders.sql',
+            tests: ['not_null:order_id'],
+            config: {
+              materialized: 'table',
+              contract: {
+                enforced: true,
               },
-              subtype: 'dashboard',
-            }),
-          }),
-        }),
+            },
+            depends_on: {
+              nodes: [
+                'source.valid_project.raw.orders',
+                'seed.valid_project.countries',
+              ],
+            },
+          },
+        ],
+        [
+          'snapshot.valid_project.orders_snapshot',
+          {
+            resource_type: 'snapshot',
+            unique_id: 'snapshot.valid_project.orders_snapshot',
+            package_name: 'valid_project',
+            name: 'orders_snapshot',
+            relation_name: '"analytics"."snapshots"."orders_snapshot"',
+            original_file_path: 'snapshots/orders_snapshot.sql',
+            tests: ['unique:order_id'],
+            config: {
+              materialized: 'snapshot',
+              contract: {
+                enforced: true,
+              },
+            },
+            depends_on: {
+              nodes: ['model.valid_project.orders'],
+            },
+          },
+        ],
+        [
+          'exposure.valid_project.executive_dashboard',
+          {
+            resource_type: 'exposure',
+            unique_id: 'exposure.valid_project.executive_dashboard',
+            package_name: 'valid_project',
+            name: 'executive_dashboard',
+            type: 'dashboard',
+            depends_on: {
+              nodes: ['model.valid_project.orders'],
+            },
+          },
+        ],
+        [
+          'metric.valid_project.total_revenue',
+          {
+            resource_type: 'metric',
+            unique_id: 'metric.valid_project.total_revenue',
+            package_name: 'valid_project',
+            name: 'total_revenue',
+          },
+        ],
+        [
+          'semantic_model.valid_project.orders_semantic',
+          {
+            resource_type: 'semantic_model',
+            unique_id: 'semantic_model.valid_project.orders_semantic',
+            package_name: 'valid_project',
+            name: 'orders_semantic',
+          },
+        ],
+        [
+          'saved_query.valid_project.orders_saved_query',
+          {
+            resource_type: 'saved_query',
+            unique_id: 'saved_query.valid_project.orders_saved_query',
+            package_name: 'valid_project',
+            name: 'orders_saved_query',
+          },
+        ],
+        [
+          'test.valid_project.not_null_orders_order_id',
+          {
+            resource_type: 'test',
+            unique_id: 'test.valid_project.not_null_orders_order_id',
+            package_name: 'valid_project',
+            name: 'not_null_orders_order_id',
+            test_metadata: {
+              name: 'not_null',
+            },
+            depends_on: {
+              nodes: ['model.valid_project.orders'],
+            },
+          },
+        ],
+      ]),
+      projectConfig: {
+        name: 'valid_project',
       },
     });
+    const workspaceExpansion = normalized.extensions?.[
+      'governance-extension:dbt'
+    ] as DbtWorkspaceExpansionEnvelope | undefined;
+    const nodeIds = normalized.nodes?.map((node) => node.id) ?? [];
+
+    expect(nodeIds).toEqual(
+      expect.arrayContaining([
+        'model.valid_project.orders',
+        'source.valid_project.raw.orders',
+        'seed.valid_project.countries',
+        'snapshot.valid_project.orders_snapshot',
+      ]),
+    );
+    expect(nodeIds).not.toContain('exposure.valid_project.executive_dashboard');
+    expect(nodeIds).not.toContain('metric.valid_project.total_revenue');
+    expect(nodeIds).not.toContain(
+      'semantic_model.valid_project.orders_semantic',
+    );
+    expect(nodeIds).not.toContain(
+      'saved_query.valid_project.orders_saved_query',
+    );
+    expect(nodeIds).not.toContain(
+      'test.valid_project.not_null_orders_order_id',
+    );
+    expect(
+      normalized.nodes?.every(
+        (node) =>
+          (node.metadata as { governance?: { kind?: string } } | undefined)
+            ?.governance?.kind === 'asset',
+      ),
+    ).toBe(true);
+    expect(normalized.relations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceNodeId: 'model.valid_project.orders',
+          targetNodeId: 'source.valid_project.raw.orders',
+        }),
+        expect.objectContaining({
+          sourceNodeId: 'model.valid_project.orders',
+          targetNodeId: 'seed.valid_project.countries',
+        }),
+        expect.objectContaining({
+          sourceNodeId: 'snapshot.valid_project.orders_snapshot',
+          targetNodeId: 'model.valid_project.orders',
+        }),
+      ]),
+    );
+    expect(
+      normalized.relations?.some(
+        (relation) =>
+          relation.sourceNodeId ===
+            'exposure.valid_project.executive_dashboard' ||
+          relation.targetNodeId ===
+            'exposure.valid_project.executive_dashboard',
+      ),
+    ).toBe(false);
+    expect(workspaceExpansion?.data.testEvidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          uniqueId: 'test.valid_project.not_null_orders_order_id',
+        }),
+      ]),
+    );
+    expect(
+      normalized.diagnostics?.some(
+        (diagnostic) =>
+          diagnostic.code === 'governance.dbt_adapter.skipped_resource_type' ||
+          diagnostic.code ===
+            'governance.dbt_adapter.unsupported_resource_shape',
+      ),
+    ).toBe(false);
   });
 
   it('projects companion nested governance metadata for models into canonical fields', () => {
@@ -508,7 +683,9 @@ describe('dbt artifact normalization', () => {
       resolvedGovernanceMeta: {
         domain: 'sales',
         layer: 'marts',
-        owner: 'analytics',
+        owner: {
+          team: 'analytics',
+        },
         criticality: 'high',
         publicInterface: true,
         crossDomainApproved: false,
@@ -589,7 +766,9 @@ describe('dbt artifact normalization', () => {
       resolvedGovernanceMeta: {
         domain: 'sales',
         layer: 'staging',
-        owner: 'analytics-engineering',
+        owner: {
+          team: 'analytics-engineering',
+        },
         criticality: 'medium',
         publicInterface: false,
         crossDomainApproved: true,
@@ -679,7 +858,9 @@ describe('dbt artifact normalization', () => {
       resolvedGovernanceMeta: {
         domain: 'sales',
         layer: 'marts',
-        owner: 'analytics',
+        owner: {
+          team: 'analytics',
+        },
         criticality: 'high',
         publicInterface: true,
         crossDomainApproved: false,
@@ -728,7 +909,9 @@ describe('dbt artifact normalization', () => {
       resolvedGovernanceMeta: {
         domain: 'operations',
         layer: 'marts',
-        owner: 'platform-analytics',
+        owner: {
+          team: 'platform-analytics',
+        },
         criticality: 'high',
         provenance: {
           domain: 'config.meta.anarchitects.governance',
@@ -777,7 +960,7 @@ describe('dbt artifact normalization', () => {
     expect(normalized.diagnostics).toEqual([]);
   });
 
-  it('maps model, seed, snapshot, source, and exposure lineage through canonical relations', () => {
+  it('maps model, seed, snapshot, and source lineage through canonical relations', () => {
     const context = mustResolveContext('valid-project');
     const artifacts = mustLoadArtifacts(context);
     const normalized = normalizeDbtArtifacts(context, artifacts);
@@ -848,15 +1031,9 @@ describe('dbt artifact normalization', () => {
           targetNodeId: 'model.valid_project.orders',
           kind: 'dependency',
         }),
-        expect.objectContaining({
-          id: 'dbt:exposes:exposure.valid_project.executive_dashboard->model.valid_project.orders',
-          sourceNodeId: 'exposure.valid_project.executive_dashboard',
-          targetNodeId: 'model.valid_project.orders',
-          kind: 'dependency',
-        }),
       ]),
     );
-    expect(normalized.relations).toHaveLength(6);
+    expect(normalized.relations).toHaveLength(5);
     expect(
       normalized.relations?.every((relation) => relation.kind === 'dependency'),
     ).toBe(true);
@@ -935,6 +1112,42 @@ describe('dbt artifact normalization', () => {
       },
       expected: {
         team: 'resource-companion-owner',
+        source: 'dbt-manifest',
+      },
+    },
+    {
+      label: 'config.meta.anarchitects.governance.owner as string',
+      resource: {
+        config: {
+          meta: {
+            anarchitects: {
+              governance: {
+                owner: 'config-companion-owner-string',
+              },
+            },
+          },
+        },
+      },
+      expected: {
+        team: 'config-companion-owner-string',
+        source: 'dbt-manifest',
+      },
+    },
+    {
+      label: 'meta.anarchitects.governance.owner.name',
+      resource: {
+        meta: {
+          anarchitects: {
+            governance: {
+              owner: {
+                name: 'resource-companion-owner-name',
+              },
+            },
+          },
+        },
+      },
+      expected: {
+        team: 'resource-companion-owner-name',
         source: 'dbt-manifest',
       },
     },
@@ -1116,6 +1329,152 @@ describe('dbt artifact normalization', () => {
     });
   });
 
+  it('projects companion owner email into canonical ownership contacts', () => {
+    const node = normalizeSyntheticNode({
+      resource_type: 'model',
+      unique_id: 'model.valid_project.synthetic_companion_owner_email',
+      name: 'synthetic_companion_owner_email',
+      relation_name: '"analytics"."marts"."synthetic_companion_owner_email"',
+      description: 'Synthetic companion owner email model',
+      tests: ['not_null:id'],
+      config: {
+        materialized: 'table',
+        contract: {
+          enforced: true,
+        },
+      },
+      meta: {
+        anarchitects: {
+          governance: {
+            owner: {
+              team: 'analytics',
+              email: 'analytics@example.com',
+            },
+          },
+        },
+      },
+    });
+
+    expect(node.ownership).toEqual({
+      team: 'analytics',
+      contacts: ['analytics@example.com'],
+      source: 'dbt-manifest',
+    });
+    expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({
+      meta: {
+        anarchitects: {
+          governance: {
+            owner: {
+              team: 'analytics',
+              email: 'analytics@example.com',
+            },
+          },
+        },
+      },
+      resolvedGovernanceMeta: {
+        owner: {
+          team: 'analytics',
+          email: 'analytics@example.com',
+        },
+        provenance: {
+          owner: 'table.meta.anarchitects.governance',
+        },
+      },
+    });
+  });
+
+  it('supports companion owner string, name, and source-level fallback shapes', () => {
+    const stringOwnerNode = normalizeSyntheticNode({
+      resource_type: 'model',
+      unique_id: 'model.valid_project.synthetic_companion_owner_string',
+      name: 'synthetic_companion_owner_string',
+      relation_name: '"analytics"."marts"."synthetic_companion_owner_string"',
+      description: 'Synthetic companion owner string model',
+      tests: ['not_null:id'],
+      config: {
+        materialized: 'table',
+        contract: {
+          enforced: true,
+        },
+      },
+      meta: {
+        anarchitects: {
+          governance: {
+            owner: 'analytics',
+          },
+        },
+      },
+    });
+    const nameOwnerNode = normalizeSyntheticNode({
+      resource_type: 'model',
+      unique_id: 'model.valid_project.synthetic_companion_owner_name',
+      name: 'synthetic_companion_owner_name',
+      relation_name: '"analytics"."marts"."synthetic_companion_owner_name"',
+      description: 'Synthetic companion owner name model',
+      tests: ['not_null:id'],
+      config: {
+        materialized: 'table',
+        contract: {
+          enforced: true,
+        },
+      },
+      meta: {
+        anarchitects: {
+          governance: {
+            owner: {
+              name: 'analytics',
+            },
+          },
+        },
+      },
+    });
+    const sourceFallbackNode = normalizeSyntheticNode({
+      resource_type: 'source',
+      unique_id: 'source.valid_project.raw.synthetic_source_owner_name_case',
+      name: 'synthetic_source_owner_name_case',
+      source_name: 'raw',
+      relation_name: '"warehouse"."raw"."synthetic_source_owner_name_case"',
+      tests: ['freshness'],
+      source_meta: {
+        anarchitects: {
+          governance: {
+            owner: {
+              name: 'raw-analytics',
+              email: 'raw-analytics@example.com',
+            },
+          },
+        },
+      },
+    });
+
+    expect(stringOwnerNode.ownership).toEqual({
+      team: 'analytics',
+      source: 'dbt-manifest',
+    });
+    expect(nameOwnerNode.ownership).toEqual({
+      team: 'analytics',
+      source: 'dbt-manifest',
+    });
+    expect(sourceFallbackNode.ownership).toEqual({
+      team: 'raw-analytics',
+      contacts: ['raw-analytics@example.com'],
+      source: 'dbt-manifest',
+    });
+    expect(
+      getDbtNodeExpansion(sourceFallbackNode)?.data.resource,
+    ).toMatchObject({
+      resolvedGovernanceMeta: {
+        owner: {
+          name: 'raw-analytics',
+          email: 'raw-analytics@example.com',
+        },
+        provenance: {
+          owner: 'source.meta.anarchitects.governance',
+        },
+      },
+    });
+  });
+
   it('inherits source-level companion governance metadata for source tables when table metadata is absent', () => {
     const node = normalizeSyntheticNode({
       resource_type: 'source',
@@ -1168,7 +1527,9 @@ describe('dbt artifact normalization', () => {
         },
       },
       resolvedGovernanceMeta: {
-        owner: 'raw-data-team',
+        owner: {
+          team: 'raw-data-team',
+        },
         domain: 'finance',
         layer: 'raw',
         criticality: 'high',
@@ -1521,7 +1882,7 @@ describe('dbt artifact normalization', () => {
           code: 'governance.dbt_adapter.partial_normalization',
           message: expect.stringContaining('normalization'),
           details: expect.objectContaining({
-            normalizedCount: 10,
+            normalizedCount: 9,
             skippedCount: 1,
             invalidCount: 1,
           }),
@@ -1565,7 +1926,7 @@ describe('dbt artifact normalization', () => {
           code: 'governance.dbt_adapter.partial_dependency_mapping',
           message: expect.stringContaining('relation mapping'),
           details: expect.objectContaining({
-            mappedCount: 6,
+            mappedCount: 5,
             unresolvedCount: 1,
             notNormalizedCount: 1,
             unsupportedCount: 1,
