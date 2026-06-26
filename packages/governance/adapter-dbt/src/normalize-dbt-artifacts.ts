@@ -27,9 +27,9 @@ import {
   unsupportedDbtResourceShapeDiagnostic,
 } from './diagnostics.js';
 import {
-  buildDbtProjectNodeExpansion,
   buildDbtRelationExpansion,
   buildDbtResourceNodeExpansion,
+  type DbtGovernanceWorkspaceTestEvidence,
   buildDbtWorkspaceExpansion,
 } from './extension-normalization.js';
 
@@ -58,11 +58,6 @@ const DBT_MANIFEST_SOURCE = {
   id: 'dbt-manifest',
   name: 'dbt manifest',
   type: 'artifact',
-} as const;
-const DBT_PROJECT_SOURCE = {
-  id: 'dbt-project-config',
-  name: 'dbt project config',
-  type: 'configuration',
 } as const;
 
 type ResourceRecord = Record<string, unknown>;
@@ -117,12 +112,25 @@ export function normalizeDbtArtifacts(
 ): DbtAdapterResult {
   const diagnostics: DbtAdapterDiagnostic[] = [];
   const normalizedResourcesById = new Map<string, NormalizedResource>();
+  const workspaceTestEvidence: DbtGovernanceWorkspaceTestEvidence[] = [];
   let skippedCount = 0;
   let invalidCount = 0;
 
   for (const [, resource] of collectManifestResourceEntries(
     artifacts.manifest,
   )) {
+    const resourceType = readManifestResourceType(resource);
+    if (
+      isSupportedResourceType(resourceType) &&
+      !isCanonicalDbtAssetResourceType(resourceType)
+    ) {
+      const testEvidence = normalizeDbtTestEvidence(resource, projectContext);
+      if (testEvidence) {
+        workspaceTestEvidence.push(testEvidence);
+      }
+      continue;
+    }
+
     const normalized = normalizeDbtManifestResource(
       resource,
       projectContext,
@@ -151,7 +159,6 @@ export function normalizeDbtArtifacts(
     );
   }
 
-  const projectNode = buildDbtProjectNode(projectContext, artifacts);
   const relationMapping = mapDbtRelations(
     artifacts.manifest,
     normalizedResourcesById,
@@ -173,10 +180,9 @@ export function normalizeDbtArtifacts(
     );
   }
 
-  const nodes = [
-    projectNode,
-    ...[...normalizedResourcesById.values()].map((entry) => entry.node),
-  ].sort((left, right) => left.id.localeCompare(right.id));
+  const nodes = [...normalizedResourcesById.values()]
+    .map((entry) => entry.node)
+    .sort((left, right) => left.id.localeCompare(right.id));
   const relations = [...relationMapping.relations].sort(
     (left, right) =>
       (left.id ?? '').localeCompare(right.id ?? '') ||
@@ -197,77 +203,13 @@ export function normalizeDbtArtifacts(
         projectContext,
         artifacts,
         nodes.map((node) => node.id),
+        workspaceTestEvidence,
       ),
     },
     metadata: {
       adapter: 'dbt',
       paths: projectContext.artifactPaths,
     },
-  };
-}
-
-function buildDbtProjectNode(
-  projectContext: DbtProjectContext,
-  artifacts: DbtArtifacts,
-): GovernanceNodeInput {
-  const dbtMetadata = {
-    identity: {
-      projectName: artifacts.projectConfig.name,
-      resourceType: 'project',
-    },
-    project: {
-      name: artifacts.projectConfig.name,
-      ...(artifacts.projectConfig.version !== undefined
-        ? { version: artifacts.projectConfig.version }
-        : {}),
-      ...(artifacts.projectConfig.configVersion !== undefined
-        ? { configVersion: artifacts.projectConfig.configVersion }
-        : {}),
-      ...(artifacts.projectConfig.profile
-        ? { profile: artifacts.projectConfig.profile }
-        : {}),
-      ...(artifacts.projectConfig.modelPaths
-        ? { modelPaths: artifacts.projectConfig.modelPaths }
-        : {}),
-      ...(artifacts.projectConfig.seedPaths
-        ? { seedPaths: artifacts.projectConfig.seedPaths }
-        : {}),
-      ...(artifacts.projectConfig.snapshotPaths
-        ? { snapshotPaths: artifacts.projectConfig.snapshotPaths }
-        : {}),
-      ...(artifacts.projectConfig.analysisPaths
-        ? { analysisPaths: artifacts.projectConfig.analysisPaths }
-        : {}),
-      ...(artifacts.projectConfig.macroPaths
-        ? { macroPaths: artifacts.projectConfig.macroPaths }
-        : {}),
-      ...(artifacts.projectConfig.testPaths
-        ? { testPaths: artifacts.projectConfig.testPaths }
-        : {}),
-    },
-    relation: {
-      projectDir: projectContext.projectDir,
-      dbtProjectPath: projectContext.dbtProjectPath,
-      manifestPath: projectContext.artifactPaths.manifestPath,
-    },
-  } satisfies Record<string, unknown>;
-
-  return {
-    id: buildDbtProjectNodeId(artifacts.projectConfig.name),
-    name: artifacts.projectConfig.name,
-    kind: 'project',
-    technology: 'dbt',
-    sourceSystem: 'dbt',
-    root: projectContext.projectDir,
-    path: projectContext.dbtProjectPath,
-    tags: [],
-    source: DBT_PROJECT_SOURCE,
-    authority: 'documented',
-    confidence: 1,
-    extensions: {
-      'governance-extension:dbt': buildDbtProjectNodeExpansion(dbtMetadata),
-    },
-    metadata: {},
   };
 }
 
@@ -676,6 +618,43 @@ function normalizeDbtManifestResource(
   };
 }
 
+function normalizeDbtTestEvidence(
+  resource: DbtManifestResource,
+  projectContext: DbtProjectContext,
+): DbtGovernanceWorkspaceTestEvidence | undefined {
+  const record = asRecord(resource);
+  if (!record) {
+    return undefined;
+  }
+
+  const uniqueId = readOptionalString(record.unique_id);
+  const name = readOptionalString(record.name);
+  const packageName = readOptionalString(record.package_name);
+  if (!uniqueId || !name || !packageName) {
+    return undefined;
+  }
+
+  const dependsOn = readDependsOnNodeIds(record, uniqueId, []);
+  const originalFilePath = readOptionalString(record.original_file_path);
+  const sourcePath = originalFilePath
+    ? path.join(projectContext.projectDir, originalFilePath)
+    : undefined;
+  const tags = readStringArray(record.tags);
+  const meta = asRecord(record.meta);
+
+  return {
+    uniqueId,
+    name,
+    packageName,
+    dependsOnNodeIds: [...dependsOn.nodeIds].sort(),
+    targetNodeIds: [...dependsOn.nodeIds].sort(),
+    ...(originalFilePath ? { originalFilePath } : {}),
+    ...(sourcePath ? { sourcePath } : {}),
+    ...(tags.length > 0 ? { tags } : {}),
+    ...(meta ? { meta: cloneStructuredValue(meta) } : {}),
+  };
+}
+
 function buildDbtResourceMetadata(
   resource: ResourceRecord,
   options: {
@@ -1067,10 +1046,6 @@ function cloneStructuredValue<T>(value: T): T {
   return value;
 }
 
-function buildDbtProjectNodeId(projectName: string): string {
-  return `dbt.project.${projectName}`;
-}
-
 function toCanonicalNodeKind(
   _resourceType: string,
 ): GovernanceNodeInput['kind'] {
@@ -1106,14 +1081,21 @@ function buildDbtRelationId(
   return `dbt:${relationKind}:${sourceNodeId}->${targetNodeId}`;
 }
 
+function readManifestResourceType(resource: DbtManifestResource): string {
+  const record = asRecord(resource);
+  return readOptionalString(record?.resource_type) ?? 'unknown';
+}
+
+function isCanonicalDbtAssetResourceType(resourceType: string): boolean {
+  return resourceType !== 'test' && isSupportedResourceType(resourceType);
+}
+
 function isSupportedResourceType(resourceType: string): boolean {
   return SUPPORTED_RESOURCE_TYPES.has(resourceType);
 }
 
 function isSkippedResource(resource: DbtManifestResource): boolean {
-  const record = asRecord(resource);
-  const resourceType = readOptionalString(record?.resource_type) ?? 'unknown';
-  return !isSupportedResourceType(resourceType);
+  return !isSupportedResourceType(readManifestResourceType(resource));
 }
 
 function asRecord(value: unknown): ResourceRecord | undefined {

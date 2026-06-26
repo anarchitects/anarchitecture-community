@@ -44,6 +44,7 @@ export interface DbtGovernanceWorkspaceExpansionData {
   projectVersion?: string | number;
   profile?: string;
   configVersion?: number;
+  project?: Record<string, unknown>;
   artifactPaths?: {
     projectDir?: string;
     dbtProjectPath?: string;
@@ -61,6 +62,19 @@ export interface DbtGovernanceWorkspaceExpansionData {
     invocationId?: string;
   };
   projectNodeIds?: string[];
+  testEvidence?: DbtGovernanceWorkspaceTestEvidence[];
+}
+
+export interface DbtGovernanceWorkspaceTestEvidence {
+  uniqueId: string;
+  name: string;
+  packageName: string;
+  dependsOnNodeIds: string[];
+  targetNodeIds: string[];
+  originalFilePath?: string;
+  sourcePath?: string;
+  tags?: string[];
+  meta?: Record<string, unknown>;
 }
 
 export interface DbtGovernanceNodeExpansionData {
@@ -473,11 +487,17 @@ export function validateDbtGovernanceModelExpansion(
 
   switch (data.kind) {
     case 'workspace':
+      validateOptionalRecord(data.project, '/data/project', issues);
       validateOptionalRecord(data.artifactPaths, '/data/artifactPaths', issues);
       validateOptionalRecord(data.manifest, '/data/manifest', issues);
       validateOptionalStringArray(
         data.projectNodeIds,
         '/data/projectNodeIds',
+        issues,
+      );
+      validateOptionalRecordArray(
+        data.testEvidence,
+        '/data/testEvidence',
         issues,
       );
       break;
@@ -571,6 +591,24 @@ function validateOptionalStringArray(
       code: 'dbt.expansion.invalid_string_array',
       severity: 'error',
       message: 'Expected a non-empty string array when present.',
+      path,
+    });
+  }
+}
+
+function validateOptionalRecordArray(
+  value: unknown,
+  path: string,
+  issues: GovernanceExtensionContractIssue[],
+): void {
+  if (
+    value !== undefined &&
+    (!Array.isArray(value) || value.some((entry) => !isRecord(entry)))
+  ) {
+    issues.push({
+      code: 'dbt.expansion.invalid_array',
+      severity: 'error',
+      message: 'Expected an array of objects.',
       path,
     });
   }

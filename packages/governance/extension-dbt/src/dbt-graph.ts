@@ -7,6 +7,8 @@ import type {
 } from '@anarchitects/governance-core';
 
 import type {
+  DbtGovernanceWorkspaceExpansionData,
+  DbtGovernanceWorkspaceTestEvidence,
   DbtGovernanceModelExpansionData,
   DbtGovernanceNodeExpansionData,
   DbtGovernanceRelationExpansionData,
@@ -161,27 +163,10 @@ export function toResolverInput(
 export function buildDbtInferredTestNodeIdsByTarget(
   workspace: GovernanceWorkspace,
 ): ReadonlyMap<string, readonly string[]> {
-  const nodeById = indexNodesById(workspace.nodes);
   const inferredByTarget = new Map<string, Set<string>>();
 
-  for (const relation of getDbtRelations(workspace)) {
-    const sourceNode = nodeById.get(relation.sourceNodeId);
-    const targetNode = nodeById.get(relation.targetNodeId);
-
-    if (
-      !sourceNode ||
-      !targetNode ||
-      !isDbtTestNode(sourceNode) ||
-      !isDbtTestCoverageTarget(targetNode)
-    ) {
-      continue;
-    }
-
-    const inferredTestNodeIds =
-      inferredByTarget.get(targetNode.id) ?? new Set<string>();
-    inferredTestNodeIds.add(sourceNode.id);
-    inferredByTarget.set(targetNode.id, inferredTestNodeIds);
-  }
+  collectInferredTestNodeIdsFromRelations(workspace, inferredByTarget);
+  collectInferredTestNodeIdsFromWorkspaceEvidence(workspace, inferredByTarget);
 
   return new Map(
     [...inferredByTarget.entries()].map(([targetNodeId, testNodeIds]) => [
@@ -271,26 +256,99 @@ function getDbtRelationExpansionData(
 }
 
 function buildWorkspaceDbtMetadata(
-  expansion: Extract<DbtGovernanceModelExpansionData, { kind: 'workspace' }>,
+  expansion: DbtGovernanceWorkspaceExpansionData,
 ): Record<string, unknown> {
-  return {
-    ...(expansion.projectName
+  const project =
+    expansion.project ??
+    (expansion.projectName
       ? {
-          project: {
-            name: expansion.projectName,
-            ...(expansion.projectVersion !== undefined
-              ? { version: expansion.projectVersion }
-              : {}),
-            ...(expansion.profile ? { profile: expansion.profile } : {}),
-            ...(expansion.configVersion !== undefined
-              ? { configVersion: expansion.configVersion }
-              : {}),
-          },
+          name: expansion.projectName,
+          ...(expansion.projectVersion !== undefined
+            ? { version: expansion.projectVersion }
+            : {}),
+          ...(expansion.profile ? { profile: expansion.profile } : {}),
+          ...(expansion.configVersion !== undefined
+            ? { configVersion: expansion.configVersion }
+            : {}),
         }
-      : {}),
+      : undefined);
+
+  return {
+    ...(project ? { project } : {}),
     ...(expansion.manifest ? { manifest: expansion.manifest } : {}),
     ...(expansion.artifactPaths ? { paths: expansion.artifactPaths } : {}),
+    ...(expansion.projectNodeIds
+      ? { projectNodeIds: expansion.projectNodeIds }
+      : {}),
+    ...(expansion.testEvidence ? { testEvidence: expansion.testEvidence } : {}),
   };
+}
+
+function collectInferredTestNodeIdsFromRelations(
+  workspace: GovernanceWorkspace,
+  inferredByTarget: Map<string, Set<string>>,
+): void {
+  const nodeById = indexNodesById(workspace.nodes);
+
+  for (const relation of getDbtRelations(workspace)) {
+    const sourceNode = nodeById.get(relation.sourceNodeId);
+    const targetNode = nodeById.get(relation.targetNodeId);
+
+    if (
+      !sourceNode ||
+      !targetNode ||
+      !isDbtTestNode(sourceNode) ||
+      !isDbtTestCoverageTarget(targetNode)
+    ) {
+      continue;
+    }
+
+    const inferredTestNodeIds =
+      inferredByTarget.get(targetNode.id) ?? new Set<string>();
+    inferredTestNodeIds.add(sourceNode.id);
+    inferredByTarget.set(targetNode.id, inferredTestNodeIds);
+  }
+}
+
+function collectInferredTestNodeIdsFromWorkspaceEvidence(
+  workspace: GovernanceWorkspace,
+  inferredByTarget: Map<string, Set<string>>,
+): void {
+  for (const evidence of getDbtWorkspaceTestEvidence(workspace)) {
+    for (const targetNodeId of evidence.targetNodeIds) {
+      const inferredTestNodeIds =
+        inferredByTarget.get(targetNodeId) ?? new Set<string>();
+      inferredTestNodeIds.add(evidence.uniqueId);
+      inferredByTarget.set(targetNodeId, inferredTestNodeIds);
+    }
+  }
+}
+
+function getDbtWorkspaceTestEvidence(
+  workspace: GovernanceWorkspace,
+): readonly DbtGovernanceWorkspaceTestEvidence[] {
+  const expansion = getDbtExpansionData(workspace);
+  if (
+    expansion?.kind !== 'workspace' ||
+    !Array.isArray(expansion.testEvidence)
+  ) {
+    return [];
+  }
+
+  return expansion.testEvidence.filter(isDbtWorkspaceTestEvidence);
+}
+
+function isDbtWorkspaceTestEvidence(
+  value: unknown,
+): value is DbtGovernanceWorkspaceTestEvidence {
+  return (
+    isRecord(value) &&
+    typeof value.uniqueId === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.packageName === 'string' &&
+    Array.isArray(value.targetNodeIds) &&
+    value.targetNodeIds.every((entry) => typeof entry === 'string')
+  );
 }
 
 function buildNodeDbtMetadata(

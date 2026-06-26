@@ -8,6 +8,18 @@ import type { DbtArtifacts, DbtProjectContext } from './contracts.js';
 const DBT_GOVERNANCE_EXTENSION_ID = 'governance-extension:dbt';
 const DBT_GOVERNANCE_EXPANSION_CONTRACT_VERSION = '1';
 
+export interface DbtGovernanceWorkspaceTestEvidence {
+  uniqueId: string;
+  name: string;
+  packageName: string;
+  dependsOnNodeIds: string[];
+  targetNodeIds: string[];
+  originalFilePath?: string;
+  sourcePath?: string;
+  tags?: string[];
+  meta?: Record<string, unknown>;
+}
+
 interface DbtGovernanceWorkspaceExpansionData {
   kind: 'workspace';
   technology: 'dbt';
@@ -15,6 +27,7 @@ interface DbtGovernanceWorkspaceExpansionData {
   projectVersion?: string | number;
   profile?: string;
   configVersion?: number;
+  project?: Record<string, unknown>;
   artifactPaths?: {
     projectDir?: string;
     dbtProjectPath?: string;
@@ -32,6 +45,7 @@ interface DbtGovernanceWorkspaceExpansionData {
     invocationId?: string;
   };
   projectNodeIds?: string[];
+  testEvidence?: DbtGovernanceWorkspaceTestEvidence[];
 }
 
 interface DbtGovernanceNodeExpansionData {
@@ -105,6 +119,7 @@ export function buildDbtWorkspaceExpansion(
   projectContext: DbtProjectContext,
   artifacts: DbtArtifacts,
   projectNodeIds: readonly string[],
+  testEvidence: readonly DbtGovernanceWorkspaceTestEvidence[] = [],
 ) {
   return createDbtGovernanceModelExpansion({
     kind: 'workspace',
@@ -119,6 +134,36 @@ export function buildDbtWorkspaceExpansion(
     ...(artifacts.projectConfig.configVersion !== undefined
       ? { configVersion: artifacts.projectConfig.configVersion }
       : {}),
+    project: {
+      name: artifacts.projectConfig.name,
+      ...(artifacts.projectConfig.version !== undefined
+        ? { version: artifacts.projectConfig.version }
+        : {}),
+      ...(artifacts.projectConfig.configVersion !== undefined
+        ? { configVersion: artifacts.projectConfig.configVersion }
+        : {}),
+      ...(artifacts.projectConfig.profile
+        ? { profile: artifacts.projectConfig.profile }
+        : {}),
+      ...(artifacts.projectConfig.modelPaths
+        ? { modelPaths: artifacts.projectConfig.modelPaths }
+        : {}),
+      ...(artifacts.projectConfig.seedPaths
+        ? { seedPaths: artifacts.projectConfig.seedPaths }
+        : {}),
+      ...(artifacts.projectConfig.snapshotPaths
+        ? { snapshotPaths: artifacts.projectConfig.snapshotPaths }
+        : {}),
+      ...(artifacts.projectConfig.analysisPaths
+        ? { analysisPaths: artifacts.projectConfig.analysisPaths }
+        : {}),
+      ...(artifacts.projectConfig.macroPaths
+        ? { macroPaths: artifacts.projectConfig.macroPaths }
+        : {}),
+      ...(artifacts.projectConfig.testPaths
+        ? { testPaths: artifacts.projectConfig.testPaths }
+        : {}),
+    },
     artifactPaths: {
       projectDir: projectContext.projectDir,
       dbtProjectPath: projectContext.dbtProjectPath,
@@ -150,21 +195,26 @@ export function buildDbtWorkspaceExpansion(
         : {}),
     },
     projectNodeIds: [...projectNodeIds].sort(),
+    ...(testEvidence.length > 0
+      ? {
+          testEvidence: [...testEvidence]
+            .map((entry) => ({
+              uniqueId: entry.uniqueId,
+              name: entry.name,
+              packageName: entry.packageName,
+              dependsOnNodeIds: [...entry.dependsOnNodeIds].sort(),
+              targetNodeIds: [...entry.targetNodeIds].sort(),
+              ...(entry.originalFilePath
+                ? { originalFilePath: entry.originalFilePath }
+                : {}),
+              ...(entry.sourcePath ? { sourcePath: entry.sourcePath } : {}),
+              ...(entry.tags ? { tags: [...entry.tags].sort() } : {}),
+              ...(entry.meta ? { meta: structuredClone(entry.meta) } : {}),
+            }))
+            .sort((left, right) => left.uniqueId.localeCompare(right.uniqueId)),
+        }
+      : {}),
   } satisfies DbtGovernanceWorkspaceExpansionData);
-}
-
-export function buildDbtProjectNodeExpansion(
-  metadata: Record<string, unknown>,
-) {
-  return createDbtGovernanceModelExpansion({
-    kind: 'node',
-    technology: 'dbt',
-    nodeKind: 'project',
-    resourceType: 'project',
-    project: readRecord(metadata, 'project'),
-    identity: readRecord(metadata, 'identity'),
-    relation: readRecord(metadata, 'relation'),
-  } satisfies DbtGovernanceNodeExpansionData);
 }
 
 export function buildDbtResourceNodeExpansion(

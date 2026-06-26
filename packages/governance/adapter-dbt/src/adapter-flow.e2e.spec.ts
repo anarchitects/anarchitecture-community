@@ -27,12 +27,6 @@ describe('dbt adapter flow e2e', () => {
     expect(result).not.toHaveProperty('dependencies');
     expect(result.nodes).toEqual([
       expect.objectContaining({
-        id: 'dbt.project.simple_project',
-        name: 'simple_project',
-        kind: 'project',
-        technology: 'dbt',
-      }),
-      expect.objectContaining({
         id: 'model.simple_project.hello_world',
         name: 'hello_world',
         kind: 'resource',
@@ -56,7 +50,6 @@ describe('dbt adapter flow e2e', () => {
 
     expect(result.nodes?.map((node) => node.id)).toEqual(
       expect.arrayContaining([
-        'dbt.project.layered_project',
         'model.layered_project.stg_orders',
         'model.layered_project.stg_customers',
         'model.layered_project.int_orders_enriched',
@@ -238,10 +231,6 @@ describe('dbt adapter flow e2e', () => {
     expect(result.relations).toEqual([]);
     expect(result.nodes).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          id: 'dbt.project.unresolved_dependency',
-          kind: 'project',
-        }),
         expect.objectContaining({
           id: 'model.unresolved_dependency.orders',
           kind: 'resource',
