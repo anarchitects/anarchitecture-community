@@ -19,6 +19,7 @@ interface DbtNodeExpansionEnvelope {
   data: {
     kind: 'node';
     nodeKind: 'project' | 'resource' | 'unknown';
+    resourceType?: string;
     resource?: Record<string, unknown>;
   };
 }
@@ -40,6 +41,9 @@ interface DbtWorkspaceExpansionEnvelope {
     kind: 'workspace';
     technology?: string;
     projectName: string;
+    project?: Record<string, unknown>;
+    projectNodeIds?: string[];
+    testEvidence?: Array<Record<string, unknown>>;
   };
 }
 
@@ -60,15 +64,17 @@ describe('dbt artifact normalization', () => {
     expect(normalized.relations?.length).toBeGreaterThan(0);
   });
 
-  it('normalizes the dbt project, models, sources, seeds, snapshots, and exposures into canonical nodes', () => {
+  it('normalizes models, sources, seeds, snapshots, and exposures into canonical nodes while keeping project context at workspace level', () => {
     const context = mustResolveContext('valid-project');
     const artifacts = mustLoadArtifacts(context);
     const normalized = normalizeDbtArtifacts(context, artifacts);
     const nodeIds = normalized.nodes?.map((node) => node.id) ?? [];
+    const workspaceExpansion = normalized.extensions?.[
+      'governance-extension:dbt'
+    ] as DbtWorkspaceExpansionEnvelope | undefined;
 
     expect(nodeIds).toEqual(
       expect.arrayContaining([
-        'dbt.project.valid_project',
         'model.valid_project.stg_orders',
         'model.valid_project.orders',
         'model.valid_project.orders_regional',
@@ -78,29 +84,26 @@ describe('dbt artifact normalization', () => {
         'exposure.valid_project.executive_dashboard',
       ]),
     );
+    expect(nodeIds).not.toContain('dbt.project.valid_project');
+    expect(nodeIds.some((nodeId) => nodeId.startsWith('dbt.project.'))).toBe(
+      false,
+    );
+    expect(nodeIds.some((nodeId) => nodeId.startsWith('test.'))).toBe(false);
 
-    expect(
-      normalized.nodes?.find((node) => node.id === 'dbt.project.valid_project'),
-    ).toMatchObject({
-      kind: 'project',
-      technology: 'dbt',
-      sourceSystem: 'dbt',
-      extensions: {
-        'governance-extension:dbt': expect.objectContaining({
-          data: expect.objectContaining({
-            kind: 'node',
-            nodeKind: 'project',
-            resourceType: 'project',
-            identity: expect.objectContaining({
-              projectName: 'valid_project',
-              resourceType: 'project',
-            }),
-            project: expect.objectContaining({
-              name: 'valid_project',
-              profile: 'analytics',
-            }),
-          }),
+    expect(workspaceExpansion).toMatchObject({
+      data: {
+        kind: 'workspace',
+        technology: 'dbt',
+        projectName: 'valid_project',
+        project: expect.objectContaining({
+          name: 'valid_project',
+          profile: 'analytics',
         }),
+        projectNodeIds: expect.arrayContaining([
+          'model.valid_project.orders',
+          'source.valid_project.raw.orders',
+          'seed.valid_project.countries',
+        ]),
       },
     });
 
@@ -208,6 +211,163 @@ describe('dbt artifact normalization', () => {
         }),
       },
     });
+  });
+
+  it('keeps dbt test evidence in workspace expansion instead of canonical nodes', () => {
+    const context = mustResolveContext('valid-project');
+    const normalized = normalizeDbtArtifacts(context, {
+      manifest: buildSyntheticManifestFromResources([
+        [
+          'source.valid_project.raw.orders',
+          {
+            resource_type: 'source',
+            unique_id: 'source.valid_project.raw.orders',
+            package_name: 'valid_project',
+            name: 'orders',
+            source_name: 'raw',
+            relation_name: '"warehouse"."raw"."orders"',
+            original_file_path: 'models/raw/raw.yml',
+            tags: ['raw'],
+            tests: ['freshness'],
+          },
+        ],
+        [
+          'seed.valid_project.countries',
+          {
+            resource_type: 'seed',
+            unique_id: 'seed.valid_project.countries',
+            package_name: 'valid_project',
+            name: 'countries',
+            relation_name: '"analytics"."reference"."countries"',
+            original_file_path: 'seeds/countries.csv',
+            tests: ['unique:country_code'],
+            config: {
+              materialized: 'seed',
+            },
+          },
+        ],
+        [
+          'model.valid_project.orders',
+          {
+            resource_type: 'model',
+            unique_id: 'model.valid_project.orders',
+            package_name: 'valid_project',
+            name: 'orders',
+            relation_name: '"analytics"."marts"."orders"',
+            original_file_path: 'models/marts/orders.sql',
+            tests: false,
+            config: {
+              materialized: 'table',
+              contract: {
+                enforced: true,
+              },
+            },
+            depends_on: {
+              nodes: [
+                'source.valid_project.raw.orders',
+                'seed.valid_project.countries',
+              ],
+            },
+          },
+        ],
+        [
+          'test.valid_project.relationships_orders_country_code',
+          {
+            resource_type: 'test',
+            unique_id: 'test.valid_project.relationships_orders_country_code',
+            package_name: 'valid_project',
+            name: 'relationships_orders_country_code',
+            original_file_path:
+              'tests/generic/relationships_orders_country_code.sql',
+            tags: ['critical', 'relationships'],
+            meta: {
+              severity: 'error',
+            },
+            depends_on: {
+              nodes: [
+                'model.valid_project.orders',
+                'seed.valid_project.countries',
+              ],
+            },
+          },
+        ],
+      ]),
+      projectConfig: {
+        name: 'valid_project',
+        profile: 'analytics',
+        modelPaths: ['models'],
+        seedPaths: ['seeds'],
+        testPaths: ['tests'],
+      },
+    });
+    const workspaceExpansion = normalized.extensions?.[
+      'governance-extension:dbt'
+    ] as DbtWorkspaceExpansionEnvelope | undefined;
+    const nodeIds = normalized.nodes?.map((node) => node.id) ?? [];
+
+    expect(nodeIds).toEqual(
+      expect.arrayContaining([
+        'model.valid_project.orders',
+        'source.valid_project.raw.orders',
+        'seed.valid_project.countries',
+      ]),
+    );
+    expect(nodeIds).not.toContain(
+      'test.valid_project.relationships_orders_country_code',
+    );
+    expect(
+      normalized.nodes?.some((node) => {
+        const expansion = getDbtNodeExpansion(node);
+        return expansion?.data.resourceType === 'test';
+      }),
+    ).toBe(false);
+
+    expect(workspaceExpansion).toMatchObject({
+      data: {
+        project: expect.objectContaining({
+          name: 'valid_project',
+          profile: 'analytics',
+          modelPaths: ['models'],
+          seedPaths: ['seeds'],
+          testPaths: ['tests'],
+        }),
+        testEvidence: [
+          expect.objectContaining({
+            uniqueId: 'test.valid_project.relationships_orders_country_code',
+            name: 'relationships_orders_country_code',
+            packageName: 'valid_project',
+            dependsOnNodeIds: [
+              'model.valid_project.orders',
+              'seed.valid_project.countries',
+            ],
+            targetNodeIds: [
+              'model.valid_project.orders',
+              'seed.valid_project.countries',
+            ],
+            originalFilePath:
+              'tests/generic/relationships_orders_country_code.sql',
+            tags: ['critical', 'relationships'],
+            meta: {
+              severity: 'error',
+            },
+          }),
+        ],
+      },
+    });
+    expect(normalized.relations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceNodeId: 'model.valid_project.orders',
+          targetNodeId: 'source.valid_project.raw.orders',
+          kind: 'dependency',
+        }),
+        expect.objectContaining({
+          sourceNodeId: 'model.valid_project.orders',
+          targetNodeId: 'seed.valid_project.countries',
+          kind: 'dependency',
+        }),
+      ]),
+    );
   });
 
   it('preserves stable dbt identifiers and metadata on canonical nodes', () => {
@@ -1081,17 +1241,6 @@ describe('dbt artifact normalization', () => {
     const workspaceExpansion = normalized.extensions?.[
       'governance-extension:dbt'
     ] as DbtWorkspaceExpansionEnvelope | undefined;
-    const projectNodeExpansion = normalized.nodes
-      ?.flatMap((node) => {
-        const expansion = node.extensions?.['governance-extension:dbt'] as
-          | DbtNodeExpansionEnvelope
-          | undefined;
-        return expansion?.data.kind === 'node' &&
-          expansion.data.nodeKind === 'project'
-          ? [expansion]
-          : [];
-      })
-      .at(0);
     const resourceNodeExpansion = normalized.nodes
       ?.flatMap((node) => {
         const expansion = node.extensions?.['governance-extension:dbt'] as
@@ -1112,31 +1261,21 @@ describe('dbt artifact normalization', () => {
       })
       .at(0);
 
-    [
-      workspaceExpansion,
-      projectNodeExpansion,
-      resourceNodeExpansion,
-      relationExpansion,
-    ].forEach((expansion) => {
-      expect(expansion).toBeDefined();
-      expect(expansion).toMatchObject({
-        extensionId: 'governance-extension:dbt',
-        contractVersion: '1',
-      });
-    });
+    [workspaceExpansion, resourceNodeExpansion, relationExpansion].forEach(
+      (expansion) => {
+        expect(expansion).toBeDefined();
+        expect(expansion).toMatchObject({
+          extensionId: 'governance-extension:dbt',
+          contractVersion: '1',
+        });
+      },
+    );
 
     expect(workspaceExpansion).toMatchObject({
       data: {
         kind: 'workspace',
         technology: 'dbt',
         projectName: 'valid_project',
-      },
-    });
-    expect(projectNodeExpansion).toMatchObject({
-      data: {
-        kind: 'node',
-        technology: 'dbt',
-        nodeKind: 'project',
       },
     });
     expect(resourceNodeExpansion).toMatchObject({
@@ -1219,36 +1358,43 @@ function buildSyntheticManifest(
   uniqueId: string,
   resource: DbtManifestResource,
 ): DbtArtifacts['manifest'] {
-  const resourceType =
-    typeof resource.resource_type === 'string'
-      ? resource.resource_type
-      : 'model';
-  const entry = {
-    resource_type: resourceType,
-    unique_id: uniqueId,
-    package_name: 'valid_project',
-    name: 'synthetic_owner_case',
-    ...(resourceType === 'source' ? { source_name: 'synthetic_source' } : {}),
-    ...resource,
-  };
+  return buildSyntheticManifestFromResources([[uniqueId, resource]]);
+}
+
+function buildSyntheticManifestFromResources(
+  resources: ReadonlyArray<readonly [string, DbtManifestResource]>,
+): DbtArtifacts['manifest'] {
+  const nodes: Record<string, DbtManifestResource> = {};
+  const sources: Record<string, DbtManifestResource> = {};
+
+  for (const [uniqueId, resource] of resources) {
+    const resourceType =
+      typeof resource.resource_type === 'string'
+        ? resource.resource_type
+        : 'model';
+    const entry = {
+      resource_type: resourceType,
+      unique_id: uniqueId,
+      package_name: 'valid_project',
+      name: 'synthetic_owner_case',
+      ...(resourceType === 'source' ? { source_name: 'synthetic_source' } : {}),
+      ...resource,
+    };
+
+    if (resourceType === 'source') {
+      sources[uniqueId] = entry;
+      continue;
+    }
+
+    nodes[uniqueId] = entry;
+  }
 
   return {
     metadata: {
       dbt_schema_version: 'https://schemas.getdbt.com/dbt/manifest/v12.json',
       project_name: 'valid_project',
     },
-    nodes:
-      resourceType === 'source'
-        ? {}
-        : {
-            [uniqueId]: entry,
-          },
-    ...(resourceType === 'source'
-      ? {
-          sources: {
-            [uniqueId]: entry,
-          },
-        }
-      : {}),
+    nodes,
+    ...(Object.keys(sources).length > 0 ? { sources } : {}),
   };
 }

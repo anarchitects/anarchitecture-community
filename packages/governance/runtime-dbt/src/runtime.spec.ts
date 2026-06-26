@@ -34,15 +34,16 @@ describe('runDbtGovernanceRuntime', () => {
     expect(result.workspace?.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: 'dbt.project.layered_project',
-          kind: 'project',
-        }),
-        expect.objectContaining({
           id: 'model.layered_project.fct_orders',
           kind: 'resource',
         }),
       ]),
     );
+    expect(
+      result.workspace?.nodes.some(
+        (node) => node.id === 'dbt.project.layered_project',
+      ),
+    ).toBe(false);
     expect(result.workspace?.relations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

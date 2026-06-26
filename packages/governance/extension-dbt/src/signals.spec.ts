@@ -489,6 +489,49 @@ describe('dbt governance signals', () => {
     expect(modelSignalCodes).not.toContain('DBT_TESTS_MISSING');
   });
 
+  it('treats workspace dbt test evidence linked to a model as test coverage', () => {
+    const modelId = 'model.analytics.orders';
+    const workspace: GovernanceWorkspace = {
+      ...createWorkspace([
+        createProject({
+          id: modelId,
+          layer: 'marts',
+          domain: 'finance',
+          tests: false,
+        }),
+      ]),
+      extensions: {
+        'governance-extension:dbt': {
+          extensionId: 'governance-extension:dbt',
+          contractVersion: '1',
+          data: {
+            kind: 'workspace',
+            technology: 'dbt',
+            projectName: 'analytics',
+            testEvidence: [
+              {
+                uniqueId: 'test.analytics.not_null_orders_order_id',
+                name: 'not_null_orders_order_id',
+                packageName: 'analytics',
+                dependsOnNodeIds: [modelId],
+                targetNodeIds: [modelId],
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    const modelSignalCodes = buildDbtGovernanceSignals(
+      createSignalInput(workspace),
+    )
+      .filter((signal) => signal.nodeId === modelId)
+      .map((signal) => String(signal.metadata?.code ?? ''));
+
+    expect(modelSignalCodes).toContain('DBT_TESTS_PRESENT');
+    expect(modelSignalCodes).not.toContain('DBT_TESTS_MISSING');
+  });
+
   it('treats dbt source tests linked to a source as test coverage', () => {
     const sourceId = 'source.analytics.raw.orders';
     const workspace = createWorkspace(
