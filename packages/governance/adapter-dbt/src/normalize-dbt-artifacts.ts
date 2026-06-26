@@ -835,7 +835,7 @@ function buildCanonicalNodeMetadata(
   resourceType: string,
   dbtMetadata: Record<string, unknown>,
 ): Record<string, unknown> {
-  if (!isCanonicalGovernedDbtAssetResourceType(resourceType)) {
+  if (!isCanonicalDbtAssetResourceType(resourceType)) {
     return {};
   }
 
@@ -843,7 +843,12 @@ function buildCanonicalNodeMetadata(
   const documented =
     documentation?.hasDescription === true || documentation?.hasDocs === true;
 
-  return documented ? { documentation: true } : {};
+  return {
+    governance: {
+      kind: 'asset',
+    },
+    ...(documented ? { documentation: true } : {}),
+  };
 }
 
 function deriveClassification(
@@ -1149,17 +1154,6 @@ function readCompanionGovernanceFieldValue(
 function inferScope(tags: readonly string[]): string | undefined {
   const scopedTag = tags.find((tag) => tag.startsWith('scope:'));
   return scopedTag?.split(':').slice(1).join(':');
-}
-
-function isCanonicalGovernedDbtAssetResourceType(
-  resourceType: string,
-): boolean {
-  return (
-    resourceType === 'model' ||
-    resourceType === 'source' ||
-    resourceType === 'seed' ||
-    resourceType === 'snapshot'
-  );
 }
 
 function normalizeOwnership(

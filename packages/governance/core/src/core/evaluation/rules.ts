@@ -66,6 +66,13 @@ export type GovernanceDriftClassification =
   | 'implemented-vs-runtime'
   | (string & {});
 
+export type GovernancePolicySubjectKind =
+  | 'asset'
+  | 'evidence'
+  | 'context'
+  | 'unknown'
+  | (string & {});
+
 /**
  * Describes when a rule is meaningful without hardcoding a technology or host.
  * Hosts may use this contract for future rule selection; the current engine
@@ -80,6 +87,17 @@ export interface GovernanceRuleApplicability {
   classification?: Partial<GovernanceClassificationInput>;
   ownership?: Partial<GovernanceOwnershipInput>;
   metadata?: Record<string, unknown>;
+}
+
+export function readGovernancePolicySubjectKind(
+  metadata: Record<string, unknown> | undefined,
+): GovernancePolicySubjectKind | undefined {
+  const governance = asRecord(metadata?.governance);
+  const kind = governance?.kind;
+
+  return typeof kind === 'string' && kind.trim().length > 0
+    ? (kind.trim() as GovernancePolicySubjectKind)
+    : undefined;
 }
 
 export interface GovernanceRuleFinding {
@@ -201,4 +219,10 @@ export interface GovernanceRulePack<TOptions = unknown> {
   id: string;
   name: string;
   rules: GovernanceRule<TOptions>[];
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
 }

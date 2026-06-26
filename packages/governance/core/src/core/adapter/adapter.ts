@@ -134,7 +134,9 @@ export interface GovernanceNodeInput {
   extensions?: GovernanceExtensionModelExpansionMap;
   // Adapter-specific or extension-owned expansion data can be attached here.
   // Core keeps metadata opaque unless a generic canonical contract says
-  // otherwise.
+  // otherwise. One generic Core contract currently reads
+  // metadata.governance.kind to distinguish governed assets from
+  // evidence/context subjects for rule applicability.
   metadata?: Record<string, unknown>;
 }
 

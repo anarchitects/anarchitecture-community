@@ -123,6 +123,9 @@ describe('dbt artifact normalization', () => {
         tags: ['finance', 'published', 'scope:analytics'],
       },
       metadata: {
+        governance: {
+          kind: 'asset',
+        },
         documentation: true,
       },
       extensions: {
@@ -188,6 +191,11 @@ describe('dbt artifact normalization', () => {
       kind: 'resource',
       ownership: {
         team: 'data-eng',
+      },
+      metadata: {
+        governance: {
+          kind: 'asset',
+        },
       },
       extensions: {
         'governance-extension:dbt': expect.objectContaining({
@@ -362,6 +370,13 @@ describe('dbt artifact normalization', () => {
         ],
       },
     });
+    expect(
+      normalized.nodes?.every(
+        (node) =>
+          (node.metadata as { governance?: { kind?: string } } | undefined)
+            ?.governance?.kind === 'asset',
+      ),
+    ).toBe(true);
     expect(normalized.relations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -550,7 +565,10 @@ describe('dbt artifact normalization', () => {
       team: 'analytics-engineering',
       source: 'dbt-manifest',
     });
-    expect(node.metadata).toEqual({
+    expect(node.metadata).toMatchObject({
+      governance: {
+        kind: 'asset',
+      },
       documentation: true,
     });
     expect(getDbtNodeExpansion(node)?.data.resource).toMatchObject({

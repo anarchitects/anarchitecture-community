@@ -53,6 +53,7 @@ export interface GovernanceNode {
   extensions?: GovernanceExtensionModelExpansionMap;
   // Extensions may persist owned expansion data here, but Core only interprets
   // metadata when an explicit generic contract defines semantics for it.
+  // metadata.governance.kind is a generic rule-applicability marker when set.
   metadata: Record<string, unknown>;
 }
 
