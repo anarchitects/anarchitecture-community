@@ -12,6 +12,8 @@ export interface DbtGovernanceWorkspaceTestEvidence {
   uniqueId: string;
   name: string;
   packageName: string;
+  resourceType: 'test';
+  testType?: string;
   dependsOnNodeIds: string[];
   targetNodeIds: string[];
   originalFilePath?: string;
@@ -202,6 +204,8 @@ export function buildDbtWorkspaceExpansion(
               uniqueId: entry.uniqueId,
               name: entry.name,
               packageName: entry.packageName,
+              resourceType: entry.resourceType,
+              ...(entry.testType ? { testType: entry.testType } : {}),
               dependsOnNodeIds: [...entry.dependsOnNodeIds].sort(),
               targetNodeIds: [...entry.targetNodeIds].sort(),
               ...(entry.originalFilePath

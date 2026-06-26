@@ -283,6 +283,9 @@ describe('dbt artifact normalization', () => {
             meta: {
               severity: 'error',
             },
+            test_metadata: {
+              name: 'relationships',
+            },
             depends_on: {
               nodes: [
                 'model.valid_project.orders',
@@ -336,6 +339,8 @@ describe('dbt artifact normalization', () => {
             uniqueId: 'test.valid_project.relationships_orders_country_code',
             name: 'relationships_orders_country_code',
             packageName: 'valid_project',
+            resourceType: 'test',
+            testType: 'relationships',
             dependsOnNodeIds: [
               'model.valid_project.orders',
               'seed.valid_project.countries',
@@ -368,6 +373,25 @@ describe('dbt artifact normalization', () => {
         }),
       ]),
     );
+    expect(normalized.relations).toHaveLength(2);
+    expect(
+      normalized.relations?.some(
+        (relation) => relation.kind === 'traceability',
+      ),
+    ).toBe(false);
+    expect(
+      normalized.relations?.some((relation) =>
+        relation.id?.startsWith('dbt:tests:'),
+      ),
+    ).toBe(false);
+    expect(
+      normalized.relations?.some((relation) => {
+        const expansion = relation.extensions?.['governance-extension:dbt'] as
+          | DbtRelationExpansionEnvelope
+          | undefined;
+        return expansion?.data.relationKind === 'tests';
+      }),
+    ).toBe(false);
   });
 
   it('preserves stable dbt identifiers and metadata on canonical nodes', () => {
@@ -703,6 +727,23 @@ describe('dbt artifact normalization', () => {
         }),
       ]),
     );
+    expect(normalized.relations).toHaveLength(6);
+    expect(
+      normalized.relations?.every((relation) => relation.kind === 'dependency'),
+    ).toBe(true);
+    expect(
+      normalized.relations?.every(
+        (relation) => !relation.id?.startsWith('dbt:tests:'),
+      ),
+    ).toBe(true);
+    expect(
+      normalized.relations?.every((relation) => {
+        const expansion = relation.extensions?.['governance-extension:dbt'] as
+          | DbtRelationExpansionEnvelope
+          | undefined;
+        return expansion?.data.relationKind !== 'tests';
+      }),
+    ).toBe(true);
   });
 
   it.each([

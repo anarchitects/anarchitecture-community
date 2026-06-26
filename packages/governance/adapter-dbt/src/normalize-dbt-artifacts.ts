@@ -82,6 +82,8 @@ interface RelationMappingResult {
   unsupportedCount: number;
 }
 
+type CanonicalDbtRelationKind = 'lineage' | 'exposes';
+
 interface DbtSourceMetadataView {
   tableMeta: ResourceRecord;
   sourceMeta?: ResourceRecord;
@@ -231,6 +233,10 @@ function mapDbtRelations(
       continue;
     }
 
+    if (isDbtTestEvidenceResourceType(sourceResource.resourceType)) {
+      continue;
+    }
+
     const dependsOn = readDependsOnNodeIds(
       sourceResource.manifestRecord,
       sourceUniqueId,
@@ -259,6 +265,18 @@ function mapDbtRelations(
         continue;
       }
 
+      const targetResourceType = readManifestResourceType(
+        targetManifestResource,
+      );
+      if (
+        isDbtTestEvidenceRelation(
+          sourceResource.resourceType,
+          targetResourceType,
+        )
+      ) {
+        continue;
+      }
+
       const targetResource = normalizedResourcesById.get(targetUniqueId);
       if (!targetResource) {
         diagnostics.push(
@@ -272,10 +290,7 @@ function mapDbtRelations(
       }
 
       relationKeys.add(relationKey);
-      const relationKind = buildDbtRelationKind(
-        sourceResource.resourceType,
-        targetResource.resourceType,
-      );
+      const relationKind = buildDbtRelationKind(sourceResource.resourceType);
       const relationMetadata = buildRelationMetadata(
         sourceUniqueId,
         sourceResource.manifestRecord,
@@ -315,7 +330,7 @@ function buildRelationMetadata(
   sourceResource: ResourceRecord,
   targetUniqueId: string,
   targetResource: ResourceRecord,
-  relationKind: GovernanceRelationInput['kind'],
+  relationKind: CanonicalDbtRelationKind,
 ): Record<string, unknown> {
   const targetResourceType = readOptionalString(targetResource.resource_type);
   const dependencyKind = targetResourceType === 'source' ? 'source' : 'ref';
@@ -641,11 +656,14 @@ function normalizeDbtTestEvidence(
     : undefined;
   const tags = readStringArray(record.tags);
   const meta = asRecord(record.meta);
+  const testType = readDbtTestType(record);
 
   return {
     uniqueId,
     name,
     packageName,
+    resourceType: 'test',
+    ...(testType ? { testType } : {}),
     dependsOnNodeIds: [...dependsOn.nodeIds].sort(),
     targetNodeIds: [...dependsOn.nodeIds].sort(),
     ...(originalFilePath ? { originalFilePath } : {}),
@@ -1054,29 +1072,24 @@ function toCanonicalNodeKind(
 
 function buildDbtRelationKind(
   sourceResourceType: string,
-  targetResourceType: string,
-): 'lineage' | 'exposes' | 'tests' {
+): CanonicalDbtRelationKind {
   if (sourceResourceType === 'exposure') {
     return 'exposes';
-  }
-
-  if (sourceResourceType === 'test' || targetResourceType === 'test') {
-    return 'tests';
   }
 
   return 'lineage';
 }
 
 function toCanonicalRelationKind(
-  relationKind: 'lineage' | 'exposes' | 'tests',
+  _relationKind: CanonicalDbtRelationKind,
 ): GovernanceRelationInput['kind'] {
-  return relationKind === 'tests' ? 'traceability' : 'dependency';
+  return 'dependency';
 }
 
 function buildDbtRelationId(
   sourceNodeId: string,
   targetNodeId: string,
-  relationKind: GovernanceRelationInput['kind'],
+  relationKind: CanonicalDbtRelationKind,
 ): string {
   return `dbt:${relationKind}:${sourceNodeId}->${targetNodeId}`;
 }
@@ -1086,8 +1099,29 @@ function readManifestResourceType(resource: DbtManifestResource): string {
   return readOptionalString(record?.resource_type) ?? 'unknown';
 }
 
+function readDbtTestType(resource: ResourceRecord): string | undefined {
+  const testMetadata = asRecord(resource.test_metadata);
+  return (
+    readOptionalString(testMetadata?.name) ?? readOptionalString(resource.type)
+  );
+}
+
 function isCanonicalDbtAssetResourceType(resourceType: string): boolean {
   return resourceType !== 'test' && isSupportedResourceType(resourceType);
+}
+
+function isDbtTestEvidenceResourceType(resourceType: string): boolean {
+  return resourceType === 'test';
+}
+
+function isDbtTestEvidenceRelation(
+  sourceResourceType: string,
+  targetResourceType: string,
+): boolean {
+  return (
+    isDbtTestEvidenceResourceType(sourceResourceType) ||
+    isDbtTestEvidenceResourceType(targetResourceType)
+  );
 }
 
 function isSupportedResourceType(resourceType: string): boolean {

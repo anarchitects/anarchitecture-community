@@ -411,6 +411,69 @@ describe('dbt governance metrics', () => {
     });
   });
 
+  it('counts workspace dbt test evidence for coverage metrics without canonical test relations', () => {
+    const modelId = 'model.analytics.orders';
+    const workspace: GovernanceWorkspace = {
+      ...createWorkspace([
+        createProject({
+          id: modelId,
+          layer: 'marts',
+          domain: 'finance',
+          owner: 'finance-platform',
+          description: true,
+          tests: false,
+          contract: true,
+        }),
+        createProject({
+          id: 'model.analytics.customers',
+          layer: 'marts',
+          domain: 'finance',
+          owner: 'finance-platform',
+          description: true,
+          tests: false,
+          contract: true,
+        }),
+      ]),
+      extensions: {
+        'governance-extension:dbt': {
+          extensionId: 'governance-extension:dbt',
+          contractVersion: '1',
+          data: {
+            kind: 'workspace',
+            technology: 'dbt',
+            projectName: 'analytics',
+            testEvidence: [
+              {
+                uniqueId: 'test.analytics.not_null_orders_order_id',
+                name: 'not_null_orders_order_id',
+                packageName: 'analytics',
+                resourceType: 'test',
+                testType: 'not_null',
+                dependsOnNodeIds: [modelId],
+                targetNodeIds: [modelId],
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    const byId = new Map(
+      buildDbtGovernanceMetrics(createMetricInput(workspace)).map(
+        (measurement) => [measurement.id, measurement],
+      ),
+    );
+
+    expect(byId.get('dbt-test-coverage-ratio')).toMatchObject({
+      value: 0.5,
+      metadata: {
+        numerator: 1,
+        denominator: 2,
+        countedNodeIds: ['model.analytics.orders'],
+      },
+    });
+  });
+
   it('uses explicit zero-denominator handling for ratio metrics when no dbt models are eligible', () => {
     const workspace = createWorkspace([
       createProject({
