@@ -62,6 +62,23 @@ export {
   isDbtWorkspaceContextResource,
 } from './applicability.js';
 export {
+  buildDbtInferredTestNodeIdsByTarget,
+  findNodeById,
+  getDbtConsumerContextResources,
+  getDbtDependencyRelations,
+  getDbtMetadata,
+  getDbtNodes,
+  getDbtRelations,
+  getDbtSemanticAssetResources,
+  getDbtSemanticResources,
+  normalizeIds,
+  readClassificationValue,
+  toNodeReference,
+  toRelationKey,
+  toRelationReference,
+  toResolverInput,
+} from './dbt-graph.js';
+export {
   DBT_GOVERNANCE_DIAGNOSTIC_CODES,
   DBT_GOVERNANCE_DIAGNOSTIC_SOURCE,
   buildDbtGovernanceDiagnostics,

@@ -8,6 +8,7 @@ import type {
 
 import type {
   DbtGovernanceWorkspaceExpansionData,
+  DbtGovernanceWorkspaceSemanticResource,
   DbtGovernanceWorkspaceTestEvidence,
   DbtGovernanceModelExpansionData,
   DbtGovernanceNodeExpansionData,
@@ -173,6 +174,36 @@ export function buildDbtInferredTestNodeIdsByTarget(
       targetNodeId,
       [...testNodeIds].sort(),
     ]),
+  );
+}
+
+export function getDbtSemanticResources(
+  workspace: GovernanceWorkspace,
+): DbtGovernanceWorkspaceSemanticResource[] {
+  const expansion = getDbtExpansionData(workspace);
+  if (
+    expansion?.kind !== 'workspace' ||
+    !Array.isArray(expansion.semanticResources)
+  ) {
+    return [];
+  }
+
+  return expansion.semanticResources.filter(isDbtWorkspaceSemanticResource);
+}
+
+export function getDbtSemanticAssetResources(
+  workspace: GovernanceWorkspace,
+): DbtGovernanceWorkspaceSemanticResource[] {
+  return getDbtSemanticResources(workspace).filter(
+    (resource) => resource.role === 'semantic-asset',
+  );
+}
+
+export function getDbtConsumerContextResources(
+  workspace: GovernanceWorkspace,
+): DbtGovernanceWorkspaceSemanticResource[] {
+  return getDbtSemanticResources(workspace).filter(
+    (resource) => resource.role === 'consumer-context',
   );
 }
 
@@ -352,6 +383,22 @@ function isDbtWorkspaceTestEvidence(
     value.resourceType === 'test' &&
     Array.isArray(value.targetNodeIds) &&
     value.targetNodeIds.every((entry) => typeof entry === 'string')
+  );
+}
+
+function isDbtWorkspaceSemanticResource(
+  value: unknown,
+): value is DbtGovernanceWorkspaceSemanticResource {
+  return (
+    isRecord(value) &&
+    typeof value.uniqueId === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.packageName === 'string' &&
+    typeof value.resourceType === 'string' &&
+    (value.role === 'semantic-asset' || value.role === 'consumer-context') &&
+    Array.isArray(value.dependsOnNodeIds) &&
+    value.dependsOnNodeIds.every((entry) => typeof entry === 'string') &&
+    isRecord(value.payload)
   );
 }
 

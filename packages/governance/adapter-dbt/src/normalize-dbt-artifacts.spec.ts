@@ -126,6 +126,7 @@ describe('dbt artifact normalization', () => {
       metadata: {
         governance: {
           kind: 'asset',
+          assetKind: 'data',
         },
         documentation: true,
       },
@@ -196,6 +197,7 @@ describe('dbt artifact normalization', () => {
       metadata: {
         governance: {
           kind: 'asset',
+          assetKind: 'data',
         },
       },
       extensions: {
@@ -413,7 +415,7 @@ describe('dbt artifact normalization', () => {
     ).toBe(false);
   });
 
-  it('makes semantic dbt resource handling explicit without polluting data-asset lineage', () => {
+  it('applies the dbt resource-role contract explicitly for supported resource types', () => {
     const context = mustResolveContext('valid-project');
     const normalized = normalizeDbtArtifacts(context, {
       manifest: buildSyntheticManifestFromResources([
@@ -499,6 +501,18 @@ describe('dbt artifact normalization', () => {
             name: 'executive_dashboard',
             description: 'Executive dashboard exposure',
             type: 'dashboard',
+            maturity: 'high',
+            url: 'https://example.com/dashboards/executive',
+            owner: {
+              name: 'bi-team',
+              email: 'bi@example.com',
+            },
+            meta: {
+              channel: 'executive',
+            },
+            config: {
+              enabled: true,
+            },
             depends_on: {
               nodes: ['model.valid_project.orders'],
             },
@@ -512,11 +526,21 @@ describe('dbt artifact normalization', () => {
             package_name: 'valid_project',
             name: 'total_revenue',
             description: 'Total revenue metric',
+            label: 'Total Revenue',
+            type: 'simple',
+            type_params: {
+              measure: 'revenue',
+            },
+            filter: 'order_status != "cancelled"',
+            calculation_method: 'sum',
             meta: {
               governance: {
                 domain: 'finance',
                 layer: 'semantic',
               },
+            },
+            config: {
+              enabled: true,
             },
             depends_on: {
               nodes: ['model.valid_project.orders'],
@@ -531,6 +555,16 @@ describe('dbt artifact normalization', () => {
             package_name: 'valid_project',
             name: 'orders_semantic',
             description: 'Orders semantic model',
+            model: 'ref("orders")',
+            entities: [{ name: 'order', type: 'primary' }],
+            dimensions: [{ name: 'order_date', type: 'time' }],
+            measures: [{ name: 'revenue', agg: 'sum' }],
+            defaults: {
+              agg_time_dimension: 'order_date',
+            },
+            config: {
+              enabled: true,
+            },
             depends_on: {
               nodes: ['model.valid_project.orders'],
             },
@@ -544,6 +578,16 @@ describe('dbt artifact normalization', () => {
             package_name: 'valid_project',
             name: 'orders_saved_query',
             description: 'Published orders saved query',
+            query_params: {
+              group_by: ['order_date'],
+              where: ['is_active = true'],
+              order_by: ['order_date'],
+            },
+            exports: [{ name: 'orders_export', format: 'csv' }],
+            metrics: ['metric.valid_project.total_revenue'],
+            config: {
+              enabled: true,
+            },
             depends_on: {
               nodes: ['semantic_model.valid_project.orders_semantic'],
             },
@@ -573,6 +617,14 @@ describe('dbt artifact normalization', () => {
       'governance-extension:dbt'
     ] as DbtWorkspaceExpansionEnvelope | undefined;
     const nodeIds = normalized.nodes?.map((node) => node.id) ?? [];
+    const semanticResourceIds =
+      workspaceExpansion?.data.semanticResources?.map((resource) =>
+        String(resource.uniqueId),
+      ) ?? [];
+    const testEvidenceIds =
+      workspaceExpansion?.data.testEvidence?.map((resource) =>
+        String(resource.uniqueId),
+      ) ?? [];
 
     expect(nodeIds).toEqual(
       expect.arrayContaining([
@@ -589,6 +641,9 @@ describe('dbt artifact normalization', () => {
     expect(nodeIds).not.toContain(
       'test.valid_project.not_null_orders_order_id',
     );
+    expect(workspaceExpansion?.data.project).toMatchObject({
+      name: 'valid_project',
+    });
     expect(
       normalized.nodes?.find((node) => node.id === 'model.valid_project.orders')
         ?.metadata,
@@ -670,6 +725,9 @@ describe('dbt artifact normalization', () => {
         }),
       ]),
     );
+    expect(testEvidenceIds).toEqual([
+      'test.valid_project.not_null_orders_order_id',
+    ]);
     expect(workspaceExpansion?.data.semanticResources).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -678,6 +736,27 @@ describe('dbt artifact normalization', () => {
           role: 'consumer-context',
           dependsOnNodeIds: ['model.valid_project.orders'],
           subtype: 'dashboard',
+          owner: {
+            name: 'bi-team',
+            email: 'bi@example.com',
+          },
+          config: {
+            enabled: true,
+          },
+          payload: expect.objectContaining({
+            maturity: 'high',
+            url: 'https://example.com/dashboards/executive',
+            owner: {
+              name: 'bi-team',
+              email: 'bi@example.com',
+            },
+            config: {
+              enabled: true,
+            },
+            meta: {
+              channel: 'executive',
+            },
+          }),
         }),
         expect.objectContaining({
           uniqueId: 'metric.valid_project.total_revenue',
@@ -686,6 +765,21 @@ describe('dbt artifact normalization', () => {
           canonicalNodeId: 'metric.valid_project.total_revenue',
           dependsOnNodeIds: ['model.valid_project.orders'],
           description: 'Total revenue metric',
+          config: {
+            enabled: true,
+          },
+          payload: expect.objectContaining({
+            label: 'Total Revenue',
+            type: 'simple',
+            type_params: {
+              measure: 'revenue',
+            },
+            filter: 'order_status != "cancelled"',
+            calculation_method: 'sum',
+            config: {
+              enabled: true,
+            },
+          }),
         }),
         expect.objectContaining({
           uniqueId: 'semantic_model.valid_project.orders_semantic',
@@ -694,6 +788,21 @@ describe('dbt artifact normalization', () => {
           canonicalNodeId: 'semantic_model.valid_project.orders_semantic',
           dependsOnNodeIds: ['model.valid_project.orders'],
           description: 'Orders semantic model',
+          config: {
+            enabled: true,
+          },
+          payload: expect.objectContaining({
+            model: 'ref("orders")',
+            entities: [{ name: 'order', type: 'primary' }],
+            dimensions: [{ name: 'order_date', type: 'time' }],
+            measures: [{ name: 'revenue', agg: 'sum' }],
+            defaults: {
+              agg_time_dimension: 'order_date',
+            },
+            config: {
+              enabled: true,
+            },
+          }),
         }),
         expect.objectContaining({
           uniqueId: 'saved_query.valid_project.orders_saved_query',
@@ -702,9 +811,36 @@ describe('dbt artifact normalization', () => {
           canonicalNodeId: 'saved_query.valid_project.orders_saved_query',
           dependsOnNodeIds: ['semantic_model.valid_project.orders_semantic'],
           description: 'Published orders saved query',
+          config: {
+            enabled: true,
+          },
+          payload: expect.objectContaining({
+            query_params: {
+              group_by: ['order_date'],
+              where: ['is_active = true'],
+              order_by: ['order_date'],
+            },
+            exports: [{ name: 'orders_export', format: 'csv' }],
+            metrics: ['metric.valid_project.total_revenue'],
+            config: {
+              enabled: true,
+            },
+          }),
         }),
       ]),
     );
+    expect(semanticResourceIds).toEqual([
+      'exposure.valid_project.executive_dashboard',
+      'metric.valid_project.total_revenue',
+      'saved_query.valid_project.orders_saved_query',
+      'semantic_model.valid_project.orders_semantic',
+    ]);
+    expect(
+      workspaceExpansion?.data.semanticResources?.find(
+        (resource) =>
+          resource.uniqueId === 'exposure.valid_project.executive_dashboard',
+      ),
+    ).not.toHaveProperty('canonicalNodeId');
     expect(
       normalized.diagnostics?.some(
         (diagnostic) =>

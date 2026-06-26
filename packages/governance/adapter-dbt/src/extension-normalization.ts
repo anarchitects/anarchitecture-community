@@ -38,8 +38,10 @@ export interface DbtGovernanceWorkspaceSemanticResource {
   group?: string;
   owner?: unknown;
   meta?: Record<string, unknown>;
+  config?: Record<string, unknown>;
   description?: string;
   docs?: Record<string, unknown>;
+  payload: Record<string, unknown>;
 }
 
 interface DbtGovernanceWorkspaceExpansionData {
@@ -267,8 +269,12 @@ export function buildDbtWorkspaceExpansion(
                 ? { owner: cloneStructuredValue(entry.owner) }
                 : {}),
               ...(entry.meta ? { meta: cloneStructuredValue(entry.meta) } : {}),
+              ...(entry.config
+                ? { config: cloneStructuredValue(entry.config) }
+                : {}),
               ...(entry.description ? { description: entry.description } : {}),
               ...(entry.docs ? { docs: cloneStructuredValue(entry.docs) } : {}),
+              payload: cloneStructuredValue(entry.payload),
             }))
             .sort((left, right) => left.uniqueId.localeCompare(right.uniqueId)),
         }

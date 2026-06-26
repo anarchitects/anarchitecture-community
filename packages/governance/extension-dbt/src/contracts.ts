@@ -96,8 +96,10 @@ export interface DbtGovernanceWorkspaceSemanticResource {
   group?: string;
   owner?: unknown;
   meta?: Record<string, unknown>;
+  config?: Record<string, unknown>;
   description?: string;
   docs?: Record<string, unknown>;
+  payload: Record<string, unknown>;
 }
 
 export interface DbtGovernanceNodeExpansionData {
