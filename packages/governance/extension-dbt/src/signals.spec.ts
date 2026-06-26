@@ -513,6 +513,8 @@ describe('dbt governance signals', () => {
                 uniqueId: 'test.analytics.not_null_orders_order_id',
                 name: 'not_null_orders_order_id',
                 packageName: 'analytics',
+                resourceType: 'test',
+                testType: 'not_null',
                 dependsOnNodeIds: [modelId],
                 targetNodeIds: [modelId],
               },

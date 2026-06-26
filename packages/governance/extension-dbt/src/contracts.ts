@@ -69,6 +69,8 @@ export interface DbtGovernanceWorkspaceTestEvidence {
   uniqueId: string;
   name: string;
   packageName: string;
+  resourceType: 'test';
+  testType?: string;
   dependsOnNodeIds: string[];
   targetNodeIds: string[];
   originalFilePath?: string;

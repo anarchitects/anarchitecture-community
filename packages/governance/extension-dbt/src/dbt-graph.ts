@@ -346,6 +346,7 @@ function isDbtWorkspaceTestEvidence(
     typeof value.uniqueId === 'string' &&
     typeof value.name === 'string' &&
     typeof value.packageName === 'string' &&
+    value.resourceType === 'test' &&
     Array.isArray(value.targetNodeIds) &&
     value.targetNodeIds.every((entry) => typeof entry === 'string')
   );
