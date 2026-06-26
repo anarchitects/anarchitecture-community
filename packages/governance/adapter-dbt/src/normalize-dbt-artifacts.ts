@@ -34,28 +34,31 @@ import {
   buildDbtWorkspaceExpansion,
 } from './extension-normalization.js';
 
-const SUPPORTED_RESOURCE_TYPES = new Set([
-  'model',
-  'seed',
-  'snapshot',
-  'source',
-  'exposure',
-  'test',
-  'metric',
-  'semantic_model',
-  'saved_query',
-]);
-const CANONICAL_DBT_ASSET_RESOURCE_TYPES = new Set([
-  'model',
-  'seed',
-  'snapshot',
-  'source',
-]);
-const CANONICAL_DBT_SEMANTIC_ASSET_RESOURCE_TYPES = new Set([
-  'metric',
-  'semantic_model',
-  'saved_query',
-]);
+/**
+ * dbt resource-role contract:
+ * - data assets: model, source, seed, snapshot
+ * - semantic assets: metric, semantic_model, saved_query
+ * - consumer context: exposure
+ * - evidence: test
+ * - workspace context: project
+ */
+const DBT_RESOURCE_ROLE_BY_TYPE = {
+  model: 'data-asset',
+  source: 'data-asset',
+  seed: 'data-asset',
+  snapshot: 'data-asset',
+  metric: 'semantic-asset',
+  semantic_model: 'semantic-asset',
+  saved_query: 'semantic-asset',
+  exposure: 'consumer-context',
+  test: 'evidence',
+  project: 'workspace-context',
+} as const;
+const SUPPORTED_RESOURCE_TYPES = new Set(
+  Object.keys(DBT_RESOURCE_ROLE_BY_TYPE).filter(
+    (resourceType) => resourceType !== 'project',
+  ),
+);
 const MANIFEST_RESOURCE_COLLECTION_FIELDS = [
   'nodes',
   'sources',
@@ -109,6 +112,11 @@ type DbtGovernanceResourceRole =
   | 'consumer-context'
   | 'evidence'
   | 'workspace-context';
+
+type SupportedDbtResourceType = Exclude<
+  keyof typeof DBT_RESOURCE_ROLE_BY_TYPE,
+  'project'
+>;
 
 type DbtResolvedGovernanceField =
   | 'owner'
@@ -793,6 +801,7 @@ function normalizeDbtSemanticResourceContext(
   const docs = asRecord(record.docs);
   const description = readOptionalString(record.description);
   const meta = asRecord(record.meta);
+  const config = asRecord(record.config);
 
   return {
     uniqueId,
@@ -816,8 +825,10 @@ function normalizeDbtSemanticResourceContext(
       ? { owner: cloneStructuredValue(readOptionalValue(record.owner)) }
       : {}),
     ...(meta ? { meta: cloneStructuredValue(meta) } : {}),
+    ...(config ? { config: cloneStructuredValue(config) } : {}),
     ...(description ? { description } : {}),
     ...(docs ? { docs: cloneStructuredValue(docs) } : {}),
+    payload: cloneStructuredValue(record),
   };
 }
 
@@ -927,7 +938,7 @@ function collectIncompleteMetadataFields(
   const missingFields: string[] = [];
 
   if (
-    isCanonicalDbtAssetResourceType(resourceType) &&
+    isCanonicalDbtDataAssetResourceType(resourceType) &&
     !readOptionalString(relation?.relationName)
   ) {
     missingFields.push('relation.relationName');
@@ -1517,16 +1528,6 @@ function readDbtTestType(resource: ResourceRecord): string | undefined {
   );
 }
 
-function isCanonicalDbtAssetResourceType(resourceType: string): boolean {
-  return CANONICAL_DBT_ASSET_RESOURCE_TYPES.has(resourceType);
-}
-
-function isCanonicalDbtSemanticAssetResourceType(
-  resourceType: string,
-): boolean {
-  return CANONICAL_DBT_SEMANTIC_ASSET_RESOURCE_TYPES.has(resourceType);
-}
-
 function isDbtSemanticWorkspaceResourceType(
   resourceType: string,
 ): resourceType is 'exposure' | 'metric' | 'semantic_model' | 'saved_query' {
@@ -1541,27 +1542,15 @@ function isDbtSemanticWorkspaceResourceType(
 function getDbtGovernanceResourceRole(
   resourceType: string,
 ): DbtGovernanceResourceRole | undefined {
-  if (isCanonicalDbtAssetResourceType(resourceType)) {
-    return 'data-asset';
-  }
+  return DBT_RESOURCE_ROLE_BY_TYPE[
+    resourceType as keyof typeof DBT_RESOURCE_ROLE_BY_TYPE
+  ];
+}
 
-  if (isCanonicalDbtSemanticAssetResourceType(resourceType)) {
-    return 'semantic-asset';
-  }
-
-  if (resourceType === 'exposure') {
-    return 'consumer-context';
-  }
-
-  if (resourceType === 'test') {
-    return 'evidence';
-  }
-
-  if (resourceType === 'project') {
-    return 'workspace-context';
-  }
-
-  return undefined;
+function isCanonicalDbtDataAssetResourceType(
+  resourceType: string,
+): resourceType is SupportedDbtResourceType {
+  return getDbtGovernanceResourceRole(resourceType) === 'data-asset';
 }
 
 function isSupportedResourceType(resourceType: string): boolean {

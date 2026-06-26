@@ -219,6 +219,32 @@ The exact transport shape is a host concern and may evolve, but the ownership sp
 
 ### TypeScript Governance Flow
 
+### dbt Resource-Role Contract
+
+The dbt adapter and dbt extension own the dbt resource-role contract. Core
+stays generic and only sees canonical asset markers such as
+`metadata.governance.kind = "asset"` and
+`metadata.governance.assetKind = "data" | "semantic"`.
+
+The current dbt contract is:
+
+- `model`, `source`, `seed`, `snapshot`: canonical data assets with canonical
+  data-lineage dependency relations.
+- `metric`, `semantic_model`, `saved_query`: canonical semantic assets with
+  `assetKind = "semantic"`, plus extension-owned `semanticResources` payload.
+- `exposure`: consumer/interface context only, preserved in extension-owned
+  `semanticResources`, not as a canonical asset node.
+- `test`: evidence only, preserved in extension-owned `testEvidence`, not as a
+  canonical node or canonical relation.
+- `project`: workspace context only, preserved in the dbt workspace expansion,
+  not as a canonical node.
+
+Non-canonical dbt resources are therefore not lost. They remain available
+through extension-owned workspace expansion data, while canonical data lineage
+stays limited to data-asset to data-asset dependencies. Semantic dependencies
+remain extension-owned until a future generic canonical relation contract
+exists.
+
 Canonical TypeScript-discovered facts may normalize into Core fields when they are genuinely architectural and not TypeScript-specific, for example:
 
 - canonical ownership derived from declared project metadata
