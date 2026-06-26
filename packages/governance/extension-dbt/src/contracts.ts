@@ -63,6 +63,7 @@ export interface DbtGovernanceWorkspaceExpansionData {
   };
   projectNodeIds?: string[];
   testEvidence?: DbtGovernanceWorkspaceTestEvidence[];
+  semanticResources?: DbtGovernanceWorkspaceSemanticResource[];
 }
 
 export interface DbtGovernanceWorkspaceTestEvidence {
@@ -77,6 +78,26 @@ export interface DbtGovernanceWorkspaceTestEvidence {
   sourcePath?: string;
   tags?: string[];
   meta?: Record<string, unknown>;
+}
+
+export interface DbtGovernanceWorkspaceSemanticResource {
+  uniqueId: string;
+  resourceType: 'exposure' | 'metric' | 'semantic_model' | 'saved_query';
+  role: 'semantic-asset' | 'consumer-context';
+  name: string;
+  packageName: string;
+  canonicalNodeId?: string;
+  fullyQualifiedName?: string;
+  fqn?: string[];
+  subtype?: string;
+  dependsOnNodeIds: string[];
+  originalFilePath?: string;
+  sourcePath?: string;
+  group?: string;
+  owner?: unknown;
+  meta?: Record<string, unknown>;
+  description?: string;
+  docs?: Record<string, unknown>;
 }
 
 export interface DbtGovernanceNodeExpansionData {
@@ -500,6 +521,11 @@ export function validateDbtGovernanceModelExpansion(
       validateOptionalRecordArray(
         data.testEvidence,
         '/data/testEvidence',
+        issues,
+      );
+      validateOptionalRecordArray(
+        data.semanticResources,
+        '/data/semanticResources',
         issues,
       );
       break;

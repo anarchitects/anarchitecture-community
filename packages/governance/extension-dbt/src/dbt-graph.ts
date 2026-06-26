@@ -281,6 +281,9 @@ function buildWorkspaceDbtMetadata(
       ? { projectNodeIds: expansion.projectNodeIds }
       : {}),
     ...(expansion.testEvidence ? { testEvidence: expansion.testEvidence } : {}),
+    ...(expansion.semanticResources
+      ? { semanticResources: expansion.semanticResources }
+      : {}),
   };
 }
 

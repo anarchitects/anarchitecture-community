@@ -22,6 +22,26 @@ export interface DbtGovernanceWorkspaceTestEvidence {
   meta?: Record<string, unknown>;
 }
 
+export interface DbtGovernanceWorkspaceSemanticResource {
+  uniqueId: string;
+  resourceType: 'exposure' | 'metric' | 'semantic_model' | 'saved_query';
+  role: 'semantic-asset' | 'consumer-context';
+  name: string;
+  packageName: string;
+  canonicalNodeId?: string;
+  fullyQualifiedName?: string;
+  fqn?: string[];
+  subtype?: string;
+  dependsOnNodeIds: string[];
+  originalFilePath?: string;
+  sourcePath?: string;
+  group?: string;
+  owner?: unknown;
+  meta?: Record<string, unknown>;
+  description?: string;
+  docs?: Record<string, unknown>;
+}
+
 interface DbtGovernanceWorkspaceExpansionData {
   kind: 'workspace';
   technology: 'dbt';
@@ -48,6 +68,7 @@ interface DbtGovernanceWorkspaceExpansionData {
   };
   projectNodeIds?: string[];
   testEvidence?: DbtGovernanceWorkspaceTestEvidence[];
+  semanticResources?: DbtGovernanceWorkspaceSemanticResource[];
 }
 
 interface DbtGovernanceNodeExpansionData {
@@ -122,6 +143,7 @@ export function buildDbtWorkspaceExpansion(
   artifacts: DbtArtifacts,
   projectNodeIds: readonly string[],
   testEvidence: readonly DbtGovernanceWorkspaceTestEvidence[] = [],
+  semanticResources: readonly DbtGovernanceWorkspaceSemanticResource[] = [],
 ) {
   return createDbtGovernanceModelExpansion({
     kind: 'workspace',
@@ -218,6 +240,39 @@ export function buildDbtWorkspaceExpansion(
             .sort((left, right) => left.uniqueId.localeCompare(right.uniqueId)),
         }
       : {}),
+    ...(semanticResources.length > 0
+      ? {
+          semanticResources: [...semanticResources]
+            .map((entry) => ({
+              uniqueId: entry.uniqueId,
+              resourceType: entry.resourceType,
+              role: entry.role,
+              name: entry.name,
+              packageName: entry.packageName,
+              ...(entry.canonicalNodeId
+                ? { canonicalNodeId: entry.canonicalNodeId }
+                : {}),
+              ...(entry.fullyQualifiedName
+                ? { fullyQualifiedName: entry.fullyQualifiedName }
+                : {}),
+              ...(entry.fqn ? { fqn: [...entry.fqn] } : {}),
+              ...(entry.subtype ? { subtype: entry.subtype } : {}),
+              dependsOnNodeIds: [...entry.dependsOnNodeIds].sort(),
+              ...(entry.originalFilePath
+                ? { originalFilePath: entry.originalFilePath }
+                : {}),
+              ...(entry.sourcePath ? { sourcePath: entry.sourcePath } : {}),
+              ...(entry.group ? { group: entry.group } : {}),
+              ...(entry.owner !== undefined
+                ? { owner: cloneStructuredValue(entry.owner) }
+                : {}),
+              ...(entry.meta ? { meta: cloneStructuredValue(entry.meta) } : {}),
+              ...(entry.description ? { description: entry.description } : {}),
+              ...(entry.docs ? { docs: cloneStructuredValue(entry.docs) } : {}),
+            }))
+            .sort((left, right) => left.uniqueId.localeCompare(right.uniqueId)),
+        }
+      : {}),
   } satisfies DbtGovernanceWorkspaceExpansionData);
 }
 
@@ -260,4 +315,21 @@ function readRecord(
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : undefined;
+}
+
+function cloneStructuredValue<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((entry) => cloneStructuredValue(entry)) as T;
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        key,
+        cloneStructuredValue(entry),
+      ]),
+    ) as T;
+  }
+
+  return value;
 }
