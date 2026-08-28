@@ -1,0 +1,85 @@
+{
+  "name": "nest-angular-split-backend",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/fixtures/nest-angular-split/backend/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "fixture-build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["nest-angular-split-frontend:fixture-build", "^build"],
+      "inputs": ["default", "^default"],
+      "options": {
+        "command": "webpack-cli build",
+        "env": {
+          "NODE_ENV": "production"
+        },
+        "cwd": "apps/fixtures/nest-angular-split/backend"
+      },
+      "configurations": {
+        "development": {
+          "env": {
+            "NODE_ENV": "development"
+          }
+        }
+      }
+    },
+    "prune-lockfile": {
+      "dependsOn": ["fixture-build"],
+      "cache": true,
+      "executor": "@nx/js:prune-lockfile",
+      "outputs": [
+        "{workspaceRoot}/apps/fixtures/nest-angular-split/backend/dist/package.json",
+        "{workspaceRoot}/apps/fixtures/nest-angular-split/backend/dist/yarn.lock"
+      ],
+      "options": {
+        "buildTarget": "fixture-build"
+      }
+    },
+    "copy-workspace-modules": {
+      "dependsOn": ["fixture-build"],
+      "cache": true,
+      "outputs": [
+        "{workspaceRoot}/apps/fixtures/nest-angular-split/backend/dist/workspace_modules"
+      ],
+      "executor": "@nx/js:copy-workspace-modules",
+      "options": {
+        "buildTarget": "fixture-build"
+      }
+    },
+    "prune": {
+      "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+      "executor": "nx:noop"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["fixture-build"],
+      "options": {
+        "buildTarget": "nest-angular-split-backend:fixture-build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "nest-angular-split-backend:fixture-build:development"
+        },
+        "production": {
+          "buildTarget": "nest-angular-split-backend:fixture-build:production"
+        }
+      }
+    },
+    "test": {
+      "dependsOn": ["nest-angular-ssr:build"],
+      "options": {
+        "passWithNoTests": true
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p apps/fixtures/nest-angular-split/backend/tsconfig.app.json"
+      }
+    }
+  }
+}

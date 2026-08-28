@@ -29,6 +29,9 @@
     },
     {
       "path": "./packages/governance/runtime-dbt"
+    },
+    {
+      "path": "./apps/fixtures/nest-angular-split/backend"
     }
   ],
   "compilerOptions": {

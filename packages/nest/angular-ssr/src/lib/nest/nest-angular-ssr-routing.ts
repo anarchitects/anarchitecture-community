@@ -35,8 +35,9 @@ type AssetResolution =
   | { kind: 'outside-root' };
 
 export interface RegisterNestAngularSsrRoutesOptions {
-  browserAssetsDir: string;
+  browserAssetsDir?: string;
   apiPrefix?: string;
+  allowedHosts?: readonly string[];
 }
 
 export async function registerNestAngularSsrRoutes<TContext = unknown>(
@@ -44,8 +45,15 @@ export async function registerNestAngularSsrRoutes<TContext = unknown>(
   integration: NestAngularSsrIntegration<TContext>,
   options: Readonly<RegisterNestAngularSsrRoutesOptions>,
 ): Promise<void> {
-  const fastify = app.getHttpAdapter()
+  const fastify = app
+    .getHttpAdapter()
     .getInstance() as unknown as FastifyInstanceWithRouting;
+  if (!options.browserAssetsDir) {
+    throw new Error(
+      '"routing.browserAssetsDir" is required when registering Nest Angular SSR routes.',
+    );
+  }
+
   const browserAssetsRoot = resolve(options.browserAssetsDir);
   const effectiveApiPrefix = resolveApiPrefix(app, options.apiPrefix);
   const handler = async (
@@ -56,6 +64,12 @@ export async function registerNestAngularSsrRoutes<TContext = unknown>(
 
     if (isApiRequest(pathname, effectiveApiPrefix)) {
       return reply.callNotFound();
+    }
+
+    if (!isAllowedHost(request, options.allowedHosts)) {
+      return reply
+        .code(400)
+        .send('The request host is not allowed for Angular SSR.');
     }
 
     const asset = await resolveAssetRequest(browserAssetsRoot, pathname);
@@ -92,6 +106,44 @@ export async function registerNestAngularSsrRoutes<TContext = unknown>(
     url: '/*',
     handler,
   });
+}
+
+function isAllowedHost(
+  request: FastifyRequest,
+  allowedHosts: readonly string[] | undefined,
+): boolean {
+  if (!allowedHosts || allowedHosts.length === 0) {
+    return true;
+  }
+
+  const rawHost =
+    getFirstHeaderValue(request.headers['x-forwarded-host']) ??
+    request.headers.host ??
+    request.hostname;
+
+  if (!rawHost) {
+    return false;
+  }
+
+  const host = rawHost.toLowerCase();
+  let hostname = host;
+
+  try {
+    hostname = new URL(`http://${host}`).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+
+  return allowedHosts.some((allowedHost) => {
+    const normalized = allowedHost.trim().toLowerCase();
+    return normalized === '*' || normalized === host || normalized === hostname;
+  });
+}
+
+function getFirstHeaderValue(
+  value: string | string[] | undefined,
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function resolveApiPrefix(

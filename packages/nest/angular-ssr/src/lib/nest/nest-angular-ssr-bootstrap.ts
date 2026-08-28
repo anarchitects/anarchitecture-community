@@ -1,5 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
 
+import {
+  resolveAngularSsrBuildOutput,
+  type AngularSsrBuildOutputOptions,
+} from '../core/angular-ssr-build-output.js';
 import type { AngularSsrRegistrationOptions } from '../core/angular-ssr-registration.js';
 import {
   createNestAngularSsrIntegration,
@@ -12,32 +16,62 @@ import {
 } from './nest-angular-ssr-routing.js';
 
 export interface BootstrapNestAngularSsrOptions<TContext = unknown> {
-  angular?: Readonly<AngularSsrRegistrationOptions>;
+  enabled?: boolean;
+  angular?: Readonly<
+    AngularSsrRegistrationOptions | AngularSsrBuildOutputOptions
+  >;
   integration?: Readonly<CreateNestAngularSsrIntegrationOptions<TContext>>;
   routing: Readonly<RegisterNestAngularSsrRoutesOptions>;
 }
 
+export function bootstrapNestAngularSsr<TContext = unknown>(
+  app: INestApplication,
+  options: Readonly<BootstrapNestAngularSsrOptions<TContext>> & {
+    enabled: false;
+  },
+): Promise<undefined>;
+export function bootstrapNestAngularSsr<TContext = unknown>(
+  app: INestApplication,
+  options: Readonly<BootstrapNestAngularSsrOptions<TContext>> & {
+    enabled?: true;
+  },
+): Promise<NestAngularSsrIntegration<TContext>>;
+export function bootstrapNestAngularSsr<TContext = unknown>(
+  app: INestApplication,
+  options: Readonly<BootstrapNestAngularSsrOptions<TContext>>,
+): Promise<NestAngularSsrIntegration<TContext> | undefined>;
 export async function bootstrapNestAngularSsr<TContext = unknown>(
   app: INestApplication,
   options: Readonly<BootstrapNestAngularSsrOptions<TContext>>,
-): Promise<NestAngularSsrIntegration<TContext>> {
+): Promise<NestAngularSsrIntegration<TContext> | undefined> {
+  if (options.enabled === false) {
+    return undefined;
+  }
+
+  const normalized = await normalizeBootstrapOptions(options);
   const integration = createNestAngularSsrIntegration<TContext>(
     app,
-    resolveIntegrationOptions(options),
+    normalized.integration,
   );
 
-  await registerNestAngularSsrRoutes(app, integration, options.routing);
+  await registerNestAngularSsrRoutes(app, integration, normalized.routing);
 
   return integration;
 }
 
-function resolveIntegrationOptions<TContext>(
+async function normalizeBootstrapOptions<TContext>(
   options: Readonly<BootstrapNestAngularSsrOptions<TContext>>,
-): Readonly<CreateNestAngularSsrIntegrationOptions<TContext>> | undefined {
+): Promise<{
+  integration:
+    | Readonly<CreateNestAngularSsrIntegrationOptions<TContext>>
+    | undefined;
+  routing: Readonly<RegisterNestAngularSsrRoutesOptions>;
+}> {
   const { angular, integration } = options;
 
   if (!angular) {
-    return integration;
+    assertBrowserAssetsDir(options.routing.browserAssetsDir);
+    return { integration, routing: options.routing };
   }
 
   if (integration?.renderer) {
@@ -52,10 +86,47 @@ function resolveIntegrationOptions<TContext>(
     );
   }
 
+  if (isBuildOutputOptions(angular)) {
+    const buildOutput = await resolveAngularSsrBuildOutput(angular);
+
+    return {
+      integration: {
+        ...integration,
+        rendererOptions: { engine: buildOutput.engine },
+      },
+      routing: {
+        ...options.routing,
+        browserAssetsDir:
+          options.routing.browserAssetsDir ?? buildOutput.browserAssetsDir,
+        allowedHosts: options.routing.allowedHosts ?? angular.allowedHosts,
+      },
+    };
+  }
+
+  assertBrowserAssetsDir(options.routing.browserAssetsDir);
   return {
-    ...integration,
-    rendererOptions: {
-      registration: angular,
+    integration: {
+      ...integration,
+      rendererOptions: { registration: angular },
     },
+    routing: options.routing,
   };
+}
+
+function isBuildOutputOptions(
+  angular: Readonly<
+    AngularSsrRegistrationOptions | AngularSsrBuildOutputOptions
+  >,
+): angular is Readonly<AngularSsrBuildOutputOptions> {
+  return 'buildOutput' in angular;
+}
+
+function assertBrowserAssetsDir(
+  browserAssetsDir: string | undefined,
+): asserts browserAssetsDir is string {
+  if (!browserAssetsDir) {
+    throw new Error(
+      '"routing.browserAssetsDir" is required unless "angular.buildOutput.root" is configured.',
+    );
+  }
 }

@@ -8,7 +8,8 @@ export type AngularSsrServerBootstrap =
   | Type<unknown>
   | ((context: BootstrapContext) => Promise<ApplicationRef>);
 
-export type AngularSsrServerBootstrapLoader = () => Promise<AngularSsrServerBootstrap>;
+export type AngularSsrServerBootstrapLoader =
+  () => Promise<AngularSsrServerBootstrap>;
 
 export interface AngularSsrRegistrationOptions {
   bootstrap: AngularSsrServerBootstrapLoader;
@@ -28,6 +29,10 @@ export interface ResolvedAngularSsrRegistrationOptions {
   routeExtractionUrl?: string | URL;
   allowedHosts?: readonly string[];
 }
+
+export type AngularSsrRegistrationInput =
+  | AngularSsrRegistrationOptions
+  | ResolvedAngularSsrRegistrationOptions;
 
 export async function createAngularSsrRegistration(
   options: Readonly<AngularSsrRegistrationOptions>,
