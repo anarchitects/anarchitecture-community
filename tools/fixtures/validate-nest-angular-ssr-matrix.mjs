@@ -86,6 +86,7 @@ async function validateCell(name, versions, tarballPath, npmCache) {
       tsconfig.compilerOptions ??= {};
       tsconfig.compilerOptions.ignoreDeprecations =
         versions.typescript.startsWith('5.') ? '5.0' : '6.0';
+      delete tsconfig.references;
       await writeFile(tsconfigPath, `${JSON.stringify(tsconfig, null, 2)}\n`);
     }
     await writeFile(
