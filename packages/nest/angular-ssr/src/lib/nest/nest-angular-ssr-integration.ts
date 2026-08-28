@@ -3,6 +3,7 @@ import {
   createAngularSsrRenderer,
 } from '../core/angular-node-ssr-renderer.js';
 import type { AngularSsrRenderer } from '../core/angular-ssr-contract.js';
+import type { AngularSsrObservabilityOptions } from '../core/angular-ssr-observability.js';
 import type { INestApplication } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -20,7 +21,8 @@ export interface NestAngularSsrIntegration<TContext = unknown> {
 
 export interface CreateNestAngularSsrIntegrationOptions<TContext = unknown> {
   renderer?: AngularSsrRenderer<TContext>;
-  rendererOptions?: AngularNodeSsrRendererOptions;
+  rendererOptions?: Omit<AngularNodeSsrRendererOptions, 'observability'>;
+  observability?: Readonly<AngularSsrObservabilityOptions>;
   createRequestContext?: (
     request: FastifyRequest,
     reply: FastifyReply,
@@ -82,7 +84,13 @@ function resolveRenderer<TContext>(
     );
   }
 
-  return renderer ?? createAngularSsrRenderer<TContext>(rendererOptions);
+  return (
+    renderer ??
+    createAngularSsrRenderer<TContext>({
+      ...rendererOptions,
+      observability: options.observability,
+    })
+  );
 }
 
 function createWebRequestFromFastifyRequest(request: FastifyRequest): Request {

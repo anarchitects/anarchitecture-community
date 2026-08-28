@@ -37,8 +37,16 @@ describe('NestAngularSsrModule', () => {
   });
 
   it('forRoot registers the expected providers and options', () => {
-    const options = createModuleOptions('/tmp/browser-assets');
+    const observability = {
+      applicationId: 'storefront',
+      observer: vi.fn(),
+    };
+    const options = {
+      ...createModuleOptions('/tmp/browser-assets'),
+      observability,
+    } satisfies NestAngularSsrModuleOptions;
     const dynamicModule = NestAngularSsrModule.forRoot(options);
+    const optionsProvider = getOptionsProvider(dynamicModule) as ValueProvider;
 
     expect(dynamicModule.module).toBe(NestAngularSsrModule);
     expect(dynamicModule.providers).toEqual(
@@ -52,15 +60,21 @@ describe('NestAngularSsrModule', () => {
         }),
       ]),
     );
+    expect(optionsProvider.useValue.observability).toBe(observability);
   });
 
   it('forRootAsync wires useFactory and inject into the options provider', async () => {
     const dependencyToken = Symbol('dependency');
+    const observability = {
+      applicationId: 'storefront',
+      observer: vi.fn(),
+    };
     const options = {
       ...createModuleOptions('/tmp/browser-assets', {
         apiPrefix: '/api',
       }),
       angular: createAngularSsrFixtureRegistration(),
+      observability,
     } satisfies NestAngularSsrModuleOptions;
     const useFactory = vi.fn((...args: unknown[]) => {
       expect(args).toEqual(['/api']);
@@ -73,7 +87,10 @@ describe('NestAngularSsrModule', () => {
     const provider = getOptionsProvider(dynamicModule) as FactoryProvider;
 
     expect(provider.inject).toEqual([dependencyToken]);
-    expect(await provider.useFactory?.('/api')).toBe(options);
+    const resolvedOptions = await provider.useFactory?.('/api');
+
+    expect(resolvedOptions).toBe(options);
+    expect(resolvedOptions.observability).toBe(observability);
     expect(useFactory).toHaveBeenCalledTimes(1);
   });
 

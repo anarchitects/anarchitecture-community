@@ -1,5 +1,6 @@
 export * from './lib/core/angular-ssr-contract.js';
 export * from './lib/core/angular-ssr-engine.js';
+export * from './lib/core/angular-ssr-observability.js';
 export * from './lib/core/angular-ssr-build-output.js';
 export * from './lib/core/angular-ssr-registration.js';
 export * from './lib/core/angular-node-ssr-renderer.js';

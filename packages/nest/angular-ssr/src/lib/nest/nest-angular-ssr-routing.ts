@@ -5,6 +5,7 @@ import { stat } from 'node:fs/promises';
 import { extname, relative, resolve, sep } from 'node:path';
 
 import type { NestAngularSsrIntegration } from './nest-angular-ssr-integration.js';
+import type { AngularSsrObservabilityOptions } from '../core/angular-ssr-observability.js';
 
 type FastifyStaticReply = FastifyReply & {
   sendFile(path: string): unknown;
@@ -38,6 +39,7 @@ export interface RegisterNestAngularSsrRoutesOptions {
   browserAssetsDir?: string;
   apiPrefix?: string;
   allowedHosts?: readonly string[];
+  observability?: Readonly<AngularSsrObservabilityOptions>;
 }
 
 export async function registerNestAngularSsrRoutes<TContext = unknown>(

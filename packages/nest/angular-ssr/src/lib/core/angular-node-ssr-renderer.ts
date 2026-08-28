@@ -4,11 +4,13 @@ import type {
   AngularSsrEngineOptions,
 } from './angular-ssr-engine.js';
 import type { AngularSsrRegistrationInput } from './angular-ssr-registration.js';
+import type { AngularSsrObservabilityOptions } from './angular-ssr-observability.js';
 
 export interface AngularNodeSsrRendererOptions {
   registration?: AngularSsrRegistrationInput;
   engine?: AngularSsrEngine;
   engineOptions?: AngularSsrEngineOptions;
+  observability?: Readonly<AngularSsrObservabilityOptions>;
 }
 
 export class AngularNodeSsrRenderer<TContext = unknown>

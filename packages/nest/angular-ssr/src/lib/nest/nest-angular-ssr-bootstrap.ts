@@ -1,27 +1,29 @@
 import type { INestApplication } from '@nestjs/common';
 
-import {
-  resolveAngularSsrBuildOutput,
-  type AngularSsrBuildOutputOptions,
-} from '../core/angular-ssr-build-output.js';
+import type { AngularSsrBuildOutputOptions } from '../core/angular-ssr-build-output.js';
 import type { AngularSsrRegistrationOptions } from '../core/angular-ssr-registration.js';
+import type { AngularSsrObservabilityOptions } from '../core/angular-ssr-observability.js';
 import {
   createNestAngularSsrIntegration,
   type CreateNestAngularSsrIntegrationOptions,
   type NestAngularSsrIntegration,
 } from './nest-angular-ssr-integration.js';
 import {
-  registerNestAngularSsrRoutes,
   type RegisterNestAngularSsrRoutesOptions,
+  registerNestAngularSsrRoutes,
 } from './nest-angular-ssr-routing.js';
+import { normalizeNestAngularSsrOptions } from './nest-angular-ssr-options.js';
 
 export interface BootstrapNestAngularSsrOptions<TContext = unknown> {
   enabled?: boolean;
   angular?: Readonly<
     AngularSsrRegistrationOptions | AngularSsrBuildOutputOptions
   >;
-  integration?: Readonly<CreateNestAngularSsrIntegrationOptions<TContext>>;
-  routing: Readonly<RegisterNestAngularSsrRoutesOptions>;
+  observability?: Readonly<AngularSsrObservabilityOptions>;
+  integration?: Readonly<
+    Omit<CreateNestAngularSsrIntegrationOptions<TContext>, 'observability'>
+  >;
+  routing: Readonly<Omit<RegisterNestAngularSsrRoutesOptions, 'observability'>>;
 }
 
 export function bootstrapNestAngularSsr<TContext = unknown>(
@@ -48,7 +50,7 @@ export async function bootstrapNestAngularSsr<TContext = unknown>(
     return undefined;
   }
 
-  const normalized = await normalizeBootstrapOptions(options);
+  const normalized = await normalizeNestAngularSsrOptions(options);
   const integration = createNestAngularSsrIntegration<TContext>(
     app,
     normalized.integration,
@@ -57,76 +59,4 @@ export async function bootstrapNestAngularSsr<TContext = unknown>(
   await registerNestAngularSsrRoutes(app, integration, normalized.routing);
 
   return integration;
-}
-
-async function normalizeBootstrapOptions<TContext>(
-  options: Readonly<BootstrapNestAngularSsrOptions<TContext>>,
-): Promise<{
-  integration:
-    | Readonly<CreateNestAngularSsrIntegrationOptions<TContext>>
-    | undefined;
-  routing: Readonly<RegisterNestAngularSsrRoutesOptions>;
-}> {
-  const { angular, integration } = options;
-
-  if (!angular) {
-    assertBrowserAssetsDir(options.routing.browserAssetsDir);
-    return { integration, routing: options.routing };
-  }
-
-  if (integration?.renderer) {
-    throw new Error(
-      'Cannot provide both "angular" and "integration.renderer" to bootstrapNestAngularSsr.',
-    );
-  }
-
-  if (integration?.rendererOptions) {
-    throw new Error(
-      'Cannot provide both "angular" and "integration.rendererOptions" to bootstrapNestAngularSsr.',
-    );
-  }
-
-  if (isBuildOutputOptions(angular)) {
-    const buildOutput = await resolveAngularSsrBuildOutput(angular);
-
-    return {
-      integration: {
-        ...integration,
-        rendererOptions: { engine: buildOutput.engine },
-      },
-      routing: {
-        ...options.routing,
-        browserAssetsDir:
-          options.routing.browserAssetsDir ?? buildOutput.browserAssetsDir,
-        allowedHosts: options.routing.allowedHosts ?? angular.allowedHosts,
-      },
-    };
-  }
-
-  assertBrowserAssetsDir(options.routing.browserAssetsDir);
-  return {
-    integration: {
-      ...integration,
-      rendererOptions: { registration: angular },
-    },
-    routing: options.routing,
-  };
-}
-
-function isBuildOutputOptions(
-  angular: Readonly<
-    AngularSsrRegistrationOptions | AngularSsrBuildOutputOptions
-  >,
-): angular is Readonly<AngularSsrBuildOutputOptions> {
-  return 'buildOutput' in angular;
-}
-
-function assertBrowserAssetsDir(
-  browserAssetsDir: string | undefined,
-): asserts browserAssetsDir is string {
-  if (!browserAssetsDir) {
-    throw new Error(
-      '"routing.browserAssetsDir" is required unless "angular.buildOutput.root" is configured.',
-    );
-  }
 }
