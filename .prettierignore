@@ -6,3 +6,5 @@
 .nx/self-healing
 packages/governance/adapter-dbt/tests/fixtures/artifacts/malformed-manifest/target/manifest.json
 packages/governance/adapter-dbt/tests/fixtures/artifacts/malformed-project-config/dbt_project.yml
+
+.angular

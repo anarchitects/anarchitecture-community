@@ -1,0 +1,20 @@
+{
+  "angular21-nx22": {
+    "angular": "21.2.0",
+    "typescript": "5.9.3",
+    "nx": "22.6.0",
+    "node": "24"
+  },
+  "angular21-nx23": {
+    "angular": "21.2.0",
+    "typescript": "5.9.3",
+    "nx": "23.1.2",
+    "node": "24"
+  },
+  "angular22-nx23": {
+    "angular": "22.1.4",
+    "typescript": "6.0.3",
+    "nx": "23.1.2",
+    "node": "24"
+  }
+}

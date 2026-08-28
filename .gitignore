@@ -66,3 +66,7 @@ packages/governance/dbt-package/tests/fixtures/smoke/dbt_packages
 packages/governance/dbt-package/tests/fixtures/smoke/package-lock.yml
 packages/governance/dbt-package/tests/fixtures/smoke/.user.yml
 packages/governance/dbt-package/tests/fixtures/smoke/*.duckdb
+
+.angular
+
+test-output

@@ -21,8 +21,8 @@ export default defineConfig(() => ({
     lib: {
       entry: 'src/index.ts',
       name: 'nest-angular-ssr',
-      fileName: 'index',
-      formats: ['es' as const],
+      fileName: (format) => (format === 'es' ? 'index.js' : 'index.cjs'),
+      formats: ['es' as const, 'cjs' as const],
     },
     rolldownOptions: {
       external: [

@@ -14,6 +14,29 @@ permissions:
   contents: read
 
 jobs:
+  nest-angular-ssr-compatibility:
+    name: nest-angular-ssr (${{ matrix.cell }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cell:
+          - angular21-nx22
+          - angular21-nx23
+          - angular22-nx23
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          filter: tree:0
+          fetch-depth: 0
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'yarn'
+      - run: yarn install --immutable
+      - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-matrix --cell=${{ matrix.cell }}
+
   main:
     runs-on: ubuntu-latest
     steps:
@@ -49,6 +72,7 @@ jobs:
       # Prepend any command with "nx record --" to record its logs to Nx Cloud
       # - run: yarn nx record -- echo Hello World
       - run: yarn nx run-many -t lint test build typecheck
+      - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-split
       - run: yarn nx run better-auth-typeorm-adapter:test-postgres
       - run: yarn nx run better-auth-typeorm-adapter:test-better-auth
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci

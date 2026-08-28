@@ -1,0 +1,82 @@
+{
+  "name": "nest-angular-split-frontend",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "app",
+  "sourceRoot": "apps/fixtures/nest-angular-split/frontend/src",
+  "tags": [],
+  "targets": {
+    "fixture-build": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/apps/fixtures/nest-angular-split/frontend",
+        "browser": "apps/fixtures/nest-angular-split/frontend/src/main.ts",
+        "tsConfig": "apps/fixtures/nest-angular-split/frontend/tsconfig.app.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/fixtures/nest-angular-split/frontend/public"
+          }
+        ],
+        "styles": ["apps/fixtures/nest-angular-split/frontend/src/styles.css"],
+        "server": "apps/fixtures/nest-angular-split/frontend/src/main.server.ts",
+        "ssr": {
+          "entry": "apps/fixtures/nest-angular-split/frontend/src/server.ts"
+        },
+        "outputMode": "server"
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "1mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular/build:dev-server",
+      "defaultConfiguration": "development",
+      "configurations": {
+        "production": {
+          "buildTarget": "nest-angular-split-frontend:fixture-build:production"
+        },
+        "development": {
+          "buildTarget": "nest-angular-split-frontend:fixture-build:development"
+        }
+      }
+    },
+    "serve-static": {
+      "continuous": true,
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "nest-angular-split-frontend:fixture-build",
+        "staticFilePath": "dist/apps/fixtures/nest-angular-split/frontend/browser",
+        "spa": true
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p apps/fixtures/nest-angular-split/frontend/tsconfig.app.json"
+      }
+    }
+  }
+}

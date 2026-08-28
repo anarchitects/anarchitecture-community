@@ -18,6 +18,6 @@ export interface AngularSsrRenderer<TContext = unknown> {
    */
   render(
     request: AngularSsrRequest,
-    requestContext?: TContext
+    requestContext?: TContext,
   ): Promise<AngularSsrResponse | null>;
 }

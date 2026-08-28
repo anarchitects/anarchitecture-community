@@ -19,6 +19,20 @@ describe('bootstrapNestAngularSsr', () => {
     vi.restoreAllMocks();
   });
 
+  it('skips all SSR setup when explicitly disabled', async () => {
+    const app = createMockApp();
+
+    await expect(
+      bootstrapNestAngularSsr(app, {
+        enabled: false,
+        routing: {},
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(app.fastify.register).not.toHaveBeenCalled();
+    expect(app.fastify.route).not.toHaveBeenCalled();
+  });
+
   it('creates the integration with the provided integration options', async () => {
     const browserAssetsDir = await createTempAssetsDir();
     const renderer = {

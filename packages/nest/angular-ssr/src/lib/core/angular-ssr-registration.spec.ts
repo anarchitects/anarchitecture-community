@@ -23,7 +23,8 @@ test('exports a public registration contract that consumers can type without Ang
     routeExtractionUrl: 'http://localhost/',
     allowedHosts: ['localhost'],
   } satisfies AngularSsrRegistrationOptions;
-  const bootstrapLoader: AngularSsrServerBootstrapLoader = registration.bootstrap;
+  const bootstrapLoader: AngularSsrServerBootstrapLoader =
+    registration.bootstrap;
 
   expectTypeOf(bootstrapLoader).toBeFunction();
   expectTypeOf(registration).toMatchTypeOf<AngularSsrRegistrationOptions>();
@@ -45,7 +46,9 @@ test('reads template content into a resolved registration', async () => {
       templatePath,
     });
 
-    expectTypeOf(registration).toMatchTypeOf<ResolvedAngularSsrRegistrationOptions>();
+    expectTypeOf(
+      registration,
+    ).toMatchTypeOf<ResolvedAngularSsrRegistrationOptions>();
     expect(registration.templatePath).toBe(templatePath);
     expect(registration.document).toContain('<app-root></app-root>');
   } finally {

@@ -8,32 +8,48 @@ This package provides three usage levels:
 - explicit: `bootstrapNestAngularSsr(...)` during Nest bootstrap
 - advanced: direct renderer/integration composition
 
-## v1 Support
+## Support matrix
+
+Release `0.3.x` supports Node 24, NestJS 11, Fastify 5, and these tested
+Angular/Nx combinations. Nx is test infrastructure, not a peer dependency of
+this library.
+
+| Angular | TypeScript | Nx             | Status    |
+| ------- | ---------- | -------------- | --------- |
+| 21.2    | 5.9        | 22.6 (minimum) | Supported |
+| 21.2    | 5.9        | 23.1           | Supported |
+| 22      | 6.0        | 23.1           | Supported |
+
+The cells are centrally defined in
+[`tools/fixtures/nest-angular-ssr-compatibility-matrix.json`](../../../tools/fixtures/nest-angular-ssr-compatibility-matrix.json)
+and run as isolated packed-tarball consumers in CI.
+
+## Runtime support
 
 Runtime behavior:
 
-| Request | Behavior |
-| --- | --- |
-| `/api/...` | Bypasses SSR and stays in Nest/Fastify |
-| Existing browser asset | Served directly |
-| Other `GET` / `HEAD` route | Rendered through Angular SSR |
-| SSR returns `null` | Falls back to Nest/Fastify not-found handling |
+| Request                    | Behavior                                      |
+| -------------------------- | --------------------------------------------- |
+| `/api/...`                 | Bypasses SSR and stays in Nest/Fastify        |
+| Existing browser asset     | Served directly                               |
+| Other `GET` / `HEAD` route | Rendered through Angular SSR                  |
+| SSR returns `null`         | Falls back to Nest/Fastify not-found handling |
 
 Validated consumer compatibility:
 
-| Consumer shape | Status | Notes |
-| --- | --- | --- |
+| Consumer shape             | Status    | Notes                      |
+| -------------------------- | --------- | -------------------------- |
 | CommonJS-oriented Nest app | Supported | Direct module import works |
-| ESM Nest app | Supported | Direct module import works |
+| ESM Nest app               | Supported | Direct module import works |
 
 The compatibility result above is backed by the fixture validation note at [`docs/validation/nest-angular-ssr-consumers.md`](../../../docs/validation/nest-angular-ssr-consumers.md).
 
 ## Requirements
 
 - NestJS 11+ with the Fastify adapter
-- Angular SSR built on `@angular/ssr`
-- An explicit browser assets directory
-- An app-owned Angular server bootstrap entry or bootstrap function
+- Angular 21 or 22 SSR built on `@angular/ssr`
+- A built Angular `outputMode: "server"` application (recommended), or the
+  legacy app-owned bootstrap/template inputs
 
 Peer dependencies:
 
@@ -45,9 +61,52 @@ Peer dependencies:
 
 ## Recommended Usage
 
-### Nest Module
+### Split Angular/Nest build output (recommended)
 
-Use the module when you want a normal Nest `AppModule`-based setup.
+Build Angular separately with `outputMode: "server"` and an explicit
+`ssr.entry`. Construct and export the engine from that entry so the Nest
+process never creates a second Angular runtime:
+
+```ts
+// frontend/src/server.ts
+import { AngularNodeAppEngine } from '@angular/ssr/node';
+
+export const angularSsrEngine = new AngularNodeAppEngine({
+  allowedHosts: ['localhost', '127.0.0.1'],
+});
+```
+
+Register the built output before `listen()`. The package finds the `browser/`
+assets and Angular ESM server bundle under the single output root. The runtime
+import is safe when this Nest entry is compiled into a CommonJS webpack bundle.
+
+```ts
+await bootstrapNestAngularSsr(app, {
+  angular: {
+    buildOutput: {
+      root: 'dist/apps/frontend',
+      // Optional overrides:
+      // serverBundleCandidates: ['server/server.mjs'],
+      // engineExport: 'angularSsrEngine',
+    },
+    allowedHosts: ['localhost', '127.0.0.1'],
+  },
+  routing: { apiPrefix: 'api' },
+});
+
+await app.listen(3000, '0.0.0.0');
+```
+
+For customized split deployments, explicit bootstrap is the recommended
+integration. `NestAngularSsrModule.forRoot(...)` and `forRootAsync(...)` use
+the same normalization and registration path and remain suitable for standard
+Nest startup. Set `enabled: false` for tests and API-only deployments where no
+frontend artifacts are available.
+
+### Legacy colocated source mode
+
+Use this mode only when Angular bootstrap code and its server template are
+intentionally colocated with Nest.
 
 ```ts
 import { Module } from '@nestjs/common';
@@ -114,6 +173,8 @@ Notes:
 - When your app uses `app.setGlobalPrefix(...)`, SSR routing follows that prefix automatically.
 - Set `routing.apiPrefix` only when you need to override the detected Nest global prefix.
 - `NestAngularSsrModule.forRootAsync(...)` is available when the same option shape needs to come from Nest DI or async config.
+- `@angular/compiler` may be required by this direct-source/JIT path. It is not
+  loaded or required by the recommended build-output path.
 
 ```ts
 NestAngularSsrModule.forRootAsync({
@@ -130,7 +191,7 @@ NestAngularSsrModule.forRootAsync({
 });
 ```
 
-### Explicit Bootstrap Helper
+### Explicit Bootstrap Helper (legacy inputs)
 
 Use this when you want explicit bootstrap wiring in `main.ts`.
 
@@ -224,17 +285,19 @@ These APIs keep the public boundary small:
   - `allowedHosts?: readonly string[]`
 - `AngularNodeSsrRendererOptions`
   - `registration?: AngularSsrRegistrationOptions | ResolvedAngularSsrRegistrationOptions`
-  - `engine?: AngularNodeAppEngine`
-  - `engineOptions?: AngularNodeAppEngineOptions`
+  - `engine?: AngularSsrEngine`
+  - `engineOptions?: AngularSsrEngineOptions`
 - `CreateNestAngularSsrIntegrationOptions<TContext>`
   - `renderer?: AngularSsrRenderer<TContext>`
   - `rendererOptions?: AngularNodeSsrRendererOptions`
   - `createRequestContext?: (request, reply) => TContext | Promise<TContext>`
 - `RegisterNestAngularSsrRoutesOptions`
-  - `browserAssetsDir: string`
+  - `browserAssetsDir?: string` (derived from build output when omitted)
   - `apiPrefix?: string`
+  - `allowedHosts?: readonly string[]`
 - `BootstrapNestAngularSsrOptions<TContext>`
-  - `angular?: AngularSsrRegistrationOptions`
+  - `enabled?: boolean`
+  - `angular?: AngularSsrRegistrationOptions | AngularSsrBuildOutputOptions`
   - `integration?: CreateNestAngularSsrIntegrationOptions<TContext>`
   - `routing: RegisterNestAngularSsrRoutesOptions`
 - `NestAngularSsrModuleOptions<TContext>`
@@ -261,6 +324,20 @@ v1 intentionally does not do the following:
 - recreate legacy Universal APIs exactly
 
 This package is intentionally scoped to modern Angular SSR on Nest + Fastify.
+
+## Troubleshooting
+
+- `browser assets directory was not found`: build the Angular application
+  before Nest and point `angular.buildOutput.root` at the directory containing
+  `browser/` and `server/`.
+- `Angular server bundle was not found`: keep `outputMode: "server"`, configure
+  `ssr.entry`, or provide explicit `serverBundleCandidates`.
+- `does not export an engine`: export `angularSsrEngine` from `ssr.entry`, or
+  configure `engineExport` to match your chosen name.
+- `request host is not allowed`: add the public hostname to `allowedHosts`.
+  Rejected hosts deliberately return HTTP 400 instead of an empty CSR shell.
+- Do not import or instantiate `AngularNodeAppEngine` in Nest for split mode;
+  the single engine instance must be owned by the Angular server bundle.
 
 ## License
 

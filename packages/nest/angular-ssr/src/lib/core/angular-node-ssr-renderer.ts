@@ -1,35 +1,29 @@
-import {
-  AngularNodeAppEngine,
-  type AngularNodeAppEngineOptions,
-} from '@angular/ssr/node';
-
 import type { AngularSsrRenderer } from './angular-ssr-contract.js';
-import {
-  type AngularSsrRegistrationInput,
-  registerAngularSsrApplication,
-} from './angular-ssr-registration-runtime.js';
+import type {
+  AngularSsrEngine,
+  AngularSsrEngineOptions,
+} from './angular-ssr-engine.js';
+import type { AngularSsrRegistrationInput } from './angular-ssr-registration.js';
 
 export interface AngularNodeSsrRendererOptions {
   registration?: AngularSsrRegistrationInput;
-  engine?: AngularNodeAppEngine;
-  engineOptions?: AngularNodeAppEngineOptions;
+  engine?: AngularSsrEngine;
+  engineOptions?: AngularSsrEngineOptions;
 }
 
 export class AngularNodeSsrRenderer<TContext = unknown>
   implements AngularSsrRenderer<TContext>
 {
   private readonly registration?: Readonly<AngularSsrRegistrationInput>;
-  private readonly engineOptions?: AngularNodeAppEngineOptions;
-  private engine?: Pick<AngularNodeAppEngine, 'handle'>;
+  private readonly engineOptions?: AngularSsrEngineOptions;
+  private engine?: AngularSsrEngine;
+  private enginePromise?: Promise<AngularSsrEngine>;
   private registrationPromise?: Promise<void>;
 
   constructor(options: Readonly<AngularNodeSsrRendererOptions> = {}) {
     const { registration, engine, engineOptions } = options;
 
-    if (
-      registration &&
-      (engine !== undefined || engineOptions !== undefined)
-    ) {
+    if (registration && (engine !== undefined || engineOptions !== undefined)) {
       throw new Error(
         'Cannot provide "registration" together with "engine" or "engineOptions" to AngularNodeSsrRenderer.',
       );
@@ -52,24 +46,36 @@ export class AngularNodeSsrRenderer<TContext = unknown>
   ): Promise<Response | null> {
     await this.ensureRegistration();
 
-    return this.getEngine().handle(request, requestContext);
+    return (await this.getEngine()).handle(request, requestContext);
   }
 
   private async ensureRegistration(): Promise<void> {
-    if (!this.registration) {
+    const registration = this.registration;
+
+    if (!registration) {
       return;
     }
 
-    this.registrationPromise ??= registerAngularSsrApplication(
-      this.registration,
-    ).then(() => undefined);
+    this.registrationPromise ??= import(
+      './angular-ssr-registration-runtime.js'
+    ).then(({ registerAngularSsrApplication }) =>
+      registerAngularSsrApplication(registration).then(() => undefined),
+    );
 
     await this.registrationPromise;
   }
 
-  private getEngine(): Pick<AngularNodeAppEngine, 'handle'> {
-    this.engine ??= new AngularNodeAppEngine(this.engineOptions);
+  private async getEngine(): Promise<AngularSsrEngine> {
+    if (this.engine) {
+      return this.engine;
+    }
 
+    this.enginePromise ??= import('@angular/ssr/node').then(
+      ({ AngularNodeAppEngine }) =>
+        new AngularNodeAppEngine(this.engineOptions) as AngularSsrEngine,
+    );
+
+    this.engine = await this.enginePromise;
     return this.engine;
   }
 }

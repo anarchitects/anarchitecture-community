@@ -99,6 +99,32 @@ describe('registerNestAngularSsrRoutes', () => {
     }
   });
 
+  it('rejects an unknown SSR host explicitly instead of rendering a CSR shell', async () => {
+    const browserAssetsDir = await createTempAssetsDir();
+    const integration = createMockIntegration(true);
+    const context = createMockRoutingContext();
+
+    try {
+      await registerNestAngularSsrRoutes(
+        context.app,
+        integration,
+        createRoutingOptions(browserAssetsDir, {
+          allowedHosts: ['app.example.com'],
+        }),
+      );
+
+      await invokeRoute(context, '/', { host: 'attacker.example.com' });
+
+      expect(integration.handle).not.toHaveBeenCalled();
+      expect(context.reply.code).toHaveBeenCalledWith(400);
+      expect(context.reply.send).toHaveBeenCalledWith(
+        'The request host is not allowed for Angular SSR.',
+      );
+    } finally {
+      await rm(browserAssetsDir, { recursive: true, force: true });
+    }
+  });
+
   it('serves an existing browser asset directly without SSR handling', async () => {
     const browserAssetsDir = await createTempAssetsDir({
       'main.js': 'console.log("asset");',
@@ -272,9 +298,11 @@ describe('registerNestAngularSsrRoutes', () => {
   });
 });
 
-function createMockRoutingContext(overrides: {
-  config?: { getGlobalPrefix?: () => string };
-} = {}) {
+function createMockRoutingContext(
+  overrides: {
+    config?: { getGlobalPrefix?: () => string };
+  } = {},
+) {
   const routes: MockFastifyRoute[] = [];
   const fastify = {
     register: vi.fn().mockResolvedValue(undefined),
@@ -319,6 +347,8 @@ function createMockRoutingReply(): FastifyReply & {
   return {
     sendFile: vi.fn().mockResolvedValue(undefined),
     callNotFound: vi.fn().mockReturnValue(undefined),
+    code: vi.fn().mockReturnThis(),
+    send: vi.fn().mockResolvedValue(undefined),
   } as unknown as FastifyReply & {
     sendFile: ReturnType<typeof vi.fn>;
     callNotFound: ReturnType<typeof vi.fn>;
@@ -338,6 +368,7 @@ function createRoutingOptions(
 async function invokeRoute(
   context: ReturnType<typeof createMockRoutingContext>,
   url: string,
+  headers: FastifyRequest['headers'] = {},
 ) {
   const route = selectRoute(context.routes, url);
 
@@ -345,14 +376,20 @@ async function invokeRoute(
     {
       method: 'GET',
       url,
+      headers,
       raw: { url } as FastifyRequest['raw'],
     } as FastifyRequest,
     context.reply,
   );
 }
 
-function selectRoute(routes: MockFastifyRoute[], url: string): MockFastifyRoute {
-  const route = routes.find((candidate) => candidate.url === (url === '/' ? '/' : '/*'));
+function selectRoute(
+  routes: MockFastifyRoute[],
+  url: string,
+): MockFastifyRoute {
+  const route = routes.find(
+    (candidate) => candidate.url === (url === '/' ? '/' : '/*'),
+  );
 
   if (!route) {
     throw new Error(`No route handler registered for ${url}`);

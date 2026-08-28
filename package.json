@@ -7,13 +7,17 @@
     "validate:governance-packages": "yarn nx run @anarchitecture-community/source:validate-governance-release-gate"
   },
   "devDependencies": {
-    "@angular/common": "^21.2.5",
-    "@angular/compiler": "^21.2.5",
-    "@angular/core": "^21.2.5",
-    "@angular/platform-browser": "^21.2.5",
-    "@angular/platform-server": "^21.2.5",
-    "@angular/router": "^21.2.5",
-    "@angular/ssr": "^21.2.3",
+    "@angular-devkit/core": "^22.0.0",
+    "@angular-devkit/schematics": "^22.0.0",
+    "@angular/build": "^22.0.0",
+    "@angular/common": "^22.0.0",
+    "@angular/compiler": "^22.0.0",
+    "@angular/compiler-cli": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/platform-browser": "^22.0.0",
+    "@angular/platform-server": "^22.0.0",
+    "@angular/router": "^22.0.0",
+    "@angular/ssr": "^22.0.0",
     "@eslint/js": "^9.8.0",
     "@fastify/static": "^8.2.0",
     "@nestjs/common": "^11.1.6",
@@ -21,8 +25,10 @@
     "@nestjs/platform-fastify": "^11.1.6",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
+    "@nx/angular": "23.1.2",
     "@nx/eslint": "23.1.2",
     "@nx/eslint-plugin": "23.1.2",
+    "@nx/jest": "23.1.2",
     "@nx/js": "23.1.2",
     "@nx/nest": "23.1.2",
     "@nx/node": "23.1.2",
@@ -31,9 +37,12 @@
     "@nx/web": "23.1.2",
     "@nx/webpack": "23.1.2",
     "@nxlv/python": "^22.2.0",
+    "@schematics/angular": "^22.0.0",
     "@swc-node/register": "~1.11.1",
     "@swc/core": "~1.15.5",
     "@swc/helpers": "~0.5.18",
+    "@swc/jest": "^0.2.39",
+    "@types/jest": "^30.0.0",
     "@types/node": "20.19.9",
     "@typescript-eslint/parser": "8.68.0",
     "@vitest/coverage-v8": "~4.0.0",
@@ -42,6 +51,7 @@
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
     "fastify": "^5.6.0",
+    "jest": "~30.3.0",
     "jiti": "2.4.2",
     "jsdom": "~22.1.0",
     "jsonc-eslint-parser": "^2.1.0",
@@ -49,6 +59,7 @@
     "prettier": "~3.6.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "ts-jest": "^29.4.12",
     "tslib": "^2.3.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.68.0",
@@ -62,7 +73,8 @@
     "zone.js": "^0.16.1"
   },
   "workspaces": [
-    "packages/*/*"
+    "packages/*/*",
+    "apps/fixtures/nest-angular-split/*"
   ],
   "packageManager": "yarn@4.18.0",
   "nx": {
@@ -72,6 +84,30 @@
         "executor": "nx:run-commands",
         "options": {
           "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
+        }
+      },
+      "validate-nest-angular-ssr-matrix": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-matrix.mjs {args.cell}"
+        }
+      },
+      "validate-nest-angular-ssr-split": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-split.mjs"
+        }
+      },
+      "validate-nest-angular-ssr-release-gate": {
+        "executor": "nx:run-commands",
+        "options": {
+          "commands": [
+            "yarn nx run-many -t build,typecheck,test,lint -p nest-angular-ssr",
+            "yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-consumers",
+            "yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-split",
+            "yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-matrix --cell=all"
+          ],
+          "parallel": false
         }
       },
       "validate-governance-release-gate": {

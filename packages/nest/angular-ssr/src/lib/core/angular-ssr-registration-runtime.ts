@@ -10,7 +10,7 @@ import {
 
 import {
   createAngularSsrRegistration,
-  type AngularSsrRegistrationOptions,
+  type AngularSsrRegistrationInput,
   type ResolvedAngularSsrRegistrationOptions,
 } from './angular-ssr-registration.js';
 
@@ -23,10 +23,6 @@ export interface RegisteredAngularSsrApplication {
   readonly requestUrl: string;
   cleanup(): void;
 }
-
-export type AngularSsrRegistrationInput =
-  | AngularSsrRegistrationOptions
-  | ResolvedAngularSsrRegistrationOptions;
 
 export async function registerAngularSsrApplication(
   options: Readonly<AngularSsrRegistrationInput>,

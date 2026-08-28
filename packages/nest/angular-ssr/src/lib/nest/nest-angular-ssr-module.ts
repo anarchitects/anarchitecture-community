@@ -37,7 +37,9 @@ export const NEST_ANGULAR_SSR_MODULE_OPTIONS = Symbol(
 export class NestAngularSsrModuleBootstrapService<TContext = unknown>
   implements OnApplicationBootstrap
 {
-  private integrationPromise?: Promise<NestAngularSsrIntegration<TContext>>;
+  private integrationPromise?: Promise<
+    NestAngularSsrIntegration<TContext> | undefined
+  >;
 
   constructor(
     private readonly options: Readonly<NestAngularSsrModuleOptions<TContext>>,
@@ -49,7 +51,7 @@ export class NestAngularSsrModuleBootstrapService<TContext = unknown>
     await this.getIntegration();
   }
 
-  getIntegration(): Promise<NestAngularSsrIntegration<TContext>> {
+  getIntegration(): Promise<NestAngularSsrIntegration<TContext> | undefined> {
     this.integrationPromise ??= bootstrapNestAngularSsr<TContext>(
       createNestAngularSsrModuleApplication(
         this.httpAdapterHost,

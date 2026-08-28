@@ -90,6 +90,11 @@ describe('NestAngularSsrModule', () => {
     try {
       const integration = await context.service.getIntegration();
 
+      expect(integration).toBeDefined();
+      if (!integration) {
+        throw new Error('Expected SSR integration to be enabled.');
+      }
+
       expect(integration.renderer).toBe(renderer);
       expect(context.fastify.register).toHaveBeenCalledTimes(1);
       expect(context.fastify.route).toHaveBeenCalledTimes(2);
@@ -133,6 +138,12 @@ describe('NestAngularSsrModule', () => {
 
     try {
       const integration = await context.service.getIntegration();
+
+      expect(integration).toBeDefined();
+      if (!integration) {
+        throw new Error('Expected SSR integration to be enabled.');
+      }
+
       const response = await integration.renderer.render(
         new Request('http://localhost/'),
       );
@@ -330,7 +341,9 @@ function getOptionsProvider(
   );
 
   if (!provider) {
-    throw new Error('NestAngularSsrModule options provider was not registered.');
+    throw new Error(
+      'NestAngularSsrModule options provider was not registered.',
+    );
   }
 
   return provider;
@@ -351,11 +364,7 @@ async function createRealModuleFixture(
   if (!healthDescriptor) {
     throw new Error('HealthController#getHealth descriptor is required.');
   }
-  Get('health')(
-    HealthController.prototype,
-    'getHealth',
-    healthDescriptor,
-  );
+  Get('health')(HealthController.prototype, 'getHealth', healthDescriptor);
   Controller('api')(HealthController);
 
   class FixtureModule {}
