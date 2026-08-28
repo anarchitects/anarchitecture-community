@@ -9,6 +9,8 @@ type PersistenceMock = {
   findMany: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
   deleteMany: ReturnType<typeof vi.fn>;
+  consumeOne: ReturnType<typeof vi.fn>;
+  incrementOne: ReturnType<typeof vi.fn>;
   count: ReturnType<typeof vi.fn>;
   options: undefined;
 };
@@ -56,6 +58,8 @@ function createPersistenceMock(): PersistenceMock {
     findMany: vi.fn(async () => []),
     delete: vi.fn(async () => undefined),
     deleteMany: vi.fn(async () => 1),
+    consumeOne: vi.fn(async () => ({ id: 'account_1' })),
+    incrementOne: vi.fn(async () => ({ id: 'account_1', attempt_count: 2 })),
     count: vi.fn(async () => 1),
     options: undefined,
   };
@@ -73,6 +77,11 @@ function resetPersistenceMocks() {
   mocked.rootPersistence.findMany = vi.fn(async () => []);
   mocked.rootPersistence.delete = vi.fn(async () => undefined);
   mocked.rootPersistence.deleteMany = vi.fn(async () => 1);
+  mocked.rootPersistence.consumeOne = vi.fn(async () => ({ id: 'account_1' }));
+  mocked.rootPersistence.incrementOne = vi.fn(async () => ({
+    id: 'account_1',
+    attempt_count: 2,
+  }));
   mocked.rootPersistence.count = vi.fn(async () => 1);
 
   mocked.transactionPersistence.create = vi.fn(async ({ data }) => data);
@@ -82,6 +91,8 @@ function resetPersistenceMocks() {
   mocked.transactionPersistence.findMany = vi.fn(async () => []);
   mocked.transactionPersistence.delete = vi.fn(async () => undefined);
   mocked.transactionPersistence.deleteMany = vi.fn(async () => 1);
+  mocked.transactionPersistence.consumeOne = vi.fn(async () => null);
+  mocked.transactionPersistence.incrementOne = vi.fn(async () => null);
   mocked.transactionPersistence.count = vi.fn(async () => 7);
 }
 
@@ -116,7 +127,15 @@ describe('createBetterAuthTypeormDbAdapter', () => {
         account: {
           modelName: 'loginAccounts',
           fields: {
+            issuer: 'issuer_url',
             userId: 'member_id',
+          },
+          additionalFields: {
+            attempts: {
+              type: 'number',
+              required: false,
+              fieldName: 'attempt_count',
+            },
           },
         },
       } as BetterAuthOptions,
@@ -173,6 +192,28 @@ describe('createBetterAuthTypeormDbAdapter', () => {
         },
       ],
     });
+    await adapter.consumeOne({
+      model: 'account',
+      where: [
+        {
+          field: 'issuer',
+          operator: 'eq',
+          value: 'local:credential',
+        },
+      ],
+    });
+    await adapter.incrementOne({
+      model: 'account',
+      where: [
+        {
+          field: 'userId',
+          operator: 'eq',
+          value: 'user_1',
+        },
+      ],
+      increment: { attempts: 1 },
+      set: { issuer: 'local:credential' },
+    });
 
     expect(mocked.rootPersistence.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -191,6 +232,7 @@ describe('createBetterAuthTypeormDbAdapter', () => {
           operator: 'eq',
           value: 'alice@example.com',
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
       select: ['email_address', 'member_name'],
@@ -205,6 +247,7 @@ describe('createBetterAuthTypeormDbAdapter', () => {
             operator: 'eq',
             value: 'user_1',
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         update: expect.objectContaining({
@@ -220,6 +263,7 @@ describe('createBetterAuthTypeormDbAdapter', () => {
           operator: 'eq',
           value: 'user_2',
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
     });
@@ -231,8 +275,35 @@ describe('createBetterAuthTypeormDbAdapter', () => {
           operator: 'eq',
           value: 'user_2',
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
+    });
+    expect(mocked.rootPersistence.consumeOne).toHaveBeenCalledWith({
+      model: 'loginAccounts',
+      where: [
+        {
+          field: 'issuer_url',
+          operator: 'eq',
+          value: 'local:credential',
+          connector: 'AND',
+          mode: 'sensitive',
+        },
+      ],
+    });
+    expect(mocked.rootPersistence.incrementOne).toHaveBeenCalledWith({
+      model: 'loginAccounts',
+      where: [
+        {
+          field: 'member_id',
+          operator: 'eq',
+          value: 'user_1',
+          connector: 'AND',
+          mode: 'sensitive',
+        },
+      ],
+      increment: { attempt_count: 1 },
+      set: expect.objectContaining({ issuer_url: 'local:credential' }),
     });
   });
 

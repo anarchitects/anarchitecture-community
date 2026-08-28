@@ -6,12 +6,17 @@ import type { DataSource } from 'typeorm';
 import { createTypeormPersistence } from '../../src/lib/internal/create-typeorm-persistence.js';
 import {
   AccountsEntity,
+  AtomicCountersEntity,
   CORE_ENTITIES,
   SessionsEntity,
   UsersEntity,
   VerificationsEntity,
 } from './entities.js';
-import { destroyDataSource, startPostgresHarness, type PostgresHarness } from './harness.js';
+import {
+  destroyDataSource,
+  startPostgresHarness,
+  type PostgresHarness,
+} from './harness.js';
 
 function createTimestamp(day: number) {
   return new Date(`2025-01-${String(day).padStart(2, '0')}T12:00:00.000Z`);
@@ -124,6 +129,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
           operator: 'eq',
           value: 'alice@example.com',
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
     });
@@ -143,6 +149,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
           operator: 'eq',
           value: userId,
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
       update: {
@@ -164,6 +171,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'eq',
             value: userId,
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         update: {
@@ -181,6 +189,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'eq',
             value: 'Updated Vitest',
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
       }),
@@ -194,6 +203,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
           operator: 'eq',
           value: verificationId,
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
     });
@@ -254,12 +264,14 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'contains',
             value: 'example',
             connector: 'AND',
+            mode: 'sensitive',
           },
           {
             field: 'name',
             operator: 'starts_with',
             value: 'A',
             connector: 'OR',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -275,18 +287,21 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'ends_with',
             value: 'example.com',
             connector: 'AND',
+            mode: 'sensitive',
           },
           {
             field: 'createdAt',
             operator: 'gt',
             value: createTimestamp(1),
             connector: 'AND',
+            mode: 'sensitive',
           },
           {
             field: 'createdAt',
             operator: 'lte',
             value: createTimestamp(3),
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -302,6 +317,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'ne',
             value: 'Alice',
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -317,6 +333,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'lt',
             value: createTimestamp(3),
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -332,6 +349,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'eq',
             value: null,
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -347,6 +365,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'ne',
             value: null,
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -362,6 +381,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'in',
             value: [null, 'avatar-2.png'] as unknown as CleanedWhere['value'],
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -377,6 +397,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'not_in',
             value: [null, 'avatar-2.png'] as unknown as CleanedWhere['value'],
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -392,6 +413,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'in',
             value: [] as unknown as CleanedWhere['value'],
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -407,6 +429,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
             operator: 'not_in',
             value: [] as unknown as CleanedWhere['value'],
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         limit: 10,
@@ -439,30 +462,35 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
     const userId = randomUUID();
     const accountId = randomUUID();
 
-    await getDataSource().getRepository(UsersEntity).save({
-      id: userId,
-      email: 'joined@example.com',
-      name: 'Joined User',
-      emailVerified: true,
-      image: null,
-      createdAt: createTimestamp(1),
-      updatedAt: createTimestamp(1),
-    });
-    await getDataSource().getRepository(AccountsEntity).save({
-      id: accountId,
-      accountId: 'github-user-1',
-      providerId: 'github',
-      userId,
-      accessToken: null,
-      refreshToken: null,
-      idToken: null,
-      accessTokenExpiresAt: null,
-      refreshTokenExpiresAt: null,
-      scope: null,
-      password: null,
-      createdAt: createTimestamp(1),
-      updatedAt: createTimestamp(1),
-    });
+    await getDataSource()
+      .getRepository(UsersEntity)
+      .save({
+        id: userId,
+        email: 'joined@example.com',
+        name: 'Joined User',
+        emailVerified: true,
+        image: null,
+        createdAt: createTimestamp(1),
+        updatedAt: createTimestamp(1),
+      });
+    await getDataSource()
+      .getRepository(AccountsEntity)
+      .save({
+        id: accountId,
+        issuer: 'https://github.com',
+        accountId: 'github-user-1',
+        providerId: 'github',
+        userId,
+        accessToken: null,
+        refreshToken: null,
+        idToken: null,
+        accessTokenExpiresAt: null,
+        refreshTokenExpiresAt: null,
+        scope: null,
+        password: null,
+        createdAt: createTimestamp(1),
+        updatedAt: createTimestamp(1),
+      });
 
     const accountWithUser = await persistence.findOne<Record<string, unknown>>({
       model: 'accounts',
@@ -472,6 +500,7 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
           operator: 'eq',
           value: accountId,
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
       join: {
@@ -494,37 +523,228 @@ describe('createTypeormPersistence PostgreSQL integration', () => {
       },
     });
 
-    const userWithAccounts = await persistence.findOne<Record<string, unknown>>({
-      model: 'users',
-      where: [
-        {
-          field: 'id',
-          operator: 'eq',
-          value: userId,
-          connector: 'AND',
-        },
-      ],
-      join: {
-        accounts: {
-          on: {
-            from: 'id',
-            to: 'userId',
+    const userWithAccounts = await persistence.findOne<Record<string, unknown>>(
+      {
+        model: 'users',
+        where: [
+          {
+            field: 'id',
+            operator: 'eq',
+            value: userId,
+            connector: 'AND',
+            mode: 'sensitive',
           },
-          relation: 'one-to-many',
-          limit: 10,
+        ],
+        join: {
+          accounts: {
+            on: {
+              from: 'id',
+              to: 'userId',
+            },
+            relation: 'one-to-many',
+            limit: 10,
+          },
         },
       },
-    });
+    );
 
     expect(userWithAccounts).toMatchObject({
       id: userId,
       accounts: [
         {
           id: accountId,
+          issuer: 'https://github.com',
           providerId: 'github',
         },
       ],
     });
+  });
+
+  it('serializes concurrent consumeOne and guarded incrementOne calls', async () => {
+    const persistence = createTypeormPersistence({
+      dataSource: getDataSource(),
+      models: {
+        verifications: VerificationsEntity,
+        counters: AtomicCountersEntity,
+      },
+    });
+    const verificationId = randomUUID();
+    const counterId = randomUUID();
+
+    await getDataSource()
+      .getRepository(VerificationsEntity)
+      .save({
+        id: verificationId,
+        identifier: 'single-use@example.com',
+        value: 'single-use-token',
+        expiresAt: createTimestamp(10),
+        createdAt: createTimestamp(1),
+        updatedAt: createTimestamp(1),
+      });
+    await getDataSource().getRepository(AtomicCountersEntity).save({
+      id: counterId,
+      remainingUses: 0,
+      state: 'open',
+      note: null,
+    });
+
+    const consumeResults = await Promise.all(
+      Array.from({ length: 12 }, () =>
+        persistence.consumeOne<Record<string, unknown>>({
+          model: 'verifications',
+          where: [
+            {
+              field: 'identifier',
+              operator: 'eq',
+              value: 'single-use@example.com',
+              connector: 'AND',
+              mode: 'sensitive',
+            },
+            {
+              field: 'value',
+              operator: 'eq',
+              value: 'single-use-token',
+              connector: 'AND',
+              mode: 'sensitive',
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(consumeResults.filter((result) => result !== null)).toHaveLength(1);
+    expect(consumeResults.find((result) => result !== null)).toMatchObject({
+      id: verificationId,
+      identifier: 'single-use@example.com',
+    });
+    expect(
+      await getDataSource().getRepository(VerificationsEntity).count(),
+    ).toBe(0);
+
+    const incrementResults = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        persistence.incrementOne<Record<string, unknown>>({
+          model: 'counters',
+          where: [
+            {
+              field: 'id',
+              operator: 'eq',
+              value: counterId,
+              connector: 'AND',
+              mode: 'sensitive',
+            },
+            {
+              field: 'remaining_uses',
+              operator: 'lt',
+              value: 5,
+              connector: 'AND',
+              mode: 'sensitive',
+            },
+            {
+              field: 'state_code',
+              operator: 'eq',
+              value: 'open',
+              connector: 'AND',
+              mode: 'sensitive',
+            },
+          ],
+          increment: { remaining_uses: 1 },
+          set: { note_text: 'updated atomically' },
+        }),
+      ),
+    );
+
+    expect(incrementResults.filter((result) => result !== null)).toHaveLength(
+      5,
+    );
+    expect(
+      await getDataSource()
+        .getRepository(AtomicCountersEntity)
+        .findOneByOrFail({
+          id: counterId,
+        }),
+    ).toEqual({
+      id: counterId,
+      remainingUses: 5,
+      state: 'open',
+      note: 'updated atomically',
+    });
+  });
+
+  it('rolls back atomic operations in nested manager-scoped transactions', async () => {
+    const persistence = createTypeormPersistence({
+      dataSource: getDataSource(),
+      models: {
+        verifications: VerificationsEntity,
+        counters: AtomicCountersEntity,
+      },
+    });
+    const verificationId = randomUUID();
+    const counterId = randomUUID();
+
+    await getDataSource()
+      .getRepository(VerificationsEntity)
+      .save({
+        id: verificationId,
+        identifier: 'rollback@example.com',
+        value: 'rollback-token',
+        expiresAt: createTimestamp(10),
+        createdAt: createTimestamp(1),
+        updatedAt: createTimestamp(1),
+      });
+    await getDataSource().getRepository(AtomicCountersEntity).save({
+      id: counterId,
+      remainingUses: 1,
+      state: 'open',
+      note: null,
+    });
+
+    await expect(
+      persistence.transaction(async (transactionPersistence) => {
+        await transactionPersistence.transaction(async (nestedPersistence) => {
+          await nestedPersistence.consumeOne({
+            model: 'verifications',
+            where: [
+              {
+                field: 'id',
+                operator: 'eq',
+                value: verificationId,
+                connector: 'AND',
+                mode: 'sensitive',
+              },
+            ],
+          });
+          await nestedPersistence.incrementOne({
+            model: 'counters',
+            where: [
+              {
+                field: 'id',
+                operator: 'eq',
+                value: counterId,
+                connector: 'AND',
+                mode: 'sensitive',
+              },
+            ],
+            increment: { remaining_uses: -1 },
+          });
+        });
+
+        throw new Error('rollback atomic operations');
+      }),
+    ).rejects.toThrow('rollback atomic operations');
+
+    expect(
+      await getDataSource().getRepository(VerificationsEntity).countBy({
+        id: verificationId,
+      }),
+    ).toBe(1);
+    expect(
+      await getDataSource()
+        .getRepository(AtomicCountersEntity)
+        .findOneByOrFail({
+          id: counterId,
+        }),
+    ).toMatchObject({ remainingUses: 1 });
   });
 
   it('commits and rolls back transaction-scoped persistence operations', async () => {

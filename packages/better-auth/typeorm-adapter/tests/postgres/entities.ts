@@ -12,6 +12,7 @@ export interface UserRow {
 
 export interface AccountRow {
   id: string;
+  issuer: string;
   accountId: string;
   providerId: string;
   userId: string;
@@ -58,11 +59,19 @@ export interface TransformedUserRow {
 
 export interface TransformedAccountRow {
   id: string;
+  trustedIssuer: string;
   providerAccountId: string;
   providerName: string;
   ownerUserId: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface AtomicCounterRow {
+  id: string;
+  remainingUses: number;
+  state: string;
+  note: string | null;
 }
 
 export interface BetterAuthSuiteUserRow {
@@ -99,8 +108,16 @@ export const UsersEntity = new EntitySchema<UserRow>({
 export const AccountsEntity = new EntitySchema<AccountRow>({
   name: 'AccountsEntity',
   tableName: 'accounts',
+  indices: [
+    {
+      name: 'uq_accounts_issuer_account_id',
+      columns: ['issuer', 'accountId'],
+      unique: true,
+    },
+  ],
   columns: {
     id: { type: 'uuid', primary: true },
+    issuer: { type: 'varchar' },
     accountId: { type: 'varchar' },
     providerId: { type: 'varchar' },
     userId: { type: 'uuid' },
@@ -181,8 +198,19 @@ export const AppUsersEntity = new EntitySchema<TransformedUserRow>({
 export const AppAccountsEntity = new EntitySchema<TransformedAccountRow>({
   name: 'AppAccountsEntity',
   tableName: 'app_accounts',
+  indices: [
+    {
+      name: 'uq_app_accounts_issuer_account_id',
+      columns: ['trustedIssuer', 'providerAccountId'],
+      unique: true,
+    },
+  ],
   columns: {
     id: { type: 'uuid', primary: true },
+    trustedIssuer: {
+      type: 'varchar',
+      name: 'issuer_url',
+    },
     providerAccountId: {
       type: 'varchar',
       name: 'provider_account_id',
@@ -206,27 +234,57 @@ export const AppAccountsEntity = new EntitySchema<TransformedAccountRow>({
   },
 });
 
-export const BetterAuthSuiteUsersEntity = new EntitySchema<BetterAuthSuiteUserRow>({
-  name: 'BetterAuthSuiteUsersEntity',
-  tableName: 'users',
+export const AtomicCountersEntity = new EntitySchema<AtomicCounterRow>({
+  name: 'AtomicCountersEntity',
+  tableName: 'atomic_counters',
   columns: {
-    id: { type: 'uuid', primary: true, generated: 'uuid' },
-    email: { type: 'varchar', unique: true },
-    name: { type: 'varchar' },
-    emailVerified: { type: 'boolean' },
-    image: { type: 'varchar', nullable: true },
-    profile: { type: 'jsonb', nullable: true },
-    createdAt: { type: 'timestamptz' },
-    updatedAt: { type: 'timestamptz' },
+    id: { type: 'uuid', primary: true },
+    remainingUses: {
+      type: 'integer',
+      name: 'remaining_uses',
+    },
+    state: {
+      type: 'varchar',
+      name: 'state_code',
+    },
+    note: {
+      type: 'varchar',
+      name: 'note_text',
+      nullable: true,
+    },
   },
 });
+
+export const BetterAuthSuiteUsersEntity =
+  new EntitySchema<BetterAuthSuiteUserRow>({
+    name: 'BetterAuthSuiteUsersEntity',
+    tableName: 'users',
+    columns: {
+      id: { type: 'uuid', primary: true, generated: 'uuid' },
+      email: { type: 'varchar', unique: true },
+      name: { type: 'varchar' },
+      emailVerified: { type: 'boolean' },
+      image: { type: 'varchar', nullable: true },
+      profile: { type: 'jsonb', nullable: true },
+      createdAt: { type: 'timestamptz' },
+      updatedAt: { type: 'timestamptz' },
+    },
+  });
 
 export const BetterAuthSuiteAccountsEntity =
   new EntitySchema<BetterAuthSuiteAccountRow>({
     name: 'BetterAuthSuiteAccountsEntity',
     tableName: 'accounts',
+    indices: [
+      {
+        name: 'uq_better_auth_accounts_issuer_account_id',
+        columns: ['issuer', 'accountId'],
+        unique: true,
+      },
+    ],
     columns: {
       id: { type: 'uuid', primary: true, generated: 'uuid' },
+      issuer: { type: 'varchar' },
       accountId: { type: 'varchar' },
       providerId: { type: 'varchar' },
       userId: { type: 'uuid' },
@@ -277,9 +335,13 @@ export const CORE_ENTITIES = [
   AccountsEntity,
   SessionsEntity,
   VerificationsEntity,
+  AtomicCountersEntity,
 ] as const;
 
-export const TRANSFORMED_ENTITIES = [AppUsersEntity, AppAccountsEntity] as const;
+export const TRANSFORMED_ENTITIES = [
+  AppUsersEntity,
+  AppAccountsEntity,
+] as const;
 
 export const BETTER_AUTH_SUITE_ENTITIES = [
   BetterAuthSuiteUsersEntity,

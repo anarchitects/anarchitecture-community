@@ -66,7 +66,29 @@ export function mapEntityRecordsToOutput(
   rows: ObjectLiteral[],
   select?: string[] | undefined,
 ): Record<string, unknown>[] {
-  return rows.map((row) => mapEntityRecordToOutput(repositoryContext, row, select));
+  return rows.map((row) =>
+    mapEntityRecordToOutput(repositoryContext, row, select),
+  );
+}
+
+export function mapRawDatabaseRecordToOutput(
+  repositoryContext: ModelRepositoryContext,
+  row: Record<string, unknown>,
+): Record<string, unknown> {
+  const mappedRecord: Record<string, unknown> = {};
+
+  for (const column of repositoryContext.metadata.columns) {
+    if (Object.hasOwn(row, column.databaseName)) {
+      mappedRecord[column.databaseName] = row[column.databaseName];
+      continue;
+    }
+
+    if (Object.hasOwn(row, column.propertyName)) {
+      mappedRecord[column.databaseName] = row[column.propertyName];
+    }
+  }
+
+  return mappedRecord;
 }
 
 export function resolveSelectFields(

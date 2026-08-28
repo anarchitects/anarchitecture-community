@@ -3,6 +3,9 @@
   "version": "0.1.1",
   "description": "Framework-neutral Better Auth database adapter infrastructure for TypeORM.",
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -68,15 +71,15 @@
     }
   },
   "peerDependencies": {
-    "better-auth": "^1.0.0",
-    "typeorm": "^0.3.0"
+    "better-auth": "^1.7.0",
+    "typeorm": "^1.0.0"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@types/pg": "^8.11.0",
-    "better-auth": "^1.0.0",
+    "better-auth": "^1.7.0",
     "pg": "^8.0.0",
     "testcontainers": "^10.0.0",
-    "typeorm": "^0.3.0"
+    "typeorm": "^1.0.0"
   }
 }

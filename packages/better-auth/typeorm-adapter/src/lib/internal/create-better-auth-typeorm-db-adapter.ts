@@ -112,6 +112,10 @@ export function createBetterAuthTypeormDbAdapter(
       delete: ({ model, where }) => persistence.delete({ model, where }),
       deleteMany: ({ model, where }) =>
         persistence.deleteMany({ model, where }),
+      consumeOne: ({ model, where }) =>
+        persistence.consumeOne({ model, where }),
+      incrementOne: ({ model, where, increment, set }) =>
+        persistence.incrementOne({ model, where, increment, set }),
       count: ({ model, where }) => persistence.count({ model, where }),
       options: undefined,
     };

@@ -5,8 +5,16 @@ import type { DBTransactionAdapter } from 'better-auth/adapters';
 import type { DataSource } from 'typeorm';
 
 import { createBetterAuthTypeormAdapter } from '../../src/index.js';
-import { AppAccountsEntity, AppUsersEntity, TRANSFORMED_ENTITIES } from './entities.js';
-import { destroyDataSource, startPostgresHarness, type PostgresHarness } from './harness.js';
+import {
+  AppAccountsEntity,
+  AppUsersEntity,
+  TRANSFORMED_ENTITIES,
+} from './entities.js';
+import {
+  destroyDataSource,
+  startPostgresHarness,
+  type PostgresHarness,
+} from './harness.js';
 
 function createTimestamp(day: number) {
   return new Date(`2025-02-${String(day).padStart(2, '0')}T12:00:00.000Z`);
@@ -28,6 +36,7 @@ function createBetterAuthPostgresOptions(): BetterAuthOptions {
     account: {
       modelName: 'appAccounts',
       fields: {
+        issuer: 'issuer_url',
         accountId: 'provider_account_id',
         providerId: 'provider_name',
         userId: 'owner_user_id',
@@ -128,9 +137,11 @@ describe('createBetterAuthTypeormAdapter PostgreSQL integration', () => {
 
     expect(foundUser).toEqual(createdUser);
 
-    const storedUser = await getDataSource().getRepository(AppUsersEntity).findOneByOrFail({
-      id: createdUser.id,
-    });
+    const storedUser = await getDataSource()
+      .getRepository(AppUsersEntity)
+      .findOneByOrFail({
+        id: createdUser.id,
+      });
 
     expect(storedUser).toMatchObject({
       emailAddress: 'adapter@example.com',
@@ -138,37 +149,53 @@ describe('createBetterAuthTypeormAdapter PostgreSQL integration', () => {
     });
 
     await expect(
-      adapter.transaction(async (trx: DBTransactionAdapter<BetterAuthOptions>) => {
+      adapter.transaction(
+        async (trx: DBTransactionAdapter<BetterAuthOptions>) => {
+          await trx.create({
+            model: 'account',
+            data: {
+              issuer: 'https://github.com',
+              accountId: 'provider-user-1',
+              providerId: 'github',
+              userId: createdUser.id,
+              createdAt: createTimestamp(1),
+              updatedAt: createTimestamp(1),
+            },
+          });
+
+          throw new Error('rollback');
+        },
+      ),
+    ).rejects.toThrow('rollback');
+
+    expect(await getDataSource().getRepository(AppAccountsEntity).count()).toBe(
+      0,
+    );
+
+    await adapter.transaction(
+      async (trx: DBTransactionAdapter<BetterAuthOptions>) => {
         await trx.create({
           model: 'account',
           data: {
-            accountId: 'provider-user-1',
+            issuer: 'https://github.com',
+            accountId: 'provider-user-2',
             providerId: 'github',
             userId: createdUser.id,
-            createdAt: createTimestamp(1),
-            updatedAt: createTimestamp(1),
+            createdAt: createTimestamp(2),
+            updatedAt: createTimestamp(2),
           },
         });
+      },
+    );
 
-        throw new Error('rollback');
-      }),
-    ).rejects.toThrow('rollback');
+    const storedAccount = await getDataSource()
+      .getRepository(AppAccountsEntity)
+      .findOneByOrFail({ providerAccountId: 'provider-user-2' });
 
-    expect(await getDataSource().getRepository(AppAccountsEntity).count()).toBe(0);
-
-    await adapter.transaction(async (trx: DBTransactionAdapter<BetterAuthOptions>) => {
-      await trx.create({
-        model: 'account',
-        data: {
-          accountId: 'provider-user-2',
-          providerId: 'github',
-          userId: createdUser.id,
-          createdAt: createTimestamp(2),
-          updatedAt: createTimestamp(2),
-        },
-      });
+    expect(storedAccount).toMatchObject({
+      trustedIssuer: 'https://github.com',
+      providerAccountId: 'provider-user-2',
+      providerName: 'github',
     });
-
-    expect(await getDataSource().getRepository(AppAccountsEntity).count()).toBe(1);
   });
 });
