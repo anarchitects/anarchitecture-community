@@ -3,6 +3,11 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["packages/shared/src/*"]
-    }
+    },
+    "strict": false,
+    "noUncheckedSideEffectImports": false,
+    "types": ["*"],
+    "esModuleInterop": false,
+    "ignoreDeprecations": "6.0"
   }
 }

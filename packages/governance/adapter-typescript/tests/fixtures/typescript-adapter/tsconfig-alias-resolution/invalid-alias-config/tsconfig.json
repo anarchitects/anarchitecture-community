@@ -5,6 +5,11 @@
       "@valid/partial": ["packages/valid-core/src/partial.ts", "   "],
       "@valid/core": ["packages/valid-core/src/index.ts"],
       "@invalid/array": "packages/valid-core/src/index.ts"
-    }
+    },
+    "strict": false,
+    "noUncheckedSideEffectImports": false,
+    "types": ["*"],
+    "esModuleInterop": false,
+    "ignoreDeprecations": "6.0"
   }
 }

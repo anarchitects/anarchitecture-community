@@ -2,7 +2,7 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./out-tsc/vitest",
-    "ignoreDeprecations": "5.0",
+    "ignoreDeprecations": "6.0",
     "types": [
       "vitest/globals",
       "vitest/importMeta",
@@ -10,7 +10,8 @@
       "node",
       "vitest"
     ],
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "."
   },
   "include": [
     "vite.config.ts",
