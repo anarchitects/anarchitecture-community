@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/better-auth-typeorm-adapter",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Framework-neutral Better Auth database adapter infrastructure for TypeORM.",
   "license": "Apache-2.0",
   "engines": {
