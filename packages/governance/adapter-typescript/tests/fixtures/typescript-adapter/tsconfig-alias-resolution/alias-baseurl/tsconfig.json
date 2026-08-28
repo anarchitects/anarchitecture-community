@@ -5,6 +5,11 @@
       "@shared/*": ["shared/src/*"],
       "@app/order/*": ["order/src/*"],
       "@app/customer": ["customer/src/index.ts"]
-    }
+    },
+    "strict": false,
+    "noUncheckedSideEffectImports": false,
+    "types": ["*"],
+    "esModuleInterop": false,
+    "ignoreDeprecations": "6.0"
   }
 }

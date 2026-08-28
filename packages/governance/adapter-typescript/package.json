@@ -54,7 +54,7 @@
   "dependencies": {
     "@anarchitects/governance-core": "^0.4.4",
     "minimatch": "^10.1.1",
-    "typescript": "~5.9.2",
+    "typescript": "~6.0.3",
     "yaml": "^2.8.1"
   }
 }

@@ -16,7 +16,9 @@
     "strict": true,
     "target": "es2022",
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo",
-    "types": ["node"]
+    "types": ["node"],
+    "noUncheckedSideEffectImports": false,
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "references": []

@@ -3,6 +3,11 @@
     "baseUrl": ".",
     "paths": {
       "@app/missing": ["packages/missing/src/index.ts"]
-    }
+    },
+    "strict": false,
+    "noUncheckedSideEffectImports": false,
+    "types": ["*"],
+    "esModuleInterop": false,
+    "ignoreDeprecations": "6.0"
   }
 }
