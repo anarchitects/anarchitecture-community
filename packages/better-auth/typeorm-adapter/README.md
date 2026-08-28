@@ -58,9 +58,13 @@ yarn add @anarchitects/better-auth-typeorm-adapter better-auth typeorm pg
 
 The package currently expects:
 
-- `better-auth` `^1.0.0`
-- `typeorm` `^0.3.0`
+- Node.js `>=20`
+- `better-auth` `^1.7.0`
+- `typeorm` `^1.0.0`
 - a PostgreSQL driver such as `pg`
+
+CI permanently validates the lower TypeORM boundary (`1.0.0` on Node.js 20) and
+the newest release allowed by `^1.0.0` (currently `1.1.0`, on Node.js 24).
 
 ## Public API
 
@@ -123,8 +127,16 @@ const UsersEntity = new EntitySchema({
 const AccountsEntity = new EntitySchema({
   name: 'AccountsEntity',
   tableName: 'accounts',
+  indices: [
+    {
+      name: 'uq_accounts_issuer_account_id',
+      columns: ['issuer', 'accountId'],
+      unique: true,
+    },
+  ],
   columns: {
     id: { type: 'uuid', primary: true, generated: 'uuid' },
+    issuer: { type: 'varchar' },
     accountId: { type: 'varchar' },
     providerId: { type: 'varchar' },
     userId: { type: 'uuid' },
@@ -171,12 +183,7 @@ const VerificationsEntity = new EntitySchema({
 export const dataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [
-    UsersEntity,
-    AccountsEntity,
-    SessionsEntity,
-    VerificationsEntity,
-  ],
+  entities: [UsersEntity, AccountsEntity, SessionsEntity, VerificationsEntity],
 });
 
 await dataSource.initialize();
@@ -251,57 +258,62 @@ Consumers should model explicit Better Auth persistence entities for the core ta
 
 ### `users`
 
-| Field | Expectation |
-| --- | --- |
-| `id` | Better Auth-facing user ID |
-| `email` | User email |
-| `name` | User display name |
-| `emailVerified` | Email verification state |
-| `image` | User profile image reference |
-| `createdAt` | Creation timestamp |
-| `updatedAt` | Last update timestamp |
+| Field           | Expectation                  |
+| --------------- | ---------------------------- |
+| `id`            | Better Auth-facing user ID   |
+| `email`         | User email                   |
+| `name`          | User display name            |
+| `emailVerified` | Email verification state     |
+| `image`         | User profile image reference |
+| `createdAt`     | Creation timestamp           |
+| `updatedAt`     | Last update timestamp        |
 
 ### `accounts`
 
-| Field | Expectation |
-| --- | --- |
-| `id` | Better Auth-facing account ID |
-| `accountId` | Provider account identifier |
-| `providerId` | Provider name or identifier |
-| `userId` | Owning Better Auth user ID |
-| `accessToken` | Provider access token when applicable |
-| `refreshToken` | Provider refresh token when applicable |
-| `idToken` | Provider ID token when applicable |
-| `accessTokenExpiresAt` | Access token expiration timestamp when applicable |
-| `refreshTokenExpiresAt` | Refresh token expiration timestamp when applicable |
-| `scope` | Provider scope string when applicable |
-| `password` | Password hash for credential-backed flows when applicable |
-| `createdAt` | Creation timestamp |
-| `updatedAt` | Last update timestamp |
+| Field                   | Expectation                                                         |
+| ----------------------- | ------------------------------------------------------------------- |
+| `id`                    | Better Auth-facing account ID                                       |
+| `issuer`                | Stable identity namespace; `local:credential` for password accounts |
+| `accountId`             | Provider account identifier                                         |
+| `providerId`            | Provider name or identifier                                         |
+| `userId`                | Owning Better Auth user ID                                          |
+| `accessToken`           | Provider access token when applicable                               |
+| `refreshToken`          | Provider refresh token when applicable                              |
+| `idToken`               | Provider ID token when applicable                                   |
+| `accessTokenExpiresAt`  | Access token expiration timestamp when applicable                   |
+| `refreshTokenExpiresAt` | Refresh token expiration timestamp when applicable                  |
+| `scope`                 | Provider scope string when applicable                               |
+| `password`              | Password hash for credential-backed flows when applicable           |
+| `createdAt`             | Creation timestamp                                                  |
+| `updatedAt`             | Last update timestamp                                               |
+
+Account identity is the unique pair `(issuer, accountId)`, not `providerId` and
+`accountId`. Define a database-level unique constraint for that pair. Better Auth
+uses `local:credential` as the issuer for email/password credential accounts.
 
 ### `sessions`
 
-| Field | Expectation |
-| --- | --- |
-| `id` | Better Auth-facing session ID |
-| `userId` | Owning Better Auth user ID |
-| `expiresAt` | Session expiration timestamp |
-| `token` | Session token |
+| Field       | Expectation                   |
+| ----------- | ----------------------------- |
+| `id`        | Better Auth-facing session ID |
+| `userId`    | Owning Better Auth user ID    |
+| `expiresAt` | Session expiration timestamp  |
+| `token`     | Session token                 |
 | `ipAddress` | Client IP address when stored |
 | `userAgent` | Client user agent when stored |
-| `createdAt` | Creation timestamp |
-| `updatedAt` | Last update timestamp |
+| `createdAt` | Creation timestamp            |
+| `updatedAt` | Last update timestamp         |
 
 ### `verifications`
 
-| Field | Expectation |
-| --- | --- |
-| `id` | Better Auth-facing verification ID |
-| `identifier` | Verification subject identifier |
-| `value` | Verification token or code value |
-| `expiresAt` | Verification expiration timestamp |
-| `createdAt` | Creation timestamp |
-| `updatedAt` | Last update timestamp |
+| Field        | Expectation                        |
+| ------------ | ---------------------------------- |
+| `id`         | Better Auth-facing verification ID |
+| `identifier` | Verification subject identifier    |
+| `value`      | Verification token or code value   |
+| `expiresAt`  | Verification expiration timestamp  |
+| `createdAt`  | Creation timestamp                 |
+| `updatedAt`  | Last update timestamp              |
 
 ## Migration Ownership
 
@@ -316,6 +328,43 @@ This package does not:
 Better Auth CLI behavior for built-in adapters does not automatically become the migration workflow for this community adapter.
 
 If you use this package, you still need to choose and maintain your own TypeORM migration strategy in your host repository.
+
+### Better Auth 1.7 account migration
+
+Before enabling Better Auth 1.7, the host must migrate existing account rows in
+this order:
+
+1. Add `issuer` as nullable.
+2. Backfill every existing account with a verified stable issuer. Credential
+   accounts use `local:credential`; OAuth/OIDC issuers must come from trusted
+   provider data or an explicitly chosen host-owned namespace.
+3. Resolve any duplicate `(issuer, accountId)` pairs.
+4. Make `issuer` `NOT NULL`.
+5. Add the unique constraint on `(issuer, accountId)`.
+
+Do not infer a generic issuer for existing social accounts without validating the
+provider and tenant semantics. The adapter deliberately does not mutate host-owned
+schemas or perform this backfill.
+
+## TypeORM 1.x compatibility boundary
+
+The adapter uses only TypeORM 1.x public APIs: `DataSource`, `EntityManager`,
+repositories, entity metadata, and query builders. It does not import TypeORM
+internals or use legacy `Connection`, global/named connections, `.connection`, or
+removed find-option compatibility APIs.
+
+EntitySchema metadata drives every field translation, including differing property
+and database names for select, sort, update, predicates, joins, and PostgreSQL
+`RETURNING` results. The test matrix covers a single primary key, UUIDs, booleans,
+JSONB, nullable values, `timestamptz`, all supported Better Auth operators, explicit
+`IS NULL`/`IS NOT NULL`, partial selection with pagination, repository writes and
+rereads, and root plus manager-scoped transactions.
+
+`consumeOne` and `incrementOne` are implemented as one PostgreSQL statement using a
+locked, single-row CTE and `RETURNING`. Their full `where` clauses are selectors and
+guards; empty mutation criteria are safe no-ops. Concurrent callers therefore
+cannot consume a verification twice, lose counter increments, or update after a
+guard stops matching.
 
 ## Optional Plugin Models
 

@@ -22,6 +22,7 @@ type QueryExecution = {
   many?: ObjectLiteral[];
   count?: number;
   affected?: number;
+  raw?: unknown[];
 };
 
 class FakeQueryBuilder {
@@ -36,21 +37,38 @@ class FakeQueryBuilder {
   readonly takes: number[] = [];
   readonly skips: number[] = [];
   readonly sets: Record<string, unknown>[] = [];
+  readonly parameters: Record<string, unknown>[] = [];
   readonly modes: string[] = [];
   readonly fromTargets: unknown[] = [];
+  readonly locks: string[] = [];
+  readonly commonTableExpressions: Array<{
+    queryBuilder: FakeQueryBuilder;
+    alias: string;
+  }> = [];
+  readonly returningSelections: string[] = [];
   readonly executions: QueryExecution[];
 
   constructor(executions: QueryExecution[]) {
     this.executions = [...executions];
   }
 
-  where(expression: string, parameters: Record<string, unknown> = {}) {
-    this.whereCalls.push({ kind: 'where', expression, parameters });
+  where(expression: unknown, parameters: Record<string, unknown> = {}) {
+    this.whereCalls.push({
+      kind: 'where',
+      expression:
+        typeof expression === 'string' ? expression : '[grouped guard]',
+      parameters,
+    });
     return this;
   }
 
-  andWhere(expression: string, parameters: Record<string, unknown> = {}) {
-    this.whereCalls.push({ kind: 'andWhere', expression, parameters });
+  andWhere(expression: unknown, parameters: Record<string, unknown> = {}) {
+    this.whereCalls.push({
+      kind: 'andWhere',
+      expression:
+        typeof expression === 'string' ? expression : '[grouped guard]',
+      parameters,
+    });
     return this;
   }
 
@@ -59,8 +77,15 @@ class FakeQueryBuilder {
     return this;
   }
 
-  select(selection: string[]) {
-    this.selects.push(selection);
+  select(selection: string | string[], alias?: string) {
+    this.selects.push(
+      Array.isArray(selection) ? selection : [selection, alias ?? ''],
+    );
+    return this;
+  }
+
+  setLock(lock: string) {
+    this.locks.push(lock);
     return this;
   }
 
@@ -99,6 +124,25 @@ class FakeQueryBuilder {
     return this;
   }
 
+  setParameters(parameters: Record<string, unknown>) {
+    this.parameters.push(parameters);
+    return this;
+  }
+
+  addCommonTableExpression(queryBuilder: FakeQueryBuilder, alias: string) {
+    this.commonTableExpressions.push({ queryBuilder, alias });
+    return this;
+  }
+
+  returning(selection: string) {
+    this.returningSelections.push(selection);
+    return this;
+  }
+
+  escape(name: string) {
+    return `"${name}"`;
+  }
+
   async getOne() {
     return this.executions.shift()?.one ?? null;
   }
@@ -113,7 +157,7 @@ class FakeQueryBuilder {
 
   async execute() {
     const execution = this.executions.shift();
-    return { affected: execution?.affected ?? 0 };
+    return { affected: execution?.affected, raw: execution?.raw ?? [] };
   }
 }
 
@@ -124,42 +168,46 @@ function createFakeRepository(options: {
   queryExecutions?: QueryExecution[][];
   saveResult?: ObjectLiteral;
 }) {
-  const columns =
-    options.columns ??
-    [
-      {
-        propertyName: 'id',
-        propertyPath: 'id',
-        databaseName: 'id',
-        databasePath: 'id',
-      },
-      {
-        propertyName: 'email',
-        propertyPath: 'email',
-        databaseName: 'email_address',
-        databasePath: 'email_address',
-      },
-      {
-        propertyName: 'userId',
-        propertyPath: 'userId',
-        databaseName: 'user_id',
-        databasePath: 'user_id',
-      },
-      {
-        propertyName: 'createdAt',
-        propertyPath: 'createdAt',
-        databaseName: 'created_at',
-        databasePath: 'created_at',
-      },
-    ];
+  const columns = options.columns ?? [
+    {
+      propertyName: 'id',
+      propertyPath: 'id',
+      databaseName: 'id',
+      databasePath: 'id',
+    },
+    {
+      propertyName: 'email',
+      propertyPath: 'email',
+      databaseName: 'email_address',
+      databasePath: 'email_address',
+    },
+    {
+      propertyName: 'userId',
+      propertyPath: 'userId',
+      databaseName: 'user_id',
+      databasePath: 'user_id',
+    },
+    {
+      propertyName: 'createdAt',
+      propertyPath: 'createdAt',
+      databaseName: 'created_at',
+      databasePath: 'created_at',
+    },
+  ];
 
   const queryBuilders: FakeQueryBuilder[] = [];
-  const createMock = vi.fn((entity: Record<string, unknown>) => ({ ...entity }));
-  const saveMock = vi.fn(async (entity: ObjectLiteral) => options.saveResult ?? entity);
-  const mergeMock = vi.fn((entity: ObjectLiteral, update: Record<string, unknown>) => ({
+  const createMock = vi.fn((entity: Record<string, unknown>) => ({
     ...entity,
-    ...update,
   }));
+  const saveMock = vi.fn(
+    async (entity: ObjectLiteral) => options.saveResult ?? entity,
+  );
+  const mergeMock = vi.fn(
+    (entity: ObjectLiteral, update: Record<string, unknown>) => ({
+      ...entity,
+      ...update,
+    }),
+  );
   const createQueryBuilderMock = vi.fn(() => {
     const builder = new FakeQueryBuilder(
       options.queryExecutions?.shift() ?? [{ many: [] }],
@@ -173,16 +221,14 @@ function createFakeRepository(options: {
     metadata: {
       name: options.metadataName,
       columns,
-      primaryColumns:
-        options.primaryColumns ??
-        [
-          {
-            propertyName: 'id',
-            propertyPath: 'id',
-            databaseName: 'id',
-            databasePath: 'id',
-          },
-        ],
+      primaryColumns: options.primaryColumns ?? [
+        {
+          propertyName: 'id',
+          propertyPath: 'id',
+          databaseName: 'id',
+          databasePath: 'id',
+        },
+      ],
     } as unknown as Repository<ObjectLiteral>['metadata'],
     create: createMock,
     save: saveMock,
@@ -212,8 +258,9 @@ function createFakeManager(
       }
       return repository.repository;
     }),
-    transaction: vi.fn(async (callback: (manager: EntityManager) => Promise<unknown>) =>
-      callback(manager as unknown as EntityManager),
+    transaction: vi.fn(
+      async (callback: (manager: EntityManager) => Promise<unknown>) =>
+        callback(manager as unknown as EntityManager),
     ),
   };
 
@@ -228,7 +275,7 @@ function createFakeDataSource(manager: EntityManager) {
     manager,
     transaction: vi.fn(
       async (callback: (manager: EntityManager) => Promise<unknown>) =>
-      callback(manager),
+        callback(manager),
     ),
   } as unknown as DataSource & {
     transaction: ReturnType<typeof vi.fn>;
@@ -274,7 +321,9 @@ describe('createTypeormPersistence', () => {
   it('resolves fields by property or database column name and applies sort and pagination', async () => {
     const userRepository = createFakeRepository({
       metadataName: 'UserEntity',
-      queryExecutions: [[{ many: [{ id: 'user_1', email: 'alice@example.com' }] }]],
+      queryExecutions: [
+        [{ many: [{ id: 'user_1', email: 'alice@example.com' }] }],
+      ],
     });
     const manager = createFakeManager({ UserEntity: userRepository });
     const dataSource = createFakeDataSource(manager);
@@ -292,6 +341,7 @@ describe('createTypeormPersistence', () => {
           operator: 'eq',
           value: 'alice@example.com',
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
       limit: 10,
@@ -309,9 +359,9 @@ describe('createTypeormPersistence', () => {
         email_address: 'alice@example.com',
       },
     ]);
-    expect(userRepository.queryBuilders[0]?.whereCalls[0]?.expression).toContain(
-      'entity.email =',
-    );
+    expect(
+      userRepository.queryBuilders[0]?.whereCalls[0]?.expression,
+    ).toContain('entity.email =');
     expect(userRepository.queryBuilders[0]?.orderBys).toEqual([
       { field: 'entity.email', direction: 'DESC' },
     ]);
@@ -338,7 +388,9 @@ describe('createTypeormPersistence', () => {
     const userRepository = createFakeRepository({
       metadataName: 'UserEntity',
     });
-    const managerWithRepository = createFakeManager({ UserEntity: userRepository });
+    const managerWithRepository = createFakeManager({
+      UserEntity: userRepository,
+    });
     const persistenceWithRepository = createTypeormPersistence({
       dataSource: createFakeDataSource(managerWithRepository),
       manager: managerWithRepository,
@@ -355,6 +407,7 @@ describe('createTypeormPersistence', () => {
             operator: 'eq',
             value: 'x',
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
       }),
@@ -375,44 +428,97 @@ describe('createTypeormPersistence', () => {
     });
 
     const where: CleanedWhere[] = [
-      { field: 'email_address', operator: 'eq', value: 'alice', connector: 'AND' },
-      { field: 'email_address', operator: 'ne', value: 'bob', connector: 'OR' },
-      { field: 'id', operator: 'lt', value: 10, connector: 'AND' },
-      { field: 'id', operator: 'lte', value: 11, connector: 'AND' },
-      { field: 'id', operator: 'gt', value: 12, connector: 'AND' },
-      { field: 'id', operator: 'gte', value: 13, connector: 'AND' },
+      {
+        field: 'email_address',
+        operator: 'eq',
+        value: 'alice',
+        connector: 'AND',
+        mode: 'sensitive',
+      },
+      {
+        field: 'email_address',
+        operator: 'ne',
+        value: 'bob',
+        connector: 'OR',
+        mode: 'sensitive',
+      },
+      {
+        field: 'id',
+        operator: 'lt',
+        value: 10,
+        connector: 'AND',
+        mode: 'sensitive',
+      },
+      {
+        field: 'id',
+        operator: 'lte',
+        value: 11,
+        connector: 'AND',
+        mode: 'sensitive',
+      },
+      {
+        field: 'id',
+        operator: 'gt',
+        value: 12,
+        connector: 'AND',
+        mode: 'sensitive',
+      },
+      {
+        field: 'id',
+        operator: 'gte',
+        value: 13,
+        connector: 'AND',
+        mode: 'sensitive',
+      },
       {
         field: 'email_address',
         operator: 'in',
         value: ['alice', null, 'bob'] as unknown as CleanedWhere['value'],
         connector: 'AND',
+        mode: 'sensitive',
       },
       {
         field: 'email_address',
         operator: 'not_in',
         value: ['carol', null, 'dave'] as unknown as CleanedWhere['value'],
         connector: 'AND',
+        mode: 'sensitive',
       },
       {
         field: 'email_address',
         operator: 'contains',
         value: 'example',
         connector: 'AND',
+        mode: 'sensitive',
       },
       {
         field: 'email_address',
         operator: 'starts_with',
         value: 'alice',
         connector: 'AND',
+        mode: 'sensitive',
       },
       {
         field: 'email_address',
         operator: 'ends_with',
         value: '.com',
         connector: 'AND',
+        mode: 'sensitive',
       },
-      { field: 'created_at', operator: 'eq', value: null, connector: 'AND' },
-      { field: 'created_at', operator: 'ne', value: null, connector: 'AND' },
+      {
+        field: 'created_at',
+        operator: 'eq',
+        value: null,
+        connector: 'AND',
+        mode: 'sensitive',
+      },
+      {
+        field: 'created_at',
+        operator: 'ne',
+        value: null,
+        connector: 'AND',
+        mode: 'sensitive',
+      },
     ];
 
     await persistence.findMany({
@@ -458,7 +564,13 @@ describe('createTypeormPersistence', () => {
     await persistence.findMany({
       model: 'user',
       where: [
-        { field: 'id', operator: 'in', value: [], connector: 'AND' },
+        {
+          field: 'id',
+          operator: 'in',
+          value: [],
+          connector: 'AND',
+          mode: 'sensitive',
+        },
       ],
       limit: 5,
     });
@@ -466,13 +578,23 @@ describe('createTypeormPersistence', () => {
     await persistence.findMany({
       model: 'user',
       where: [
-        { field: 'id', operator: 'not_in', value: [], connector: 'AND' },
+        {
+          field: 'id',
+          operator: 'not_in',
+          value: [],
+          connector: 'AND',
+          mode: 'sensitive',
+        },
       ],
       limit: 5,
     });
 
-    expect(userRepository.queryBuilders[0]?.whereCalls[0]?.expression).toBe('1 = 0');
-    expect(userRepository.queryBuilders[1]?.whereCalls[0]?.expression).toBe('1 = 1');
+    expect(userRepository.queryBuilders[0]?.whereCalls[0]?.expression).toBe(
+      '1 = 0',
+    );
+    expect(userRepository.queryBuilders[1]?.whereCalls[0]?.expression).toBe(
+      '1 = 1',
+    );
   });
 
   it('updates deterministically by reading, saving, and rereading the entity', async () => {
@@ -499,6 +621,7 @@ describe('createTypeormPersistence', () => {
           operator: 'eq',
           value: 'user_1',
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
       update: {
@@ -551,6 +674,7 @@ describe('createTypeormPersistence', () => {
             operator: 'eq',
             value: 'user_1',
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         update: {
@@ -591,6 +715,7 @@ describe('createTypeormPersistence', () => {
             operator: 'contains',
             value: 'example',
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
       }),
@@ -605,13 +730,14 @@ describe('createTypeormPersistence', () => {
             operator: 'contains',
             value: 'example',
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
         update: {
           email_address: 'bulk@example.com',
         },
       }),
-    ).toBe(3);
+    ).toBe(0);
 
     expect(
       await persistence.deleteMany({
@@ -622,10 +748,11 @@ describe('createTypeormPersistence', () => {
             operator: 'contains',
             value: 'example',
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
       }),
-    ).toBe(2);
+    ).toBe(0);
 
     await expect(
       persistence.delete({
@@ -636,6 +763,7 @@ describe('createTypeormPersistence', () => {
             operator: 'eq',
             value: 'user_1',
             connector: 'AND',
+            mode: 'sensitive',
           },
         ],
       }),
@@ -797,6 +925,228 @@ describe('createTypeormPersistence', () => {
 
     expect(records).toEqual([{ id: null, session: [] }]);
     expect(sessionRepository.queryBuilders).toHaveLength(0);
+  });
+
+  it('consumes at most one guarded row and maps PostgreSQL returning columns', async () => {
+    const verificationRepository = createFakeRepository({
+      metadataName: 'VerificationEntity',
+      queryExecutions: [
+        [{}],
+        [
+          {
+            affected: 1,
+            raw: [
+              {
+                id: 'verification_1',
+                identifier_value: 'alice@example.com',
+              },
+            ],
+          },
+        ],
+      ],
+      columns: [
+        {
+          propertyName: 'id',
+          propertyPath: 'id',
+          databaseName: 'id',
+          databasePath: 'id',
+        },
+        {
+          propertyName: 'identifier',
+          propertyPath: 'identifier',
+          databaseName: 'identifier_value',
+          databasePath: 'identifier_value',
+        },
+      ],
+    });
+    const manager = createFakeManager({
+      VerificationEntity: verificationRepository,
+    });
+    const persistence = createTypeormPersistence({
+      dataSource: createFakeDataSource(manager),
+      manager,
+      models: { verification: 'VerificationEntity' },
+    });
+
+    const consumed = await persistence.consumeOne<Record<string, unknown>>({
+      model: 'verification',
+      where: [
+        {
+          field: 'identifier_value',
+          operator: 'eq',
+          value: 'alice@example.com',
+          connector: 'AND',
+          mode: 'sensitive',
+        },
+      ],
+    });
+
+    expect(consumed).toEqual({
+      id: 'verification_1',
+      identifier_value: 'alice@example.com',
+    });
+    expect(verificationRepository.queryBuilders[0]?.locks).toEqual([
+      'pessimistic_write',
+    ]);
+    expect(verificationRepository.queryBuilders[0]?.takes).toEqual([1]);
+    expect(
+      verificationRepository.queryBuilders[1]?.commonTableExpressions,
+    ).toEqual([
+      {
+        queryBuilder: verificationRepository.queryBuilders[0],
+        alias: 'atomic_candidate',
+      },
+    ]);
+    expect(verificationRepository.queryBuilders[1]?.whereCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'where',
+          expression:
+            '"id" IN (SELECT "atomic_primary" FROM "atomic_candidate")',
+        }),
+        expect.objectContaining({
+          kind: 'andWhere',
+          expression: '[grouped guard]',
+        }),
+      ]),
+    );
+    expect(
+      verificationRepository.queryBuilders[1]?.returningSelections,
+    ).toEqual(['*']);
+  });
+
+  it('increments and sets mapped columns in one guarded returning statement', async () => {
+    const counterRepository = createFakeRepository({
+      metadataName: 'CounterEntity',
+      queryExecutions: [
+        [{}],
+        [
+          {
+            affected: 1,
+            raw: [
+              {
+                id: 'counter_1',
+                attempt_count: 4,
+                state_code: 'open',
+                updated_by: 'worker_1',
+              },
+            ],
+          },
+        ],
+      ],
+      columns: [
+        {
+          propertyName: 'id',
+          propertyPath: 'id',
+          databaseName: 'id',
+          databasePath: 'id',
+        },
+        {
+          propertyName: 'attemptCount',
+          propertyPath: 'attemptCount',
+          databaseName: 'attempt_count',
+          databasePath: 'attempt_count',
+        },
+        {
+          propertyName: 'state',
+          propertyPath: 'state',
+          databaseName: 'state_code',
+          databasePath: 'state_code',
+        },
+        {
+          propertyName: 'updatedBy',
+          propertyPath: 'updatedBy',
+          databaseName: 'updated_by',
+          databasePath: 'updated_by',
+        },
+      ],
+    });
+    const manager = createFakeManager({ CounterEntity: counterRepository });
+    const persistence = createTypeormPersistence({
+      dataSource: createFakeDataSource(manager),
+      manager,
+      models: { counter: 'CounterEntity' },
+    });
+
+    const incremented = await persistence.incrementOne<Record<string, unknown>>(
+      {
+        model: 'counter',
+        where: [
+          {
+            field: 'state_code',
+            operator: 'eq',
+            value: 'open',
+            connector: 'AND',
+            mode: 'sensitive',
+          },
+          {
+            field: 'attempt_count',
+            operator: 'lt',
+            value: 5,
+            connector: 'AND',
+            mode: 'sensitive',
+          },
+        ],
+        increment: { attempt_count: 1 },
+        set: { updated_by: 'worker_1' },
+      },
+    );
+
+    const mutationBuilder = counterRepository.queryBuilders[1];
+    const incrementExpression = mutationBuilder?.sets[0]?.attemptCount;
+
+    expect(typeof incrementExpression).toBe('function');
+    expect((incrementExpression as () => string)()).toBe(
+      '"attempt_count" + :increment_0',
+    );
+    expect(mutationBuilder?.sets[0]?.updatedBy).toBe('worker_1');
+    expect(mutationBuilder?.parameters).toEqual([{ increment_0: 1 }]);
+    expect(mutationBuilder?.whereCalls).toHaveLength(2);
+    expect(incremented).toEqual({
+      id: 'counter_1',
+      attempt_count: 4,
+      state_code: 'open',
+      updated_by: 'worker_1',
+    });
+  });
+
+  it('treats empty mutation criteria as safe no-ops', async () => {
+    const userRepository = createFakeRepository({ metadataName: 'UserEntity' });
+    const manager = createFakeManager({ UserEntity: userRepository });
+    const persistence = createTypeormPersistence({
+      dataSource: createFakeDataSource(manager),
+      manager,
+      models: { user: 'UserEntity' },
+    });
+
+    await expect(
+      persistence.update({ model: 'user', where: [], update: { email: 'x' } }),
+    ).resolves.toBeNull();
+    await expect(
+      persistence.updateMany({
+        model: 'user',
+        where: [],
+        update: { email: 'x' },
+      }),
+    ).resolves.toBe(0);
+    await expect(
+      persistence.delete({ model: 'user', where: [] }),
+    ).resolves.toBeUndefined();
+    await expect(
+      persistence.deleteMany({ model: 'user', where: [] }),
+    ).resolves.toBe(0);
+    await expect(
+      persistence.consumeOne({ model: 'user', where: [] }),
+    ).resolves.toBeNull();
+    await expect(
+      persistence.incrementOne({
+        model: 'user',
+        where: [],
+        increment: { attempts: 1 },
+      }),
+    ).resolves.toBeNull();
+
+    expect(userRepository.queryBuilders).toHaveLength(0);
   });
 
   it('uses the root data source transaction and returns manager-scoped persistence', async () => {

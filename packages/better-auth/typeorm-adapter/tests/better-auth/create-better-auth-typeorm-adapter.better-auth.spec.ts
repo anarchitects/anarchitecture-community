@@ -10,7 +10,11 @@ import {
   BetterAuthSuiteUsersEntity,
   BetterAuthSuiteVerificationsEntity,
 } from '../postgres/entities.js';
-import { destroyDataSource, startPostgresHarness, type PostgresHarness } from '../postgres/harness.js';
+import {
+  destroyDataSource,
+  startPostgresHarness,
+  type PostgresHarness,
+} from '../postgres/harness.js';
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -25,7 +29,9 @@ vi.mock('pg', async () => {
   class PatchedPool extends actual.Pool {
     constructor() {
       if (!pgMockState.connectionString) {
-        throw new Error('PostgreSQL harness connection string is not initialized.');
+        throw new Error(
+          'PostgreSQL harness connection string is not initialized.',
+        );
       }
 
       super({ connectionString: pgMockState.connectionString });
@@ -117,14 +123,18 @@ describe('createBetterAuthTypeormAdapter Better Auth integration', () => {
 
   beforeAll(async () => {
     harness = await startPostgresHarness();
-    pgMockState.connectionString = getHarness().getConnectionDetails().connectionString;
+    pgMockState.connectionString =
+      getHarness().getConnectionDetails().connectionString;
   });
 
   beforeEach(async () => {
-    dataSource = await getHarness().createDataSource([...BETTER_AUTH_SUITE_ENTITIES], {
-      dropSchema: false,
-      synchronize: false,
-    });
+    dataSource = await getHarness().createDataSource(
+      [...BETTER_AUTH_SUITE_ENTITIES],
+      {
+        dropSchema: false,
+        synchronize: false,
+      },
+    );
   });
 
   afterEach(async () => {
@@ -165,14 +175,22 @@ describe('createBetterAuthTypeormAdapter Better Auth integration', () => {
       },
     );
 
-    const usersRepository = getDataSource().getRepository(BetterAuthSuiteUsersEntity);
-    const accountsRepository = getDataSource().getRepository(BetterAuthSuiteAccountsEntity);
-    const sessionsRepository = getDataSource().getRepository(BetterAuthSuiteSessionsEntity);
+    const usersRepository = getDataSource().getRepository(
+      BetterAuthSuiteUsersEntity,
+    );
+    const accountsRepository = getDataSource().getRepository(
+      BetterAuthSuiteAccountsEntity,
+    );
+    const sessionsRepository = getDataSource().getRepository(
+      BetterAuthSuiteSessionsEntity,
+    );
     const verificationsRepository = getDataSource().getRepository(
       BetterAuthSuiteVerificationsEntity,
     );
 
-    const storedUser = await usersRepository.findOneByOrFail({ email: testUser.email });
+    const storedUser = await usersRepository.findOneByOrFail({
+      email: testUser.email,
+    });
 
     expect(storedUser.id).toMatch(UUID_PATTERN);
     expect(storedUser.profile).toEqual(suiteTestUser.profile);
@@ -181,6 +199,13 @@ describe('createBetterAuthTypeormAdapter Better Auth integration', () => {
     expect(storedUser.updatedAt).toBeInstanceOf(Date);
 
     expect(await accountsRepository.count()).toBe(1);
+    expect(
+      await accountsRepository.findOneByOrFail({ userId: storedUser.id }),
+    ).toMatchObject({
+      issuer: 'local:credential',
+      accountId: storedUser.id,
+      providerId: 'credential',
+    });
     expect(await sessionsRepository.count()).toBeGreaterThan(0);
     expect(await verificationsRepository.count()).toBe(0);
     expect(sentVerificationEmails).toHaveLength(1);
@@ -198,7 +223,9 @@ describe('createBetterAuthTypeormAdapter Better Auth integration', () => {
     const signedIn = await signInWithTestUser();
 
     expect(signedIn.user.id).toBe(storedUser.id);
-    expect(signedIn.headers.get('cookie')).toContain('better-auth.session_token=');
+    expect(signedIn.headers.get('cookie')).toContain(
+      'better-auth.session_token=',
+    );
 
     const sessionResult = await auth.api.getSession({
       headers: signedIn.headers,
@@ -210,8 +237,20 @@ describe('createBetterAuthTypeormAdapter Better Auth integration', () => {
     expect(sessionResult?.session.userId).toBe(storedUser.id);
     expect(sessionResult?.session.expiresAt).toBeInstanceOf(Date);
 
-    const sessionUser = sessionResult?.user as Record<string, unknown> | undefined;
+    const sessionUser = sessionResult?.user as
+      | Record<string, unknown>
+      | undefined;
 
     expect(sessionUser?.profile).toEqual(suiteTestUser.profile);
+
+    await expect(
+      auth.api.resetPassword({
+        body: {
+          newPassword: 'new-test-password-123',
+          token: sentResetPasswordEmails[0]?.token,
+        },
+      }),
+    ).resolves.toEqual({ status: true });
+    expect(await verificationsRepository.count()).toBe(0);
   });
 });

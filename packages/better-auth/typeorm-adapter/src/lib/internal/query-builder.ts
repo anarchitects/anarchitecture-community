@@ -6,8 +6,14 @@ import { resolveField } from './metadata.js';
 
 type WhereCapableQueryBuilder = {
   where: (expression: string, parameters?: Record<string, unknown>) => unknown;
-  andWhere: (expression: string, parameters?: Record<string, unknown>) => unknown;
-  orWhere: (expression: string, parameters?: Record<string, unknown>) => unknown;
+  andWhere: (
+    expression: string,
+    parameters?: Record<string, unknown>,
+  ) => unknown;
+  orWhere: (
+    expression: string,
+    parameters?: Record<string, unknown>,
+  ) => unknown;
 };
 
 const DEFAULT_ALIAS = 'entity';

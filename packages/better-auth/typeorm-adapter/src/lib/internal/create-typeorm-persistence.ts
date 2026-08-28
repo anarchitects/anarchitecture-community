@@ -9,17 +9,20 @@ import type {
   ObjectLiteral,
   Repository,
 } from 'typeorm';
+import { Brackets } from 'typeorm';
 
 import type { BetterAuthTypeormModelMap } from '../types.js';
 import {
   mapEntityRecordToOutput,
   mapEntityRecordsToOutput,
   mapInputRecordToEntityProperties,
+  mapRawDatabaseRecordToOutput,
   mapUpdateRecordToEntityProperties,
   resolveSelectFields,
 } from './field-mapping.js';
 import {
   getSinglePrimaryField,
+  resolveField,
   resolveModelRepository,
 } from './metadata.js';
 import {
@@ -29,7 +32,24 @@ import {
 } from './query-builder.js';
 
 const DEFAULT_JOIN_LIMIT = 100;
+const ATOMIC_CANDIDATE_ALIAS = 'atomic_candidate';
+const ATOMIC_PRIMARY_ALIAS = 'atomic_primary';
 type PersistenceWhereValue = CleanedWhere['value'];
+type AtomicMutationQueryBuilder = {
+  where: (
+    expression: string | Brackets,
+    parameters?: Record<string, unknown>,
+  ) => unknown;
+  andWhere: (
+    expression: string | Brackets,
+    parameters?: Record<string, unknown>,
+  ) => unknown;
+  orWhere: (
+    expression: string,
+    parameters?: Record<string, unknown>,
+  ) => unknown;
+  escape: (name: string) => string;
+};
 
 export interface BetterAuthTypeormPersistence extends CustomAdapter {
   transaction: <R>(
@@ -51,7 +71,72 @@ function createPersistenceScope(options: CreateTypeormPersistenceOptions) {
   };
 }
 
-function isPersistenceWhereValue(value: unknown): value is PersistenceWhereValue {
+function createAtomicCandidateQuery(
+  repositoryContext: ReturnType<typeof resolveModelRepository>,
+  where: CleanedWhere[],
+) {
+  const primaryField = getSinglePrimaryField(repositoryContext);
+  const candidateQueryBuilder = createRepositoryQueryBuilder(
+    repositoryContext,
+    ATOMIC_CANDIDATE_ALIAS,
+  );
+
+  candidateQueryBuilder.select(
+    `${ATOMIC_CANDIDATE_ALIAS}.${primaryField.propertyPath}`,
+    ATOMIC_PRIMARY_ALIAS,
+  );
+  applyWhereClauses(
+    candidateQueryBuilder,
+    repositoryContext,
+    where,
+    ATOMIC_CANDIDATE_ALIAS,
+  );
+  candidateQueryBuilder.take(1).setLock('pessimistic_write');
+
+  return { candidateQueryBuilder, primaryField };
+}
+
+function applyAtomicCandidateMatch(
+  queryBuilder: AtomicMutationQueryBuilder,
+  repositoryContext: ReturnType<typeof resolveModelRepository>,
+  where: CleanedWhere[],
+  primaryDatabaseName: string,
+): void {
+  const primaryMatch = `${queryBuilder.escape(primaryDatabaseName)} IN (SELECT ${queryBuilder.escape(ATOMIC_PRIMARY_ALIAS)} FROM ${queryBuilder.escape(ATOMIC_CANDIDATE_ALIAS)})`;
+  queryBuilder.where(primaryMatch);
+
+  if (where.length > 0) {
+    queryBuilder.andWhere(
+      new Brackets((guardQueryBuilder) => {
+        applyWhereClauses(guardQueryBuilder, repositoryContext, where, '');
+      }),
+    );
+  }
+}
+
+function mapFirstReturnedRow(
+  repositoryContext: ReturnType<typeof resolveModelRepository>,
+  raw: unknown,
+): Record<string, unknown> | null {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return null;
+  }
+
+  const [row] = raw;
+
+  if (!row || typeof row !== 'object') {
+    return null;
+  }
+
+  return mapRawDatabaseRecordToOutput(
+    repositoryContext,
+    row as Record<string, unknown>,
+  );
+}
+
+function isPersistenceWhereValue(
+  value: unknown,
+): value is PersistenceWhereValue {
   return (
     value === null ||
     typeof value === 'string' ||
@@ -86,6 +171,7 @@ async function hydrateJoinForRecord(
           operator: 'eq',
           value: joinKey,
           connector: 'AND',
+          mode: 'sensitive',
         },
       ],
     });
@@ -99,6 +185,7 @@ async function hydrateJoinForRecord(
         operator: 'eq',
         value: joinKey,
         connector: 'AND',
+        mode: 'sensitive',
       },
     ],
     limit: joinConfig.limit ?? DEFAULT_JOIN_LIMIT,
@@ -181,7 +268,10 @@ export function createTypeormPersistence(
       select?: string[] | undefined;
     }): Promise<T> {
       const repositoryContext = resolveModelRepository(scope, model);
-      const entityData = mapInputRecordToEntityProperties(repositoryContext, data);
+      const entityData = mapInputRecordToEntityProperties(
+        repositoryContext,
+        data,
+      );
       const entity = repositoryContext.repository.create(entityData);
       const savedEntity = await repositoryContext.repository.save(entity);
 
@@ -253,7 +343,11 @@ export function createTypeormPersistence(
       });
 
       const entities = await queryBuilder.getMany();
-      const records = mapEntityRecordsToOutput(repositoryContext, entities, select);
+      const records = mapEntityRecordsToOutput(
+        repositoryContext,
+        entities,
+        select,
+      );
 
       return (await attachJoinResults(persistence, records, join)) as T[];
     },
@@ -283,6 +377,11 @@ export function createTypeormPersistence(
       update: T;
     }): Promise<T | null> {
       const repositoryContext = resolveModelRepository(scope, model);
+
+      if (where.length === 0) {
+        return null;
+      }
+
       const queryBuilder = createRepositoryQueryBuilder(repositoryContext);
 
       applyWhereClauses(queryBuilder, repositoryContext, where);
@@ -305,21 +404,19 @@ export function createTypeormPersistence(
 
       await repositoryContext.repository.save(mergedEntity);
 
-      const rereadQueryBuilder = createRepositoryQueryBuilder(repositoryContext);
+      const rereadQueryBuilder =
+        createRepositoryQueryBuilder(repositoryContext);
       const primaryValue = existingEntity[primaryField.propertyName];
 
-      applyWhereClauses(
-        rereadQueryBuilder,
-        repositoryContext,
-        [
-          {
-            field: primaryField.databaseName,
-            operator: 'eq',
-            value: primaryValue,
-            connector: 'AND',
-          },
-        ],
-      );
+      applyWhereClauses(rereadQueryBuilder, repositoryContext, [
+        {
+          field: primaryField.databaseName,
+          operator: 'eq',
+          value: primaryValue,
+          connector: 'AND',
+          mode: 'sensitive',
+        },
+      ]);
 
       const rereadEntity = await rereadQueryBuilder.getOne();
 
@@ -340,13 +437,21 @@ export function createTypeormPersistence(
       update: Record<string, unknown>;
     }): Promise<number> {
       const repositoryContext = resolveModelRepository(scope, model);
+
+      if (where.length === 0) {
+        return 0;
+      }
+
       const matchedCount = await countMatchingRows(repositoryContext, where);
 
       if (matchedCount === 0) {
         return 0;
       }
 
-      const mappedUpdate = mapUpdateRecordToEntityProperties(repositoryContext, update);
+      const mappedUpdate = mapUpdateRecordToEntityProperties(
+        repositoryContext,
+        update,
+      );
       const queryBuilder = repositoryContext.repository
         .createQueryBuilder()
         .update(repositoryContext.target)
@@ -356,7 +461,7 @@ export function createTypeormPersistence(
 
       const result = await queryBuilder.execute();
 
-      return result.affected && result.affected > 0 ? result.affected : matchedCount;
+      return result.affected ?? matchedCount;
     },
 
     async delete({
@@ -367,6 +472,11 @@ export function createTypeormPersistence(
       where: CleanedWhere[];
     }): Promise<void> {
       const repositoryContext = resolveModelRepository(scope, model);
+
+      if (where.length === 0) {
+        return;
+      }
+
       const queryBuilder = repositoryContext.repository
         .createQueryBuilder()
         .delete()
@@ -384,6 +494,11 @@ export function createTypeormPersistence(
       where: CleanedWhere[];
     }): Promise<number> {
       const repositoryContext = resolveModelRepository(scope, model);
+
+      if (where.length === 0) {
+        return 0;
+      }
+
       const matchedCount = await countMatchingRows(repositoryContext, where);
 
       if (matchedCount === 0) {
@@ -399,7 +514,101 @@ export function createTypeormPersistence(
 
       const result = await queryBuilder.execute();
 
-      return result.affected && result.affected > 0 ? result.affected : matchedCount;
+      return result.affected ?? matchedCount;
+    },
+
+    async consumeOne<T>({
+      model,
+      where,
+    }: {
+      model: string;
+      where: CleanedWhere[];
+    }): Promise<T | null> {
+      const repositoryContext = resolveModelRepository(scope, model);
+
+      if (where.length === 0) {
+        return null;
+      }
+
+      const { candidateQueryBuilder, primaryField } =
+        createAtomicCandidateQuery(repositoryContext, where);
+      const queryBuilder = repositoryContext.repository
+        .createQueryBuilder()
+        .delete()
+        .from(repositoryContext.target)
+        .addCommonTableExpression(candidateQueryBuilder, ATOMIC_CANDIDATE_ALIAS)
+        .returning('*');
+
+      applyAtomicCandidateMatch(
+        queryBuilder,
+        repositoryContext,
+        where,
+        primaryField.databaseName,
+      );
+
+      const result = await queryBuilder.execute();
+      return mapFirstReturnedRow(repositoryContext, result.raw) as T | null;
+    },
+
+    async incrementOne<T>({
+      model,
+      where,
+      increment,
+      set,
+    }: {
+      model: string;
+      where: CleanedWhere[];
+      increment: Record<string, number>;
+      set?: Record<string, unknown> | undefined;
+    }): Promise<T | null> {
+      const repositoryContext = resolveModelRepository(scope, model);
+
+      if (
+        where.length === 0 ||
+        (Object.keys(increment).length === 0 &&
+          (!set || Object.keys(set).length === 0))
+      ) {
+        return null;
+      }
+
+      const { candidateQueryBuilder, primaryField } =
+        createAtomicCandidateQuery(repositoryContext, where);
+      const queryBuilder = repositoryContext.repository
+        .createQueryBuilder()
+        .update(repositoryContext.target)
+        .addCommonTableExpression(
+          candidateQueryBuilder,
+          ATOMIC_CANDIDATE_ALIAS,
+        );
+      const assignments: Record<string, unknown> = {};
+      const parameters: Record<string, number> = {};
+
+      Object.entries(increment).forEach(([field, delta], index) => {
+        const resolvedField = resolveField(repositoryContext, field);
+        const parameterName = `increment_${index}`;
+
+        assignments[resolvedField.propertyName] = () =>
+          `${queryBuilder.escape(resolvedField.databaseName)} + :${parameterName}`;
+        parameters[parameterName] = delta;
+      });
+
+      if (set) {
+        Object.assign(
+          assignments,
+          mapUpdateRecordToEntityProperties(repositoryContext, set),
+        );
+      }
+
+      queryBuilder.set(assignments).setParameters(parameters).returning('*');
+      applyAtomicCandidateMatch(
+        queryBuilder,
+        repositoryContext,
+        where,
+        primaryField.databaseName,
+      );
+
+      const result = await queryBuilder.execute();
+      return mapFirstReturnedRow(repositoryContext, result.raw) as T | null;
     },
 
     async transaction<R>(
