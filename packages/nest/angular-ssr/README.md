@@ -281,10 +281,10 @@ const renderer = createAngularSsrRenderer({
     applicationId: 'storefront', // Optional stable application identifier.
     observer(event) {
       // Forward events to your own synchronous logging or metrics sink.
-      console.log(event);
+      console.log({ event: event.type, applicationId: event.applicationId });
     },
-    onObserverError(error) {
-      console.error('SSR observer failed', error);
+    onObserverError() {
+      console.error('SSR observer failed');
     },
   },
 });
@@ -354,6 +354,298 @@ fragment, and the configured `applicationId`. Observer failures and failures in
 `onObserverError` cannot alter routing or responses. With no observer configured,
 no API observation hook is installed. An empty API prefix disables API selection
 and its bypass events.
+
+### Metrics and structured logging adapters
+
+Copy the following complete, application-owned adapters into `observability.ts`.
+The [checked-in example](examples/observability.ts) is typechecked and exercised
+by the package's unit and end-to-end tests. These functions are examples, not
+runtime exports. They use structural counter, histogram, and log sinks; the
+package does not depend on Prometheus, OpenTelemetry, or a logging library.
+
+```ts
+import type {
+  AngularSsrLifecycleEvent,
+  AngularSsrLifecycleObserver,
+} from '@anarchitects/nest-angular-ssr';
+
+// Application-owned examples, not exports from the package runtime.
+export type Labels = Readonly<Record<string, string>>;
+
+export interface Counter {
+  add(value: number, labels: Labels): void;
+}
+
+export interface Histogram {
+  record(seconds: number, labels: Labels): void;
+}
+
+export interface SsrMetrics {
+  renders: Counter;
+  failures: Counter;
+  fallbacks: Counter;
+  duration: Histogram;
+}
+
+function safeMethod(method: string): string {
+  return [
+    'GET',
+    'HEAD',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS',
+    'CONNECT',
+    'TRACE',
+  ].includes(method)
+    ? method
+    : 'OTHER';
+}
+
+export function createSsrMetricsObserver(
+  metrics: SsrMetrics,
+): AngularSsrLifecycleObserver {
+  return (event) => {
+    const labels: Labels = {
+      method: safeMethod(event.request.method),
+      application: event.applicationId ?? 'unassigned',
+    };
+    switch (event.type) {
+      case 'ssr.render.start':
+        metrics.renders.add(1, labels);
+        break;
+      case 'ssr.render.success':
+        metrics.duration.record(event.durationMs / 1000, {
+          ...labels,
+          outcome: 'success',
+          status_class:
+            event.statusCode >= 100 && event.statusCode < 600
+              ? `${Math.floor(event.statusCode / 100)}xx`
+              : 'other',
+        });
+        break;
+      case 'ssr.render.null':
+        metrics.fallbacks.add(1, labels);
+        metrics.duration.record(event.durationMs / 1000, {
+          ...labels,
+          outcome: 'null',
+          status_class: 'none',
+        });
+        break;
+      case 'ssr.render.error':
+        metrics.failures.add(1, labels);
+        metrics.duration.record(event.durationMs / 1000, {
+          ...labels,
+          outcome: 'error',
+          status_class: 'none',
+        });
+        break;
+      default:
+        // Routing (and future unrelated lifecycle events) are not renders.
+        break;
+    }
+  };
+}
+
+export interface SsrLogRecord {
+  level: 'info' | 'warn' | 'error';
+  event: AngularSsrLifecycleEvent['type'];
+  timestamp: number;
+  applicationId?: string;
+  method: string;
+  durationMs?: number;
+  statusCode?: number;
+}
+
+export function createSsrLoggingObserver(
+  write: (record: SsrLogRecord) => void,
+): AngularSsrLifecycleObserver {
+  return (event) =>
+    write({
+      level:
+        event.type === 'ssr.render.error'
+          ? 'error'
+          : event.type === 'ssr.host.rejected'
+            ? 'warn'
+            : 'info',
+      event: event.type,
+      timestamp: event.timestamp,
+      ...(event.applicationId === undefined
+        ? {}
+        : { applicationId: event.applicationId }),
+      method: safeMethod(event.request.method),
+      ...('durationMs' in event ? { durationMs: event.durationMs } : {}),
+      ...(event.type === 'ssr.render.success'
+        ? { statusCode: event.statusCode }
+        : {}),
+    });
+}
+```
+
+`renders` counts attempts at `ssr.render.start`; `failures` counts thrown
+initialization/render failures; `fallbacks` counts `ssr.render.null`. A produced
+HTTP 500 response is a render success with `status_class: '5xx'`, not a thrown
+failure. A null result measures the renderer's fallback frequency, not all HTTP
+404s: API 404s and missing assets are deliberately excluded. `duration` records
+one sample per completed attempt, including null and error outcomes, in **seconds**
+(the event's milliseconds divided by 1,000). Histogram boundaries must use seconds.
+Label keys stay consistent: missing application IDs use `unassigned`, and
+null/error durations use `status_class: 'none'` because no response was produced.
+Name these instruments, for example, `ssr_render_attempts_total`,
+`ssr_render_failures_total`, `ssr_render_fallbacks_total`, and
+`ssr_render_duration_seconds`. Adapt your existing counter's `add`/`inc` and
+histogram's `record`/`observe` methods to the structural interfaces above.
+
+The following complete direct-renderer example prints metric updates and JSON
+application logs. Replace the console sinks with your application's instruments
+and structured logger; the observer itself stays synchronous. In Nest, pass the
+same `observability` object to the top-level bootstrap/module option.
+
+```ts
+import {
+  createAngularSsrRenderer,
+  type AngularSsrLifecycleObserver,
+  type AngularSsrObservabilityOptions,
+} from '@anarchitects/nest-angular-ssr';
+import {
+  createSsrLoggingObserver,
+  createSsrMetricsObserver,
+  type Counter,
+} from './observability.js';
+
+const counter = (name: string): Counter => ({
+  add(value, labels) {
+    console.log(JSON.stringify({ instrument: 'counter', name, value, labels }));
+  },
+});
+const measure = createSsrMetricsObserver({
+  renders: counter('ssr_render_attempts_total'),
+  failures: counter('ssr_render_failures_total'),
+  fallbacks: counter('ssr_render_fallbacks_total'),
+  duration: {
+    record(seconds, labels) {
+      console.log(
+        JSON.stringify({
+          instrument: 'histogram',
+          name: 'ssr_render_duration_seconds',
+          value: seconds,
+          labels,
+        }),
+      );
+    },
+  },
+});
+const log = createSsrLoggingObserver((record) => {
+  console.log(JSON.stringify(record));
+});
+const observers: AngularSsrLifecycleObserver[] = [measure, log];
+const observability: AngularSsrObservabilityOptions = {
+  applicationId: 'storefront',
+  observer(event) {
+    // Attempt both sinks even if one fails; rethrow the first failure for
+    // the package dispatcher to report through onObserverError.
+    const failures: unknown[] = [];
+    for (const observer of observers) {
+      try {
+        observer(event);
+      } catch (error) {
+        failures.push(error);
+      }
+    }
+    if (failures.length > 0) throw failures[0];
+  },
+  onObserverError(_error, event) {
+    // Use a separate diagnostic sink, without logging raw errors or URLs.
+    console.error(
+      JSON.stringify({ event: 'ssr.observer.failed', source: event.type }),
+    );
+  },
+};
+const renderer = createAngularSsrRenderer({
+  observability,
+  engine: {
+    async handle(request) {
+      const pathname = new URL(request.url).pathname;
+      if (pathname === '/fallback') return null;
+      if (pathname === '/error') throw new Error('Example render failure');
+      return new Response('Rendered HTML');
+    },
+  },
+});
+for (const path of ['/', '/fallback', '/error']) {
+  try {
+    await renderer.render(new Request(`https://example.com${path}`));
+  } catch {
+    /* The host still owns render-error handling. */
+  }
+}
+```
+
+An exporter failure can lose measurements from that callback; isolation protects
+request handling, not telemetry delivery. Exporters that return promises must
+catch their own rejections and use a bounded queue with an explicit drop/backpressure
+policy. Returning a promise from an observer does not make it awaited, and
+`onObserverError` only receives synchronous failures. Do not make network calls
+or wait for an exporter on the SSR request path.
+
+### Ordering, correlation, cardinality, and privacy
+
+A single render emits start, then exactly one success/null/error event. Concurrent
+requests can interleave; there is no global ordering between requests. Render
+duration uses a monotonic clock and excludes that attempt's observer callbacks;
+event timestamps use wall-clock epoch milliseconds and may move backwards.
+Rendering ends before response delivery, so a later body/connection failure is
+not a render-error event. Routing-only outcomes each emit their one routing
+event; missing assets emit no render or asset-served event.
+
+`applicationId` is optional and should be a stable deployment/application name.
+It is propagated through both routing and rendering. It is not a tenant ID,
+session ID, user ID, or request ID. Fastify routing events carry the host request
+ID when available; renderer events currently do not infer or propagate it.
+Do not assume pathname or application ID uniquely correlates concurrent renders.
+If your application needs richer correlation, supply it in your logging context
+and apply your own retention/redaction rules.
+
+Keep metric labels bounded: the examples use a finite method allowlist, outcome,
+status class, and an optional stable application ID. Never use raw URLs,
+pathnames, query strings, headers, request IDs, user IDs, tenant IDs, exception
+messages, or stacks as labels. Even pathnames without queries can contain
+personal data or secrets. The logging example deliberately omits pathnames,
+request IDs, and the original error. Allowlist and redact any extra log fields
+before adding them; avoid serializing the entire lifecycle event. Configure
+`applicationId` with a non-sensitive value.
+
+Future [cache work (#34)](https://github.com/anarchitects/anarchitecture-community/issues/34)
+can extend the event union with namespaced cache events using the same observer
+and shared metadata. No cache events, cache metrics, or caching behavior exist
+yet; render counters must not count future cache events as render attempts.
+[Multi-app work (#37)](https://github.com/anarchitects/anarchitecture-community/issues/37)
+can use the existing optional `applicationId` to distinguish applications.
+This identifier does not implement app selection or multi-app orchestration.
+Review exhaustive event switches when upgrading to newly added event variants.
+
+### Validation and release notes
+
+The routing/observability end-to-end test follows success, null, error, API
+bypass, asset serving, and host rejection through a real Nest/Fastify app and
+the instrumented renderer, then checks metric updates and structured records.
+Other tests cover all three bootstrap paths, observer failures, concurrent
+renders, and deterministic timing.
+
+From the repository root, the complete release gate is:
+
+```sh
+yarn nx sync
+yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-release-gate
+```
+
+It runs package build/typecheck/test/lint, packed CommonJS and ESM consumers,
+the split Angular/Nest fixture, and all Angular/Nx compatibility cells. It
+requires Node 24, registry access, and local fixture ports 3311, 3312, and 3320.
+Review any fixture reference changes from `nx sync` separately from package
+changes. See [unreleased observability notes](RELEASE_NOTES.md) for the rollout
+and compatibility details.
 
 ## Existing Option Shapes
 

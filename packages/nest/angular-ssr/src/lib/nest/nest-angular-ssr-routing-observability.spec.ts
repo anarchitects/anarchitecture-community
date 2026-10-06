@@ -16,6 +16,11 @@ import {
   type BootstrapNestAngularSsrOptions,
 } from './nest-angular-ssr-bootstrap.js';
 import { NestAngularSsrModule } from './nest-angular-ssr-module.js';
+import {
+  createSsrLoggingObserver,
+  createSsrMetricsObserver,
+  type SsrLogRecord,
+} from '../../../examples/observability.js';
 
 type BootstrapMode = 'explicit' | 'forRoot' | 'forRootAsync';
 
@@ -32,6 +37,130 @@ const configurations = (
 );
 
 describe('Nest Fastify routing observability', () => {
+  it('bridges a complete routing/rendering journey to metrics and structured logs', async () => {
+    const browserAssetsDir = await mkdtemp(join(tmpdir(), 'ssr-bridges-e2e-'));
+    let app: NestFastifyApplication | undefined;
+    try {
+      await writeFile(join(browserAssetsDir, 'main.js'), 'browser asset');
+      const events: AngularSsrLifecycleEvent[] = [];
+      const records: SsrLogRecord[] = [];
+      const metrics = {
+        renders: { add: vi.fn() },
+        failures: { add: vi.fn() },
+        fallbacks: { add: vi.fn() },
+        duration: { record: vi.fn() },
+      };
+      const measure = createSsrMetricsObserver(metrics);
+      const log = createSsrLoggingObserver((record) => records.push(record));
+      const failure = new Error('private user data must not reach the log');
+      app = await createObservedApp(
+        'explicit',
+        {
+          integration: {
+            rendererOptions: {
+              engine: {
+                handle: async (request) => {
+                  const pathname = new URL(request.url).pathname;
+                  if (pathname === '/declined') return null;
+                  if (pathname === '/failure') throw failure;
+                  return new Response('rendered HTML');
+                },
+              },
+            },
+          },
+          routing: { browserAssetsDir, allowedHosts: ['localhost'] },
+          observability: {
+            applicationId: 'storefront',
+            observer(event) {
+              events.push(event);
+              measure(event);
+              log(event);
+            },
+          },
+        },
+        'api',
+      );
+      const fastify = app.getHttpAdapter().getInstance();
+      const results = [];
+      for (const url of [
+        '/success?token=secret',
+        '/declined',
+        '/failure',
+        '/api/health',
+        '/main.js',
+        '/blocked',
+      ]) {
+        results.push(
+          await fastify.inject({
+            method: 'GET',
+            url,
+            headers: {
+              host: url === '/blocked' ? 'rejected.example' : 'localhost',
+            },
+          }),
+        );
+      }
+      expect(results.map((response) => response.statusCode)).toEqual([
+        200, 404, 500, 200, 200, 400,
+      ]);
+      expect(results[0].body).toBe('rendered HTML');
+      expect(results[3].body).toBe('ok');
+      expect(results[4].body).toBe('browser asset');
+      expect(
+        events.map((event) => [event.type, event.request.pathname]),
+      ).toEqual([
+        ['ssr.render.start', '/success'],
+        ['ssr.render.success', '/success'],
+        ['ssr.render.start', '/declined'],
+        ['ssr.render.null', '/declined'],
+        ['ssr.render.start', '/failure'],
+        ['ssr.render.error', '/failure'],
+        ['ssr.api.bypass', '/api/health'],
+        ['ssr.asset.served', '/main.js'],
+        ['ssr.host.rejected', '/blocked'],
+      ]);
+      expect(metrics.renders.add.mock.calls).toEqual(
+        Array.from({ length: 3 }, () => [
+          1,
+          { method: 'GET', application: 'storefront' },
+        ]),
+      );
+      expect(metrics.failures.add).toHaveBeenCalledExactlyOnceWith(1, {
+        method: 'GET',
+        application: 'storefront',
+      });
+      expect(metrics.fallbacks.add).toHaveBeenCalledExactlyOnceWith(1, {
+        method: 'GET',
+        application: 'storefront',
+      });
+      expect(
+        metrics.duration.record.mock.calls.map(([seconds, labels]) => {
+          expect(seconds).toBeGreaterThanOrEqual(0);
+          return labels.outcome;
+        }),
+      ).toEqual(['success', 'null', 'error']);
+      expect(records.map((record) => record.event)).toEqual(
+        events.map((event) => event.type),
+      );
+      expect(
+        records.find((record) => record.event === 'ssr.render.error'),
+      ).toEqual({
+        event: 'ssr.render.error',
+        level: 'error',
+        timestamp: expect.any(Number),
+        durationMs: expect.any(Number),
+        applicationId: 'storefront',
+        method: 'GET',
+      });
+      expect(JSON.stringify(records)).not.toMatch(
+        /secret|private user|requestId|pathname/,
+      );
+    } finally {
+      await app?.close();
+      await rm(browserAssetsDir, { recursive: true, force: true });
+    }
+  });
+
   it.each(configurations)(
     '$mode: explicit prefix=$overridePrefix, throwing observer=$observerThrows',
     async ({ mode, overridePrefix, observerThrows }) => {
