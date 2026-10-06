@@ -68,6 +68,41 @@ describe('createNestAngularSsrIntegration', () => {
     expect(engine.handle).toHaveBeenCalledTimes(1);
   });
 
+  it('passes observability to its renderer and emits each render event once', async () => {
+    const observer = vi.fn();
+    const integration = createNestAngularSsrIntegration(createMockApp(), {
+      rendererOptions: {
+        engine: {
+          handle: vi
+            .fn()
+            .mockResolvedValue(new Response('ok', { status: 201 })),
+        },
+      },
+      observability: { observer, applicationId: 'storefront' },
+    });
+
+    await expect(
+      integration.handle(createMockRequest(), createMockReply()),
+    ).resolves.toBe(true);
+
+    expect(observer).toHaveBeenCalledTimes(2);
+    expect(observer).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        type: 'ssr.render.start',
+        applicationId: 'storefront',
+      }),
+    );
+    expect(observer).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        type: 'ssr.render.success',
+        applicationId: 'storefront',
+        statusCode: 201,
+      }),
+    );
+  });
+
   it('forwards a derived request context unchanged', async () => {
     const renderer = createMockRenderer(null);
     const reply = createMockReply();

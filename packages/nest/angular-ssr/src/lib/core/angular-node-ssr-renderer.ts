@@ -5,6 +5,10 @@ import type {
 } from './angular-ssr-engine.js';
 import type { AngularSsrRegistrationInput } from './angular-ssr-registration.js';
 import type { AngularSsrObservabilityOptions } from './angular-ssr-observability.js';
+import {
+  createAngularSsrEventDispatcher,
+  type AngularSsrEventDispatcher,
+} from './angular-ssr-observability-runtime.js';
 
 export interface AngularNodeSsrRendererOptions {
   registration?: AngularSsrRegistrationInput;
@@ -21,6 +25,7 @@ export class AngularNodeSsrRenderer<TContext = unknown>
   private engine?: AngularSsrEngine;
   private enginePromise?: Promise<AngularSsrEngine>;
   private registrationPromise?: Promise<void>;
+  private readonly dispatch?: AngularSsrEventDispatcher;
 
   constructor(options: Readonly<AngularNodeSsrRendererOptions> = {}) {
     const { registration, engine, engineOptions } = options;
@@ -40,9 +45,61 @@ export class AngularNodeSsrRenderer<TContext = unknown>
     this.registration = registration;
     this.engineOptions = engineOptions;
     this.engine = engine;
+    this.dispatch = createAngularSsrEventDispatcher(options.observability);
   }
 
-  async render(
+  render(
+    request: Request,
+    requestContext?: TContext,
+  ): Promise<Response | null> {
+    return this.dispatch
+      ? this.renderObserved(this.dispatch, request, requestContext)
+      : this.renderRequest(request, requestContext);
+  }
+
+  private async renderObserved(
+    dispatch: AngularSsrEventDispatcher,
+    request: Request,
+    requestContext?: TContext,
+  ): Promise<Response | null> {
+    const eventRequest = {
+      method: request.method,
+      pathname: new URL(request.url).pathname,
+    };
+
+    dispatch({ type: 'ssr.render.start', request: eventRequest });
+    // Include lazy initialization, but exclude synchronous observer work.
+    const startedAt = performance.now();
+    let response: Response | null;
+
+    try {
+      response = await this.renderRequest(request, requestContext);
+    } catch (error) {
+      dispatch({
+        type: 'ssr.render.error',
+        request: eventRequest,
+        durationMs: performance.now() - startedAt,
+        error,
+      });
+      throw error;
+    }
+
+    const durationMs = performance.now() - startedAt;
+    dispatch(
+      response === null
+        ? { type: 'ssr.render.null', request: eventRequest, durationMs }
+        : {
+            type: 'ssr.render.success',
+            request: eventRequest,
+            durationMs,
+            statusCode: response.status,
+          },
+    );
+
+    return response;
+  }
+
+  private async renderRequest(
     request: Request,
     requestContext?: TContext,
   ): Promise<Response | null> {
