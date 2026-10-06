@@ -6,12 +6,21 @@ import { extname, relative, resolve, sep } from 'node:path';
 
 import type { NestAngularSsrIntegration } from './nest-angular-ssr-integration.js';
 import type { AngularSsrObservabilityOptions } from '../core/angular-ssr-observability.js';
+import { createAngularSsrEventDispatcher } from '../core/angular-ssr-observability-runtime.js';
 
 type FastifyStaticReply = FastifyReply & {
   sendFile(path: string): unknown;
 };
 
 type FastifyInstanceWithRouting = {
+  addHook(
+    name: 'onRequest',
+    hook: (
+      request: FastifyRequest,
+      reply: FastifyReply,
+      done: () => void,
+    ) => void,
+  ): unknown;
   register(plugin: unknown, options: unknown): Promise<unknown> | unknown;
   route(options: {
     method: string[];
@@ -58,6 +67,23 @@ export async function registerNestAngularSsrRoutes<TContext = unknown>(
 
   const browserAssetsRoot = resolve(options.browserAssetsDir);
   const effectiveApiPrefix = resolveApiPrefix(app, options.apiPrefix);
+  const dispatch = createAngularSsrEventDispatcher(options.observability);
+
+  if (dispatch && effectiveApiPrefix !== '') {
+    // Registered API routes never reach the SSR wildcard handler. Observe
+    // prefix matches here, including API requests that fall through to 404.
+    fastify.addHook('onRequest', (request, _reply, done) => {
+      const pathname = getRequestPathname(request);
+      if (isApiRequest(pathname, effectiveApiPrefix)) {
+        dispatch({
+          type: 'ssr.api.bypass',
+          request: { method: request.method, pathname, requestId: request.id },
+        });
+      }
+      done();
+    });
+  }
+
   const handler = async (
     request: FastifyRequest,
     reply: FastifyStaticReply,
@@ -69,6 +95,10 @@ export async function registerNestAngularSsrRoutes<TContext = unknown>(
     }
 
     if (!isAllowedHost(request, options.allowedHosts)) {
+      dispatch?.({
+        type: 'ssr.host.rejected',
+        request: { method: request.method, pathname, requestId: request.id },
+      });
       return reply
         .code(400)
         .send('The request host is not allowed for Angular SSR.');
@@ -77,6 +107,10 @@ export async function registerNestAngularSsrRoutes<TContext = unknown>(
     const asset = await resolveAssetRequest(browserAssetsRoot, pathname);
 
     if (asset.kind === 'existing-file') {
+      dispatch?.({
+        type: 'ssr.asset.served',
+        request: { method: request.method, pathname, requestId: request.id },
+      });
       return reply.sendFile(asset.relativePath);
     }
 
