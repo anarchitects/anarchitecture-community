@@ -328,6 +328,33 @@ the render result. Without observability configured, the renderer creates no
 events and reads no timing clocks. Routing events (API bypass, static assets,
 and rejected hosts) are not emitted by the renderer.
 
+### Nest and Fastify routing events
+
+The top-level `observability` configuration also enables routing events through
+explicit bootstrap, `forRoot`, and `forRootAsync`. When composing the lower-level
+APIs yourself, pass it to both `createNestAngularSsrIntegration(...)` and
+`registerNestAngularSsrRoutes(...)` to observe rendering and routing.
+
+| Event               | Selection outcome                                                                                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ssr.api.bypass`    | The pathname matches the configured `apiPrefix` or detected Nest global prefix. Emitted once for registered API routes and unmatched API requests, for any HTTP method. |
+| `ssr.host.rejected` | An SSR routing request failed `allowedHosts` validation and receives HTTP 400.                                                                                          |
+| `ssr.asset.served`  | An existing browser file was selected and handed to Fastify's static-file handler, including HEAD requests. This does not measure transfer completion.                  |
+
+API selection takes precedence over SSR host validation. For GET/HEAD requests
+that reach the SSR routes, host validation precedes asset selection. None of these
+three outcomes invokes the renderer or emits render events. Missing assets and
+blocked asset paths retain their not-found behavior without emitting an
+asset-served event. Remaining SSR candidates reach the renderer once, where
+`ssr.render.start` marks acceptance; a `null` result still falls back to not-found
+handling. Routing does not emit a second render-start event.
+
+Routing events include Fastify's request ID, method, pathname without query or
+fragment, and the configured `applicationId`. Observer failures and failures in
+`onObserverError` cannot alter routing or responses. With no observer configured,
+no API observation hook is installed. An empty API prefix disables API selection
+and its bypass events.
+
 ## Existing Option Shapes
 
 - `AngularSsrRegistrationOptions`
@@ -359,6 +386,7 @@ and rejected hosts) are not emitted by the renderer.
   - `browserAssetsDir?: string` (derived from build output when omitted)
   - `apiPrefix?: string`
   - `allowedHosts?: readonly string[]`
+  - `observability?: Readonly<AngularSsrObservabilityOptions>`
 - `BootstrapNestAngularSsrOptions<TContext>`
   - `enabled?: boolean`
   - `observability?: Readonly<AngularSsrObservabilityOptions>`
