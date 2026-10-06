@@ -13,6 +13,7 @@
     "rootDir": "."
   },
   "include": [
+    "examples/**/*.ts",
     "vite.config.ts",
     "vite.config.mts",
     "src/**/*.ts",
