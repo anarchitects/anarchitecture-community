@@ -266,6 +266,68 @@ These APIs keep the public boundary small:
 - Nest integration is Fastify-only in v1
 - routing and bootstrap remain explicit concerns
 
+## Render observability
+
+Set `observability` on `AngularNodeSsrRenderer` or `createAngularSsrRenderer`
+to observe rendering directly, using only Web `Request` / `Response` and an
+`AngularSsrEngine`. No Nest or Fastify application is needed:
+
+```ts
+import { createAngularSsrRenderer } from '@anarchitects/nest-angular-ssr';
+
+const renderer = createAngularSsrRenderer({
+  engine: angularSsrEngine,
+  observability: {
+    applicationId: 'storefront', // Optional stable application identifier.
+    observer(event) {
+      // Forward events to your own synchronous logging or metrics sink.
+      console.log(event);
+    },
+    onObserverError(error) {
+      console.error('SSR observer failed', error);
+    },
+  },
+});
+
+const response = await renderer.render(new Request('https://example.com/'));
+```
+
+For package-created renderers, the same configuration is available as the
+top-level `observability` option on `NestAngularSsrModule.forRoot(...)`, the
+options returned by `forRootAsync(...)`, and `bootstrapNestAngularSsr(...)`.
+For direct `createNestAngularSsrIntegration(...)` composition, use its
+`observability` option. If you supply your own `integration.renderer`, configure
+instrumentation on that renderer itself.
+
+Every observed render attempt emits `ssr.render.start` before initialization or
+engine invocation, followed by exactly one terminal event:
+
+| Event                | Meaning                                                                       | Outcome fields             |
+| -------------------- | ----------------------------------------------------------------------------- | -------------------------- |
+| `ssr.render.success` | The engine produced a response, including redirects and HTTP error responses. | `durationMs`, `statusCode` |
+| `ssr.render.null`    | The engine declined the request; the caller continues its fallback flow.      | `durationMs`               |
+| `ssr.render.error`   | Initialization or rendering threw; the original value is rethrown unchanged.  | `durationMs`, `error`      |
+
+Durations use a monotonic clock in milliseconds, include lazy registration and
+engine initialization, and exclude that render's observer callbacks. They stop
+when the engine produces its result, before response-body streaming or delivery.
+Each concurrent call tracks its own duration. Event `timestamp` values use Unix
+epoch milliseconds and are independent of the duration clock.
+
+Events include `applicationId` when configured and request method/pathname;
+query strings, fragments, headers, bodies, and request context are not included.
+The direct renderer does not infer a request ID from headers or context. Use
+event type, application ID, and status code for metric labels; raw pathnames can
+have high cardinality. Error events retain the original thrown value, so apply
+your application's redaction rules before logging errors.
+
+Observers run synchronously. Their return values are ignored; enqueue
+asynchronous work in your own sink. Synchronous observer failures are sent to
+`onObserverError` when provided, and failures in either callback cannot change
+the render result. Without observability configured, the renderer creates no
+events and reads no timing clocks. Routing events (API bypass, static assets,
+and rejected hosts) are not emitted by the renderer.
+
 ## Existing Option Shapes
 
 - `AngularSsrRegistrationOptions`
@@ -287,9 +349,11 @@ These APIs keep the public boundary small:
   - `registration?: AngularSsrRegistrationOptions | ResolvedAngularSsrRegistrationOptions`
   - `engine?: AngularSsrEngine`
   - `engineOptions?: AngularSsrEngineOptions`
+  - `observability?: Readonly<AngularSsrObservabilityOptions>`
 - `CreateNestAngularSsrIntegrationOptions<TContext>`
   - `renderer?: AngularSsrRenderer<TContext>`
-  - `rendererOptions?: AngularNodeSsrRendererOptions`
+  - `rendererOptions?: Omit<AngularNodeSsrRendererOptions, 'observability'>`
+  - `observability?: Readonly<AngularSsrObservabilityOptions>`
   - `createRequestContext?: (request, reply) => TContext | Promise<TContext>`
 - `RegisterNestAngularSsrRoutesOptions`
   - `browserAssetsDir?: string` (derived from build output when omitted)
@@ -297,6 +361,7 @@ These APIs keep the public boundary small:
   - `allowedHosts?: readonly string[]`
 - `BootstrapNestAngularSsrOptions<TContext>`
   - `enabled?: boolean`
+  - `observability?: Readonly<AngularSsrObservabilityOptions>`
   - `angular?: AngularSsrRegistrationOptions | AngularSsrBuildOutputOptions`
   - `integration?: CreateNestAngularSsrIntegrationOptions<TContext>`
   - `routing: RegisterNestAngularSsrRoutesOptions`
