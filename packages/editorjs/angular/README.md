@@ -6,8 +6,8 @@ Standalone Angular editor component for Editor.js, built on
 Import `EditorJs` to render `<aa-editorjs>` with initial configuration/data and
 readiness, saved-change and error outputs. Each component owns its holder and editor
 instance. Replace the `data` input to load another document; configuration remains
-initialization-only. Imperative controls and Angular Forms integration are not
-available in this version.
+initialization-only. The component exposes an instance-scoped `api` for imperative
+controls. Angular Forms integration is not available in this version.
 
 ## Installation and prerequisites
 
@@ -160,7 +160,8 @@ failures do not require a new baseline; the next notification can produce a chan
 
 Feeding saved output back into `data` requests a replacement and can reset selection;
 it is not necessary for normal editing. No two-way form model, persistence, dirty
-or touched state is maintained. Imperative controls remain unavailable.
+or touched state is maintained. Use the imperative API when you need an awaited
+operation or an explicit save rather than automatic saved-change events.
 
 ## Configuration and custom tools
 
@@ -214,13 +215,99 @@ Tool options may contain callbacks/services and are not persisted JSON. Generic
 block parameters describe data already validated by the application; they do not
 validate editor output at runtime. Use core parsers/validators for untrusted data.
 
-## Shared control contracts
+## Imperative controls
 
-Core's `EditorJsApi<Block>`, `EditorJsChangeEvent<Block>` and error/operation
-contracts are re-exported for integrations. These are interfaces, not a runtime
-controller. They describe serialized operations and ordered saved snapshots;
-`EditorJs` implements the saved-change output but does not expose imperative controls in this version.
-Readiness is independent of the control facade and carries no editor reference.
+Each `EditorJs` component exposes a stable, bound `api: EditorJsApi`. Readiness
+remains a payload-free notification; retrieve controls through the component,
+for example using an Angular signal query:
+
+```ts
+import {
+  ChangeDetectionStrategy,
+  Component,
+  signal,
+  viewChild,
+} from '@angular/core';
+import {
+  EditorJs,
+  EditorJsOperationError,
+} from '@anarchitects/editorjs-angular';
+import type { OutputData } from '@anarchitects/editorjs-core';
+
+@Component({
+  selector: 'app-saveable-editor',
+  imports: [EditorJs],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <button type="button" [disabled]="!ready()" (click)="save()">
+      Save snapshot
+    </button>
+    <p role="status">{{ status() }}</p>
+    <aa-editorjs (ready)="ready.set(true)" (error)="status.set($event.code)" />
+  `,
+})
+export class SaveableEditor {
+  readonly editor = viewChild.required(EditorJs);
+  readonly ready = signal(false);
+  readonly status = signal('Loading');
+  readonly snapshot = signal<OutputData | undefined>(undefined);
+
+  async save(): Promise<void> {
+    try {
+      this.snapshot.set(await this.editor().api.save());
+      this.status.set('Snapshot available');
+    } catch (error) {
+      this.status.set(
+        error instanceof EditorJsOperationError ? error.code : 'Save failed',
+      );
+    }
+  }
+}
+```
+
+| Method                  | Result and behavior                                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `save()`                | `Promise<OutputData>` with a detached, structurally validated snapshot. Does not emit `change` or alter automatic change tracking.                       |
+| `render(data)`          | `Promise<void>`. Validate/copy data when accepted, then replace content in queue order without a feedback change.                                        |
+| `clear()`               | `Promise<void>`. Delegate to Editor.js clear, including its empty initial block; suppress programmatic feedback.                                         |
+| `focus(atEnd?)`         | `Promise<boolean>`. Return Editor.js's focus result; `false` is a supported result, not a rejection. Omitted `atEnd` keeps the upstream default.         |
+| `setReadOnly(readOnly)` | `Promise<boolean>` with the upstream resulting mode. Requires every installed tool to support that mode. `config.readOnly` supplies the initial setting. |
+
+All calls before readiness reject with `not-ready`; calls after owner disposal
+reject with `destroyed`. A failed initialization disposes the controller, so
+recreate the component before trying again. While ready, controls and observed
+input replacements share one ordered queue with automatic saves. Calls during a
+replacement wait for it. Later work still runs after a failed operation. A direct
+`save()` returns its own operation's snapshot even if newer edits or replacements
+arrive meanwhile; the stale-result suppression policy applies to automatic
+`change` outputs. Callers decide what to do with an explicitly requested snapshot.
+
+`render` and `clear` invalidate obsolete automatic snapshots when accepted. Their
+promises include the silent baseline save while editable. Baseline failure rejects
+with `operation: 'save'` even though content may already have been replaced. Invalid
+`render` data rejects with `operation: 'render'`, `code: 'invalid-data'`, preserving
+core diagnostics. Unlike the optional data input, `render` requires a document;
+use `clear()` or `{ blocks: [] }` for empty content.
+
+Read-only transitions serialize with document operations. Pending observed edits
+are captured before entering read-only mode; mode changes do not manufacture edit
+events. Editor.js 2.31.7 rejects `save()` while read-only. Baselines are taken before
+entry and after returning to editing. Replacements/clear while read-only defer
+their baseline until editing resumes, and editor notifications are ignored while
+read-only. A failed transition may partially change the upstream mode; the default
+driver reads its actual state when attempting recovery. Tool support and focus
+behavior remain upstream responsibilities.
+Failed mode transitions use the same silent recovery-baseline policy described
+for failed replacements above.
+
+Imperative failures reject with `EditorJsOperationError`, an `Error` carrying
+`operation`, `code` and original `cause`. While the component is live, the same
+object is emitted through `error`. Always await/catch returned promises, even if
+you also listen to `error`; the output does not handle the caller's rejection.
+Removing the component rejects active and queued calls immediately with `destroyed`,
+drops unstarted work and suppresses late outputs. Already-running upstream work
+cannot be cancelled. The facade has no public `destroy()` and cannot control
+another component's instance; a retained old facade remains disposed after remount.
 
 ## Lazy loading and replacement
 
@@ -268,7 +355,8 @@ directly using `useValue`. Custom loaders must enforce their own platform safety
 
 Use only `@anarchitects/editorjs-angular` or its `package.json` subpath.
 
-- Runtime exports: `EditorJs`, `EDITOR_JS_LOADER`, `provideEditorJsLoader`.
+- Runtime exports: `EditorJs`, `EDITOR_JS_LOADER`, `provideEditorJsLoader`,
+  `EditorJsOperationError` (re-exported from core).
 - Configuration types: `EditorJsConfig`, `EditorJsTools`.
 - Event/control types (re-exported from core): `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`,
   `EditorJsErrorEvent`, `EditorJsOperation`.
@@ -289,7 +377,7 @@ under `editorjs-angular@<version>` before upgrading.
 
 | Symptom                                                         | Action                                                                                                                            |
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Imperative controls are unavailable                             | Use `(change)` for saved snapshots and a new `[data]` reference for replacement; direct control methods are not available.        |
+| A control rejects with `not-ready` or `destroyed`               | Wait for `ready`, then use the live component’s `api`; obtain a new facade after remounting.                                      |
 | Upstream `EditorConfig` is rejected                             | Remove holder/data/callback options and define a fresh `EditorJsConfig`; supply data and observe events separately in your owner. |
 | Loader rejects on the server                                    | Invoke it only from browser initialization after rendering. Do not initialize editors from server requests.                       |
 | Tool fails during creation or rendering                         | Check its Editor.js compatibility and tool-specific input/configuration; core type compatibility is not runtime validation.       |

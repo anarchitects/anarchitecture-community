@@ -9,8 +9,8 @@ Consumer-facing behavior is documented in the
 Issue #533 established packaging and artifact checks. #534 adds typed configuration,
 shared controls/events and the lazy loader/provider seam. #535 adds the standalone `EditorJs` component and per-component lifecycle. The
 maintainer chose readiness-only notification (`EditorJsReadyEvent = void`), with
-controls remaining #537. #536 adds live document updates and saved-change outputs
-through the framework-neutral `EditorJsDocumentCoordinator`.
+a separate stable `api` facade added in #537. #536 added live document updates and
+saved-change outputs through the framework-neutral `EditorJsDocumentCoordinator`.
 
 Core owns framework-neutral controls/events and data algorithms. Angular re-exports
 the shared event/control types and consumes `normalizeOutputData` at the creation
@@ -23,8 +23,8 @@ holder/data/callback ownership, and propagate failures; no instance lives in DI.
 The contracts choose initialization-only configuration, serialized accepted data
 replacements/commands, coalesced automatic saves with stale-result suppression,
 and no programmatic-write feedback. Core now owns that document queue behind a
-non-DOM save/render driver; #537 must extend/reuse it for imperative operations,
-not introduce an independent queue. Angular observes input signals after rendering
+non-DOM driver. #537 extends the same queue for imperative operations; it does not
+introduce an independent queue. Angular observes input signals after rendering
 and translates core events to outputs. No generic queue or parser is duplicated here.
 
 For #536, all five ADRs and relevant architecture/reactivity/rendering/testing/SSR
@@ -70,6 +70,41 @@ fields on the installed compiler.
 The reviewed `@nx/angular:component` generator was dry-run before #535. Its unrelated
 workspace defaults were removed, the public barrel uses a named export, and a
 meaningful lifecycle suite replaces the generator's skipped placeholder test.
+
+## Imperative controls and read-only evidence
+
+For #537 the ADR inventory was re-enumerated; all five previously reviewed records
+and relevant guides are unchanged. The same accepted architecture, lifecycle,
+reactivity and documentation decisions apply. Angular's best-practices tool still
+failed, so official component-query guidance and the reviewed local guides apply.
+
+The component constructs one coordinator and exposes its frozen, bound `api` from
+construction onward. Core guards readiness/disposal before invoking the lazy driver
+closures; Angular alone retains the raw instance. Inputs, automatic saves and all
+controls use the same FIFO queue. Replacements invalidate obsolete automatic work;
+explicit save results belong to their callers and are not discarded on later edits.
+Core tracks active/queued promise cancellations, rejects immediately on disposal,
+and observes later driver settlement without emitting after destruction. The error
+class is core-owned and re-exported by Angular; imperative rejection and the live
+error output share the same object. Callers remain responsible for catching promises.
+
+The operation set was verified against the installed 2.31.7 implementation/types
+and upstream [API](https://editorjs.io/api/), [blocks](https://editorjs.io/blocks/)
+and [configuration](https://editorjs.io/configuration/) references. Actual runtime
+integration exposed that the public `save` API rejects while read-only, although
+upstream's mode transition uses its internal saver. We retain the public API:
+core captures before entering read-only, defers replacement baselines while there,
+and captures again on return to editing. The optional raw `readOnly.isEnabled`
+value seeds readiness and supplies actual mode during recovery; custom loaders
+without it fall back to initial config and successful toggle results. Drivers that
+can partially change mode before rejection should expose that value.
+
+Core tests exercise all control failures, queue ordering, stale saves, retained
+facades, immediate disposal rejection and read-only recovery without Angular.
+Component tests verify binding, ownership and error identity. The real Editor.js
+jsdom test covers save, mode toggles and clear; actual browser focus and broader
+integration remain #538, including its required host/E2E project extraction. No
+forms interfaces or SSR/hydration expansion is included here.
 
 ## Generator and TypeScript configuration
 
@@ -170,5 +205,5 @@ compatible version before an external consumer can install the wrapper.
 
 Use `init:` for this new package scaffold. The existing manual release workflow
 uses `--skip-publish`; creating or merging the scaffold does not publish it. Keep
-the README's control/forms limitations until those implementations exist, and
+the README's forms/hydration limitations until those implementations exist, and
 complete #67's release-readiness checks before advertising a working editor.

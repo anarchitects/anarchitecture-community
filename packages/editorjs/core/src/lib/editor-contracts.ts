@@ -2,8 +2,8 @@ import type { OutputBlockData, OutputData } from './output-data.js';
 
 /**
  * Framework-neutral contract for one live editor owner's controls.
- * No controller implementation is supplied. Calls reject before ready/after
- * destruction; accepted operations run in order.
+ * Calls reject before ready/after destruction; accepted operations run in order.
+ * EditorJsDocumentCoordinator supplies an implementation behind a neutral driver.
  * A typed block parameter describes validated tool data, not runtime validation.
  */
 export interface EditorJsApi<Block extends OutputBlockData = OutputBlockData> {
@@ -52,4 +52,24 @@ export interface EditorJsErrorEvent {
     | 'unsupported-platform'
     | 'operation-failed';
   readonly cause: unknown;
+}
+
+/** Imperative rejection and error-channel payload, with the original cause. */
+export class EditorJsOperationError
+  extends Error
+  implements EditorJsErrorEvent
+{
+  readonly operation: EditorJsOperation;
+  readonly code: EditorJsErrorEvent['code'];
+  override readonly cause: unknown;
+
+  constructor(event: EditorJsErrorEvent) {
+    super(`Editor operation ${event.operation} failed: ${event.code}.`, {
+      cause: event.cause,
+    });
+    this.name = 'EditorJsOperationError';
+    this.operation = event.operation;
+    this.code = event.code;
+    this.cause = event.cause;
+  }
 }

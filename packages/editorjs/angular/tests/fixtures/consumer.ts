@@ -1,7 +1,13 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  viewChild,
+} from '@angular/core';
 import {
   EDITOR_JS_LOADER,
   EditorJs,
+  EditorJsOperationError,
   provideEditorJsLoader,
   type EditorJsApi,
   type EditorJsChangeEvent,
@@ -118,11 +124,26 @@ export async function controls(
     '<aa-editorjs [config]="config" [data]="document" (ready)="onReady($event)" (change)="onChange($event)" (error)="onError($event)" />',
 })
 export class PackageConsumer {
+  readonly editor = viewChild.required(EditorJs);
   readonly document = documentData;
   readonly config = config;
   readonly loader = inject(EDITOR_JS_LOADER);
   onReady(event: EditorJsReadyEvent): void {
     void event;
+  }
+  async save(): Promise<OutputData | undefined> {
+    const api: EditorJsApi = this.editor().api;
+    try {
+      await api.render(documentData);
+      await api.clear();
+      await api.focus(true);
+      await api.setReadOnly(false);
+      return await api.save();
+    } catch (error) {
+      if (error instanceof EditorJsOperationError)
+        console.error(error.operation, error.code);
+      return undefined;
+    }
   }
   onChange(event: EditorJsChangeEvent): unknown {
     const block = event.data.blocks[0];

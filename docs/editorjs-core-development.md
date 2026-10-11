@@ -108,6 +108,15 @@ instantiates and exercises it with guarded browser globals and no dependencies.
 Deterministic deferred-driver tests verify stale results, serialized work,
 replacement feedback, recovery and late disposal independently of Angular.
 
+#537 extends that same queue with a stable `api` facade and core-owned
+`EditorJsOperationError`. Input replacements, automatic saves and imperative
+operations remain serialized. The packed consumer exercises actual facade calls
+and disposal rejection; all declarations stay DOM-free. Read-only baseline timing
+is explicit because downstream Editor.js cannot save through its public API while
+read-only. Active and queued imperative promises reject immediately on disposal,
+without depending on eventual driver settlement. Optional driver capabilities and
+actual mode reporting preserve portability for non-Angular owners.
+
 ## Downstream ownership
 
 Wrappers and forms/SSR integrations belong to #67–#69, tool registries and concrete

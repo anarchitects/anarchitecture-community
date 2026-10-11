@@ -110,6 +110,7 @@ describe('published package', () => {
         const core = await import('@anarchitects/editorjs-core');
         assert.deepEqual(Object.keys(core).sort(), [
           'EditorJsDocumentCoordinator',
+          'EditorJsOperationError',
           'normalizeOutputData', 'parseContentWithProvenance', 'parseOutputData', 'validateOutputData',
         ]);
         assert.ok(import.meta.resolve('@anarchitects/editorjs-core').endsWith('/dist/index.js'));
@@ -134,7 +135,10 @@ describe('published package', () => {
         documents.markReady();
         documents.notifyChange();
         assert.deepEqual(await publication, { data: raw, sequence: 1 });
+        assert.deepEqual(await documents.api.save(), raw);
+        await documents.api.render({ blocks: [] });
         documents.dispose();
+        await assert.rejects(documents.api.save(), error => error instanceof core.EditorJsOperationError && error.code === 'destroyed');
         for (const path of ['src/index.ts', 'dist/index.js', 'dist/lib/json-value.js']) {
           await assert.rejects(import('@anarchitects/editorjs-core/' + path), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
         }
