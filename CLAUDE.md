@@ -1,3 +1,7 @@
+## Mandatory architecture reading
+
+Before generating or changing any code, follow [anarchitecture-community agent instructions](./AGENTS.md): enumerate and read **ALL repository ADRs**, then **all relevant engineering guides**, including the [Modern Angular guide](./docs/guides/modern-angular/README.md) and its repository application for Angular work. This includes generated output, examples, tests and migrations. Respect decision status, flag conflicts and re-check when scope changes.
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 

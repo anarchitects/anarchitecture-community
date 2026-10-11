@@ -1,3 +1,7 @@
+## Mandatory architecture decision review (AI agents)
+
+Before generating, editing or refactoring **any code**, enumerate and read **ALL ADRs in this repository**, including every document in `adr/**`, `docs/adr/**` and any other documented ADR location. Read accepted, proposed, historical and superseded records; apply their status correctly and follow applicable accepted decisions. Then read **all relevant engineering guides** for the affected packages and topics, including the [Modern Angular Engineering Guide](docs/guides/modern-angular/README.md), its [repository application](docs/guides/modern-angular/repository-application.md) and linked topic guides for Angular work. This applies to generated code, templates, examples, tests and migrations. Record applicable decisions and explicit conflicts before implementation; re-check when scope changes. A proposal does not silently override an accepted ADR. Never commit the licensed Modern Angular PDF, extracted text, scans or copied source passages.
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
