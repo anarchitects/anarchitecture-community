@@ -12,6 +12,10 @@ import {
   type EditorJsApi,
   type EditorJsChangeEvent,
   type EditorJsConfig,
+  type EditorJsCreateOptions,
+  type EditorJsInstance,
+  type EditorJsOperation,
+  type EditorJsTools,
   type EditorJsErrorEvent,
   type EditorJsFactory,
   type EditorJsLoader,
@@ -66,6 +70,16 @@ export const documentData: OutputData<Blocks> = {
   blocks: [{ type: 'callout', data: { text: 'Welcome', tone: 'info' } }],
 };
 export const unparameterizedConfig: EditorJsConfig = config;
+export const registrations: EditorJsTools = config.tools!;
+export function createRaw(
+  factory: EditorJsFactory,
+  options: EditorJsCreateOptions,
+): EditorJsInstance {
+  return factory(options);
+}
+export function operationOf(event: EditorJsErrorEvent): EditorJsOperation {
+  return event.operation;
+}
 
 // Type contracts reject owned properties even on existing non-literal objects.
 const foreignHolder = { holder: 'outside', placeholder: 'Write' };

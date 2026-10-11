@@ -305,6 +305,16 @@ yarn nx show project editorjs-angular-host --json
 yarn nx show project editorjs-angular-e2e --json
 ```
 
+## Packed consumers and release review
+
+The [release-readiness guide](editorjs-angular-release-readiness.md) records the
+public API review, executable compatibility matrix, tarball-consumer commands,
+CI gates, semver guidance and downstream boundaries. `editorjs-angular-e2e:e2e-packed`
+installs both archives and fresh peers outside the workspace, compiles every README
+example and runs the same browser suite against the consumer build. The package test
+also compiles the published examples locally. This extends the workspace-linked host
+coverage without moving library contract fixtures into a separate project.
+
 ## Release configuration
 
 The project participates in independent Nx release configuration with

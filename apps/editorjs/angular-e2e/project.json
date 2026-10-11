@@ -32,6 +32,17 @@
       "options": {
         "command": "playwright install chromium"
       }
+    },
+    "e2e-packed": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "parallelism": false,
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/test-output/compatibility"],
+      "options": {
+        "command": "node apps/editorjs/angular-e2e/tools/validate-packed.mjs {args.cell}",
+        "cell": "all"
+      }
     }
   },
   "tags": ["scope:editorjs", "type:e2e", "npm:private"]

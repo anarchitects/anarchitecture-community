@@ -25,14 +25,27 @@ versions from Angular 22 and its supported Node/TypeScript toolchain.
 | Angular core/common peers       | `^22.0.0`                                  |
 | Editor.js peer                  | `^2.31.7`                                  |
 | Editor.js development reference | Exactly `2.31.7`                           |
-| Node.js tooling                 | `^22.22.3` or `^24.15.0` or `>=26.0.0`     |
+| Node.js tooling                 | `^22.22.3` or `^24.15.0` or `^26.0.0`      |
 | Package format                  | ESM, Angular Package Format, ES2022 output |
 
-The package is checked with Angular 22.1.4 and TypeScript 6.0.3. This establishes
-the tested component and packaging baseline, not forms or full hydration support
-across every version in the peer range. No CommonJS build is supplied. Nx is not a consumer
-dependency. Angular peers are evaluated normally; Editor.js is loaded only when
-the default loader is called on the browser platform.
+Angular 21 and future Angular/Editor.js majors are outside these ranges. Use matching
+Angular core/common versions and tooling supported by that Angular release. Node is
+a build/tooling requirement; editing runs in the browser. Core has its own independent
+runtime baseline and does not require Angular.
+
+The packed component and its public examples are checked with these combinations:
+
+| Angular | Editor.js | Node.js tooling | TypeScript | Browser  |
+| ------- | --------- | --------------- | ---------- | -------- |
+| 22.0.0  | 2.31.7    | 22.22.3         | 6.0.3      | Chromium |
+| 22.1.4  | 2.31.7    | 24.15.0         | 6.0.3      | Chromium |
+| 22.2.2  | 2.31.7    | 26.0.0          | 6.0.3      | Chromium |
+
+These are tested combinations, not every version permutation or a full browser
+matrix. They cover standalone, zoneless editing, saved changes, imperative controls
+and teardown. Forms and full SSR/hydration are not supported features here. No
+CommonJS build is supplied. Nx is not a consumer dependency. Angular peers are
+evaluated normally; Editor.js is loaded only during browser initialization.
 
 ## Quick start
 
@@ -53,8 +66,14 @@ import type { OutputData } from '@anarchitects/editorjs-core';
   imports: [EditorJs],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <h2 id="article-label">Article body</h2>
     <p role="status">{{ status() }}</p>
+    @if (errorMessage()) {
+      <p role="alert">{{ errorMessage() }}</p>
+    }
     <aa-editorjs
+      role="group"
+      aria-labelledby="article-label"
       [config]="config"
       [data]="document()"
       (change)="onChange($event)"
@@ -65,6 +84,7 @@ import type { OutputData } from '@anarchitects/editorjs-core';
 })
 export class ArticleEditor {
   readonly status = signal('Loading editor');
+  readonly errorMessage = signal('');
   readonly config: EditorJsConfig = {
     placeholder: 'Write something…',
     minHeight: 120,
@@ -81,7 +101,7 @@ export class ArticleEditor {
     this.document.set(data);
   }
   onError(event: EditorJsErrorEvent): void {
-    this.status.set(`Editor error: ${event.operation}`);
+    this.errorMessage.set(`Editor error: ${event.operation} (${event.code})`);
     console.error(event.operation, event.cause);
   }
 }
@@ -309,6 +329,26 @@ drops unstarted work and suppresses late outputs. Already-running upstream work
 cannot be cancelled. The facade has no public `destroy()` and cannot control
 another component's instance; a retained old facade remains disposed after remount.
 
+## Errors and accessibility
+
+Use error codes for control flow; `cause` preserves the upstream error or core data
+diagnostic. Error messages are explanatory, not stable identifiers.
+
+| Code               | Meaning and response                                                                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `not-ready`        | Await the live component's `ready` notification before issuing controls.                                                                  |
+| `destroyed`        | The owner has been disposed; obtain controls from a newly mounted component.                                                              |
+| `invalid-data`     | Inspect the core diagnostic in `cause`, correct the document and retry explicitly.                                                        |
+| `config-changed`   | Configuration is initialization-only; recreate the component to change it.                                                                |
+| `operation-failed` | Inspect `operation` and `cause`; load/create/ready failures need recreation, while later queued work can continue after control failures. |
+
+Give each editor a visible label and named group, as in the quick start. Use unique
+label IDs when rendering multiple editors. Applications own loading/error presentation
+and focus placement after mount or removal. The wrapper forwards `api.focus()` and
+does not add a textbox role to its multi-block holder. Accessible block editing,
+keyboard commands and read-only behavior also depend on the selected Editor.js tools;
+a named outer group does not certify their accessibility.
+
 ## Lazy loading and replacement
 
 `EDITOR_JS_LOADER` is an `InjectionToken<EditorJsLoader>` with a default stateless
@@ -369,9 +409,28 @@ tool selection and rendering safety. No tool registry, uploader, forms dependenc
 or application model is supplied. Server-safe loading does not establish full
 SSR/hydration support. Editor.js remains an application-owned peer dependency.
 
+Core implements document normalization, the shared operation queue, change coalescing
+and disposal guards. Angular adds signal inputs/outputs, dependency injection,
+browser loading and component/holder ownership. Non-Angular integrations can use
+`EditorJsDocumentCoordinator` and its non-DOM driver directly from core; they provide
+their own readiness, editor creation and destruction. See the
+[core package documentation](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/core#readme).
+
+| Need                             | Consumer responsibility / current boundary                                                          |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Angular Forms                    | No CVA or Signal Forms control is supplied.                                                         |
+| SSR/hydration                    | Import and empty server-holder safety only; no full hydration guarantee or hydration providers.     |
+| Tool registry and concrete tools | Supply compatible tools and their schemas; no registry or tool bundle is included.                  |
+| Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads. |
+| Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.    |
+
 Package versions are independent from document schema/tool versions. During `0.x`,
 review [release notes](https://github.com/anarchitects/anarchitecture-community/releases)
-under `editorjs-angular@<version>` before upgrading.
+under `editorjs-angular@<version>` before upgrading. Incompatible changes during
+`0.x` require an explicit minor release and migration guidance; from `1.0` they
+require a major release. Treat peer-range narrowing, input/event/error semantics
+and loader/driver requirements as compatibility changes. The readiness event is
+payload-free; controls are obtained from the component's `api`.
 
 ## Troubleshooting
 
