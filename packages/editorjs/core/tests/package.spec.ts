@@ -111,6 +111,9 @@ describe('published package', () => {
         });
         assert.equal(rejected.ok, false);
         assert.deepEqual(rejected.errors[0].path, ['blocks', 0, 'data', 'field']);
+        const raw = { version: '2.20.0', blocks: [] };
+        const provenance = { schema: { id: 'example/content', version: 'future' } };
+        assert.deepEqual(core.parseContentWithProvenance(raw, provenance), { ok: true, data: raw, provenance });
         console.log('import ok');
       `,
       ],

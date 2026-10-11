@@ -15,6 +15,8 @@ import type {
   OutputDataValidationOptions,
   OutputDataValidationResult,
   ToolDataValidator,
+  ContentParseResult,
+  ContentProvenance,
 } from '@anarchitects/editorjs-core';
 
 interface ToolData {
@@ -161,4 +163,14 @@ export function describeValidation(result: OutputDataValidationResult): string {
   const text = result.data.blocks[0].data.text;
   void text;
   return `${result.data.blocks.length} blocks`;
+}
+
+export const provenance: ContentProvenance = {
+  schema: { id: 'example/content', version: '1' },
+  producer: { name: 'example-host' },
+  toolVersions: { paragraph: '2.11.6' },
+};
+
+export function rawContent(result: ContentParseResult): OutputData | undefined {
+  return result.ok ? result.data : undefined;
 }
