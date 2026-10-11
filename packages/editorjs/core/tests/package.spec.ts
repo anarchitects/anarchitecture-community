@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
@@ -137,7 +137,7 @@ describe('published package', () => {
       }),
     );
     const require = createRequire(import.meta.url);
-    execFileSync(
+    const compilation = spawnSync(
       process.execPath,
       [require.resolve('typescript/bin/tsc'), '-p', 'tsconfig.json'],
       {
@@ -147,5 +147,7 @@ describe('published package', () => {
         env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
       },
     );
+    expect(compilation.error).toBeUndefined();
+    expect(compilation.status, compilation.stdout + compilation.stderr).toBe(0);
   });
 });
