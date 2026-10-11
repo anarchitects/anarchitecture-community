@@ -1,10 +1,9 @@
 # @anarchitects/editorjs-core
 
 Framework-neutral document, tool configuration, and upload contracts for Editor.js,
-with parsing, normalization, and pluggable validation utilities. Use `import type`
-for contracts and regular imports for `parseOutputData`, `normalizeOutputData`, and
-`validateOutputData`. Version compatibility utilities follow in the remaining
-issues of #66.
+with parsing, normalization, pluggable validation, and optional content provenance.
+Use `import type` for contracts and regular imports for `parseOutputData`,
+`normalizeOutputData`, `validateOutputData`, and `parseContentWithProvenance`.
 
 ## Runtime and Editor.js strategy
 
@@ -162,6 +161,72 @@ objects; inspecting a proxy can invoke its traps. Hosts should bound input size
 before parsing. Successful parsing is not plugin validation, ID uniqueness or
 required-ID policy, version migration, or HTML sanitization. HTML strings remain
 unchanged and must be handled safely by the rendering host.
+
+## Content provenance and version policy
+
+The core keeps version provenance separate from compatibility decisions:
+
+| Field                            | Meaning                                              | Owner                     |
+| -------------------------------- | ---------------------------------------------------- | ------------------------- |
+| `OutputData.version`             | Editor.js package version recorded with the document | Editor integration        |
+| `ContentProvenance.schema`       | Application content schema identity and version      | Consumer                  |
+| `ContentProvenance.toolVersions` | Tool versions keyed by configured tool name          | Consumer/tool integration |
+| `ContentProvenance.producer`     | Application or process name and optional version     | Consumer                  |
+
+These versions are independent. An Editor.js upgrade does not imply an application
+schema upgrade, and a tool's package version is not a universal content schema.
+The core's own package version does not describe saved content. No version is
+inferred from installed dependencies, tool names, or missing metadata.
+
+`parseContentWithProvenance(input, provenance?)` accepts raw `OutputData` as JSON
+text or decoded data, plus an optional **decoded** `ContentProvenance` sidecar.
+Consumers choose whether and where to persist this metadata; the helper requires
+no storage envelope or application-specific mapping.
+
+```ts
+import { parseContentWithProvenance } from '@anarchitects/editorjs-core';
+
+const result = parseContentWithProvenance(
+  { version: '2.31.7', blocks: [] },
+  {
+    schema: { id: 'example/article', version: '3' },
+    toolVersions: { paragraph: '2.11.6' },
+    producer: { name: 'example-host', version: '1.0.0' },
+  },
+);
+if (result.ok) {
+  // Raw OutputData remains usable by existing editors and persistence adapters.
+  const document = result.data;
+  const provenance = result.provenance;
+}
+```
+
+Without a sidecar, legacy raw documents round-trip through `result.data` with no
+added provenance field. Existing parsing and validation APIs keep their raw
+document contracts. Fields named `schema` or `toolVersions` inside a raw document
+remain document extensions; they are never interpreted as the sidecar.
+
+Success returns `{ ok: true, data, provenance? }` with detached copies. The
+sidecar is a plain JSON object; each known field is optional. When supplied,
+`schema` requires nonblank string `id` and `version`, `producer` requires a
+nonblank `name` and optionally a nonblank `version`, and `toolVersions` maps
+non-empty configured tool names to nonblank version strings. Strings are retained
+without trimming or semantic-version parsing. Omit absent fields rather than
+setting them to `undefined`; an omitted sidecar and an empty sidecar stay distinct.
+Unknown JSON extension fields are preserved, using the parsing safeguards above.
+
+Failure returns `{ ok: false, error }` with the parsing error codes and no partial
+content. Paths start with `data` for document errors and `provenance` for sidecar
+errors. The document is checked first. This helper checks structure only; use
+`validateOutputData` separately for block IDs and plugin-specific validation.
+
+**Unknown and future versions are preserved, not certified as compatible.**
+Successful parsing means that the shape is supported, not that the host can render
+or edit its contents. The core has no version allowlist, comparison rules, migration
+registry, or migration callback. It never upgrades or downgrades content. Consumers
+must decide how to handle missing or unsupported versions, select explicit
+migrations where needed, validate migrated data, and update provenance only after
+their migration succeeds. Changing a version label alone does not migrate data.
 
 ## Structural and tool validation
 
@@ -376,8 +441,9 @@ The `typecheck` target checks custom block narrowing, tool configuration, upload
 success/error cases, validator contracts, invalid shapes, and official declaration
 compatibility. `test` checks parsing diagnostics, ID policies, plugin validation
 and rejection diagnostics, content preservation, normalization idempotence,
-representative JSON round trips, and host-supplied upload callbacks. The packed
-artifact smoke test calls parsing and validation utilities in isolated Node.
+representative JSON round trips, optional provenance, unknown/future version
+preservation without migration, and host-supplied upload callbacks. The packed
+artifact smoke test calls parsing, validation, and provenance utilities in isolated Node.
 The isolated consumer also compiles a typed host/custom-tool registration example.
 
 Angular wrappers, concrete tools, upload adapters, and application consumers are

@@ -26,6 +26,13 @@ export {
   normalizeOutputData,
   parseOutputData,
 } from './lib/parse-output-data.js';
+export { parseContentWithProvenance } from './lib/content-provenance.js';
+export type {
+  ContentParseResult,
+  ContentProducer,
+  ContentProvenance,
+  ContentSchemaVersion,
+} from './lib/content-provenance.js';
 export { validateOutputData } from './lib/validate-output-data.js';
 export type {
   OutputDataValidationError,
