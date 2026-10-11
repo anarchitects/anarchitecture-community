@@ -1,0 +1,74 @@
+{
+  "name": "@anarchitects/editorjs-core",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@anarchitecture-community/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "name": "editorjs-core",
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/editorjs/core"
+        },
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "vite:test": {
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "vitest:test": {
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "test-ci--tests/package.spec.ts": {
+        "dependsOn": [
+          "build"
+        ]
+      }
+    }
+  },
+  "description": "Framework-neutral contracts and utilities for Editor.js integrations.",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/editorjs/core"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/core#readme",
+  "keywords": [
+    "editorjs"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

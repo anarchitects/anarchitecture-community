@@ -32,6 +32,9 @@
     },
     {
       "path": "./apps/fixtures/nest-angular-split/backend"
+    },
+    {
+      "path": "./packages/editorjs/core"
     }
   ],
   "compilerOptions": {
