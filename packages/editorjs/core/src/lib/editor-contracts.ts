@@ -14,12 +14,8 @@ export interface EditorJsApi<Block extends OutputBlockData = OutputBlockData> {
   setReadOnly(readOnly: boolean): Promise<boolean>;
 }
 
-/** Emitted once after readiness; exposes owned controls, never the raw editor. */
-export interface EditorJsReadyEvent<
-  Block extends OutputBlockData = OutputBlockData,
-> {
-  readonly api: EditorJsApi<Block>;
-}
+/** Readiness-only notification emitted once for a live, usable editor owner. */
+export type EditorJsReadyEvent = void;
 
 /**
  * Saved snapshot from an editor-originated change, not a programmatic replacement.

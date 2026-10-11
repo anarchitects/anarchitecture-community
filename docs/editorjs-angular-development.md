@@ -7,9 +7,10 @@ Consumer-facing behavior is documented in the
 ## Implementation boundary
 
 Issue #533 established packaging and artifact checks. #534 adds typed configuration,
-shared controls/events and the lazy loader/provider seam. No component or control
-facade implementation ships yet; lifecycle/data/operation implementation remains
-#535–#538. Do not advertise those capabilities as implemented.
+shared controls/events and the lazy loader/provider seam. #535 adds the standalone `EditorJs` component and per-component lifecycle. The
+maintainer chose readiness-only notification (`EditorJsReadyEvent = void`), with
+controls remaining #537. Live document updates/change outputs remain #536; do not
+advertise those contracts as component functionality yet.
 
 Core owns framework-neutral controls/events and data algorithms. Angular re-exports
 the shared event/control types and consumes `normalizeOutputData` at the creation
@@ -35,7 +36,14 @@ The Angular MCP best-practices endpoint failed during this scaffold work; offici
 [Angular guidance](https://angular.dev/ai/develop-with-ai) and the local accepted
 guides were used. The live guidance now relies on Angular 22's default OnPush,
 whereas the accepted local guide requires it explicitly. Follow the local explicit
-setting in Angular fixtures/components. No runtime component is shipped here.
+setting in Angular fixtures/components. The component's documented `error` output
+retains that contract with a narrow `no-output-native` lint exception; it is not a
+DOM event. Angular signal queries require TypeScript-private rather than `#private`
+fields on the installed compiler.
+
+The reviewed `@nx/angular:component` generator was dry-run before #535. Its unrelated
+workspace defaults were removed, the public barrel uses a named export, and a
+meaningful lifecycle suite replaces the generator's skipped placeholder test.
 
 ## Generator and TypeScript configuration
 
@@ -105,8 +113,26 @@ yarn nx format:check --projects=editorjs-angular
 
 The main Node 24 CI `run-many` discovers these targets. The core's separate Node
 22.12 job remains core-only: the Angular toolchain requires a newer Node baseline.
-The scaffold does not establish a runtime/browser/Angular-minor compatibility
-matrix for an editor that has not yet been implemented.
+The checks establish the installed baseline, not an Angular-minor/browser matrix.
+The component suite loads built ngc output via Node's ESM interop because plain
+Vite TypeScript transformation does not compile Angular signal input/query metadata.
+The atomized component-test target depends on build. The packed server-render smoke
+runs without Editor.js installed and rejects any loader invocation. Full hydration
+and deeper real-browser races remain #69/#538.
+
+The lifecycle suite also mounts two editors with the real Editor.js runtime in
+jsdom, checks editable paragraphs and independent disposal. This is a DOM-emulator
+integration check. The manual browser fixture served successfully during #535,
+but the browser automation tool lost access to Safari before editing could be
+verified; no real-browser pass is claimed.
+
+For a manual real-editor smoke check, run `yarn nx run editorjs-angular:browser-smoke`
+and open `http://127.0.0.1:4317`. This fixture uses the built component, Angular JIT
+for the test host, and real Editor.js 2.31.7. Verify two readiness notifications,
+editable paragraphs, removal of either editor without disabling the other, then
+remove the last editor. The local Vite fixture uses native config loading on the
+supported Node baseline to avoid the config bundling path; this affects only the
+smoke harness.
 
 ## Release configuration
 
@@ -118,5 +144,5 @@ compatible version before an external consumer can install the wrapper.
 
 Use `init:` for this new package scaffold. The existing manual release workflow
 uses `--skip-publish`; creating or merging the scaffold does not publish it. Keep
-the README's component/facade limitation until those implementations exist, and
+the README's live-update/change/control limitations until those implementations exist, and
 complete #67's release-readiness checks before advertising a working editor.

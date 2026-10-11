@@ -69,7 +69,7 @@ requires schema checks. Use `parseOutputData(savedJson)` when reading it back.
 
 `EditorJsApi<Block>` describes an instance-owned asynchronous control facade:
 `save()`, `render(data)`, `clear()`, `focus(atEnd?)` and `setReadOnly(boolean)`.
-`EditorJsReadyEvent<Block>` carries that facade; `EditorJsChangeEvent<Block>`
+`EditorJsReadyEvent` is a readiness-only (`void`) notification; `EditorJsChangeEvent<Block>`
 carries a saved `data` snapshot and increasing owner-local `sequence`.
 `EditorJsErrorEvent` carries an `operation`, a failure `code`, and the original
 `cause`. `EditorJsOperation` enumerates load/create/readiness, configuration/data,

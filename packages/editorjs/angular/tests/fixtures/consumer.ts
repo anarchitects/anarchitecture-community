@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import {
   EDITOR_JS_LOADER,
+  EditorJs,
   provideEditorJsLoader,
   type EditorJsApi,
   type EditorJsChangeEvent,
@@ -112,14 +113,16 @@ export async function controls(
 @Component({
   selector: 'aa-package-consumer',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: '<p>{{ document.blocks.length }}</p>',
+  imports: [EditorJs],
+  template:
+    '<aa-editorjs [config]="config" [data]="document" (ready)="onReady($event)" (error)="onError($event)" />',
 })
 export class PackageConsumer {
   readonly document = documentData;
   readonly config = config;
   readonly loader = inject(EDITOR_JS_LOADER);
-  onReady(event: EditorJsReadyEvent<Blocks>): void {
-    void controls(event.api);
+  onReady(event: EditorJsReadyEvent): void {
+    void event;
   }
   onChange(event: EditorJsChangeEvent<Blocks>): string | undefined {
     const block = event.data.blocks[0];

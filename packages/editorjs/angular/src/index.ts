@@ -19,3 +19,5 @@ export {
   EDITOR_JS_LOADER,
   provideEditorJsLoader,
 } from './lib/editorjs-loader.js';
+
+export { EditorJs } from './lib/editorjs.js';
