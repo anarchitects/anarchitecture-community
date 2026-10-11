@@ -1,10 +1,13 @@
 # Editor.js Signal Forms implementation contract
 
 This contributor contract implements the planning slice #548 of epic #68. It defines
-work for #549–#554; the Forms component and entry point described below are **not
-shipped yet**. The [package README](../packages/editorjs/angular/README.md) remains
-the authority for currently available exports. No runtime code, dependencies or
-release versions change in this slice.
+work for #549–#554. #549 implements the opt-in entry point and value binding;
+interaction state, reset/focus/snapshot controls and the remaining integration
+guarantees below are still planned in #550–#554. The
+[package README](../packages/editorjs/angular/README.md) remains the authority for
+currently available exports. The original #548 planning slice changed no runtime
+code, dependencies or release versions. Implementation status and evidence live in the
+[development guide](editorjs-angular-development.md).
 
 ## Decisions and evidence
 
@@ -20,7 +23,8 @@ The architecture, reactivity, Forms, SSR/builds, testing and repository-applicat
 guides informed this contract. The Angular MCP best-practices endpoint returned
 `Unexpected response type`; official documentation and published versioned packages
 provided the API evidence instead. The workspace currently uses Angular 22.1.4,
-TypeScript 6.0.3 and Nx 23.2.1; it does not yet install `@angular/forms`.
+TypeScript 6.0.3 and Nx 23.2.1; the #548 inspection preceded installation of
+`@angular/forms` in #549.
 
 Published `@angular/forms` archives were inspected on 2026-10-11:
 
@@ -269,3 +273,14 @@ Use one focused PR per subissue, `init` prefixes and exact comma-separated Nx pr
 scopes. Wait for both the maintainer's merge and explicit go-ahead before the next
 subissue. Do not monitor CI, publish, bump versions or merge automatically. The
 release gate still requires green checks for the intended release commit.
+
+## Value projection implementation note (#549)
+
+Angular Signal Forms attaches symbol-keyed tracking metadata to array items in the
+model. The adapter therefore opts into core's framework-neutral normalization
+policy `symbolKeys: 'omit'` when projecting inbound values. Strict defaults remain
+unchanged for all other callers, including parsing/provenance. Symbols under string
+keys and all other invalid JSON structures remain errors. Outgoing model values
+are copied through core separately from saved change events, so Forms-owned
+metadata cannot alter those events. No Angular internals or private identity keys
+are referenced, and no JSON traversal is duplicated in the Angular package.

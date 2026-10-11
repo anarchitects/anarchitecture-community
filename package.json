@@ -14,6 +14,7 @@
     "@angular/compiler": "^22.0.0",
     "@angular/compiler-cli": "^22.0.0",
     "@angular/core": "^22.0.0",
+    "@angular/forms": "22.1.4",
     "@angular/platform-browser": "^22.0.0",
     "@angular/platform-server": "^22.0.0",
     "@angular/router": "^22.0.0",

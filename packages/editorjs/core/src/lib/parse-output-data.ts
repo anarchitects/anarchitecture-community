@@ -21,6 +21,12 @@ export type OutputDataParseResult =
   | { ok: true; data: OutputData }
   | { ok: false; error: OutputDataParseError };
 
+/** Policy for transient, non-JSON metadata on otherwise valid documents. */
+export interface OutputDataNormalizationOptions {
+  /** Reject symbol-keyed properties by default; opt in to omitting them recursively. */
+  symbolKeys?: 'reject' | 'omit';
+}
+
 type Path = (string | number)[];
 /** Parse JSON text, or normalize an already decoded value, without throwing. */
 export function parseOutputData(input: unknown): OutputDataParseResult {
@@ -48,9 +54,15 @@ export function parseOutputData(input: unknown): OutputDataParseResult {
  * Omit undefined optional metadata; never invent metadata or rewrite payloads.
  * Tool schemas, ID policies, HTML sanitization, and version checks are separate.
  */
-export function normalizeOutputData(input: unknown): OutputDataParseResult {
+export function normalizeOutputData(
+  input: unknown,
+  options: OutputDataNormalizationOptions = {},
+): OutputDataParseResult {
   try {
-    const document = requireObject(copyJson(input, [], new WeakSet()), []);
+    const document = requireObject(
+      copyJson(input, [], new WeakSet(), options.symbolKeys === 'omit'),
+      [],
+    );
     if (!Object.hasOwn(document, 'blocks')) {
       fail('missing_property', ['blocks'], 'Document requires a blocks array.');
     }

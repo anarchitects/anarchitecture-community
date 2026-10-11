@@ -12,6 +12,7 @@ import type {
   UploadedFile,
   UploadResponse,
   OutputDataParseResult,
+  OutputDataNormalizationOptions,
   OutputDataValidationOptions,
   OutputDataValidationResult,
   ToolDataValidator,
@@ -244,3 +245,11 @@ export const provenance: ContentProvenance = {
 export function rawContent(result: ContentParseResult): OutputData | undefined {
   return result.ok ? result.data : undefined;
 }
+
+export const normalizationOptions: OutputDataNormalizationOptions = {
+  symbolKeys: 'omit',
+};
+export const invalidNormalizationOptions: OutputDataNormalizationOptions = {
+  // @ts-expect-error only explicit symbol-key policies are supported
+  symbolKeys: 'strip',
+};

@@ -7,7 +7,8 @@ Import `EditorJs` to render `<aa-editorjs>` with initial configuration/data and
 readiness, saved-change and error outputs. Each component owns its holder and editor
 instance. Replace the `data` input to load another document; configuration remains
 initialization-only. The component exposes an instance-scoped `api` for imperative
-controls. Angular Forms integration is not available in this version.
+controls. The optional `/forms` entry point adds native Angular Signal Forms
+value binding; see its current limits below.
 
 ## Installation and prerequisites
 
@@ -43,7 +44,9 @@ The packed component and its public examples are checked with these combinations
 
 These are tested combinations, not every version permutation or a full browser
 matrix. They cover standalone, zoneless editing, saved changes, imperative controls
-and teardown. Forms and full SSR/hydration are not supported features here. No
+and teardown for the standalone component. Forms value-binding declarations and
+examples compile on these baselines; Forms browser certification and full
+SSR/hydration support are not established. No
 CommonJS build is supplied. Nx is not a consumer dependency. Angular peers are
 evaluated normally; Editor.js is loaded only during browser initialization.
 
@@ -182,6 +185,107 @@ Feeding saved output back into `data` requests a replacement and can reset selec
 it is not necessary for normal editing. No two-way form model, persistence, dirty
 or touched state is maintained. Use the imperative API when you need an awaited
 operation or an explicit save rather than automatic saved-change events.
+
+## Signal Forms value binding
+
+Import `EditorJsControl` from `@anarchitects/editorjs-angular/forms` and install
+`@angular/forms` at exactly the same version as your Angular core/common/platform-browser
+packages. For example, for an Angular 22.1.4 application:
+
+```sh
+npm install @anarchitects/editorjs-angular @anarchitects/editorjs-core @editorjs/editorjs@^2.31.7 @angular/forms@22.1.4
+```
+
+Forms is an optional `^22.0.0` peer. Root-only `EditorJs` consumers do not need it.
+This entry point currently supports **value synchronization**. Composite touched,
+disabled/readonly, focus/reset hooks, imperative snapshot access and certified
+legacy Forms integration are not supplied. Do not use it where those behaviors are
+required. Form schema state alone does not disable this editor or flush its
+asynchronous saves.
+
+```ts
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { FormField, form } from '@angular/forms/signals';
+import {
+  EditorJsControl,
+  type EditorJsControlConfig,
+} from '@anarchitects/editorjs-angular/forms';
+import type {
+  EditorJsErrorEvent,
+  OutputData,
+} from '@anarchitects/editorjs-core';
+
+@Component({
+  selector: 'app-article-form',
+  imports: [EditorJsControl, FormField],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <h2 id="form-body-label">Article body</h2>
+    <aa-editorjs-control
+      role="group"
+      aria-labelledby="form-body-label"
+      [formField]="fields.body"
+      [config]="config"
+      (error)="onError($event)"
+    />
+    <p role="status">{{ fields.body().dirty() ? 'Edited' : 'Unchanged' }}</p>
+    @if (errorMessage()) {
+      <p role="alert">{{ errorMessage() }}</p>
+    }
+  `,
+})
+export class ArticleForm {
+  readonly model = signal<{ body: OutputData }>({
+    body: {
+      blocks: [{ type: 'paragraph', data: { text: 'Edit this article.' } }],
+    },
+  });
+  readonly fields = form(this.model);
+  readonly config: EditorJsControlConfig = { placeholder: 'Write something…' };
+  readonly errorMessage = signal('');
+
+  onError(event: EditorJsErrorEvent): void {
+    this.errorMessage.set(`Editor error: ${event.operation} (${event.code})`);
+  }
+}
+```
+
+Successful saved edits update `model().body` through Angular's native value binding
+and mark the field dirty. The control does not currently emit touch. It forwards
+payload-free `ready`, saved `change` and typed `error` events from the owned editor.
+No manual `(change)` assignment to the form model is needed. Use unique label IDs
+when displaying multiple controls; accessible block editing still depends on tools.
+
+Replace the document immutably through your model to write programmatically.
+Programmatic writes render silently and preserve the field's interaction flags.
+An editor-origin value echoed by Forms is not rendered back into the editor.
+Several model writes before Angular stabilizes may coalesce. `[(value)]` without
+`[formField]` is also supported; do not bind both to the same control.
+
+The `value` model defaults to `{ blocks: [] }` and accepts non-null core `OutputData`.
+Invalid inbound data emits a core `invalid-data` diagnostic and retains the requested
+model. It keeps any previous view and suppresses editor-to-model updates until a
+valid document is supplied. An invalid initial value prevents editor creation;
+a corrected value can then initialize it. Upstream initialization failures still
+require recreation. Saved snapshots are detached from upstream mutable data;
+consumers must treat model and event values as immutable. Angular Forms may attach
+symbol-keyed tracking metadata to the model. The adapter uses core normalization's
+explicit `symbolKeys: 'omit'` option for inbound values; all other JSON validation
+remains strict. Saved `change` events are detached from the model and remain plain
+JSON documents. To normalize a Forms model directly for storage, opt into the same
+core option or use a successful saved event snapshot.
+
+`EditorJsControlConfig` has the same initialization-only options as `EditorJsConfig`,
+with `readOnly` forbidden because availability is reserved for the Forms adapter.
+There is no separate `data` input or imperative `api` on the control. The underlying
+standalone component retains its existing controls.
+
+The model holds the last successful saved snapshot, subject to native Forms
+synchronization/debounce. It may lag a current edit; submitting or changing form
+validation state does not await Editor.js. Same-value reset during pending work is
+not supported, and a model assignment does not reset dirty/touched state. The
+standalone API remains available for workflows requiring explicit current snapshots
+or read-only control. Full SSR/hydration and legacy Forms behavior are not certified.
 
 ## Configuration and custom tools
 
@@ -395,7 +499,7 @@ directly using `useValue`. Custom loaders must enforce their own platform safety
 
 Use only `@anarchitects/editorjs-angular` or its `package.json` subpath.
 
-- Runtime exports: `EditorJs`, `EDITOR_JS_LOADER`, `provideEditorJsLoader`,
+- Root runtime exports: `EditorJs`, `EDITOR_JS_LOADER`, `provideEditorJsLoader`,
   `EditorJsOperationError` (re-exported from core).
 - Configuration types: `EditorJsConfig`, `EditorJsTools`.
 - Event/control types (re-exported from core): `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`,
@@ -405,8 +509,8 @@ Use only `@anarchitects/editorjs-angular` or its `package.json` subpath.
 
 Import document, tool and upload types directly from `@anarchitects/editorjs-core`.
 Applications own persistence records, storage mappings, migrations, transports,
-tool selection and rendering safety. No tool registry, uploader, forms dependency
-or application model is supplied. Server-safe loading does not establish full
+tool selection and rendering safety. No tool registry, uploader or application model
+is supplied. Forms is optional and isolated to the `/forms` entry point. Server-safe loading does not establish full
 SSR/hydration support. Editor.js remains an application-owned peer dependency.
 
 Core implements document normalization, the shared operation queue, change coalescing
@@ -416,13 +520,13 @@ browser loading and component/holder ownership. Non-Angular integrations can use
 their own readiness, editor creation and destruction. See the
 [core package documentation](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/core#readme).
 
-| Need                             | Consumer responsibility / current boundary                                                          |
-| -------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Angular Forms                    | No CVA or Signal Forms control is supplied.                                                         |
-| SSR/hydration                    | Import and empty server-holder safety only; no full hydration guarantee or hydration providers.     |
-| Tool registry and concrete tools | Supply compatible tools and their schemas; no registry or tool bundle is included.                  |
-| Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads. |
-| Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.    |
+| Need                             | Consumer responsibility / current boundary                                                                            |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Angular Forms                    | Opt-in Signal Forms value binding via `/forms`; no package-owned CVA. See the current interaction/reset limits above. |
+| SSR/hydration                    | Import and empty server-holder safety only; no full hydration guarantee or hydration providers.                       |
+| Tool registry and concrete tools | Supply compatible tools and their schemas; no registry or tool bundle is included.                                    |
+| Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads.                   |
+| Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.                      |
 
 Package versions are independent from document schema/tool versions. During `0.x`,
 review [release notes](https://github.com/anarchitects/anarchitecture-community/releases)
