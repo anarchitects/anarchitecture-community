@@ -19,6 +19,13 @@
   },
   "tags": ["scope:editorjs", "type:angular"],
   "targets": {
+    "browser-smoke": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "vite --config packages/editorjs/angular/tests/fixtures/browser/smoke.config.mts --configLoader native"
+      }
+    },
     "build": {
       "executor": "@nx/angular:package",
       "inputs": ["production", "^production", "{workspaceRoot}/LICENSE"],
@@ -64,6 +71,9 @@
       }
     },
     "test-ci--tests/package.spec.ts": {
+      "dependsOn": ["build"]
+    },
+    "test-ci--tests/component.spec.ts": {
       "dependsOn": ["build"]
     },
     "vite:test": {

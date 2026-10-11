@@ -78,6 +78,8 @@ describe('published Angular contracts', () => {
       '@angular/core',
       '@angular/common',
       '@angular/compiler',
+      '@angular/platform-browser',
+      '@angular/platform-server',
       'rxjs',
       'tslib',
     ]) {
@@ -163,7 +165,7 @@ describe('published Angular contracts', () => {
         Object.defineProperty(globalThis, name, { configurable: true, get() { throw new Error('Browser access: ' + name); } });
       }
       const wrapper = await import('@anarchitects/editorjs-angular');
-      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'provideEditorJsLoader']);
+      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EditorJs', 'provideEditorJsLoader']);
       assert.ok(import.meta.resolve('@anarchitects/editorjs-angular').includes('/fesm2022/'));
       assert.throws(() => import.meta.resolve('@editorjs/editorjs'), { code: 'ERR_MODULE_NOT_FOUND' });
       await assert.rejects(import('@anarchitects/editorjs-angular/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
@@ -177,6 +179,38 @@ describe('published Angular contracts', () => {
       },
     );
     expect(output.trim()).toBe('import ok');
+  });
+
+  it('renders the component on the server without Editor.js installed or loader invocation', () => {
+    const output = execFileSync(
+      process.execPath,
+      [
+        '--input-type=module',
+        '--eval',
+        `
+      import '@angular/compiler';
+      import assert from 'node:assert/strict';
+      import { bootstrapApplication } from '@angular/platform-browser';
+      import { renderApplication } from '@angular/platform-server';
+      import { EditorJs, EDITOR_JS_LOADER } from '@anarchitects/editorjs-angular';
+      let calls = 0;
+      const html = await renderApplication((context) => bootstrapApplication(EditorJs, {
+        providers: [{ provide: EDITOR_JS_LOADER, useValue: () => { calls++; throw new Error('Server loader invoked'); } }],
+      }, context), { document: '<aa-editorjs></aa-editorjs>', url: 'http://localhost/', allowedHosts: ['localhost'] });
+      assert.equal(calls, 0);
+      assert.match(html, /<aa-editorjs/);
+      assert.doesNotMatch(html, /codex-editor/);
+      assert.throws(() => import.meta.resolve('@editorjs/editorjs'), { code: 'ERR_MODULE_NOT_FOUND' });
+      console.log('server render ok');
+    `,
+      ],
+      {
+        cwd: temporaryDirectory,
+        encoding: 'utf8',
+        env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
+      },
+    );
+    expect(output).toContain('server render ok');
   });
 
   it('compiles a standalone Angular host against packed declarations and core contracts', () => {

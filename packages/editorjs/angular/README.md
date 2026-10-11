@@ -1,14 +1,14 @@
 # @anarchitects/editorjs-angular
 
-Typed Angular integration contracts and a lazy Editor.js loader using
-`@anarchitects/editorjs-core` document and tool contracts.
+Standalone Angular editor component for Editor.js, built on
+`@anarchitects/editorjs-core` document normalization and shared contracts.
 
-This version supplies configuration, event and control interfaces, plus an
-injectable loader. Core owns the shared control/event contracts and generic data
-implementation; this package adapts them to Angular and browser holders. It does **not** supply an editor component or implement the
-control facade. There is no `<aa-editorjs>` component to import yet. The lifecycle
-rules below specify the contract for owner implementations; importing interfaces
-does not implement those rules for a custom integration.
+Import `EditorJs` to render `<aa-editorjs>` with initial configuration/data and
+readiness/error outputs. Each component owns its holder and editor instance.
+This version supports initialization, editing and teardown. It does not yet
+publish saved change events, apply data/configuration changes after creation,
+provide imperative controls or integrate with Angular Forms. Recreate the component
+to supply a different document or configuration.
 
 ## Installation and prerequisites
 
@@ -30,33 +30,91 @@ versions from Angular 22 and its supported Node/TypeScript toolchain.
 | Package format                  | ESM, Angular Package Format, ES2022 output |
 
 The package is checked with Angular 22.1.4 and TypeScript 6.0.3. This establishes
-contract and packaging compatibility, not full browser editor, forms or hydration
-support across the peer range. No CommonJS build is supplied. Nx is not a consumer
+the tested component and packaging baseline, not forms or full hydration support
+across every version in the peer range. No CommonJS build is supplied. Nx is not a consumer
 dependency. Angular peers are evaluated normally; Editor.js is loaded only when
 the default loader is called on the browser platform.
 
-## Quick start: typed configuration and documents
+## Quick start
 
-Create `editor-settings.ts` in your Angular application:
+Import the standalone component in an existing Angular 22 application:
 
 ```ts
-import type { EditorJsConfig } from '@anarchitects/editorjs-angular';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { EditorJs } from '@anarchitects/editorjs-angular';
+import type {
+  EditorJsConfig,
+  EditorJsErrorEvent,
+} from '@anarchitects/editorjs-angular';
 import type { OutputData } from '@anarchitects/editorjs-core';
 
-export const editorConfig = {
-  placeholder: 'Write something…',
-  minHeight: 120,
-  readOnly: false,
-} satisfies EditorJsConfig;
-
-export const initialDocument: OutputData = {
-  blocks: [{ type: 'paragraph', data: { text: 'Welcome' } }],
-};
+@Component({
+  selector: 'app-article-editor',
+  imports: [EditorJs],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <p role="status">{{ status() }}</p>
+    <aa-editorjs
+      [config]="config"
+      [data]="document"
+      (ready)="status.set('Ready')"
+      (error)="onError($event)"
+    />
+  `,
+})
+export class ArticleEditor {
+  readonly status = signal('Loading editor');
+  readonly config: EditorJsConfig = {
+    placeholder: 'Write something…',
+    minHeight: 120,
+  };
+  readonly document: OutputData = {
+    blocks: [{ type: 'paragraph', data: { text: 'Welcome' } }],
+  };
+  onError(event: EditorJsErrorEvent): void {
+    this.status.set('Editor could not start');
+    console.error(event.operation, event.cause);
+  }
+}
 ```
 
-Run your application's normal build. These values compile without initializing
-an editor. There are no required providers for defining types. A working editor
-view requires a browser owner implementation; this package does not render one.
+Render `<app-article-editor>` through your application's normal route or parent
+component. After loading, the status becomes “Ready” and the paragraph can be
+edited. No forms or loader providers are required. Editor.js supplies its built-in
+paragraph tool; additional tools remain your choice. This version does not expose
+saving edited content yet.
+
+## Component inputs, outputs and lifetime
+
+| Surface  | Current behavior                                                                                                                                                                                                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `config` | Optional `EditorJsConfig`. Captured when browser initialization begins. Missing settings retain Editor.js defaults. Later changes do not reconfigure the instance.                                                                                                                     |
+| `data`   | Optional core `OutputData`. Uses the latest value when loading finishes, immediately before creation. Omitted data means an empty document. Core normalization validates JSON structure and detaches the input before passing it to the factory. Later changes do not replace content. |
+| `ready`  | Readiness-only `EditorJsReadyEvent` (`void`), emitted once after Editor.js resolves `isReady`, only while the component is live. There is no `api` payload.                                                                                                                            |
+| `error`  | Core `EditorJsErrorEvent` with `operation`, `code` and original `cause`. This is an Angular component output, not a native DOM error event.                                                                                                                                            |
+
+Invalid initial data reports `operation: 'data'`, `code: 'invalid-data'` and the
+core diagnostic as `cause`, without constructing an editor. Loader, constructor
+and readiness failures report `operation-failed` with their respective operation.
+There is no automatic retry. Recreate the component after fixing configuration,
+data or loading failures. Initialization errors never produce a `ready` event.
+
+The component initializes only after browser rendering. On the server it renders
+an empty holder and does not invoke even a custom loader. This baseline does not
+claim full SSR/hydration support or install application hydration providers.
+
+Removing the component destroys its editor. Removing it during code loading
+prevents construction; removing it during readiness suppresses late outputs and
+attempts disposal when readiness settles. Editor.js exposes its public cleanup API
+after readiness, so a never-settling upstream initialization cannot be forcibly
+cancelled by this wrapper. Cleanup errors while live use `error`; after destruction
+they go to Angular's `ErrorHandler` because the component's outputs no longer exist.
+No editor reference is stored in an application-wide service.
+
+Treat configuration and documents as immutable inputs. In-place mutation is not
+observed. Programmatic updates, saved change events and imperative controls are
+not implemented by this component version; the shared control/event interfaces
+remain available for other owner implementations.
 
 ## Configuration and custom tools
 
@@ -110,42 +168,13 @@ Tool options may contain callbacks/services and are not persisted JSON. Generic
 block parameters describe data already validated by the application; they do not
 validate editor output at runtime. Use core parsers/validators for untrusted data.
 
-## Owner lifecycle contract
+## Shared control contracts
 
-These are the semantics specified by the public interfaces for an editor owner.
-The loader itself only loads code and creates raw instances; it does not implement
-input observation, queuing, outputs or cleanup. Initial data normalization is
-delegated to core by the default factory.
-
-| Surface  | Contract                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `config` | Snapshot the latest observed value when browser initialization begins. Omitted settings keep Editor.js defaults. Later identity changes report `config-changed` and leave the active editor intact; recreate the owner to reconfigure tools/options. In-place mutations are unsupported.                                                                                                                                                                           |
-| `data`   | Separate immutable inbound `OutputData`. Missing data means `{ blocks: [] }`. Before creation, use the latest observed document. After creation, new input references request serialized replacement; clearing the input requests an empty document. Validate structure and copy document data before giving it to Editor.js. Invalid data reports `invalid-data` without replacing current content. Tool-specific failures are reported by the failing operation. |
-| `ready`  | `EditorJsReadyEvent` once per live owner, after `isReady` resolves. Its `api` is the owner's facade, never the raw instance.                                                                                                                                                                                                                                                                                                                                       |
-| `change` | `EditorJsChangeEvent` contains saved `data` and an increasing owner-local `sequence`. It represents editor-originated notifications, which are not proof of a physical user gesture. Input replacement, `render` and `clear` must not emit feedback changes.                                                                                                                                                                                                       |
-| `error`  | `EditorJsErrorEvent` identifies the operation, code and original `cause`. Initialization/input/automatic-save errors are emitted. Imperative failures reject their promises and emit the same failure while the owner is live. Nothing emits after destruction.                                                                                                                                                                                                    |
-
-Observe input values by identity; Angular signal stabilization can coalesce input
-writes before observation. Once accepted, document replacements and imperative
-operations run in one ordered queue. Calls before readiness reject with
-`not-ready`, and calls or pending work invalidated by destruction reject with
-`destroyed`. A failed operation must not poison the remaining queue. There is no
-automatic recreation, migration or retry.
-
-Editor notifications schedule serialized saves and may coalesce while a save is
-pending. Discard a save result superseded by a newer notification or accepted
-document replacement, then save the latest content as needed. Never publish an
-older snapshot after a newer one. Sequence gaps are allowed. Destruction prevents
-late outputs, cancels unstarted work and disposes an already-created instance
-after its readiness settles; library promises cannot cancel an upstream import
-or initialization already in flight.
-
-`EditorJsApi<Block>` specifies `save()`, `render(data)`, `clear()`, `focus(atEnd?)`
-and `setReadOnly(boolean)`, all returning promises. Focus and read-only return the
-upstream boolean result. The initial read-only setting is `config.readOnly`;
-subsequent toggles go through the facade. The facade has no public `destroy()`:
-the owner alone controls lifetime. These contracts do not imply two-way binding,
-dirty/touched state or an Angular Forms control.
+Core's `EditorJsApi<Block>`, `EditorJsChangeEvent<Block>` and error/operation
+contracts are re-exported for integrations. These are interfaces, not a runtime
+controller. They describe serialized operations and ordered saved snapshots;
+`EditorJs` does not expose their control/change surface in this version.
+Readiness is independent of the control facade and carries no editor reference.
 
 ## Lazy loading and replacement
 
@@ -193,7 +222,7 @@ directly using `useValue`. Custom loaders must enforce their own platform safety
 
 Use only `@anarchitects/editorjs-angular` or its `package.json` subpath.
 
-- Runtime exports: `EDITOR_JS_LOADER`, `provideEditorJsLoader`.
+- Runtime exports: `EditorJs`, `EDITOR_JS_LOADER`, `provideEditorJsLoader`.
 - Configuration types: `EditorJsConfig`, `EditorJsTools`.
 - Event/control types (re-exported from core): `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`,
   `EditorJsErrorEvent`, `EditorJsOperation`.
@@ -212,15 +241,15 @@ under `editorjs-angular@<version>` before upgrading.
 
 ## Troubleshooting
 
-| Symptom                                       | Action                                                                                                                            |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| No editor component export                    | This version provides contracts and loading only; it does not supply a view or facade implementation.                             |
-| Upstream `EditorConfig` is rejected           | Remove holder/data/callback options and define a fresh `EditorJsConfig`; supply data and observe events separately in your owner. |
-| Loader rejects on the server                  | Invoke it only from browser initialization after rendering. Do not initialize editors from server requests.                       |
-| Tool fails during creation or rendering       | Check its Editor.js compatibility and tool-specific input/configuration; core type compatibility is not runtime validation.       |
-| Configuration change is rejected              | Recreate the owner for new tools/options; use document replacement and read-only controls for their specific operations.          |
-| Angular peer mismatch                         | Use matching Angular 22 core/common versions and their supported tooling.                                                         |
-| Private subpath or source file cannot resolve | Import the package root and remove repository-only `@anarchitecture-community/source` resolution conditions.                      |
+| Symptom                                          | Action                                                                                                                            |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Saving or live input updates are unavailable     | This version implements mounting/editing/teardown; controls, saved changes and live input replacement are not available.          |
+| Upstream `EditorConfig` is rejected              | Remove holder/data/callback options and define a fresh `EditorJsConfig`; supply data and observe events separately in your owner. |
+| Loader rejects on the server                     | Invoke it only from browser initialization after rendering. Do not initialize editors from server requests.                       |
+| Tool fails during creation or rendering          | Check its Editor.js compatibility and tool-specific input/configuration; core type compatibility is not runtime validation.       |
+| Configuration or document changes have no effect | Recreate the component with new inputs; this version has no live reconfiguration or imperative controls.                          |
+| Angular peer mismatch                            | Use matching Angular 22 core/common versions and their supported tooling.                                                         |
+| Private subpath or source file cannot resolve    | Import the package root and remove repository-only `@anarchitecture-community/source` resolution conditions.                      |
 
 Report reproducible problems with package, Angular, Editor.js and Node versions
 through the [issue tracker](https://github.com/anarchitects/anarchitecture-community/issues).
