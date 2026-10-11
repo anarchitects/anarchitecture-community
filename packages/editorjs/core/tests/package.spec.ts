@@ -1,0 +1,115 @@
+import { execFileSync } from 'node:child_process';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+describe('published package', () => {
+  let temporaryDirectory: string;
+  let packageDirectory: string;
+  let packedFiles: string[];
+
+  beforeAll(() => {
+    temporaryDirectory = mkdtempSync(join(tmpdir(), 'editorjs-core-'));
+    const result = execFileSync(
+      'npm',
+      [
+        'pack',
+        '--ignore-scripts',
+        '--json',
+        '--pack-destination',
+        temporaryDirectory,
+      ],
+      {
+        cwd: resolve(import.meta.dirname, '..'),
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          npm_config_cache: join(temporaryDirectory, 'cache'),
+        },
+      },
+    );
+    const [archive] = JSON.parse(result) as {
+      filename: string;
+      files: { path: string }[];
+    }[];
+    packedFiles = archive.files.map((file) => file.path);
+    packageDirectory = join(
+      temporaryDirectory,
+      'node_modules/@anarchitects/editorjs-core',
+    );
+    mkdirSync(packageDirectory, { recursive: true });
+    execFileSync('tar', [
+      '-xzf',
+      join(temporaryDirectory, archive.filename),
+      '-C',
+      packageDirectory,
+      '--strip-components=1',
+    ]);
+  }, 30_000);
+
+  afterAll(() => {
+    if (temporaryDirectory) {
+      rmSync(temporaryDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('ships its public JavaScript and declarations without workspace source or tests', () => {
+    const manifest = JSON.parse(
+      readFileSync(join(packageDirectory, 'package.json'), 'utf8'),
+    );
+    expect(manifest.name).toBe('@anarchitects/editorjs-core');
+    for (const entry of [
+      manifest.main,
+      manifest.types,
+      manifest.exports['.'].import,
+      manifest.exports['.'].types,
+    ]) {
+      expect(existsSync(join(packageDirectory, entry))).toBe(true);
+    }
+    expect(packedFiles).toContain('README.md');
+    expect(
+      packedFiles.some((file) =>
+        /(^src\/|^tests\/|\.spec\.|\.tsbuildinfo$)/.test(file),
+      ),
+    ).toBe(false);
+    expect(Object.keys(manifest.dependencies ?? {})).toEqual([]);
+    expect(Object.keys(manifest.peerDependencies ?? {})).toEqual([]);
+  });
+
+  it('imports by package name in isolated Node without touching browser globals', () => {
+    const output = execFileSync(
+      process.execPath,
+      [
+        '--input-type=module',
+        '--eval',
+        `
+        import assert from 'node:assert/strict';
+        for (const name of ['window', 'document', 'navigator', 'HTMLElement', 'EditorJS']) {
+          Object.defineProperty(globalThis, name, {
+            configurable: true,
+            get() { throw new Error('Unexpected browser global access: ' + name); },
+          });
+        }
+        const core = await import('@anarchitects/editorjs-core');
+        assert.equal(typeof core, 'object');
+        assert.ok(import.meta.resolve('@anarchitects/editorjs-core').endsWith('/dist/index.js'));
+        assert.ok(import.meta.resolve('@anarchitects/editorjs-core/package.json').endsWith('/package.json'));
+        console.log('import ok');
+      `,
+      ],
+      {
+        cwd: temporaryDirectory,
+        encoding: 'utf8',
+        env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
+      },
+    );
+    expect(output.trim()).toBe('import ok');
+  });
+});

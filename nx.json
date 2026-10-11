@@ -113,7 +113,8 @@
       "governance-dbt-package",
       "governance-runtime-dbt",
       "governance-cli",
-      "governance-host-dbt"
+      "governance-host-dbt",
+      "editorjs-core"
     ],
     "version": {
       "preVersionCommand": "UV_CACHE_DIR=.cache/uv yarn nx run-many -t build",
