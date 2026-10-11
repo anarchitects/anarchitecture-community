@@ -31,6 +31,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@anarchitects/editorjs-angular@link:../../../dist/packages/editorjs/angular::locator=%40anarchitecture-community%2Feditorjs-angular-host%40workspace%3Aapps%2Feditorjs%2Fangular-host":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/editorjs-angular@link:../../../dist/packages/editorjs/angular::locator=%40anarchitecture-community%2Feditorjs-angular-host%40workspace%3Aapps%2Feditorjs%2Fangular-host"
+  languageName: node
+  linkType: soft
+
 "@anarchitects/editorjs-angular@workspace:packages/editorjs/angular":
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-angular@workspace:packages/editorjs/angular"
@@ -44,7 +50,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@anarchitects/editorjs-core@npm:^0.0.1, @anarchitects/editorjs-core@workspace:packages/editorjs/core":
+"@anarchitects/editorjs-core@npm:^0.0.1, @anarchitects/editorjs-core@workspace:*, @anarchitects/editorjs-core@workspace:packages/editorjs/core":
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-core@workspace:packages/editorjs/core"
   dependencies:
@@ -136,6 +142,22 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@anarchitecture-community/editorjs-angular-e2e@workspace:apps/editorjs/angular-e2e":
+  version: 0.0.0-use.local
+  resolution: "@anarchitecture-community/editorjs-angular-e2e@workspace:apps/editorjs/angular-e2e"
+  languageName: unknown
+  linkType: soft
+
+"@anarchitecture-community/editorjs-angular-host@workspace:apps/editorjs/angular-host":
+  version: 0.0.0-use.local
+  resolution: "@anarchitecture-community/editorjs-angular-host@workspace:apps/editorjs/angular-host"
+  dependencies:
+    "@anarchitects/editorjs-angular": "link:../../../dist/packages/editorjs/angular"
+    "@anarchitects/editorjs-core": "workspace:*"
+    "@editorjs/editorjs": "npm:2.31.7"
+  languageName: unknown
+  linkType: soft
+
 "@anarchitecture-community/nest-angular-split-backend@workspace:apps/fixtures/nest-angular-split/backend":
   version: 0.0.0-use.local
   resolution: "@anarchitecture-community/nest-angular-split-backend@workspace:apps/fixtures/nest-angular-split/backend"
@@ -178,17 +200,20 @@ __metadata:
     "@nestjs/schematics": "npm:^11.0.0"
     "@nestjs/testing": "npm:^11.0.0"
     "@nx/angular": "npm:23.2.1"
+    "@nx/devkit": "npm:23.2.1"
     "@nx/eslint": "npm:23.2.1"
     "@nx/eslint-plugin": "npm:23.2.1"
     "@nx/jest": "npm:23.2.1"
     "@nx/js": "npm:23.2.1"
     "@nx/nest": "npm:23.2.1"
     "@nx/node": "npm:23.2.1"
+    "@nx/playwright": "npm:23.2.1"
     "@nx/vite": "npm:23.2.1"
     "@nx/vitest": "npm:23.2.1"
     "@nx/web": "npm:23.2.1"
     "@nx/webpack": "npm:23.2.1"
     "@nxlv/python": "npm:^22.2.0"
+    "@playwright/test": "npm:1.64.0"
     "@schematics/angular": "npm:^22.0.0"
     "@swc-node/register": "npm:~1.11.1"
     "@swc/core": "npm:~1.15.5"
@@ -205,6 +230,7 @@ __metadata:
     autoprefixer: "npm:^10.4.0"
     eslint: "npm:^9.8.0"
     eslint-config-prettier: "npm:^10.0.0"
+    eslint-plugin-playwright: "npm:^1.6.2"
     fastify: "npm:^5.6.0"
     jest: "npm:~30.3.0"
     jiti: "npm:2.4.2"
@@ -5247,6 +5273,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@nx/playwright@npm:23.2.1":
+  version: 23.2.1
+  resolution: "@nx/playwright@npm:23.2.1"
+  dependencies:
+    "@nx/devkit": "npm:23.2.1"
+    "@nx/eslint": "npm:23.2.1"
+    "@nx/js": "npm:23.2.1"
+    https-proxy-agent: "npm:^7.0.6"
+    minimatch: "npm:10.2.5"
+    semver: "npm:^7.6.3"
+    tslib: "npm:^2.3.0"
+  peerDependencies:
+    "@playwright/test": ^1.36.0
+  peerDependenciesMeta:
+    "@playwright/test":
+      optional: true
+  checksum: 10c0/5c306f6bd2e3369f6bb5fbfc3c5b31e0dee67ca57cf904daf6164fb84b585fe0b50663cb25b14dd09cbdf535a11f038d3ab7bb11e5de712a2213ff34d4d3a090
+  languageName: node
+  linkType: hard
+
 "@nx/vite@npm:23.2.1":
   version: 23.2.1
   resolution: "@nx/vite@npm:23.2.1"
@@ -6065,6 +6111,17 @@ __metadata:
   version: 0.2.9
   resolution: "@pkgr/core@npm:0.2.9"
   checksum: 10c0/ac8e4e8138b1a7a4ac6282873aef7389c352f1f8b577b4850778f5182e4a39a5241facbe48361fec817f56d02b51691b383010843fb08b34a8e8ea3614688fd5
+  languageName: node
+  linkType: hard
+
+"@playwright/test@npm:1.64.0":
+  version: 1.64.0
+  resolution: "@playwright/test@npm:1.64.0"
+  dependencies:
+    playwright: "npm:1.64.0"
+  bin:
+    playwright: cli.js
+  checksum: 10c0/96db203daa9e5aa5fcbec3f8bc92074346334980961dcc2ef6e660add5ad4647037f98f3a84ba1ec431bfb6e6368df0fd53e7dbdd427560627deef978c762f0c
   languageName: node
   linkType: hard
 
@@ -11962,6 +12019,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eslint-plugin-playwright@npm:^1.6.2":
+  version: 1.8.3
+  resolution: "eslint-plugin-playwright@npm:1.8.3"
+  dependencies:
+    globals: "npm:^13.23.0"
+  peerDependencies:
+    eslint: ">=8.40.0"
+    eslint-plugin-jest: ">=25"
+  peerDependenciesMeta:
+    eslint-plugin-jest:
+      optional: true
+  checksum: 10c0/41c90ad82d7bfd336b11d88a7dd4aee3832878f3abc5df0c7e988124ac3d4e0ffc7de760f4e986a275bf088da2a360d177e8a48d6b3193dcb5f60b17138cf0fe
+  languageName: node
+  linkType: hard
+
 "eslint-scope@npm:5.1.1":
   version: 5.1.1
   resolution: "eslint-scope@npm:5.1.1"
@@ -13180,6 +13252,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"globals@npm:^13.23.0":
+  version: 13.24.0
+  resolution: "globals@npm:13.24.0"
+  dependencies:
+    type-fest: "npm:^0.20.2"
+  checksum: 10c0/d3c11aeea898eb83d5ec7a99508600fbe8f83d2cf00cbb77f873dbf2bcb39428eff1b538e4915c993d8a3b3473fa71eeebfe22c9bb3a3003d1e26b1f2c8a42cd
+  languageName: node
+  linkType: hard
+
 "globals@npm:^14.0.0":
   version: 14.0.0
   resolution: "globals@npm:14.0.0"
@@ -13549,7 +13630,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"https-proxy-agent@npm:^7.0.1":
+"https-proxy-agent@npm:^7.0.1, https-proxy-agent@npm:^7.0.6":
   version: 7.0.6
   resolution: "https-proxy-agent@npm:7.0.6"
   dependencies:
@@ -17494,6 +17575,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"playwright-core@npm:1.64.0":
+  version: 1.64.0
+  resolution: "playwright-core@npm:1.64.0"
+  bin:
+    playwright-core: cli.js
+  checksum: 10c0/fe3237282ada99d634e4d002efd3db6aa51218f7f4f3b1bc31515d30fa6eec5ec940d425e035db2af4e2856d9cae30b7a27bd167870b3285d40bdffd399ab286
+  languageName: node
+  linkType: hard
+
+"playwright@npm:1.64.0":
+  version: 1.64.0
+  resolution: "playwright@npm:1.64.0"
+  dependencies:
+    playwright-core: "npm:1.64.0"
+  bin:
+    playwright: cli.js
+  checksum: 10c0/f1ee856c280af2ac256225a1cc5e957847f0d2c56a039c89f02e31b0c9928c44e04311923a1b315bea16e3b26e5124e7c296644ad3c05e4c0a6aaa9584009933
+  languageName: node
+  linkType: hard
+
 "pluralize@npm:8.0.0":
   version: 8.0.0
   resolution: "pluralize@npm:8.0.0"
@@ -20939,6 +21040,13 @@ __metadata:
   version: 4.0.8
   resolution: "type-detect@npm:4.0.8"
   checksum: 10c0/8fb9a51d3f365a7de84ab7f73b653534b61b622aa6800aecdb0f1095a4a646d3f5eb295322127b6573db7982afcd40ab492d038cf825a42093a58b1e1353e0bd
+  languageName: node
+  linkType: hard
+
+"type-fest@npm:^0.20.2":
+  version: 0.20.2
+  resolution: "type-fest@npm:0.20.2"
+  checksum: 10c0/dea9df45ea1f0aaa4e2d3bed3f9a0bfe9e5b2592bddb92eb1bf06e50bcf98dbb78189668cd8bc31a0511d3fc25539b4cd5c704497e53e93e2d40ca764b10bfc3
   languageName: node
   linkType: hard
 

@@ -305,6 +305,61 @@ describe('instance-scoped core controls', () => {
     },
   );
 
+  it.each([
+    ['render', 'resolve'],
+    ['render', 'reject'],
+    ['clear', 'resolve'],
+    ['clear', 'reject'],
+    ['setReadOnly', 'resolve'],
+    ['setReadOnly', 'reject'],
+  ] as const)(
+    'does not start a baseline or queued operation after disposed %s later %s',
+    async (operation, settlement) => {
+      const pending = deferred<void>();
+      const driver = {
+        save: vi.fn(async () => document('Baseline')),
+        render: vi.fn(() => pending.promise),
+        clear: vi.fn(() => pending.promise),
+        setReadOnly: vi.fn(async () => {
+          await pending.promise;
+          return false;
+        }),
+        focus: vi.fn(() => true),
+      };
+      const onChange = vi.fn();
+      const onError = vi.fn();
+      const coordinator = new EditorJsDocumentCoordinator({
+        driver,
+        onChange,
+        onError,
+      });
+      coordinator.markReady();
+      const active = invoke(coordinator.api, operation).catch(
+        (error: unknown) => error,
+      );
+      const queued = coordinator.api.focus().catch((error: unknown) => error);
+      await vi.waitFor(() => expect(driver[operation]).toHaveBeenCalledOnce());
+      const savesBeforeDisposal = driver.save.mock.calls.length;
+      coordinator.dispose();
+      coordinator.dispose();
+      expect(await active).toMatchObject({ code: 'destroyed' });
+      expect(await queued).toMatchObject({
+        code: 'destroyed',
+        operation: 'focus',
+      });
+      if (settlement === 'resolve') pending.resolve();
+      else pending.reject(new Error('Late write failure'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      coordinator.notifyChange();
+      coordinator.replace(document('Ignored'));
+      coordinator.markReady();
+      expect(driver.save).toHaveBeenCalledTimes(savesBeforeDisposal);
+      expect(driver.focus).not.toHaveBeenCalled();
+      expect(onChange).not.toHaveBeenCalled();
+      expect(onError).not.toHaveBeenCalled();
+    },
+  );
+
   it('binds independent facades to independent lifetimes', async () => {
     const first = owner();
     const second = owner();

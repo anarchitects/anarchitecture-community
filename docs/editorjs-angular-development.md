@@ -49,8 +49,8 @@ Generic tests cover serialization, coalescing, stale results, feedback suppressi
 validation, failures and disposal independently of Angular. Component tests verify
 input identity/readiness/configuration behavior and core event/error delegation.
 Packed consumers exercise the new class with ES2022-only declarations and compile
-the Angular `(change)` binding. Real browser expansion and host extraction remain
-#538; the existing jsdom runtime test also checks saved editing and replacement.
+the Angular `(change)` binding. Real browser coverage lives in the separate host and E2E projects described below;
+the jsdom runtime test remains a fast check of saved editing and replacement.
 
 All five repository ADRs were reviewed: Governance ADRs 0001–0003 retain their
 Governance scope; the accepted Modern Angular ADR and ADR 0004 apply to this
@@ -103,7 +103,7 @@ Core tests exercise all control failures, queue ordering, stale saves, retained
 facades, immediate disposal rejection and read-only recovery without Angular.
 Component tests verify binding, ownership and error identity. The real Editor.js
 jsdom test covers save, mode toggles and clear; actual browser focus and broader
-integration remain #538, including its required host/E2E project extraction. No
+integration run in `editorjs-angular-e2e` against the extracted host. No
 forms interfaces or SSR/hydration expansion is included here.
 
 ## Generator and TypeScript configuration
@@ -114,7 +114,7 @@ default; its documented `NX_IGNORE_UNSUPPORTED_TS_SETUP=true` override was used
 only for generation, with `--skipTsConfig` so it introduced no source path aliases.
 
 Angular compilation uses `composite: false`, no project references, and no source
-custom resolution conditions. Only this package is excluded from inferred
+custom resolution conditions. The Angular package and private browser projects are excluded from inferred
 `@nx/js/typescript` targets; it has explicit `ngc`/test-typechecking tasks instead.
 Its library tsconfig tells Nx sync not to add a core project reference. Nx build
 dependencies still build core first; Angular resolves the built core declarations.
@@ -167,7 +167,7 @@ yarn nx format:check --projects=editorjs-angular
 - Loader tests exercise actual Angular DI/platform selection, override scope,
   deferred loading/construction, independent factories, protected options, core
   normalization and error propagation. They use a fake Editor.js module; real
-  browser behavior remains #538.
+  browser behavior is checked separately by Playwright.
 - Artifact tests check public paths, portable dependencies, current README and
   Apache-2.0 license, and exclusion of source/test files. Keep the package LICENSE
   synchronized with the repository license.
@@ -178,22 +178,132 @@ The checks establish the installed baseline, not an Angular-minor/browser matrix
 The component suite loads built ngc output via Node's ESM interop because plain
 Vite TypeScript transformation does not compile Angular signal input/query metadata.
 The atomized component-test target depends on build. The packed server-render smoke
-runs without Editor.js installed and rejects any loader invocation. Full hydration
-and deeper real-browser races remain #69/#538.
+runs without Editor.js installed and rejects any loader invocation. Full hydration remains #69. Browser coverage and deterministic races remain
+separate layers of evidence.
 
-The lifecycle suite also mounts two editors with the real Editor.js runtime in
-jsdom, checks editable paragraphs and independent disposal. This is a DOM-emulator
-integration check. The manual browser fixture served successfully during #535,
-but the browser automation tool lost access to Safari before editing could be
-verified; no real-browser pass is claimed.
+## Browser host and E2E projects
 
-For a manual real-editor smoke check, run `yarn nx run editorjs-angular:browser-smoke`
-and open `http://127.0.0.1:4317`. This fixture uses the built component, Angular JIT
-for the test host, and real Editor.js 2.31.7. Verify two readiness notifications,
-editable paragraphs, removal of either editor without disabling the other, then
-remove the last editor. The local Vite fixture uses native config loading on the
-supported Node baseline to avoid the config bundling path; this affects only the
-smoke harness.
+`editorjs-angular-host` (`apps/editorjs/angular-host`) is a private standalone,
+OnPush, zoneless Angular application. It imports only public package entry points.
+Yarn links its Angular dependency to `dist/packages/editorjs/angular`; core resolves
+its built `dist` export. No TypeScript source condition or path alias bypasses those
+artifacts. The application builder compiles the consumer and links the partial APF.
+The host's explicit `editorjs-angular` dependency makes the artifact relationship
+visible to Nx. It also imports core's public document type.
+
+`editorjs-angular-e2e` (`apps/editorjs/angular-e2e`) owns Playwright, Chromium tests
+and reports. Its implicit host dependency gives the graph:
+
+```text
+editorjs-angular-e2e -> editorjs-angular-host -> editorjs-angular -> editorjs-core
+```
+
+The host also has a direct core dependency. Both new package manifests are private,
+and neither appears in the explicit Nx release selection. Browser files and tooling
+are outside both publishable packages. The former library-owned `browser-smoke`
+target and `tests/fixtures/browser` application have been removed.
+
+All five ADRs were reviewed for this extraction. Accepted A02/A03/A05/A06/A09/A10
+and ADR 0004 apply: standalone composition, signal state, owner-specific cleanup,
+application builder versus library packaging, public artifact testing and separate
+contributor documentation. No public API or dependency ownership changed. Forms
+and SSR/hydration remain separate work. The application/component and Playwright
+generators were inspected and dry-run. The application generator used Nx's documented
+TypeScript-setup override; generated project references were removed and sync ignores
+the host's artifact dependencies. The rest of the workspace keeps its TS solution setup.
+
+Nx's lint import locator misclassifies the linked APF entry as an application. A
+host-only allow entry covers exactly `@anarchitects/editorjs-angular`; all other
+module-boundary constraints remain active. The explicit dependency and public
+imports preserve the intended boundary without source aliases.
+
+### Commands and CI
+
+```sh
+# Install Chromium locally; CI additionally supplies --with-deps on Linux.
+yarn nx run editorjs-angular-e2e:install-browsers
+# Production package builds, host build, managed server and browser tests.
+yarn nx run editorjs-angular-e2e:e2e
+# Interactive host (builds library dependencies first): http://127.0.0.1:4317
+yarn nx run editorjs-angular-host:serve
+# All four projects' relevant checks; no empty host unit-test target.
+yarn nx run-many -p editorjs-core editorjs-angular editorjs-angular-host editorjs-angular-e2e -t build typecheck test lint e2e
+```
+
+Playwright starts the production `serve-static` target, waits for HTTP readiness,
+creates isolated browser contexts and terminates the server after the run. It refuses
+to reuse a server already on port 4317, preventing accidental tests against stale
+content. The static host needs no SPA fallback. Stop an interactive host before
+running E2E. HTML reports, failed-test screenshots and traces are written under
+`apps/editorjs/angular-e2e/test-output` (ignored by Git and ESLint).
+
+The dedicated CI job installs Chromium with OS dependencies, invokes `e2e`
+explicitly and uploads that output directory even on failure. The existing main job
+continues to discover host build/typecheck/lint and E2E typecheck/lint. Browser tests
+use the Nx Playwright inferred target without per-file atomization; one server
+belongs to each complete invocation. CI retries once, retaining failure traces.
+
+### Behavioral evidence and limits
+
+The five Chromium scenarios cover initial data, real DOM editing/change/save,
+keyboard focus, render/input replacement, clear, read-only transitions, accessible
+host groups and error alerts, independent simultaneous editors, and unmount/remount.
+Three complete two-editor cycles verify that every created raw instance is destroyed,
+no editor DOM remains, and detached-node input/keyboard events plus pending mutation
+batches produce no late wrapper outputs. Instrumentation delegates to the default
+lazy loader and stores counters only, never an instance registry.
+
+The wrapper adds no document/window event listeners. Editor.js owns its DOM listeners;
+the host checks observable disposal and output silence, not heap collection or universal
+absence of third-party leaks. A named editor group, keyboard-operable host controls,
+focus forwarding and an error alert are host guarantees tested here. Paragraph/tool
+internals retain upstream accessibility responsibilities; this is not a full screen
+reader or WCAG audit. Chromium on the installed baseline is not a browser/Angular
+compatibility matrix.
+
+Deterministic tests remain with their owners: core checks pending writes settling
+successfully or rejecting after disposal without starting baseline saves or queued
+controls; Angular checks late import rejection, readiness rejection, pending operations,
+output suppression and fresh-owner recovery. Existing packed/compiler/server contracts
+and the jsdom real-runtime check remain in the library. No generic queue is implemented
+in the host or E2E project.
+
+### Cache and affected boundaries
+
+Host builds use `production` and `^production`; E2E hashes its own inputs and transitive
+production dependencies, CI mode and platform/architecture. Reports are declared cache
+outputs. Nx builds core, Angular and the host before E2E. Host-only or E2E-only changes
+therefore do not feed into a library build's inputs. Library changes propagate to the
+host and browser tests. Changing the shared CI workflow intentionally affects all
+projects once, as configured by the workspace.
+
+Validated locally with Node 24.21.0, Angular 22.1.4, Nx 23.2.1, Editor.js 2.31.7
+and Playwright 1.64.0 / Chromium on macOS arm64. All 14 relevant Nx tasks passed,
+including five browser scenarios and the library/packed-consumer suites. A warm
+E2E invocation and temporary comment-only changes demonstrated these cache results
+(the probe edits were restored):
+
+| Input change                 | Core build | Angular build | Host build | E2E |
+| ---------------------------- | ---------- | ------------- | ---------- | --- |
+| None, warm run               | Hit        | Hit           | Hit        | Hit |
+| Host stylesheet only         | Hit        | Hit           | Run        | Run |
+| Core coordinator source only | Run        | Run           | Run        | Run |
+| Restored original inputs     | Hit        | Hit           | Hit        | Hit |
+
+Affected-project queries returned host + E2E for a host file, only E2E for an E2E
+file, and all four for a core file. Both private projects resolve without a publish
+target. These are local checks; hosted CI was not monitored.
+
+Reproduce the affected boundary with:
+
+```sh
+yarn nx show projects --affected --files=apps/editorjs/angular-host/src/app/app.ts
+yarn nx show projects --affected --files=apps/editorjs/angular-e2e/src/editor.spec.ts
+yarn nx show projects --affected --files=packages/editorjs/core/src/lib/editor-document-coordinator.ts
+yarn nx graph --print
+yarn nx show project editorjs-angular-host --json
+yarn nx show project editorjs-angular-e2e --json
+```
 
 ## Release configuration
 

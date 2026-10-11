@@ -1,0 +1,9 @@
+{
+  "name": "@anarchitecture-community/editorjs-angular-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "editorjs-angular-e2e"
+  },
+  "type": "module"
+}

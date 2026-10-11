@@ -1,0 +1,15 @@
+<main>
+  <h1>Editor.js Angular browser host</h1>
+  <p>Two independent editors with document and lifecycle controls.</p>
+  <aside aria-label="Instance ownership">
+    Created:
+    <span data-testid="created">{{ ownership.created() }}</span> Destroyed:
+    <span data-testid="destroyed">{{ ownership.destroyed() }}</span> Active:
+    <span data-testid="active"
+      >{{ ownership.created() - ownership.destroyed() }}</span
+    >
+    Outputs: <span data-testid="outputs">{{ ownership.outputs() }}</span>
+  </aside>
+  <aa-editor-card label="First" />
+  <aa-editor-card label="Second" />
+</main>

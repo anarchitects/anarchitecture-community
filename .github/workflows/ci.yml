@@ -84,6 +84,30 @@ jobs:
       - run: yarn install --immutable
       - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-matrix --cell=${{ matrix.cell }}
 
+  editorjs-angular-browser:
+    name: editorjs-angular (Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          filter: tree:0
+          fetch-depth: 0
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'yarn'
+      - run: yarn install --immutable
+      - run: yarn nx run editorjs-angular-e2e:install-browsers --with-deps
+      - run: yarn nx run editorjs-angular-e2e:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: editorjs-angular-playwright
+          path: apps/editorjs/angular-e2e/test-output
+          retention-days: 7
+          if-no-files-found: ignore
+
   main:
     runs-on: ubuntu-latest
     steps:

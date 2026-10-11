@@ -26,17 +26,20 @@
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
     "@nx/angular": "23.2.1",
+    "@nx/devkit": "23.2.1",
     "@nx/eslint": "23.2.1",
     "@nx/eslint-plugin": "23.2.1",
     "@nx/jest": "23.2.1",
     "@nx/js": "23.2.1",
     "@nx/nest": "23.2.1",
     "@nx/node": "23.2.1",
+    "@nx/playwright": "23.2.1",
     "@nx/vite": "23.2.1",
     "@nx/vitest": "23.2.1",
     "@nx/web": "23.2.1",
     "@nx/webpack": "23.2.1",
     "@nxlv/python": "^22.2.0",
+    "@playwright/test": "1.64.0",
     "@schematics/angular": "^22.0.0",
     "@swc-node/register": "~1.11.1",
     "@swc/core": "~1.15.5",
@@ -53,6 +56,7 @@
     "autoprefixer": "^10.4.0",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-playwright": "^1.6.2",
     "fastify": "^5.6.0",
     "jest": "~30.3.0",
     "jiti": "2.4.2",
@@ -79,7 +83,8 @@
   },
   "workspaces": [
     "packages/*/*",
-    "apps/fixtures/nest-angular-split/*"
+    "apps/fixtures/nest-angular-split/*",
+    "apps/editorjs/*"
   ],
   "packageManager": "yarn@4.18.0",
   "nx": {
