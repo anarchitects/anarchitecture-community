@@ -105,6 +105,12 @@ describe('published package', () => {
         assert.ok(import.meta.resolve('@anarchitects/editorjs-core/package.json').endsWith('/package.json'));
         assert.deepEqual(core.parseOutputData('{"blocks":[]}'), { ok: true, data: { blocks: [] } });
         assert.deepEqual(core.normalizeOutputData({ blocks: [], time: undefined }), { ok: true, data: { blocks: [] } });
+        assert.deepEqual(core.validateOutputData({ blocks: [] }), { ok: true, data: { blocks: [] } });
+        const rejected = core.validateOutputData({ blocks: [{ type: 'custom', data: {} }] }, {
+          toolValidators: new Map([['custom', () => ({ ok: false, errors: [{ message: 'Rejected', path: ['field'] }] })]]),
+        });
+        assert.equal(rejected.ok, false);
+        assert.deepEqual(rejected.errors[0].path, ['blocks', 0, 'data', 'field']);
         console.log('import ok');
       `,
       ],
