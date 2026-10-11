@@ -22,3 +22,12 @@ export type {
   UploadSuccess,
   UrlUploader,
 } from './lib/uploader.js';
+export {
+  normalizeOutputData,
+  parseOutputData,
+} from './lib/parse-output-data.js';
+export type {
+  OutputDataParseError,
+  OutputDataParseErrorCode,
+  OutputDataParseResult,
+} from './lib/parse-output-data.js';

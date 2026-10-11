@@ -1,8 +1,9 @@
 # @anarchitects/editorjs-core
 
-Framework-neutral document, tool configuration, and upload types for Editor.js integrations. Parsing,
-validation, normalization, and version compatibility utilities will follow in the
-remaining issues in epic #66. All current exports are types; use `import type`.
+Framework-neutral document, tool configuration, and upload contracts for Editor.js,
+with safe parsing and normalization utilities. Use `import type` for contracts and
+regular imports for `parseOutputData` and `normalizeOutputData`. Pluggable tool
+validation and version compatibility utilities follow in the remaining issues of #66.
 
 ## Runtime and Editor.js strategy
 
@@ -95,6 +96,71 @@ HTML strings. Runtime validation is a separate concern.
 
 Upstream references: [saved data format](https://editorjs.io/saving-data/) and
 [official document types](https://github.com/codex-team/editor.js/blob/v2.31.7/types/data-formats/output-data.d.ts).
+
+## Parsing and normalization
+
+`parseOutputData(input: unknown)` accepts JSON text or an already decoded value.
+`normalizeOutputData(input: unknown)` accepts decoded input only. Both return an
+`OutputDataParseResult`: `{ ok: true, data }` or `{ ok: false, error }`, with no
+partial document on failure. They check the JSON shape and document/block envelope,
+not the schema of any particular plugin.
+
+```ts
+import { parseOutputData } from '@anarchitects/editorjs-core';
+
+const result = parseOutputData(
+  '{"blocks":[{"type":"custom","data":{"value":1}}]}',
+);
+if (result.ok) {
+  // result.data is OutputData; custom payload fields still require narrowing.
+  const document = result.data;
+} else {
+  // For example: { code: 'missing_property', path: ['blocks'], message: '...' }
+  const issue = result.error;
+}
+```
+
+The document must be a plain object with a `blocks` array (an empty array is valid).
+Every block needs a non-empty string `type` and a plain JSON object `data`. Optional
+`time` must be finite numeric data, `version` and block `id` must be strings, and
+block `tunes` must be a plain JSON object. Arrays are supported inside custom data
+and tune values. There is no list of known tool names or version allowlist.
+
+Normalization returns a detached copy, preserving all supported JSON fields,
+including unknown document/block extensions, custom payloads, and tune data. It
+omits explicitly `undefined` optional `time`, `version`, block `id`, and block
+`tunes` properties. Missing metadata stays missing; no timestamp, ID, version, or
+empty block is generated. Null metadata is rejected. Other values are retained
+without trimming, defaulting, or coercion. Re-normalizing successful output gives
+the same data, and neither utility mutates its input.
+
+The first error has a stable code, explanatory message, and an array of property
+names/array indices. An empty path means the root. Paths preserve unusual keys
+without ambiguous dot notation; error messages do not echo content.
+
+| Code                 | Meaning                                                      |
+| -------------------- | ------------------------------------------------------------ |
+| `invalid_json`       | Text could not be parsed as JSON.                            |
+| `missing_property`   | Required `blocks`, block `type`, or block `data` is absent.  |
+| `invalid_type`       | A document/block envelope field has the wrong shape.         |
+| `non_json_value`     | A value cannot be preserved as supported plain JSON data.    |
+| `circular_reference` | An ancestor is referenced again within its descendants.      |
+| `max_depth_exceeded` | A value is more than 100 property/index steps from the root. |
+| `unreadable_value`   | A supplied object could not be inspected.                    |
+
+Decoded inputs must contain finite numbers, dense arrays without extra properties,
+and plain objects (including null-prototype objects) with enumerable data
+properties. Functions, bigint, symbols, class instances, accessors, non-enumerable
+properties, and other `undefined` values are rejected instead of silently discarded
+or coerced by JSON serialization. Getters and `toJSON` hooks are not invoked.
+Shared references are copied independently; circular references are rejected.
+Prototype-like keys such as `__proto__` remain own data properties.
+
+These helpers are intended for JSON text and decoded data, not executable proxy
+objects; inspecting a proxy can invoke its traps. Hosts should bound input size
+before parsing. Successful parsing is not plugin validation, ID uniqueness or
+required-ID policy, version migration, or HTML sanitization. HTML strings remain
+unchanged and must be handled safely by the rendering host.
 
 ## Tool configuration
 
@@ -217,7 +283,9 @@ that source/tests are excluded from the archive, and that an isolated type-only
 consumer compiles with `skipLibCheck: false` and no DOM, Node, or Editor.js types.
 The `typecheck` target checks custom block narrowing, tool configuration, upload
 success/error cases, invalid shapes, and official declaration compatibility.
-`test` checks representative JSON round trips and host-supplied upload callbacks.
+`test` checks parsing diagnostics, content preservation, normalization idempotence,
+representative JSON round trips, and host-supplied upload callbacks. The packed
+artifact smoke test also calls both parsing utilities in isolated Node.
 The isolated consumer also compiles a typed host/custom-tool registration example.
 
 Angular wrappers, concrete tools, upload adapters, and application consumers are
