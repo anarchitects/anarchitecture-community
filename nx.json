@@ -28,7 +28,8 @@
           "buildDepsName": "build-deps",
           "watchDepsName": "watch-deps"
         }
-      }
+      },
+      "exclude": ["packages/editorjs/angular/**"]
     },
     {
       "plugin": "@nx/vite/plugin",
@@ -114,7 +115,8 @@
       "governance-runtime-dbt",
       "governance-cli",
       "governance-host-dbt",
-      "editorjs-core"
+      "editorjs-core",
+      "editorjs-angular"
     ],
     "version": {
       "preVersionCommand": "UV_CACHE_DIR=.cache/uv yarn nx run-many -t build",
@@ -177,6 +179,11 @@
       "dependsOn": ["^build"]
     },
     "@angular/build:application": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    },
+    "@nx/angular:package": {
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
