@@ -170,6 +170,30 @@ describe('standalone EditorJs ownership', () => {
     expect(errors).toEqual([]);
   });
 
+  it('ignores a rejected import after destruction and allows a fresh owner to initialize', async () => {
+    const loading = deferred<EditorJsFactory>();
+    const editor = instance();
+    const loader = vi
+      .fn<EditorJsLoader>()
+      .mockReturnValueOnce(loading.promise)
+      .mockResolvedValue(() => editor);
+    const handleError = setup(loader);
+    const first = mount();
+    await first.fixture.whenStable();
+    first.fixture.destroy();
+    loading.reject(new Error('Late import rejection'));
+    const second = mount();
+    await second.fixture.whenStable();
+    await vi.waitFor(() => expect(second.ready).toHaveBeenCalledOnce());
+    expect(first.ready).not.toHaveBeenCalled();
+    expect(first.errors).toEqual([]);
+    expect(first.changes).toEqual([]);
+    expect(handleError).not.toHaveBeenCalled();
+    expect(loader).toHaveBeenCalledTimes(2);
+    second.fixture.destroy();
+    expect(editor.destroy).toHaveBeenCalledOnce();
+  });
+
   it.each(['resolve', 'reject'] as const)(
     'disposes a pending instance after readiness %s without late events',
     async (settlement) => {

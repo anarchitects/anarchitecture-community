@@ -1,0 +1,38 @@
+{
+  "name": "editorjs-angular-e2e",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/editorjs/angular-e2e/src",
+  "implicitDependencies": ["editorjs-angular-host"],
+  "targets": {
+    "e2e": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "default",
+        "^production",
+        {
+          "env": "CI"
+        },
+        {
+          "runtime": "node -p \"process.platform + process.arch\""
+        },
+        "{workspaceRoot}/tsconfig.base.json"
+      ]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "{workspaceRoot}/tsconfig.base.json"],
+      "options": {
+        "command": "tsc -p apps/editorjs/angular-e2e/tsconfig.json --noEmit"
+      }
+    },
+    "install-browsers": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "playwright install chromium"
+      }
+    }
+  },
+  "tags": ["scope:editorjs", "type:e2e", "npm:private"]
+}

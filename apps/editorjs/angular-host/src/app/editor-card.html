@@ -1,0 +1,67 @@
+<section [attr.aria-label]="label() + ' editor'">
+  <h2 [id]="label() + '-heading'">{{ label() }} editor</h2>
+  <button type="button" (click)="toggleMount()">
+    {{ mounted() ? 'Unmount' : 'Mount' }}
+  </button>
+  <div role="group" [attr.aria-label]="label() + ' controls'">
+    <button
+      type="button"
+      [disabled]="!ready() || readOnly()"
+      (click)="run('save')"
+    >
+      Save
+    </button>
+    <button type="button" [disabled]="!ready()" (click)="run('render')">
+      Render
+    </button>
+    <button type="button" [disabled]="!ready()" (click)="replaceInput()">
+      Replace input
+    </button>
+    <button type="button" [disabled]="!ready()" (click)="run('clear')">
+      Clear
+    </button>
+    <button
+      type="button"
+      [disabled]="!ready() || readOnly()"
+      (click)="run('focus')"
+    >
+      Focus
+    </button>
+    <button
+      type="button"
+      [disabled]="!ready()"
+      [attr.aria-pressed]="readOnly()"
+      (click)="run('readOnly')"
+    >
+      Read only
+    </button>
+    <button type="button" [disabled]="!ready()" (click)="run('invalid')">
+      Reject invalid document
+    </button>
+  </div>
+  <p role="status">
+    {{ mounted() ? (ready() ? 'Ready' : 'Loading') : 'Unmounted' }}
+  </p>
+  @if (error()) {
+  <p role="alert">{{ error() }}</p>
+  } @if (mounted()) {
+  <aa-editorjs
+    role="group"
+    [attr.aria-labelledby]="label() + '-heading'"
+    [config]="config"
+    [data]="replacement() ?? initial()"
+    (ready)="onReady()"
+    (change)="onChange($event)"
+    (error)="onError($event)"
+  />
+  }
+  <dl>
+    <dt>Readiness notifications</dt>
+    <dd data-testid="ready-count">{{ readinessCount() }}</dd>
+    <dt>Saved changes</dt>
+    <dd data-testid="change-count">{{ changes() }}</dd>
+  </dl>
+  <p data-testid="command-result">{{ result() }}</p>
+  <pre aria-label="Saved document">{{ saved() | json }}</pre>
+  <pre aria-label="Last change">{{ lastChange() | json }}</pre>
+</section>

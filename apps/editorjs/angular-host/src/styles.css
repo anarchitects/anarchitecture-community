@@ -1,0 +1,33 @@
+body {
+  font:
+    1rem/1.5 system-ui,
+    sans-serif;
+  margin: 2rem;
+  color: #17202a;
+  background: #fff;
+}
+section {
+  border: 1px solid #65758b;
+  padding: 1rem;
+  margin-top: 1.5rem;
+}
+button {
+  margin: 0.25rem;
+  padding: 0.5rem 0.75rem;
+}
+button:focus-visible {
+  outline: 3px solid #1548ae;
+  outline-offset: 3px;
+}
+aa-editorjs {
+  border: 1px solid #65758b;
+  padding: 0.5rem;
+}
+[role='alert'] {
+  color: #a01818;
+  font-weight: 600;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

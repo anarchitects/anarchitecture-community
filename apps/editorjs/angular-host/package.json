@@ -1,0 +1,11 @@
+{
+  "name": "@anarchitecture-community/editorjs-angular-host",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anarchitects/editorjs-angular": "link:../../../dist/packages/editorjs/angular",
+    "@anarchitects/editorjs-core": "workspace:*",
+    "@editorjs/editorjs": "2.31.7"
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "editorjs-angular-host",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "aa",
+  "sourceRoot": "apps/editorjs/angular-host/src",
+  "tags": ["scope:editorjs", "type:fixture", "npm:private"],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/apps/editorjs/angular-host",
+        "browser": "apps/editorjs/angular-host/src/main.ts",
+        "tsConfig": "apps/editorjs/angular-host/tsconfig.app.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/editorjs/angular-host/public"
+          }
+        ],
+        "styles": ["apps/editorjs/angular-host/src/styles.css"]
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "1mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      },
+      "inputs": [
+        "production",
+        "^production",
+        "{workspaceRoot}/tsconfig.base.json"
+      ]
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular/build:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "port": 4317,
+        "host": "127.0.0.1"
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "editorjs-angular-host:build:production"
+        },
+        "development": {
+          "buildTarget": "editorjs-angular-host:build:development"
+        }
+      },
+      "dependsOn": ["^build"]
+    },
+    "serve-static": {
+      "continuous": true,
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "editorjs-angular-host:build",
+        "port": 4317,
+        "staticFilePath": "dist/apps/editorjs/angular-host/browser",
+        "spa": false,
+        "host": "127.0.0.1",
+        "watch": false
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": [
+        "default",
+        "^production",
+        "{workspaceRoot}/tsconfig.base.json"
+      ],
+      "options": {
+        "command": "ngc -p apps/editorjs/angular-host/tsconfig.app.json --noEmit"
+      }
+    }
+  },
+  "implicitDependencies": ["editorjs-angular"]
+}

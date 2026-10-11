@@ -29,7 +29,7 @@
           "watchDepsName": "watch-deps"
         }
       },
-      "exclude": ["packages/editorjs/angular/**"]
+      "exclude": ["packages/editorjs/angular/**", "apps/editorjs/**"]
     },
     {
       "plugin": "@nx/vite/plugin",
@@ -85,6 +85,13 @@
       "plugin": "@nx/jest/plugin",
       "options": {
         "targetName": "test"
+      }
+    },
+    {
+      "plugin": "@nx/playwright/plugin",
+      "options": {
+        "targetName": "e2e",
+        "ciTargetName": ""
       }
     }
   ],
