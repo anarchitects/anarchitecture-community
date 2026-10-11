@@ -70,5 +70,8 @@
   ],
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "@editorjs/editorjs": "2.31.7"
   }
 }

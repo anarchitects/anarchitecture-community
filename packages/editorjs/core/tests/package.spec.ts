@@ -5,7 +5,9 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -111,5 +113,39 @@ describe('published package', () => {
       },
     );
     expect(output.trim()).toBe('import ok');
+  });
+
+  it('compiles a type-only consumer without DOM, Node, or Editor.js declarations', () => {
+    writeFileSync(
+      join(temporaryDirectory, 'consumer.mts'),
+      readFileSync(join(import.meta.dirname, 'fixtures/type-only-consumer.ts')),
+    );
+    writeFileSync(
+      join(temporaryDirectory, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          target: 'ES2022',
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          lib: ['ES2022'],
+          types: [],
+          strict: true,
+          skipLibCheck: false,
+          noEmit: true,
+        },
+        files: ['consumer.mts'],
+      }),
+    );
+    const require = createRequire(import.meta.url);
+    execFileSync(
+      process.execPath,
+      [require.resolve('typescript/bin/tsc'), '-p', 'tsconfig.json'],
+      {
+        cwd: temporaryDirectory,
+        encoding: 'utf8',
+        stdio: 'pipe',
+        env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
+      },
+    );
   });
 });
