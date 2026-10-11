@@ -38,6 +38,9 @@ import type {
   EditorJsChangeEvent,
   EditorJsErrorEvent,
   EditorJsOperation,
+  EditorJsDocumentCoordinator,
+  EditorJsDocumentDriver,
+  EditorJsDocumentCoordinatorOptions,
 } from '@anarchitects/editorjs-core';
 
 // Keep every documented type reachable through the published root declarations.
@@ -63,6 +66,9 @@ export interface AdditionalPublicContracts {
   change: EditorJsChangeEvent;
   editorError: EditorJsErrorEvent;
   operation: EditorJsOperation;
+  coordinator: EditorJsDocumentCoordinator;
+  driver: EditorJsDocumentDriver;
+  coordinatorOptions: EditorJsDocumentCoordinatorOptions;
 }
 
 interface ToolData {

@@ -11,6 +11,7 @@ import { createRequire } from 'node:module';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type {
   EditorJsErrorEvent,
+  EditorJsChangeEvent,
   OutputData,
 } from '@anarchitects/editorjs-core';
 import type {
@@ -68,9 +69,11 @@ function mount() {
   const fixture = TestBed.createComponent(EditorJs);
   const ready = vi.fn();
   const errors: EditorJsErrorEvent[] = [];
+  const changes: EditorJsChangeEvent[] = [];
   fixture.componentInstance.ready.subscribe(ready);
   fixture.componentInstance.error.subscribe((event) => errors.push(event));
-  return { fixture, ready, errors };
+  fixture.componentInstance.change.subscribe((event) => changes.push(event));
+  return { fixture, ready, errors, changes };
 }
 
 beforeAll(() =>
@@ -296,6 +299,23 @@ describe('standalone EditorJs ownership', () => {
         new InputEvent('input', { bubbles: true, data: 'Edited' }),
       );
       expect(paragraph.textContent).toBe('Edited');
+      await vi.waitFor(() => expect(second.changes).toHaveLength(1));
+      expect(second.changes[0].data.blocks[0].data).toMatchObject({
+        text: 'Edited',
+      });
+      second.fixture.componentRef.setInput('data', {
+        blocks: [{ type: 'paragraph', data: { text: 'Replacement' } }],
+      });
+      await second.fixture.whenStable();
+      await vi.waitFor(() =>
+        expect(
+          second.fixture.nativeElement.querySelector('.ce-paragraph')
+            ?.textContent,
+        ).toBe('Replacement'),
+      );
+      // Let Editor.js's batched mutation callback run, if one was pending.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(second.changes).toHaveLength(1);
       expect(first.errors).toEqual([]);
       expect(second.errors).toEqual([]);
       second.fixture.destroy();
@@ -303,4 +323,198 @@ describe('standalone EditorJs ownership', () => {
       vi.unstubAllGlobals();
     }
   });
+});
+
+describe('document inputs and saved changes', () => {
+  const document = (text: string): OutputData => ({
+    blocks: [{ type: 'custom', data: { text } }],
+  });
+  function controlled(readiness = Promise.resolve()) {
+    const editor = instance(readiness);
+    let options!: EditorJsCreateOptions;
+    let content: OutputData;
+    vi.mocked(editor.save).mockImplementation(async () => content);
+    vi.mocked(editor.render).mockImplementation(async (data) => {
+      content = data;
+      options.onChange();
+    });
+    const create = vi.fn((value: EditorJsCreateOptions) => {
+      options = value;
+      content = value.data!;
+      return editor;
+    });
+    setup(async () => create);
+    const owner = mount();
+    return {
+      ...owner,
+      editor,
+      create,
+      notify: () => options.onChange(),
+      edit: (data: OutputData) => {
+        content = data;
+        options.onChange();
+      },
+    };
+  }
+
+  it('emits core snapshots and applies replacement/clear without feedback or host mutation', async () => {
+    const owner = controlled();
+    const input = document('Initial');
+    owner.fixture.componentRef.setInput('data', input);
+    await owner.fixture.whenStable();
+    await vi.waitFor(() => expect(owner.ready).toHaveBeenCalledOnce());
+    owner.edit(document('Edited'));
+    await vi.waitFor(() =>
+      expect(owner.changes).toEqual([
+        { sequence: 1, data: document('Edited') },
+      ]),
+    );
+    expect(input).toEqual(document('Initial'));
+    const replacement = document('External');
+    owner.fixture.componentRef.setInput('data', replacement);
+    await owner.fixture.whenStable();
+    await vi.waitFor(() =>
+      expect(owner.editor.render).toHaveBeenCalledWith(replacement),
+    );
+    expect(vi.mocked(owner.editor.render).mock.calls[0][0]).not.toBe(
+      replacement,
+    );
+    owner.notify();
+    await vi.waitFor(() => expect(owner.editor.save).toHaveBeenCalledTimes(3));
+    expect(owner.changes).toHaveLength(1);
+    owner.fixture.componentRef.setInput('data', undefined);
+    await owner.fixture.whenStable();
+    await vi.waitFor(() =>
+      expect(owner.editor.render).toHaveBeenLastCalledWith({ blocks: [] }),
+    );
+    expect(owner.changes).toHaveLength(1);
+    expect(owner.errors).toEqual([]);
+  });
+
+  it('queues data arriving during readiness and reports config changes without recreation', async () => {
+    const readiness = deferred<void>();
+    const owner = controlled(readiness.promise);
+    const initialConfig = { placeholder: 'Initial' };
+    owner.fixture.componentRef.setInput('config', initialConfig);
+    owner.fixture.componentRef.setInput('data', document('Initial'));
+    await owner.fixture.whenStable();
+    owner.fixture.componentRef.setInput('data', document('Before ready'));
+    owner.fixture.componentRef.setInput('config', {
+      placeholder: 'Unsupported update',
+    });
+    await owner.fixture.whenStable();
+    expect(owner.editor.render).not.toHaveBeenCalled();
+    expect(owner.errors).toMatchObject([
+      { operation: 'config', code: 'config-changed' },
+    ]);
+    expect(owner.create.mock.calls[0][0].config).toBe(initialConfig);
+    readiness.resolve();
+    await vi.waitFor(() =>
+      expect(owner.editor.render).toHaveBeenCalledWith(
+        document('Before ready'),
+      ),
+    );
+    expect(owner.ready).toHaveBeenCalledOnce();
+    expect(owner.create).toHaveBeenCalledOnce();
+    expect(owner.changes).toEqual([]);
+  });
+
+  it('rejects invalid replacement, observes input identity and recovers on a new valid reference', async () => {
+    const owner = controlled();
+    const initial = document('Initial');
+    owner.fixture.componentRef.setInput('data', initial);
+    await owner.fixture.whenStable();
+    initial.blocks.length = 0;
+    owner.fixture.componentRef.setInput('data', initial);
+    await owner.fixture.whenStable();
+    expect(owner.editor.render).not.toHaveBeenCalled();
+    owner.fixture.componentRef.setInput('data', null);
+    await owner.fixture.whenStable();
+    expect(owner.errors).toMatchObject([
+      { operation: 'data', code: 'invalid-data' },
+    ]);
+    expect(owner.editor.render).not.toHaveBeenCalled();
+    owner.fixture.componentRef.setInput('data', document('Recovered'));
+    await owner.fixture.whenStable();
+    await vi.waitFor(() =>
+      expect(owner.editor.render).toHaveBeenCalledWith(document('Recovered')),
+    );
+    expect(owner.changes).toEqual([]);
+  });
+
+  it('suppresses stale saves through the core and emits only the latest snapshot', async () => {
+    const owner = controlled();
+    const saving = deferred<OutputData>();
+    vi.mocked(owner.editor.save).mockReturnValueOnce(saving.promise);
+    await owner.fixture.whenStable();
+    owner.edit(document('Old'));
+    await vi.waitFor(() => expect(owner.editor.save).toHaveBeenCalledOnce());
+    owner.edit(document('Latest'));
+    saving.resolve(document('Old'));
+    await vi.waitFor(() =>
+      expect(owner.changes).toEqual([
+        { sequence: 2, data: document('Latest') },
+      ]),
+    );
+  });
+
+  it('surfaces save/render failures through the shared error channel and remains usable', async () => {
+    const owner = controlled();
+    const failure = new Error('Save failed');
+    vi.mocked(owner.editor.save).mockRejectedValueOnce(failure);
+    await owner.fixture.whenStable();
+    owner.edit(document('Edit'));
+    await vi.waitFor(() =>
+      expect(owner.errors).toEqual([
+        { operation: 'save', code: 'operation-failed', cause: failure },
+      ]),
+    );
+    const renderFailure = new Error('Render failed');
+    vi.mocked(owner.editor.render).mockRejectedValueOnce(renderFailure);
+    owner.fixture.componentRef.setInput('data', document('Failed'));
+    await owner.fixture.whenStable();
+    await vi.waitFor(() =>
+      expect(owner.errors[1]).toEqual({
+        operation: 'render',
+        code: 'operation-failed',
+        cause: renderFailure,
+      }),
+    );
+    owner.fixture.componentRef.setInput('data', document('Recovered'));
+    await owner.fixture.whenStable();
+    await vi.waitFor(() => expect(owner.editor.save).toHaveBeenCalledTimes(2));
+    owner.edit(document('Final'));
+    await vi.waitFor(() =>
+      expect(owner.changes).toEqual([{ sequence: 2, data: document('Final') }]),
+    );
+  });
+
+  it.each(['save', 'render'] as const)(
+    'prevents late output and queued replacements after destruction during %s',
+    async (operation) => {
+      const owner = controlled();
+      const pending = deferred<never>();
+      if (operation === 'save')
+        vi.mocked(owner.editor.save).mockReturnValueOnce(pending.promise);
+      else vi.mocked(owner.editor.render).mockReturnValueOnce(pending.promise);
+      await owner.fixture.whenStable();
+      if (operation === 'save') owner.edit(document('Edit'));
+      else owner.fixture.componentRef.setInput('data', document('Pending'));
+      await owner.fixture.whenStable();
+      await vi.waitFor(() =>
+        expect(owner.editor[operation]).toHaveBeenCalledOnce(),
+      );
+      owner.fixture.componentRef.setInput('data', document('Queued'));
+      await owner.fixture.whenStable();
+      owner.fixture.destroy();
+      pending.reject(new Error('Late'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(owner.changes).toEqual([]);
+      expect(owner.errors).toEqual([]);
+      expect(owner.editor.destroy).toHaveBeenCalledOnce();
+      expect(owner.editor.render).toHaveBeenCalledTimes(
+        operation === 'render' ? 1 : 0,
+      );
+    },
+  );
 });

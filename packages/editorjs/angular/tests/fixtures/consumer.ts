@@ -115,7 +115,7 @@ export async function controls(
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [EditorJs],
   template:
-    '<aa-editorjs [config]="config" [data]="document" (ready)="onReady($event)" (error)="onError($event)" />',
+    '<aa-editorjs [config]="config" [data]="document" (ready)="onReady($event)" (change)="onChange($event)" (error)="onError($event)" />',
 })
 export class PackageConsumer {
   readonly document = documentData;
@@ -124,9 +124,10 @@ export class PackageConsumer {
   onReady(event: EditorJsReadyEvent): void {
     void event;
   }
-  onChange(event: EditorJsChangeEvent<Blocks>): string | undefined {
+  onChange(event: EditorJsChangeEvent): unknown {
     const block = event.data.blocks[0];
-    return block?.type === 'callout' ? block.data.tone : undefined;
+    // The component cannot assert custom tool schemas on saved runtime data.
+    return block?.data;
   }
   onError(event: EditorJsErrorEvent): void {
     console.error(event.operation, event.code, event.cause);

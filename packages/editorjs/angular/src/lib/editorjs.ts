@@ -1,6 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import {
   afterNextRender,
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -10,10 +11,13 @@ import {
   input,
   output,
   PLATFORM_ID,
+  untracked,
   viewChild,
 } from '@angular/core';
 import {
   normalizeOutputData,
+  EditorJsDocumentCoordinator,
+  type EditorJsChangeEvent,
   type EditorJsErrorEvent,
   type EditorJsOperation,
   type EditorJsReadyEvent,
@@ -36,6 +40,8 @@ export class EditorJs {
   readonly config = input<EditorJsConfig>();
   readonly data = input<OutputData>();
   readonly ready = output<EditorJsReadyEvent>();
+  // eslint-disable-next-line @angular-eslint/no-output-native -- The agreed saved-document channel is an Angular output.
+  readonly change = output<EditorJsChangeEvent>();
   // eslint-disable-next-line @angular-eslint/no-output-native -- The documented editor error channel is a component output, not a DOM event.
   readonly error = output<EditorJsErrorEvent>();
 
@@ -46,10 +52,15 @@ export class EditorJs {
   #instance: EditorJsInstance | undefined;
   #destroyed = false;
   #readinessSettled = false;
+  #started = false;
+  #observedConfig: EditorJsConfig | undefined;
+  #observedData: OutputData | undefined;
+  #documents: EditorJsDocumentCoordinator | undefined;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => {
       this.#destroyed = true;
+      this.#documents?.dispose();
       // Editor.js installs its public destroy method during readiness. A pending
       // instance is disposed by the initialization continuation once it settles.
       if (this.#readinessSettled) this.#dispose();
@@ -58,17 +69,46 @@ export class EditorJs {
     afterNextRender(() => {
       if (browser && !this.#destroyed) void this.#initialize();
     });
+    afterRenderEffect(() => {
+      const data = this.data();
+      const config = this.config();
+      untracked(() => this.#syncInputs(data, config));
+    });
+  }
+
+  #syncInputs(
+    data: OutputData | undefined,
+    config: EditorJsConfig | undefined,
+  ): void {
+    if (!this.#started || this.#destroyed) return;
+    if (config !== this.#observedConfig) {
+      this.#observedConfig = config;
+      this.#report({
+        operation: 'config',
+        code: 'config-changed',
+        cause: new Error(
+          'Configuration is initialization-only; recreate the component to reconfigure it.',
+        ),
+      });
+    }
+    if (this.#documents && data !== this.#observedData) {
+      this.#observedData = data;
+      this.#documents.replace(data);
+    }
   }
 
   async #initialize(): Promise<void> {
     let operation: EditorJsOperation = 'load';
     try {
       const config = this.config();
+      this.#observedConfig = config;
+      this.#started = true;
       const factory = await this.#loader();
       if (this.#destroyed) return;
 
       operation = 'data';
       const data = this.data();
+      this.#observedData = data;
       const normalized = normalizeOutputData(
         data === undefined ? { blocks: [] } : data,
       );
@@ -85,14 +125,28 @@ export class EditorJs {
         holder: this.holder().nativeElement,
         config,
         data: normalized.data,
-        // Document change coordination is supplied separately from owned lifecycle.
-        onChange: () => undefined,
+        onChange: () => this.#documents?.notifyChange(),
+      });
+      const instance = this.#instance;
+      this.#documents = new EditorJsDocumentCoordinator({
+        driver: {
+          save: () => instance.save(),
+          render: (data) => instance.render(data),
+        },
+        onChange: (event) => {
+          if (!this.#destroyed) this.change.emit(event);
+        },
+        onError: (event) => this.#report(event),
       });
       operation = 'ready';
       await this.#instance.isReady;
       this.#readinessSettled = true;
       if (this.#destroyed) this.#dispose();
-      else this.ready.emit();
+      else {
+        this.#syncInputs(this.data(), this.config());
+        this.#documents.markReady();
+        this.ready.emit();
+      }
     } catch (cause) {
       this.#readinessSettled = true;
       this.#report({ operation, code: 'operation-failed', cause });
@@ -105,6 +159,7 @@ export class EditorJs {
   }
 
   #dispose(): void {
+    this.#documents?.dispose();
     const instance = this.#instance;
     this.#instance = undefined;
     if (!instance) return;

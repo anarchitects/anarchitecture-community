@@ -4,11 +4,10 @@ Standalone Angular editor component for Editor.js, built on
 `@anarchitects/editorjs-core` document normalization and shared contracts.
 
 Import `EditorJs` to render `<aa-editorjs>` with initial configuration/data and
-readiness/error outputs. Each component owns its holder and editor instance.
-This version supports initialization, editing and teardown. It does not yet
-publish saved change events, apply data/configuration changes after creation,
-provide imperative controls or integrate with Angular Forms. Recreate the component
-to supply a different document or configuration.
+readiness, saved-change and error outputs. Each component owns its holder and editor
+instance. Replace the `data` input to load another document; configuration remains
+initialization-only. Imperative controls and Angular Forms integration are not
+available in this version.
 
 ## Installation and prerequisites
 
@@ -44,6 +43,7 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { EditorJs } from '@anarchitects/editorjs-angular';
 import type {
   EditorJsConfig,
+  EditorJsChangeEvent,
   EditorJsErrorEvent,
 } from '@anarchitects/editorjs-angular';
 import type { OutputData } from '@anarchitects/editorjs-core';
@@ -56,7 +56,8 @@ import type { OutputData } from '@anarchitects/editorjs-core';
     <p role="status">{{ status() }}</p>
     <aa-editorjs
       [config]="config"
-      [data]="document"
+      [data]="document()"
+      (change)="onChange($event)"
       (ready)="status.set('Ready')"
       (error)="onError($event)"
     />
@@ -68,11 +69,19 @@ export class ArticleEditor {
     placeholder: 'Write something…',
     minHeight: 120,
   };
-  readonly document: OutputData = {
+  readonly document = signal<OutputData>({
     blocks: [{ type: 'paragraph', data: { text: 'Welcome' } }],
-  };
+  });
+  readonly latestSaved = signal<OutputData | undefined>(undefined);
+  onChange(event: EditorJsChangeEvent): void {
+    this.latestSaved.set(event.data);
+    this.status.set('Edited');
+  }
+  loadDocument(data: OutputData): void {
+    this.document.set(data);
+  }
   onError(event: EditorJsErrorEvent): void {
-    this.status.set('Editor could not start');
+    this.status.set(`Editor error: ${event.operation}`);
     console.error(event.operation, event.cause);
   }
 }
@@ -81,17 +90,20 @@ export class ArticleEditor {
 Render `<app-article-editor>` through your application's normal route or parent
 component. After loading, the status becomes “Ready” and the paragraph can be
 edited. No forms or loader providers are required. Editor.js supplies its built-in
-paragraph tool; additional tools remain your choice. This version does not expose
-saving edited content yet.
+paragraph tool; additional tools remain your choice. Edits update `latestSaved` with
+a detached saved document. Your application decides whether and how to persist it.
+Call `loadDocument` with a new document to replace editor content. Keep saved output
+separate from the input unless you intentionally want to render it back into the editor.
 
 ## Component inputs, outputs and lifetime
 
-| Surface  | Current behavior                                                                                                                                                                                                                                                                       |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `config` | Optional `EditorJsConfig`. Captured when browser initialization begins. Missing settings retain Editor.js defaults. Later changes do not reconfigure the instance.                                                                                                                     |
-| `data`   | Optional core `OutputData`. Uses the latest value when loading finishes, immediately before creation. Omitted data means an empty document. Core normalization validates JSON structure and detaches the input before passing it to the factory. Later changes do not replace content. |
-| `ready`  | Readiness-only `EditorJsReadyEvent` (`void`), emitted once after Editor.js resolves `isReady`, only while the component is live. There is no `api` payload.                                                                                                                            |
-| `error`  | Core `EditorJsErrorEvent` with `operation`, `code` and original `cause`. This is an Angular component output, not a native DOM error event.                                                                                                                                            |
+| Surface  | Current behavior                                                                                                                                                                                                                                              |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `config` | Optional `EditorJsConfig`, captured when browser initialization begins. Later observed identity changes report `config-changed` and leave the instance/configuration intact. Recreate the component to reconfigure it.                                        |
+| `data`   | Optional core `OutputData`. Uses the latest value before creation. After creation, each observed new reference requests a copied, validated, serialized replacement; replacements wait for readiness. `undefined` or `{ blocks: [] }` requests empty content. |
+| `ready`  | Readiness-only `EditorJsReadyEvent` (`void`), emitted once after Editor.js resolves `isReady`, while the owner is live. It does not mean queued document replacements have completed.                                                                         |
+| `change` | `EditorJsChangeEvent` with detached saved `data` and an increasing owner-local `sequence`. Represents editor-originated notifications, not proof of a physical user gesture. Coalescing and duplicate suppression can leave sequence gaps.                    |
+| `error`  | Core `EditorJsErrorEvent` with `operation`, `code` and original `cause`. This is an Angular component output, not a native DOM error event.                                                                                                                   |
 
 Invalid initial data reports `operation: 'data'`, `code: 'invalid-data'` and the
 core diagnostic as `cause`, without constructing an editor. Loader, constructor
@@ -112,9 +124,43 @@ they go to Angular's `ErrorHandler` because the component's outputs no longer ex
 No editor reference is stored in an application-wide service.
 
 Treat configuration and documents as immutable inputs. In-place mutation is not
-observed. Programmatic updates, saved change events and imperative controls are
-not implemented by this component version; the shared control/event interfaces
-remain available for other owner implementations.
+observed. Angular may coalesce several signal writes before observing their latest
+value; inputs are state, not a lossless command stream.
+
+## Document updates and saved changes
+
+Accepted replacements and automatic saves run serially through core coordination.
+A notification during a save makes that result obsolete and schedules a newer
+save. An accepted replacement invalidates pending change snapshots immediately.
+Nothing publishes after destruction; unstarted operations are discarded. Work
+already running inside Editor.js cannot be cancelled by a promise.
+
+Replacement is authoritative: notifications while a replacement is queued or
+running are ignored. Avoid editing while a replacement is in progress; it can
+overwrite edits to the previous document. Programmatic replacement does not emit
+`change`. After rendering, a silent save establishes the actual editor content as
+a baseline, including any IDs or tool normalization. Later notifications with the
+same content are suppressed, ignoring only save timestamps and JSON object key
+order. Array order, IDs, tool data and other metadata remain significant.
+
+Invalid replacement input reports `data` / `invalid-data` with core diagnostics and
+leaves current content and accepted work intact. Only `undefined` means missing:
+`null`, JSON strings and malformed/non-JSON documents are invalid. Unknown tool
+names and JSON fields are preserved by core; the application must install tools
+that can render them. Core does not sanitize HTML or validate tool schemas here.
+
+Rejected saves/renders report `operation-failed` with the original cause; invalid
+saved documents report `save` / `invalid-data`. Later work still runs, without
+automatic retries. A failed render may have partially changed upstream content.
+If a replacement or its baseline save fails, the next successful snapshot is used
+silently to re-establish the baseline; it may include edits made during recovery.
+Those edits are not emitted separately. Reapply a valid document or recreate the
+component when recovery must preserve a known document. Ordinary automatic-save
+failures do not require a new baseline; the next notification can produce a change.
+
+Feeding saved output back into `data` requests a replacement and can reset selection;
+it is not necessary for normal editing. No two-way form model, persistence, dirty
+or touched state is maintained. Imperative controls remain unavailable.
 
 ## Configuration and custom tools
 
@@ -173,7 +219,7 @@ validate editor output at runtime. Use core parsers/validators for untrusted dat
 Core's `EditorJsApi<Block>`, `EditorJsChangeEvent<Block>` and error/operation
 contracts are re-exported for integrations. These are interfaces, not a runtime
 controller. They describe serialized operations and ordered saved snapshots;
-`EditorJs` does not expose their control/change surface in this version.
+`EditorJs` implements the saved-change output but does not expose imperative controls in this version.
 Readiness is independent of the control facade and carries no editor reference.
 
 ## Lazy loading and replacement
@@ -241,15 +287,15 @@ under `editorjs-angular@<version>` before upgrading.
 
 ## Troubleshooting
 
-| Symptom                                          | Action                                                                                                                            |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| Saving or live input updates are unavailable     | This version implements mounting/editing/teardown; controls, saved changes and live input replacement are not available.          |
-| Upstream `EditorConfig` is rejected              | Remove holder/data/callback options and define a fresh `EditorJsConfig`; supply data and observe events separately in your owner. |
-| Loader rejects on the server                     | Invoke it only from browser initialization after rendering. Do not initialize editors from server requests.                       |
-| Tool fails during creation or rendering          | Check its Editor.js compatibility and tool-specific input/configuration; core type compatibility is not runtime validation.       |
-| Configuration or document changes have no effect | Recreate the component with new inputs; this version has no live reconfiguration or imperative controls.                          |
-| Angular peer mismatch                            | Use matching Angular 22 core/common versions and their supported tooling.                                                         |
-| Private subpath or source file cannot resolve    | Import the package root and remove repository-only `@anarchitecture-community/source` resolution conditions.                      |
+| Symptom                                                         | Action                                                                                                                            |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Imperative controls are unavailable                             | Use `(change)` for saved snapshots and a new `[data]` reference for replacement; direct control methods are not available.        |
+| Upstream `EditorConfig` is rejected                             | Remove holder/data/callback options and define a fresh `EditorJsConfig`; supply data and observe events separately in your owner. |
+| Loader rejects on the server                                    | Invoke it only from browser initialization after rendering. Do not initialize editors from server requests.                       |
+| Tool fails during creation or rendering                         | Check its Editor.js compatibility and tool-specific input/configuration; core type compatibility is not runtime validation.       |
+| Configuration changes or in-place data mutations have no effect | Supply a new document reference; recreate the component to change configuration. Observe the error output for rejected updates.   |
+| Angular peer mismatch                                           | Use matching Angular 22 core/common versions and their supported tooling.                                                         |
+| Private subpath or source file cannot resolve                   | Import the package root and remove repository-only `@anarchitecture-community/source` resolution conditions.                      |
 
 Report reproducible problems with package, Angular, Editor.js and Node versions
 through the [issue tracker](https://github.com/anarchitects/anarchitecture-community/issues).

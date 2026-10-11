@@ -109,6 +109,7 @@ describe('published package', () => {
         }
         const core = await import('@anarchitects/editorjs-core');
         assert.deepEqual(Object.keys(core).sort(), [
+          'EditorJsDocumentCoordinator',
           'normalizeOutputData', 'parseContentWithProvenance', 'parseOutputData', 'validateOutputData',
         ]);
         assert.ok(import.meta.resolve('@anarchitects/editorjs-core').endsWith('/dist/index.js'));
@@ -124,6 +125,16 @@ describe('published package', () => {
         const raw = { version: '2.20.0', blocks: [] };
         const provenance = { schema: { id: 'example/content', version: 'future' } };
         assert.deepEqual(core.parseContentWithProvenance(raw, provenance), { ok: true, data: raw, provenance });
+        let changed;
+        const publication = new Promise(resolve => { changed = resolve; });
+        const documents = new core.EditorJsDocumentCoordinator({
+          driver: { save: async () => raw, render: async () => undefined },
+          onChange: changed, onError: error => { throw new Error(String(error.cause)); },
+        });
+        documents.markReady();
+        documents.notifyChange();
+        assert.deepEqual(await publication, { data: raw, sequence: 1 });
+        documents.dispose();
         for (const path of ['src/index.ts', 'dist/index.js', 'dist/lib/json-value.js']) {
           await assert.rejects(import('@anarchitects/editorjs-core/' + path), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
         }
