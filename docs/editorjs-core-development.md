@@ -43,7 +43,7 @@ false`. The repository-only source condition must not be enabled in this consume
 | ---------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | Node 22.12.0     | Dedicated CI job runs build, typecheck, tests, lint                                                                 | Declared minimum, not a browser engine matrix                                                   |
 | Node 24          | Main CI job runs the same package targets in workspace `run-many`                                                   | Does not assert every intervening Node release                                                  |
-| Published ESM    | Dependency-free import with browser globals guarded; all four runtime exports exercised; deep imports rejected      | No CommonJS build                                                                               |
+| Published ESM    | Dependency-free import with browser globals guarded; all runtime exports exercised; deep imports rejected           | No CommonJS build                                                                               |
 | TypeScript 6.0.3 | All public contracts and README TypeScript examples compile using NodeNext and Bundler resolution, ES2022-only libs | No claim that older compilers were tested                                                       |
 | README artifact  | Packed README equals source README; quick start is compiled and executed                                            | Human review still checks clarity and completeness                                              |
 | Editor.js 2.31.7 | Pinned dev-only declarations check document and tool-settings compatibility                                         | No editor instance, plugin runtime, or full Editor.js version matrix                            |
@@ -97,6 +97,16 @@ selected version and any subsequent changes:
 - Consumers own rendering safety, transport, persistence, version policy, and
   migration. Adoption requires mapping application records into the raw document
   contract; no particular application's storage envelope is required.
+
+## Document coordination validation
+
+`EditorJsDocumentCoordinator` is an additive runtime export introduced for #536.
+Its save/render driver, queue, event sequencing and baseline comparison are neutral
+and compile with ES2022-only declarations. The owner supplies readiness/disposal
+and synchronous event sinks; Angular is only one consumer. The packed Node check
+instantiates and exercises it with guarded browser globals and no dependencies.
+Deterministic deferred-driver tests verify stale results, serialized work,
+replacement feedback, recovery and late disposal independently of Angular.
 
 ## Downstream ownership
 

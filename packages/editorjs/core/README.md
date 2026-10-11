@@ -74,7 +74,8 @@ carries a saved `data` snapshot and increasing owner-local `sequence`.
 `EditorJsErrorEvent` carries an `operation`, a failure `code`, and the original
 `cause`. `EditorJsOperation` enumerates load/create/readiness, configuration/data,
 control operations and destruction. These are shared type contracts; core does
-not yet provide a runtime editor controller or create browser editor instances.
+not create browser editor instances or implement the full imperative facade. The
+`EditorJsDocumentCoordinator` below implements document coordination.
 
 ```ts
 import type { EditorJsApi, OutputData } from '@anarchitects/editorjs-core';
@@ -100,6 +101,61 @@ Angular adapters reuse these contracts and core's normalization/validation rathe
 than redefining them. Non-Angular hosts can implement the same contract without
 installing Angular or DOM declarations. Browser loading, holders, concrete editor
 drivers, UI lifecycle hooks and forms integration belong to downstream adapters.
+
+## Document coordination for editor owners
+
+`EditorJsDocumentCoordinator` serializes document replacements and automatic saves
+behind `EditorJsDocumentDriver`. It needs no Angular, DOM or Editor.js dependency.
+Use one coordinator per editor owner; never share it between instances.
+
+```ts
+import {
+  EditorJsDocumentCoordinator,
+  type EditorJsDocumentDriver,
+  type EditorJsChangeEvent,
+  type EditorJsErrorEvent,
+} from '@anarchitects/editorjs-core';
+
+export function coordinateDocuments(
+  driver: EditorJsDocumentDriver,
+  onChange: (event: EditorJsChangeEvent) => void,
+  onError: (event: EditorJsErrorEvent) => void,
+): EditorJsDocumentCoordinator {
+  return new EditorJsDocumentCoordinator({ driver, onChange, onError });
+}
+```
+
+The owner supplies synchronous event sinks that handle their own listener errors,
+a driver with `save(): Promise<unknown>` and `render(data): Promise<void>`, and
+calls these methods:
+
+| Method           | Behavior                                                                                                                                                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `markReady()`    | Activate once the editor is usable; drain accepted replacements. Repeated calls do nothing.                                                                                                                                           |
+| `replace(data)`  | Validate and detach the input on acceptance; serialize replacements in order, waiting for readiness. `undefined` means `{ blocks: [] }`. Invalid values report `data` / `invalid-data` without invalidating accepted work.            |
+| `notifyChange()` | Notify of an editor-originated invalidation. Coalesce automatic saves and discard snapshots superseded by a newer notification or accepted replacement. Ignore notifications before readiness or while replacement is queued/running. |
+| `dispose()`      | Discard queued work and suppress all future events/errors. Does not destroy the editor or cancel an in-flight driver operation. Repeated calls do nothing.                                                                            |
+
+A replacement takes precedence over edits to the previous document. After each
+successful render, a silent save captures the editor's actual document as a
+baseline. Later identical snapshots do not produce changes; comparison ignores
+root `time` and object key order, preserving every other JSON field and array order.
+This prevents delayed editor callbacks and input echoes from publishing unchanged
+programmatic content. Saved output is structurally normalized and detached before
+emission; unknown tool data is preserved without asserting its schema.
+
+Failures use the shared error contract and do not poison subsequent queued work.
+Invalid saved data reports `save` / `invalid-data` with the normalization diagnostic.
+Driver rejections report the failing `save` or `render` operation and original cause.
+There is no automatic retry. Failed renders may leave partially modified content;
+after a replacement or baseline-save failure, the next successful snapshot becomes
+a silent recovery baseline. Edits included in that recovery snapshot are not emitted
+separately. Ordinary automatic-save failures allow the next notification to retry
+without resetting the baseline. Reapply a known document if recovery must be exact.
+
+This coordinator is an owner integration primitive, not an imperative editor API.
+The owner still manages initialization, render scheduling, configuration policy,
+platform checks and destruction. Its promises cannot cancel upstream work.
 
 ## Document and block types
 
@@ -499,18 +555,20 @@ response. These interfaces do not perform I/O or handle exceptions automatically
 `dist/index.d.ts`. Package metadata is available through
 `@anarchitects/editorjs-core/package.json`. Import contracts with `import type`:
 
-| Area               | Public exports                                                                                                                                                                                                         |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime functions  | `parseOutputData`, `normalizeOutputData`, `validateOutputData`, `parseContentWithProvenance`                                                                                                                           |
-| Documents and JSON | `OutputData`, `OutputBlockData`, `OutputBlockDataFor`, `JsonValue`, `JsonObject`, `JsonArray`                                                                                                                          |
-| Editor integration | `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`, `EditorJsErrorEvent`, `EditorJsOperation`                                                                                                                  |
-| Tool registration  | `ToolConstructor`, `ToolboxEntry`, `ToolOptions`, `ToolConfiguration`, `ToolRegistration`                                                                                                                              |
-| Uploads            | `UploadedFile`, `UploadSuccess`, `UploadFailure`, `UploadResponse`, `FileUploader`, `UrlUploader`, `ImageUploader`                                                                                                     |
-| Parsing            | `OutputDataParseResult`, `OutputDataParseError`, `OutputDataParseErrorCode`                                                                                                                                            |
-| Validation         | `OutputDataValidationResult`, `OutputDataValidationOptions`, `OutputDataValidationError`, `OutputDataValidationErrorCode`, `ToolDataValidator`, `ToolValidationContext`, `ToolValidationIssue`, `ToolValidationResult` |
-| Provenance         | `ContentProvenance`, `ContentSchemaVersion`, `ContentProducer`, `ContentParseResult`                                                                                                                                   |
+| Area                  | Public exports                                                                                                                                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime functions     | `parseOutputData`, `normalizeOutputData`, `validateOutputData`, `parseContentWithProvenance`                                                                                                                           |
+| Documents and JSON    | `OutputData`, `OutputBlockData`, `OutputBlockDataFor`, `JsonValue`, `JsonObject`, `JsonArray`                                                                                                                          |
+| Document coordination | `EditorJsDocumentCoordinator` (class), `EditorJsDocumentDriver`, `EditorJsDocumentCoordinatorOptions`                                                                                                                  |
+| Editor integration    | `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`, `EditorJsErrorEvent`, `EditorJsOperation`                                                                                                                  |
+| Tool registration     | `ToolConstructor`, `ToolboxEntry`, `ToolOptions`, `ToolConfiguration`, `ToolRegistration`                                                                                                                              |
+| Uploads               | `UploadedFile`, `UploadSuccess`, `UploadFailure`, `UploadResponse`, `FileUploader`, `UrlUploader`, `ImageUploader`                                                                                                     |
+| Parsing               | `OutputDataParseResult`, `OutputDataParseError`, `OutputDataParseErrorCode`                                                                                                                                            |
+| Validation            | `OutputDataValidationResult`, `OutputDataValidationOptions`, `OutputDataValidationError`, `OutputDataValidationErrorCode`, `ToolDataValidator`, `ToolValidationContext`, `ToolValidationIssue`, `ToolValidationResult` |
+| Provenance            | `ContentProvenance`, `ContentSchemaVersion`, `ContentProducer`, `ContentParseResult`                                                                                                                                   |
 
-Only the four functions have runtime exports; the remaining contracts are types.
+The four functions and `EditorJsDocumentCoordinator` class have runtime exports;
+the remaining contracts are types.
 Import from the package root. Deep imports into `src`, `dist`, or helper modules
 are private and blocked by the export map. Use TypeScript's `NodeNext` resolution
 for Node ESM projects, or `Bundler` resolution for bundler-based projects. The

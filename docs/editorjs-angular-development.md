@@ -9,8 +9,8 @@ Consumer-facing behavior is documented in the
 Issue #533 established packaging and artifact checks. #534 adds typed configuration,
 shared controls/events and the lazy loader/provider seam. #535 adds the standalone `EditorJs` component and per-component lifecycle. The
 maintainer chose readiness-only notification (`EditorJsReadyEvent = void`), with
-controls remaining #537. Live document updates/change outputs remain #536; do not
-advertise those contracts as component functionality yet.
+controls remaining #537. #536 adds live document updates and saved-change outputs
+through the framework-neutral `EditorJsDocumentCoordinator`.
 
 Core owns framework-neutral controls/events and data algorithms. Angular re-exports
 the shared event/control types and consumes `normalizeOutputData` at the creation
@@ -22,9 +22,35 @@ holder/data/callback ownership, and propagate failures; no instance lives in DI.
 
 The contracts choose initialization-only configuration, serialized accepted data
 replacements/commands, coalesced automatic saves with stale-result suppression,
-and no programmatic-write feedback. Implement generic coordination in core behind
-non-DOM driver contracts as #536/#537 introduce it; Angular owns signal observation,
-outputs and component disposal. No generic queue or parser is duplicated here.
+and no programmatic-write feedback. Core now owns that document queue behind a
+non-DOM save/render driver; #537 must extend/reuse it for imperative operations,
+not introduce an independent queue. Angular observes input signals after rendering
+and translates core events to outputs. No generic queue or parser is duplicated here.
+
+For #536, all five ADRs and relevant architecture/reactivity/rendering/testing/SSR
+and provider guides were reviewed again. Governance decisions remain scoped to
+Governance; accepted A02/A05/A06/A09/A10 and ADR 0004 govern this change. The core
+queue uses ES2022 promises without adding a framework/reactive runtime dependency.
+Angular's `afterRenderEffect` synchronizes the external editor sink; it is not a
+lossless event bus. Input values are read explicitly and incidental callback reads
+are untracked. The `change` output retains the agreed contract with the same narrow
+native-event-name lint exception as `error`; no additional ADR conflict was found.
+
+Editor.js 2.31.7 batches change callbacks and disables its mutation observer during
+rendering without clearing an already scheduled callback. Core therefore takes a
+silent saved baseline after replacement and compares later normalized snapshots,
+ignoring root timestamps and object-key order. The baseline includes upstream IDs
+and tool normalization. Notifications during queued/running replacement are ignored;
+replacement is authoritative over edits to the previous content. If render/baseline
+saving fails, the next successful snapshot is a silent recovery baseline, potentially
+including intervening edits; this limitation is documented for consumers.
+
+Generic tests cover serialization, coalescing, stale results, feedback suppression,
+validation, failures and disposal independently of Angular. Component tests verify
+input identity/readiness/configuration behavior and core event/error delegation.
+Packed consumers exercise the new class with ES2022-only declarations and compile
+the Angular `(change)` binding. Real browser expansion and host extraction remain
+#538; the existing jsdom runtime test also checks saved editing and replacement.
 
 All five repository ADRs were reviewed: Governance ADRs 0001–0003 retain their
 Governance scope; the accepted Modern Angular ADR and ADR 0004 apply to this
@@ -36,9 +62,9 @@ The Angular MCP best-practices endpoint failed during this scaffold work; offici
 [Angular guidance](https://angular.dev/ai/develop-with-ai) and the local accepted
 guides were used. The live guidance now relies on Angular 22's default OnPush,
 whereas the accepted local guide requires it explicitly. Follow the local explicit
-setting in Angular fixtures/components. The component's documented `error` output
-retains that contract with a narrow `no-output-native` lint exception; it is not a
-DOM event. Angular signal queries require TypeScript-private rather than `#private`
+setting in Angular fixtures/components. The component's documented `error` and
+`change` outputs retain their contracts with narrow `no-output-native` lint exceptions;
+these are not DOM events. Angular signal queries require TypeScript-private rather than `#private`
 fields on the installed compiler.
 
 The reviewed `@nx/angular:component` generator was dry-run before #535. Its unrelated
@@ -144,5 +170,5 @@ compatible version before an external consumer can install the wrapper.
 
 Use `init:` for this new package scaffold. The existing manual release workflow
 uses `--skip-publish`; creating or merging the scaffold does not publish it. Keep
-the README's live-update/change/control limitations until those implementations exist, and
+the README's control/forms limitations until those implementations exist, and
 complete #67's release-readiness checks before advertising a working editor.

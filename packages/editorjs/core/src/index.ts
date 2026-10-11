@@ -57,3 +57,8 @@ export type {
   EditorJsOperation,
   EditorJsReadyEvent,
 } from './lib/editor-contracts.js';
+export { EditorJsDocumentCoordinator } from './lib/editor-document-coordinator.js';
+export type {
+  EditorJsDocumentDriver,
+  EditorJsDocumentCoordinatorOptions,
+} from './lib/editor-document-coordinator.js';
