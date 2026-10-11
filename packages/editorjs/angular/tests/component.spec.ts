@@ -26,9 +26,9 @@ const artifact = resolve(
   import.meta.dirname,
   '../../../../dist/packages/editorjs/angular/fesm2022/anarchitects-editorjs-angular.mjs',
 );
-const { EditorJs, EDITOR_JS_LOADER } = createRequire(import.meta.url)(
-  artifact,
-) as typeof import('../src/index.js');
+const { EditorJs, EDITOR_JS_LOADER, EditorJsOperationError } = createRequire(
+  import.meta.url,
+)(artifact) as typeof import('../src/index.js');
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -316,6 +316,20 @@ describe('standalone EditorJs ownership', () => {
       // Let Editor.js's batched mutation callback run, if one was pending.
       await new Promise((resolve) => setTimeout(resolve, 600));
       expect(second.changes).toHaveLength(1);
+      const controls = second.fixture.componentInstance.api;
+      expect((await controls.save()).blocks[0].data).toMatchObject({
+        text: 'Replacement',
+      });
+      expect(await controls.setReadOnly(true)).toBe(true);
+      expect(
+        second.fixture.nativeElement.querySelector('.ce-paragraph')
+          ?.contentEditable,
+      ).toBe('false');
+      expect(await controls.setReadOnly(false)).toBe(false);
+      await controls.clear();
+      expect((await controls.save()).blocks).toEqual([]);
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(second.changes).toHaveLength(1);
       expect(first.errors).toEqual([]);
       expect(second.errors).toEqual([]);
       second.fixture.destroy();
@@ -517,4 +531,132 @@ describe('document inputs and saved changes', () => {
       );
     },
   );
+});
+
+describe('component imperative facade', () => {
+  it('keeps a stable facade from construction through readiness and delegates every operation', async () => {
+    const readiness = deferred<void>();
+    const editor = instance(readiness.promise);
+    let options!: EditorJsCreateOptions;
+    let data: OutputData = { blocks: [] };
+    vi.mocked(editor.render).mockImplementation(async (value) => {
+      data = value;
+      options.onChange();
+    });
+    vi.mocked(editor.clear).mockImplementation(() => {
+      data = { blocks: [] };
+      options.onChange();
+    });
+    vi.mocked(editor.save).mockImplementation(async () => data);
+    setup(async () => (value) => {
+      options = value;
+      return editor;
+    });
+    const owner = mount();
+    const api = owner.fixture.componentInstance.api;
+    const beforeReady = await api.save().catch((error: unknown) => error);
+    expect(beforeReady).toBeInstanceOf(EditorJsOperationError);
+    expect(beforeReady).toMatchObject({ operation: 'save', code: 'not-ready' });
+    expect(owner.errors[0]).toBe(beforeReady);
+    await owner.fixture.whenStable();
+    readiness.resolve();
+    await vi.waitFor(() => expect(owner.ready).toHaveBeenCalledOnce());
+    expect(owner.ready).toHaveBeenCalledWith(undefined);
+    expect(owner.fixture.componentInstance.api).toBe(api);
+    const input: OutputData = {
+      blocks: [{ type: 'custom', data: { value: 1 } }],
+    };
+    await api.render(input);
+    expect(await api.save()).toEqual(input);
+    expect(vi.mocked(editor.render).mock.calls[0][0]).not.toBe(input);
+    expect(await api.focus(true)).toBe(true);
+    expect(editor.focus).toHaveBeenCalledWith(true);
+    expect(await api.setReadOnly(true)).toBe(true);
+    expect(editor.readOnly.toggle).toHaveBeenCalledWith(true);
+    await api.clear();
+    expect(await api.save()).toEqual({ blocks: [] });
+    expect(owner.changes).toEqual([]);
+    owner.fixture.destroy();
+    await expect(api.focus()).rejects.toMatchObject({ code: 'destroyed' });
+    expect(owner.errors).toHaveLength(1);
+  });
+
+  it('rejects active and queued calls immediately when the Angular owner is destroyed', async () => {
+    const editor = instance();
+    const saving = deferred<OutputData>();
+    vi.mocked(editor.save).mockReturnValueOnce(saving.promise);
+    setup(async () => () => editor);
+    const owner = mount();
+    await owner.fixture.whenStable();
+    const api = owner.fixture.componentInstance.api;
+    const active = api.save().catch((error: unknown) => error);
+    const queued = api.setReadOnly(true).catch((error: unknown) => error);
+    await vi.waitFor(() => expect(editor.save).toHaveBeenCalledOnce());
+    owner.fixture.destroy();
+    expect(await active).toMatchObject({
+      code: 'destroyed',
+      operation: 'save',
+    });
+    expect(await queued).toMatchObject({
+      code: 'destroyed',
+      operation: 'readOnly',
+    });
+    expect(editor.destroy).toHaveBeenCalledOnce();
+    saving.reject(new Error('Late rejection'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(editor.readOnly.toggle).not.toHaveBeenCalled();
+    expect(owner.changes).toEqual([]);
+    expect(owner.errors).toEqual([]);
+  });
+
+  it('reports an unsupported read-only transition to the promise and output, then accepts later commands', async () => {
+    const editor = instance();
+    const cause = new Error('Tool does not support read-only');
+    vi.mocked(editor.readOnly.toggle).mockRejectedValueOnce(cause);
+    setup(async () => () => editor);
+    const owner = mount();
+    await owner.fixture.whenStable();
+    const api = owner.fixture.componentInstance.api;
+    const failure = await api
+      .setReadOnly(true)
+      .catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(EditorJsOperationError);
+    expect(failure).toMatchObject({
+      operation: 'readOnly',
+      code: 'operation-failed',
+      cause,
+    });
+    expect(owner.errors[0]).toBe(failure);
+    await expect(api.render({ blocks: [] })).resolves.toBeUndefined();
+    expect(owner.changes).toEqual([]);
+  });
+
+  it('binds controls to each component without shared mutable editor state', async () => {
+    const editors: EditorJsInstance[] = [];
+    setup(async () => (options) => {
+      const editor = instance();
+      vi.mocked(editor.save).mockResolvedValue(options.data!);
+      editors.push(editor);
+      return editor;
+    });
+    const first = mount();
+    const second = mount();
+    first.fixture.componentRef.setInput('data', {
+      blocks: [{ type: 'paragraph', data: { text: 'First' } }],
+    });
+    second.fixture.componentRef.setInput('data', {
+      blocks: [{ type: 'paragraph', data: { text: 'Second' } }],
+    });
+    await first.fixture.whenStable();
+    await second.fixture.whenStable();
+    const one = first.fixture.componentInstance.api;
+    const two = second.fixture.componentInstance.api;
+    expect(one).not.toBe(two);
+    expect((await one.save()).blocks[0].data).toEqual({ text: 'First' });
+    first.fixture.destroy();
+    expect((await two.save()).blocks[0].data).toEqual({ text: 'Second' });
+    await two.focus();
+    expect(editors[0].focus).not.toHaveBeenCalled();
+    expect(editors[1].focus).toHaveBeenCalledOnce();
+  });
 });

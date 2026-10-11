@@ -55,12 +55,27 @@ export class EditorJs {
   #started = false;
   #observedConfig: EditorJsConfig | undefined;
   #observedData: OutputData | undefined;
-  #documents: EditorJsDocumentCoordinator | undefined;
+  readonly #documents = new EditorJsDocumentCoordinator({
+    driver: {
+      save: () => this.#instance!.save(),
+      render: (data) => this.#instance!.render(data),
+      clear: () => this.#instance!.clear(),
+      focus: (atEnd) => this.#instance!.focus(atEnd),
+      setReadOnly: (readOnly) => this.#instance!.readOnly.toggle(readOnly),
+      getReadOnly: () => this.#instance!.readOnly.isEnabled,
+    },
+    onChange: (event) => {
+      if (!this.#destroyed) this.change.emit(event);
+    },
+    onError: (event) => this.#report(event),
+  });
+  /** One stable facade per component, available before readiness with guarded calls. */
+  readonly api = this.#documents.api;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => {
       this.#destroyed = true;
-      this.#documents?.dispose();
+      this.#documents.dispose();
       // Editor.js installs its public destroy method during readiness. A pending
       // instance is disposed by the initialization continuation once it settles.
       if (this.#readinessSettled) this.#dispose();
@@ -91,7 +106,7 @@ export class EditorJs {
         ),
       });
     }
-    if (this.#documents && data !== this.#observedData) {
+    if (this.#instance && data !== this.#observedData) {
       this.#observedData = data;
       this.#documents.replace(data);
     }
@@ -118,6 +133,7 @@ export class EditorJs {
           code: 'invalid-data',
           cause: normalized.error,
         });
+        this.#dispose();
         return;
       }
       operation = 'create';
@@ -125,18 +141,7 @@ export class EditorJs {
         holder: this.holder().nativeElement,
         config,
         data: normalized.data,
-        onChange: () => this.#documents?.notifyChange(),
-      });
-      const instance = this.#instance;
-      this.#documents = new EditorJsDocumentCoordinator({
-        driver: {
-          save: () => instance.save(),
-          render: (data) => instance.render(data),
-        },
-        onChange: (event) => {
-          if (!this.#destroyed) this.change.emit(event);
-        },
-        onError: (event) => this.#report(event),
+        onChange: () => this.#documents.notifyChange(),
       });
       operation = 'ready';
       await this.#instance.isReady;
@@ -144,7 +149,9 @@ export class EditorJs {
       if (this.#destroyed) this.#dispose();
       else {
         this.#syncInputs(this.data(), this.config());
-        this.#documents.markReady();
+        this.#documents.markReady(
+          this.#instance.readOnly.isEnabled ?? config?.readOnly ?? false,
+        );
         this.ready.emit();
       }
     } catch (cause) {
@@ -159,7 +166,7 @@ export class EditorJs {
   }
 
   #dispose(): void {
-    this.#documents?.dispose();
+    this.#documents.dispose();
     const instance = this.#instance;
     this.#instance = undefined;
     if (!instance) return;

@@ -20,7 +20,10 @@ export interface EditorJsInstance {
   render(data: OutputData): Promise<void>;
   clear(): void | Promise<void>;
   focus(atEnd?: boolean): boolean;
-  readonly readOnly: { toggle(readOnly: boolean): Promise<boolean> };
+  readonly readOnly: {
+    readonly isEnabled?: boolean;
+    toggle(readOnly: boolean): Promise<boolean>;
+  };
   destroy(): void;
 }
 

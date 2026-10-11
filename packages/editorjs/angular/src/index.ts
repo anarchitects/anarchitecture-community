@@ -21,3 +21,4 @@ export {
 } from './lib/editorjs-loader.js';
 
 export { EditorJs } from './lib/editorjs.js';
+export { EditorJsOperationError } from '@anarchitects/editorjs-core';

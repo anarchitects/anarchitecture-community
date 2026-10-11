@@ -165,7 +165,7 @@ describe('published Angular contracts', () => {
         Object.defineProperty(globalThis, name, { configurable: true, get() { throw new Error('Browser access: ' + name); } });
       }
       const wrapper = await import('@anarchitects/editorjs-angular');
-      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EditorJs', 'provideEditorJsLoader']);
+      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EditorJs', 'EditorJsOperationError', 'provideEditorJsLoader']);
       assert.ok(import.meta.resolve('@anarchitects/editorjs-angular').includes('/fesm2022/'));
       assert.throws(() => import.meta.resolve('@editorjs/editorjs'), { code: 'ERR_MODULE_NOT_FOUND' });
       await assert.rejects(import('@anarchitects/editorjs-angular/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });

@@ -1,6 +1,9 @@
-import type {
-  EditorJsChangeEvent,
-  EditorJsErrorEvent,
+import {
+  EditorJsOperationError,
+  type EditorJsApi,
+  type EditorJsChangeEvent,
+  type EditorJsErrorEvent,
+  type EditorJsOperation,
 } from './editor-contracts.js';
 import type { OutputData } from './output-data.js';
 import { normalizeOutputData } from './parse-output-data.js';
@@ -9,6 +12,12 @@ import { normalizeOutputData } from './parse-output-data.js';
 export interface EditorJsDocumentDriver {
   save(): Promise<unknown>;
   render(data: OutputData): Promise<void>;
+  /** Optional capabilities. An absent handler rejects its API call. */
+  clear?(): void | Promise<void>;
+  focus?(atEnd?: boolean): boolean | Promise<boolean>;
+  setReadOnly?(readOnly: boolean): boolean | Promise<boolean>;
+  /** Actual mode, used to recover when a failed transition partially changed it. */
+  getReadOnly?(): boolean | undefined;
 }
 
 export interface EditorJsDocumentCoordinatorOptions {
@@ -19,54 +28,88 @@ export interface EditorJsDocumentCoordinatorOptions {
 }
 
 /**
- * Per-owner document coordination, independent of Editor.js and any framework.
- * Replacements are copied on acceptance and serialized with automatic saves.
+ * Per-owner document and control coordination, independent of any framework.
+ * Input replacements, controls and automatic saves share one ordered queue.
  * This does not own an editor, its readiness promise, or its destruction API.
  */
 export class EditorJsDocumentCoordinator {
   readonly #options: EditorJsDocumentCoordinatorOptions;
-  readonly #replacements: OutputData[] = [];
+  readonly #queue: (() => Promise<void>)[] = [];
+  readonly #cancellations = new Set<() => void>();
   #ready = false;
   #destroyed = false;
   #running = false;
-  #rendering = false;
-  #dirty = false;
+  #mutating = false;
+  #replacements = 0;
+  #saveQueued = false;
+  #pendingChange = false;
   #revision = 0;
+  #generation = 0;
   #sequence = 0;
   #fingerprint: string | undefined;
   #needsBaseline = false;
+  #readOnly = false;
+
+  /** Stable, bound facade; safe to retain or destructure, even before readiness. */
+  readonly api: EditorJsApi = Object.freeze({
+    save: () => this.#command('save', () => () => this.#readSnapshot()),
+    render: (data: OutputData) =>
+      this.#command('render', () => {
+        const document = this.#normalize(data, 'render');
+        this.#acceptReplacement();
+        return () => this.#write(() => this.#options.driver.render(document));
+      }),
+    clear: () =>
+      this.#command('clear', () => {
+        const clear = this.#capability('clear');
+        this.#acceptReplacement();
+        return () => this.#write(() => clear());
+      }),
+    focus: (atEnd?: boolean) =>
+      this.#command('focus', () => {
+        const focus = this.#capability('focus');
+        return () => focus(atEnd);
+      }),
+    setReadOnly: (readOnly: boolean) =>
+      this.#command('readOnly', () => {
+        const setReadOnly = this.#capability('setReadOnly');
+        return () => this.#setReadOnly(() => setReadOnly(readOnly));
+      }),
+  });
 
   constructor(options: EditorJsDocumentCoordinatorOptions) {
     this.#options = options;
   }
 
   /** Activate once the owner's editor is usable. Pre-ready edits are ignored. */
-  markReady(): void {
+  markReady(readOnly = false): void {
     if (this.#destroyed || this.#ready) return;
+    this.#readOnly = readOnly;
     this.#ready = true;
     this.#schedule();
   }
 
-  /**
-   * Accept a replacement, including before readiness. Undefined clears content;
-   * other invalid values report core diagnostics and leave accepted work intact.
-   */
+  /** Accept an input replacement before/after readiness; undefined clears content. */
   replace(data: unknown): void {
     if (this.#destroyed) return;
-    const result = normalizeOutputData(
-      data === undefined ? { blocks: [] } : data,
-    );
-    if (!result.ok) {
-      this.#report({
-        operation: 'data',
-        code: 'invalid-data',
-        cause: result.error,
-      });
+    let document: OutputData;
+    try {
+      document = this.#normalize(
+        data === undefined ? { blocks: [] } : data,
+        'data',
+      );
+    } catch (error) {
+      this.#reportAutomatic('data', error);
       return;
     }
-    this.#revision++;
-    this.#dirty = false;
-    this.#replacements.push(result.data);
+    this.#acceptReplacement();
+    this.#queue.push(async () => {
+      try {
+        await this.#write(() => this.#options.driver.render(document));
+      } catch (cause) {
+        this.#reportAutomatic('render', cause);
+      }
+    });
     this.#schedule();
   }
 
@@ -75,89 +118,230 @@ export class EditorJsDocumentCoordinator {
     if (
       this.#destroyed ||
       !this.#ready ||
-      this.#rendering ||
-      this.#replacements.length > 0
+      this.#readOnly ||
+      this.#mutating ||
+      this.#replacements > 0
     )
       return;
     this.#revision++;
     this.#sequence++;
-    this.#dirty = true;
+    this.#pendingChange = true;
+    if (this.#saveQueued) return;
+    this.#saveQueued = true;
+    const generation = this.#generation;
+    this.#queue.push(async () => {
+      this.#saveQueued = false;
+      if (generation !== this.#generation || this.#readOnly) return;
+      try {
+        await this.#capture('change');
+      } catch (cause) {
+        this.#reportAutomatic('save', cause);
+      }
+    });
     this.#schedule();
   }
 
-  /** Cancel unstarted work and all future outputs; in-flight driver work cannot be cancelled. */
+  /** Reject pending calls immediately; suppress outputs and cancel unstarted work. */
   dispose(): void {
+    if (this.#destroyed) return;
     this.#destroyed = true;
-    this.#replacements.length = 0;
-    this.#dirty = false;
+    this.#queue.length = 0;
+    this.#pendingChange = false;
     this.#fingerprint = undefined;
+    for (const cancel of this.#cancellations) cancel();
+    this.#cancellations.clear();
+  }
+
+  #acceptReplacement(): void {
+    this.#revision++;
+    this.#generation++;
+    this.#pendingChange = false;
+    this.#replacements++;
+  }
+
+  #normalize(data: unknown, operation: EditorJsOperation): OutputData {
+    const result = normalizeOutputData(data);
+    if (!result.ok)
+      throw new EditorJsOperationError({
+        operation,
+        code: 'invalid-data',
+        cause: result.error,
+      });
+    return result.data;
+  }
+
+  #capability<Key extends 'clear' | 'focus' | 'setReadOnly'>(
+    key: Key,
+  ): NonNullable<EditorJsDocumentDriver[Key]> {
+    const method = this.#options.driver[key];
+    if (!method) throw new Error(`Editor driver does not support ${key}.`);
+    return method.bind(this.#options.driver) as NonNullable<
+      EditorJsDocumentDriver[Key]
+    >;
+  }
+
+  #command<T>(
+    operation: EditorJsOperation,
+    prepare: () => () => T | Promise<T>,
+  ): Promise<T> {
+    const unavailable = this.#destroyed
+      ? 'destroyed'
+      : !this.#ready
+        ? 'not-ready'
+        : undefined;
+    if (unavailable) {
+      const error = new EditorJsOperationError({
+        operation,
+        code: unavailable,
+        cause: new Error(`Editor owner is ${unavailable}.`),
+      });
+      this.#report(error);
+      return Promise.reject(error);
+    }
+    let run: () => T | Promise<T>;
+    try {
+      run = prepare();
+    } catch (cause) {
+      const error = this.#failure(operation, cause);
+      this.#report(error);
+      return Promise.reject(error);
+    }
+    const promise = new Promise<T>((resolve, reject) => {
+      const cancel = () =>
+        reject(
+          new EditorJsOperationError({
+            operation,
+            code: 'destroyed',
+            cause: new Error('Editor owner was destroyed.'),
+          }),
+        );
+      this.#cancellations.add(cancel);
+      this.#queue.push(async () => {
+        try {
+          const result = await run();
+          if (!this.#destroyed) resolve(result);
+        } catch (cause) {
+          if (!this.#destroyed) {
+            const error = this.#failure(operation, cause);
+            // Settle before notifying a reentrant host listener.
+            reject(error);
+            this.#report(error);
+          }
+        } finally {
+          this.#cancellations.delete(cancel);
+        }
+      });
+    });
+    this.#schedule();
+    return promise;
   }
 
   #schedule(): void {
     if (!this.#ready || this.#destroyed || this.#running) return;
     this.#running = true;
-    // Coalesce notifications in the same turn without a timer or DOM dependency.
     void Promise.resolve().then(() => this.#drain());
   }
 
   async #drain(): Promise<void> {
     try {
       while (!this.#destroyed) {
-        const replacement = this.#replacements.shift();
-        if (replacement !== undefined) {
-          await this.#render(replacement);
-        } else if (this.#dirty) {
-          this.#dirty = false;
-          await this.#save();
-        } else break;
+        const work = this.#queue.shift();
+        if (!work) break;
+        await work();
       }
     } finally {
       this.#running = false;
     }
   }
 
-  async #render(data: OutputData): Promise<void> {
-    this.#rendering = true;
-    // Even failed upstream renders can partially modify content. Re-establish a
-    // baseline before publishing changes from an uncertain document state.
+  async #write<T>(write: () => T | Promise<T>): Promise<T> {
+    this.#mutating = true;
     this.#needsBaseline = true;
     try {
-      await this.#options.driver.render(data);
-      if (!this.#destroyed) await this.#save();
+      const result = await write();
+      if (!this.#destroyed && !this.#readOnly) await this.#capture('baseline');
+      return result;
     } catch (cause) {
-      this.#report({ operation: 'render', code: 'operation-failed', cause });
+      this.#needsBaseline = true;
+      throw cause;
     } finally {
-      this.#rendering = false;
+      this.#replacements--;
+      this.#mutating = false;
     }
   }
 
-  async #save(): Promise<void> {
+  async #setReadOnly(
+    toggle: () => boolean | Promise<boolean>,
+  ): Promise<boolean> {
+    this.#mutating = true;
+    try {
+      this.#readOnly = this.#options.driver.getReadOnly?.() ?? this.#readOnly;
+      // Editor.js cannot save while read-only. Capture known edits before entry,
+      // and establish the rendered baseline after returning to editable mode.
+      if (!this.#readOnly) await this.#capture('readOnly');
+      if (this.#destroyed) return this.#readOnly;
+      this.#readOnly = await toggle();
+      if (!this.#destroyed && !this.#readOnly) await this.#capture('readOnly');
+      return this.#readOnly;
+    } catch (cause) {
+      this.#needsBaseline = true;
+      throw cause;
+    } finally {
+      this.#mutating = false;
+    }
+  }
+
+  async #readSnapshot(): Promise<OutputData> {
+    try {
+      return this.#normalize(await this.#options.driver.save(), 'save');
+    } catch (cause) {
+      throw this.#failure('save', cause);
+    }
+  }
+
+  async #capture(mode: 'change' | 'baseline' | 'readOnly'): Promise<void> {
+    this.#readOnly = this.#options.driver.getReadOnly?.() ?? this.#readOnly;
+    if (this.#readOnly) return;
     const revision = this.#revision;
     const sequence = this.#sequence;
-    try {
-      const saved = await this.#options.driver.save();
-      if (this.#destroyed || revision !== this.#revision) return;
-      const result = normalizeOutputData(saved);
-      if (!result.ok) {
-        this.#report({
-          operation: 'save',
-          code: 'invalid-data',
-          cause: result.error,
+    const saved = await this.#readSnapshot();
+    if (this.#destroyed || revision !== this.#revision) return;
+    const fingerprint = documentFingerprint(saved);
+    const silent =
+      this.#needsBaseline ||
+      mode === 'baseline' ||
+      (mode === 'readOnly' && !this.#pendingChange) ||
+      fingerprint === this.#fingerprint;
+    this.#needsBaseline = false;
+    this.#fingerprint = fingerprint;
+    this.#pendingChange = false;
+    if (!silent) this.#options.onChange({ data: saved, sequence });
+  }
+
+  #failure(
+    operation: EditorJsOperation,
+    cause: unknown,
+  ): EditorJsOperationError {
+    return cause instanceof EditorJsOperationError
+      ? cause
+      : new EditorJsOperationError({
+          operation,
+          code: 'operation-failed',
+          cause,
         });
-        return;
-      }
-      const fingerprint = documentFingerprint(result.data);
-      const silent = this.#needsBaseline || fingerprint === this.#fingerprint;
-      this.#needsBaseline = false;
-      this.#fingerprint = fingerprint;
-      if (!silent) this.#options.onChange({ data: result.data, sequence });
-    } catch (cause) {
-      this.#report({ operation: 'save', code: 'operation-failed', cause });
-    }
   }
 
   #report(event: EditorJsErrorEvent): void {
     if (!this.#destroyed) this.#options.onError(event);
+  }
+
+  #reportAutomatic(operation: EditorJsOperation, cause: unknown): void {
+    const error = this.#failure(operation, cause);
+    this.#report({
+      operation: error.operation,
+      code: error.code,
+      cause: error.cause,
+    });
   }
 }
 

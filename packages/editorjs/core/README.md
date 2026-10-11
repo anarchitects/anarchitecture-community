@@ -74,8 +74,8 @@ carries a saved `data` snapshot and increasing owner-local `sequence`.
 `EditorJsErrorEvent` carries an `operation`, a failure `code`, and the original
 `cause`. `EditorJsOperation` enumerates load/create/readiness, configuration/data,
 control operations and destruction. These are shared type contracts; core does
-not create browser editor instances or implement the full imperative facade. The
-`EditorJsDocumentCoordinator` below implements document coordination.
+not create browser editor instances. `EditorJsDocumentCoordinator` implements the
+facade and document coordination behind a host-supplied driver.
 
 ```ts
 import type { EditorJsApi, OutputData } from '@anarchitects/editorjs-core';
@@ -104,7 +104,7 @@ drivers, UI lifecycle hooks and forms integration belong to downstream adapters.
 
 ## Document coordination for editor owners
 
-`EditorJsDocumentCoordinator` serializes document replacements and automatic saves
+`EditorJsDocumentCoordinator` serializes document replacements, controls and automatic saves
 behind `EditorJsDocumentDriver`. It needs no Angular, DOM or Editor.js dependency.
 Use one coordinator per editor owner; never share it between instances.
 
@@ -126,15 +126,18 @@ export function coordinateDocuments(
 ```
 
 The owner supplies synchronous event sinks that handle their own listener errors,
-a driver with `save(): Promise<unknown>` and `render(data): Promise<void>`, and
-calls these methods:
+a driver with `save(): Promise<unknown>` and `render(data): Promise<void>`. Optional
+`clear`, `focus` and `setReadOnly` handlers enable the remaining controls; missing
+handlers reject with `operation-failed`. Handlers may be synchronous or asynchronous
+where their interface allows it. Supply `getReadOnly` to report actual mode after a
+partially failed transition. The owner calls these lifecycle/input methods:
 
-| Method           | Behavior                                                                                                                                                                                                                              |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `markReady()`    | Activate once the editor is usable; drain accepted replacements. Repeated calls do nothing.                                                                                                                                           |
-| `replace(data)`  | Validate and detach the input on acceptance; serialize replacements in order, waiting for readiness. `undefined` means `{ blocks: [] }`. Invalid values report `data` / `invalid-data` without invalidating accepted work.            |
-| `notifyChange()` | Notify of an editor-originated invalidation. Coalesce automatic saves and discard snapshots superseded by a newer notification or accepted replacement. Ignore notifications before readiness or while replacement is queued/running. |
-| `dispose()`      | Discard queued work and suppress all future events/errors. Does not destroy the editor or cancel an in-flight driver operation. Repeated calls do nothing.                                                                            |
+| Method                 | Behavior                                                                                                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `markReady(readOnly?)` | Activate once the editor is usable, supplying its initial read-only mode (default false); drain accepted replacements. Repeated calls do nothing.                                                                                     |
+| `replace(data)`        | Validate and detach the input on acceptance; serialize replacements in order, waiting for readiness. `undefined` means `{ blocks: [] }`. Invalid values report `data` / `invalid-data` without invalidating accepted work.            |
+| `notifyChange()`       | Notify of an editor-originated invalidation. Coalesce automatic saves and discard snapshots superseded by a newer notification or accepted replacement. Ignore notifications before readiness or while replacement is queued/running. |
+| `dispose()`            | Discard queued work and suppress all future events/errors. Immediately rejects active/queued controls with `destroyed`. Does not destroy the editor or cancel an in-flight driver operation. Repeated calls do nothing.               |
 
 A replacement takes precedence over edits to the previous document. After each
 successful render, a silent save captures the editor's actual document as a
@@ -153,9 +156,39 @@ a silent recovery baseline. Edits included in that recovery snapshot are not emi
 separately. Ordinary automatic-save failures allow the next notification to retry
 without resetting the baseline. Reapply a known document if recovery must be exact.
 
-This coordinator is an owner integration primitive, not an imperative editor API.
-The owner still manages initialization, render scheduling, configuration policy,
-platform checks and destruction. Its promises cannot cancel upstream work.
+The stable `api: EditorJsApi` facade provides `save`, `render`, `clear`, `focus` and
+`setReadOnly`. Its bound methods may be retained or destructured. Calls before
+readiness reject with `not-ready`; after disposal they reject with `destroyed`.
+Ready calls execute in acceptance order alongside input replacements and automatic
+saves. An explicit save returns a detached snapshot without emitting a change or
+updating the automatic baseline; its result is not discarded when later work arrives.
+Only automatic change publications are suppressed when superseded.
+
+`render` validates and copies its required document immediately; invalid input
+rejects with `render` / `invalid-data`. `render` and `clear` invalidate automatic
+snapshots on acceptance and suppress write feedback. Their promises include an
+editable-mode baseline save; its failure rejects with `operation: 'save'`, even if
+the write already succeeded. Focus and read-only controls preserve driver boolean
+results. There is no public destruction method on the facade.
+
+Read-only transitions capture known edits before entering the mode and establish a
+fresh baseline after returning to editing. Writes while read-only defer baseline
+saving; automatic notifications are ignored until editing resumes. The driver may
+reject explicit saves in read-only mode (Editor.js does). Provide `getReadOnly`
+when possible so a later mode operation can recover from a partially failed
+transition. Failures never roll back an upstream mutation.
+Failed mode transitions also require a silent recovery baseline before normal
+automatic change publication resumes.
+
+Imperative calls reject with `EditorJsOperationError`, an `Error` implementing the
+shared error event with `operation`, `code` and original `cause`. While live, the
+same error object reaches `onError`. Callers must await/catch promises themselves;
+observing the error sink does not consume a caller's rejection. Disposal rejects
+active/queued calls immediately, independently of upstream completion, and prevents
+late outputs. Input/automatic failures still use ordinary error-event payloads.
+
+The owner manages initialization, render scheduling, configuration policy, platform
+checks and editor destruction. Coordinator promises cannot cancel upstream work.
 
 ## Document and block types
 
@@ -560,14 +593,14 @@ response. These interfaces do not perform I/O or handle exceptions automatically
 | Runtime functions     | `parseOutputData`, `normalizeOutputData`, `validateOutputData`, `parseContentWithProvenance`                                                                                                                           |
 | Documents and JSON    | `OutputData`, `OutputBlockData`, `OutputBlockDataFor`, `JsonValue`, `JsonObject`, `JsonArray`                                                                                                                          |
 | Document coordination | `EditorJsDocumentCoordinator` (class), `EditorJsDocumentDriver`, `EditorJsDocumentCoordinatorOptions`                                                                                                                  |
-| Editor integration    | `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`, `EditorJsErrorEvent`, `EditorJsOperation`                                                                                                                  |
+| Editor integration    | `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`, `EditorJsErrorEvent`, `EditorJsOperation`, `EditorJsOperationError` (class)                                                                                |
 | Tool registration     | `ToolConstructor`, `ToolboxEntry`, `ToolOptions`, `ToolConfiguration`, `ToolRegistration`                                                                                                                              |
 | Uploads               | `UploadedFile`, `UploadSuccess`, `UploadFailure`, `UploadResponse`, `FileUploader`, `UrlUploader`, `ImageUploader`                                                                                                     |
 | Parsing               | `OutputDataParseResult`, `OutputDataParseError`, `OutputDataParseErrorCode`                                                                                                                                            |
 | Validation            | `OutputDataValidationResult`, `OutputDataValidationOptions`, `OutputDataValidationError`, `OutputDataValidationErrorCode`, `ToolDataValidator`, `ToolValidationContext`, `ToolValidationIssue`, `ToolValidationResult` |
 | Provenance            | `ContentProvenance`, `ContentSchemaVersion`, `ContentProducer`, `ContentParseResult`                                                                                                                                   |
 
-The four functions and `EditorJsDocumentCoordinator` class have runtime exports;
+The four functions, `EditorJsDocumentCoordinator` and `EditorJsOperationError` classes have runtime exports;
 the remaining contracts are types.
 Import from the package root. Deep imports into `src`, `dist`, or helper modules
 are private and blocked by the export map. Use TypeScript's `NodeNext` resolution

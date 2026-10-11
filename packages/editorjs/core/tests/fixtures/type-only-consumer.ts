@@ -39,6 +39,7 @@ import type {
   EditorJsErrorEvent,
   EditorJsOperation,
   EditorJsDocumentCoordinator,
+  EditorJsOperationError,
   EditorJsDocumentDriver,
   EditorJsDocumentCoordinatorOptions,
 } from '@anarchitects/editorjs-core';
@@ -67,6 +68,7 @@ export interface AdditionalPublicContracts {
   editorError: EditorJsErrorEvent;
   operation: EditorJsOperation;
   coordinator: EditorJsDocumentCoordinator;
+  operationError: EditorJsOperationError;
   driver: EditorJsDocumentDriver;
   coordinatorOptions: EditorJsDocumentCoordinatorOptions;
 }
