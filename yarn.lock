@@ -34,6 +34,8 @@ __metadata:
 "@anarchitects/editorjs-core@workspace:packages/editorjs/core":
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-core@workspace:packages/editorjs/core"
+  dependencies:
+    "@editorjs/editorjs": "npm:2.31.7"
   languageName: unknown
   linkType: soft
 
@@ -2526,6 +2528,44 @@ __metadata:
   version: 1.1.0
   resolution: "@discoveryjs/json-ext@npm:1.1.0"
   checksum: 10c0/e48a15f97874cae46181d08b6d4e03f6fd2de92a5323a5e3847ce66b273769e6a81935181fa69be771a2d2252c04faea7157d7dd5744b44ed5abd624fcda8c29
+  languageName: node
+  linkType: hard
+
+"@editorjs/caret@npm:^1.0.1":
+  version: 1.1.0
+  resolution: "@editorjs/caret@npm:1.1.0"
+  dependencies:
+    "@editorjs/dom": "npm:^1.1.0"
+  checksum: 10c0/3f9864d520ebf8bf165d019a1b4174cc5dc489cae6b555b96c89af8dec185ab3726a913e2ca1672cc1e9cf104d15f6f75ce7af3298f5d3bdccaedd3d57313159
+  languageName: node
+  linkType: hard
+
+"@editorjs/dom@npm:^1.1.0":
+  version: 1.2.0
+  resolution: "@editorjs/dom@npm:1.2.0"
+  dependencies:
+    "@editorjs/helpers": "npm:^1.2.2"
+  checksum: 10c0/6cec9dc9729a0c7e4bf75379f7c06fae0ba99a8796456c9cea0ad0932200d843f6f95953641d1a55578f6eb1cb38b9b3a650ee3c711f9f1e79693945744b64e6
+  languageName: node
+  linkType: hard
+
+"@editorjs/editorjs@npm:2.31.7":
+  version: 2.31.7
+  resolution: "@editorjs/editorjs@npm:2.31.7"
+  dependencies:
+    "@editorjs/caret": "npm:^1.0.1"
+    codex-notifier: "npm:^1.1.2"
+    codex-tooltip: "npm:^1.0.5"
+  checksum: 10c0/15170cdedae08e2374baf8abffa23254207f46deb5205e046fcaffb6e015ecbaef42b1dbb8b764eb13606effc4a95990abdd648d90a43d5e268a3afee5decd33
+  languageName: node
+  linkType: hard
+
+"@editorjs/helpers@npm:^1.2.2":
+  version: 1.2.2
+  resolution: "@editorjs/helpers@npm:1.2.2"
+  dependencies:
+    codex-tooltip: "npm:^1.0.6"
+  checksum: 10c0/b76604a28a28ef520684222905517fa0456377feab82660e9b3b8937a760f7ca659dedc69cf2fc91137f6fccc7a4b185ad241230675d55fe62adf0ba288dbaf2
   languageName: node
   linkType: hard
 
@@ -9888,6 +9928,20 @@ __metadata:
   version: 4.6.0
   resolution: "co@npm:4.6.0"
   checksum: 10c0/c0e85ea0ca8bf0a50cbdca82efc5af0301240ca88ebe3644a6ffb8ffe911f34d40f8fbcf8f1d52c5ddd66706abd4d3bfcd64259f1e8e2371d4f47573b0dc8c28
+  languageName: node
+  linkType: hard
+
+"codex-notifier@npm:^1.1.2":
+  version: 1.1.2
+  resolution: "codex-notifier@npm:1.1.2"
+  checksum: 10c0/fef16977cdc067802004a29f3e52862f28a2821e7079c716ba27a8d51b218e566201a560614d54d3d4ea9c8ece3ffe49304ec9df38cde75da551db32afc508c8
+  languageName: node
+  linkType: hard
+
+"codex-tooltip@npm:^1.0.5, codex-tooltip@npm:^1.0.6":
+  version: 1.0.6
+  resolution: "codex-tooltip@npm:1.0.6"
+  checksum: 10c0/ec7488795aafbb004382899b51170190fc13ec2723004355a44e0bc50402325585108b9ef9825a7e6a6dff30e4e9edab8c93a3fe95cb2583e15f89630528676f
   languageName: node
   linkType: hard
 
