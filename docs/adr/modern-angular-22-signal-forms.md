@@ -76,6 +76,6 @@ The resulting policy is more explicit and testable, but requires maintaining off
 
 Apply this guide to Angular UI/editor adapters, including the Editor.js and visual-composition workstreams. Governance canonical contracts remain technology-neutral; adapters extract, extensions enrich and hosts compose. Angular does not belong in governance core.
 
-Keep rich-editor/browser code out of server module evaluation and public display bundles. Validate hydration and disposal in actual integrations. Public package READMEs must describe actual consumer exports; the proposed documentation ADR stays proposed.
+Keep rich-editor/browser code out of server module evaluation and public display bundles. Validate hydration and disposal in actual integrations. Public package READMEs must describe actual consumer exports and follow the separately accepted [public package documentation policy](0004-public-package-documentation.md) (maintainer approval 2026-10-11).
 
 Review the [local ADR inventory and release constraints](../guides/modern-angular/repository-application.md) before implementation. This acceptance supersedes only explicitly named clauses; unrelated historical or proposed ADRs retain their existing status. The guide's source principles, current API facts and Anarchitects decisions remain separately traceable.

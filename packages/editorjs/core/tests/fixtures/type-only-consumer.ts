@@ -17,7 +17,43 @@ import type {
   ToolDataValidator,
   ContentParseResult,
   ContentProvenance,
+  ContentSchemaVersion,
+  ContentProducer,
+  FileUploader,
+  UrlUploader,
+  UploadSuccess,
+  UploadFailure,
+  ToolConstructor,
+  ToolboxEntry,
+  ToolOptions,
+  OutputDataParseError,
+  OutputDataParseErrorCode,
+  OutputDataValidationError,
+  OutputDataValidationErrorCode,
+  ToolValidationContext,
+  ToolValidationIssue,
+  ToolValidationResult,
 } from '@anarchitects/editorjs-core';
+
+// Keep every documented type reachable through the published root declarations.
+export interface AdditionalPublicContracts {
+  schema: ContentSchemaVersion;
+  producer: ContentProducer;
+  fileUploader: FileUploader<Uint8Array>;
+  urlUploader: UrlUploader;
+  uploadSuccess: UploadSuccess;
+  uploadFailure: UploadFailure;
+  constructor: ToolConstructor;
+  toolbox: ToolboxEntry;
+  toolOptions: ToolOptions;
+  parseError: OutputDataParseError;
+  parseCode: OutputDataParseErrorCode;
+  validationError: OutputDataValidationError;
+  validationCode: OutputDataValidationErrorCode;
+  context: ToolValidationContext;
+  issue: ToolValidationIssue;
+  result: ToolValidationResult;
+}
 
 interface ToolData {
   paragraph: { text: string };
