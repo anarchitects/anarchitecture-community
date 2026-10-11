@@ -26,6 +26,17 @@ export {
   normalizeOutputData,
   parseOutputData,
 } from './lib/parse-output-data.js';
+export { validateOutputData } from './lib/validate-output-data.js';
+export type {
+  OutputDataValidationError,
+  OutputDataValidationErrorCode,
+  OutputDataValidationOptions,
+  OutputDataValidationResult,
+  ToolDataValidator,
+  ToolValidationContext,
+  ToolValidationIssue,
+  ToolValidationResult,
+} from './lib/validate-output-data.js';
 export type {
   OutputDataParseError,
   OutputDataParseErrorCode,

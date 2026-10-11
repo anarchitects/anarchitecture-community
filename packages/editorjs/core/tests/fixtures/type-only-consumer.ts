@@ -12,6 +12,9 @@ import type {
   UploadedFile,
   UploadResponse,
   OutputDataParseResult,
+  OutputDataValidationOptions,
+  OutputDataValidationResult,
+  ToolDataValidator,
 } from '@anarchitects/editorjs-core';
 
 interface ToolData {
@@ -126,5 +129,36 @@ export function describeParsing(result: OutputDataParseResult): string {
   // @ts-expect-error Parsing the envelope does not establish a custom tool schema.
   const unsafe = result.data.blocks[0].data.text;
   void unsafe;
+  return `${result.data.blocks.length} blocks`;
+}
+
+export const customValidator: ToolDataValidator = (data) => {
+  if (
+    data !== null &&
+    typeof data === 'object' &&
+    'text' in data &&
+    typeof data.text === 'string'
+  ) {
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    errors: [
+      { path: ['text'], code: 'text_required', message: 'Expected text.' },
+    ],
+  };
+};
+
+export const validationOptions: OutputDataValidationOptions = {
+  blockIds: 'required',
+  unknownTools: 'reject',
+  toolValidators: new Map([['paragraph', customValidator]]),
+};
+
+export function describeValidation(result: OutputDataValidationResult): string {
+  if (!result.ok) return result.errors.map((error) => error.message).join('; ');
+  // @ts-expect-error Validation does not assert that all plugin payloads are paragraphs.
+  const text = result.data.blocks[0].data.text;
+  void text;
   return `${result.data.blocks.length} blocks`;
 }

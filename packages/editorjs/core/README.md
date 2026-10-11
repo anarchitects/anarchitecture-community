@@ -1,9 +1,10 @@
 # @anarchitects/editorjs-core
 
 Framework-neutral document, tool configuration, and upload contracts for Editor.js,
-with safe parsing and normalization utilities. Use `import type` for contracts and
-regular imports for `parseOutputData` and `normalizeOutputData`. Pluggable tool
-validation and version compatibility utilities follow in the remaining issues of #66.
+with parsing, normalization, and pluggable validation utilities. Use `import type`
+for contracts and regular imports for `parseOutputData`, `normalizeOutputData`, and
+`validateOutputData`. Version compatibility utilities follow in the remaining
+issues of #66.
 
 ## Runtime and Editor.js strategy
 
@@ -162,6 +163,96 @@ before parsing. Successful parsing is not plugin validation, ID uniqueness or
 required-ID policy, version migration, or HTML sanitization. HTML strings remain
 unchanged and must be handled safely by the rendering host.
 
+## Structural and tool validation
+
+`validateOutputData(input, options?)` accepts JSON text or decoded input and returns
+an `OutputDataValidationResult`: `{ ok: true, data }` or `{ ok: false, errors }`.
+Failure never returns a partial or rejected document. Success returns normalized
+`OutputData`, without asserting any particular custom block type.
+
+Validation runs in three stages:
+
+1. Parse and check the JSON/document/block envelope using `parseOutputData`. Its
+   first failure is returned with `source: 'structure'` and its existing path/code.
+2. Check block IDs under the selected policy, collecting errors in block order.
+   Any structural error prevents all tool callbacks from running.
+3. Invoke registered tool validators, collecting tool errors in block order and
+   then in each validator's issue order.
+
+| Option                   | Default      | Behavior                                                                                              |
+| ------------------------ | ------------ | ----------------------------------------------------------------------------------------------------- |
+| `blockIds`               | `'optional'` | Missing IDs are allowed; present IDs must be nonblank and unique.                                     |
+| `blockIds: 'required'`   |              | Every block needs a nonblank, unique ID.                                                              |
+| `blockIds: 'ignore'`     |              | Skip presence, blankness, and uniqueness policies; the parser still requires string IDs when present. |
+| `unknownTools`           | `'allow'`    | Preserve blocks without a registered validator.                                                       |
+| `unknownTools: 'reject'` |              | Every configured tool name needs a registered validator.                                              |
+| `toolValidators`         | absent       | Host-supplied `ReadonlyMap<string, ToolDataValidator>`, keyed by the exact configured tool name.      |
+
+IDs are compared exactly and never trimmed, generated, or rewritten. Unknown tools
+are permitted by default so generic consumers can preserve third-party payloads.
+Use the reject policy when a host needs an explicit set of supported tools.
+
+Each tool or host can export its validator independently and the consuming host
+can compose their entries into a map. No global registry or concrete tool is
+provided. For example:
+
+```ts
+import { validateOutputData } from '@anarchitects/editorjs-core';
+import type { ToolDataValidator } from '@anarchitects/editorjs-core';
+
+const paragraphValidator: ToolDataValidator = (data) => {
+  if (
+    data !== null &&
+    typeof data === 'object' &&
+    'text' in data &&
+    typeof data.text === 'string'
+  ) {
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    errors: [
+      { path: ['text'], code: 'text_required', message: 'Expected text.' },
+    ],
+  };
+};
+
+const result = validateOutputData(
+  { blocks: [{ id: 'intro', type: 'paragraph', data: { text: 'Hello' } }] },
+  {
+    blockIds: 'required',
+    unknownTools: 'reject',
+    toolValidators: new Map([['paragraph', paragraphValidator]]),
+  },
+);
+```
+
+`ToolDataValidator` is synchronous and receives `unknown` data plus a
+`ToolValidationContext` containing `type`, `blockIndex`, and optional `id`. Data is
+a deeply frozen, detached copy; context is also frozen. Callbacks cannot rewrite
+the accepted document through these arguments. The returned document remains
+mutable and detached from the original input. Validators and configuration are
+trusted host code, not sandboxed code; callbacks should be pure.
+
+A callback returns `{ ok: true }` or `{ ok: false, errors: [...] }`. Each
+`ToolValidationIssue` has a nonempty message, an optional code, and an optional
+property/index path relative to block data. Omitting the path refers to the data
+object itself. For example, `['items', 0]` becomes
+`['blocks', blockIndex, 'data', 'items', 0]`. The host code is retained as
+`validatorCode`; the main error code is `tool_data_invalid` with `source: 'tool'`.
+
+Other validation codes are `missing_block_id`, `invalid_block_id`,
+`duplicate_block_id`, `unknown_tool`, `validator_failed` (a callback threw), and
+`invalid_validator_result` (a callback returned an unsupported result). Exceptions
+become generic diagnostics without exposing their text. Empty failure lists,
+invalid issue paths, and asynchronous results are rejected, not treated as success.
+Remote/asynchronous checks belong in the host's separate workflow.
+
+**Validation is not HTML sanitization or XSS-safe rendering.** Payload strings
+remain unchanged, including HTML. The host must render content and diagnostic
+messages safely; custom validator messages are host-supplied text. Schema checks
+also do not establish authorization, URL safety, or version compatibility.
+
 ## Tool configuration
 
 `ToolConfiguration<Tool, Config, Data>` keeps a host-supplied class and its config
@@ -282,10 +373,11 @@ The smoke tests also check that the published JavaScript and declarations exist,
 that source/tests are excluded from the archive, and that an isolated type-only
 consumer compiles with `skipLibCheck: false` and no DOM, Node, or Editor.js types.
 The `typecheck` target checks custom block narrowing, tool configuration, upload
-success/error cases, invalid shapes, and official declaration compatibility.
-`test` checks parsing diagnostics, content preservation, normalization idempotence,
+success/error cases, validator contracts, invalid shapes, and official declaration
+compatibility. `test` checks parsing diagnostics, ID policies, plugin validation
+and rejection diagnostics, content preservation, normalization idempotence,
 representative JSON round trips, and host-supplied upload callbacks. The packed
-artifact smoke test also calls both parsing utilities in isolated Node.
+artifact smoke test calls parsing and validation utilities in isolated Node.
 The isolated consumer also compiles a typed host/custom-tool registration example.
 
 Angular wrappers, concrete tools, upload adapters, and application consumers are
