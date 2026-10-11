@@ -8,7 +8,7 @@ readiness, saved-change and error outputs. Each component owns its holder and ed
 instance. Replace the `data` input to load another document; configuration remains
 initialization-only. The component exposes an instance-scoped `api` for imperative
 controls. The optional `/forms` entry point adds native Angular Signal Forms
-value binding; see its current limits below.
+value binding, composite interaction, availability and focus; see its current limits below.
 
 ## Installation and prerequisites
 
@@ -186,7 +186,7 @@ it is not necessary for normal editing. No two-way form model, persistence, dirt
 or touched state is maintained. Use the imperative API when you need an awaited
 operation or an explicit save rather than automatic saved-change events.
 
-## Signal Forms value binding
+## Signal Forms
 
 Import `EditorJsControl` from `@anarchitects/editorjs-angular/forms` and install
 `@angular/forms` at exactly the same version as your Angular core/common/platform-browser
@@ -197,15 +197,21 @@ npm install @anarchitects/editorjs-angular @anarchitects/editorjs-core @editorjs
 ```
 
 Forms is an optional `^22.0.0` peer. Root-only `EditorJs` consumers do not need it.
-This entry point currently supports **value synchronization**. Composite touched,
-disabled/readonly, focus/reset hooks, imperative snapshot access and certified
-legacy Forms integration are not supplied. Do not use it where those behaviors are
-required. Form schema state alone does not disable this editor or flush its
-asynchronous saves.
+This entry point supports value synchronization, composite touch, disabled/readonly
+state and a native Forms focus hook. Same-value reset invalidation, imperative
+snapshot access and certified legacy Forms integration are not supplied. Schema
+availability rules control editing, but do not flush asynchronous saves.
 
 ```ts
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { FormField, form } from '@angular/forms/signals';
+import {
+  FormField,
+  form,
+  disabled,
+  readonly as readonlyField,
+  required,
+  validate,
+} from '@angular/forms/signals';
 import {
   EditorJsControl,
   type EditorJsControlConfig,
@@ -220,15 +226,41 @@ import type {
   imports: [EditorJsControl, FormField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2 id="form-body-label">Article body</h2>
+    <h2 id="form-body-label">Article body (required)</h2>
+    <p id="form-body-help">
+      Add at least one block. Tool-specific validation is your responsibility.
+    </p>
     <aa-editorjs-control
-      role="group"
       aria-labelledby="form-body-label"
+      [attr.aria-describedby]="
+        fields.body().touched() && fields.body().invalid()
+          ? 'form-body-help form-body-errors'
+          : 'form-body-help'
+      "
       [formField]="fields.body"
       [config]="config"
       (error)="onError($event)"
     />
-    <p role="status">{{ fields.body().dirty() ? 'Edited' : 'Unchanged' }}</p>
+    @if (fields.body().touched() && fields.body().invalid()) {
+      <p id="form-body-errors" role="alert">
+        @for (error of fields.body().errors(); track $index) {
+          {{ error.message }}
+        }
+      </p>
+    }
+    <button type="button" (click)="locked.set(!locked())">
+      Toggle disabled
+    </button>
+    <button type="button" (click)="reviewing.set(!reviewing())">
+      Toggle readonly
+    </button>
+    <button
+      type="button"
+      [disabled]="fields.body().disabled()"
+      (click)="fields.body().focusBoundControl()"
+    >
+      Focus article
+    </button>
     @if (errorMessage()) {
       <p role="alert">{{ errorMessage() }}</p>
     }
@@ -240,7 +272,18 @@ export class ArticleForm {
       blocks: [{ type: 'paragraph', data: { text: 'Edit this article.' } }],
     },
   });
-  readonly fields = form(this.model);
+  readonly locked = signal(false);
+  readonly reviewing = signal(false);
+  readonly fields = form(this.model, (path) => {
+    disabled(path.body, () => this.locked());
+    readonlyField(path.body, () => this.reviewing());
+    required(path.body);
+    validate(path.body, ({ value }) =>
+      value().blocks.length === 0
+        ? { kind: 'article', message: 'Add at least one block.' }
+        : undefined,
+    );
+  });
   readonly config: EditorJsControlConfig = { placeholder: 'Write something…' };
   readonly errorMessage = signal('');
 
@@ -251,8 +294,8 @@ export class ArticleForm {
 ```
 
 Successful saved edits update `model().body` through Angular's native value binding
-and mark the field dirty. The control does not currently emit touch. It forwards
-payload-free `ready`, saved `change` and typed `error` events from the owned editor.
+and let Angular mark the field dirty. The control forwards payload-free `ready`,
+saved `change` and typed operational `error` events from the owned editor.
 No manual `(change)` assignment to the form model is needed. Use unique label IDs
 when displaying multiple controls; accessible block editing still depends on tools.
 
@@ -276,7 +319,7 @@ JSON documents. To normalize a Forms model directly for storage, opt into the sa
 core option or use a successful saved event snapshot.
 
 `EditorJsControlConfig` has the same initialization-only options as `EditorJsConfig`,
-with `readOnly` forbidden because availability is reserved for the Forms adapter.
+with `readOnly` forbidden because Forms owns availability.
 There is no separate `data` input or imperative `api` on the control. The underlying
 standalone component retains its existing controls.
 
@@ -284,8 +327,59 @@ The model holds the last successful saved snapshot, subject to native Forms
 synchronization/debounce. It may lag a current edit; submitting or changing form
 validation state does not await Editor.js. Same-value reset during pending work is
 not supported, and a model assignment does not reset dirty/touched state. The
-standalone API remains available for workflows requiring explicit current snapshots
-or read-only control. Full SSR/hydration and legacy Forms behavior are not certified.
+standalone API remains available for workflows requiring explicit current snapshots.
+Full SSR/hydration and legacy Forms behavior are not certified.
+
+### Interaction, availability and focus
+
+Angular owns `dirty` and `touched`. The payload-free `touch` output reports focus
+leaving the whole control; moving between blocks and the in-holder toolbar does not
+mark touched. Initialization, programmatic value writes and calling `focus()` do not
+by themselves mark interaction. Disablement and disposal suppress artificial blur.
+A tool's UI portalled outside the control counts as leaving its boundary.
+
+Use native schema `disabled()` and `readonly()` rules with `[formField]`. With
+`[(value)]` alone, bind the `disabled` and `readonly` boolean inputs yourself.
+Both request Editor.js read-only mode and retain the document. Disabled also makes
+the editor region inert, preventing pointer/keyboard interaction and descendant tab
+navigation. Readonly allows reading, selection and focus. Initial state is applied
+before editor creation; later changes use the ordered editor API, without replacing
+initialization-only configuration. Programmatic writes and explicit-value resets
+still render while unavailable; same-value/pending-save reset guarantees remain
+unsupported.
+
+Interaction is gated while loading or changing modes, including rapid toggles.
+A mode failure leaves interaction gated and emits one operational error; the
+requested form state is retained. Change the schema's availability state again to
+retry, or recreate the control. Handle the error visibly; do not infer successful
+editor mode from the requested field state alone. Legitimate saved edits captured
+before entering read-only mode can still update the model and emit `change`.
+Angular temporarily suppresses computed dirty/touched flags while a field is
+non-interactive; retained flags become observable again on return to editable mode.
+
+`focus(options?: FocusOptions): void` is the native Angular hook, also reached by
+`fields.body().focusBoundControl()`. It delegates to the editor when ready and
+editable, or focuses the labelled group when readonly. Before readiness, while
+disabled, during a transition, after a mode failure or after disposal it does
+nothing and never schedules a deferred focus steal. A failed editor focus reports
+one `error`; its promise is handled internally. `preventScroll` and `focusVisible`
+are accepted for signature compatibility but ignored, including group focus,
+because Editor.js only exposes its own caret-position argument. Do not rely on
+`config.autofocus` during initial interaction gating; request focus through this hook
+when the control is usable.
+
+The control receives native `invalid`, `pending`, `touched`, `dirty`, `required`,
+`errors` and `name` inputs as well as availability. It uses a `group` role with
+`aria-disabled` and `aria-busy` for applicable state; busy covers
+native validation pending or an unsettled editor mode. Validation pending alone
+does not disable editing. `data-invalid`, `data-readonly` and `data-required` expose
+requested state for styling. The control avoids `aria-invalid` (deprecated on
+`group`) and `aria-readonly`/`aria-required` (unsupported on that role), following
+the [WAI-ARIA group contract](https://www.w3.org/TR/wai-aria-1.2/#group).
+Supply visible labels, required indicators and validation/operation messages, and
+associate descriptions using normal host attributes as shown above. Schema `errors`
+and operational `error` events remain separate. Host ARIA does not certify the
+accessibility of third-party tools.
 
 ## Configuration and custom tools
 
@@ -497,7 +591,8 @@ directly using `useValue`. Custom loaders must enforce their own platform safety
 
 ## Public surface and ownership
 
-Use only `@anarchitects/editorjs-angular` or its `package.json` subpath.
+Use the root entry point for standalone editing and `/forms` for Forms integration.
+Package metadata is available through the `package.json` subpath.
 
 - Root runtime exports: `EditorJs`, `EDITOR_JS_LOADER`, `provideEditorJsLoader`,
   `EditorJsOperationError` (re-exported from core).
@@ -507,7 +602,11 @@ Use only `@anarchitects/editorjs-angular` or its `package.json` subpath.
 - Loading types: `EditorJsLoader`, `EditorJsFactory`, `EditorJsCreateOptions`,
   `EditorJsInstance`.
 
-Import document, tool and upload types directly from `@anarchitects/editorjs-core`.
+The `/forms` entry point exports `EditorJsControl` and the type
+`EditorJsControlConfig`. Its supported surface is `value`, `config`, native state
+inputs listed above, `touch`, `ready`, `change`, `error` and `focus()`. It has no
+`data`, `api`, `save()` or reset hook. Import document, tool and upload types directly
+from `@anarchitects/editorjs-core`.
 Applications own persistence records, storage mappings, migrations, transports,
 tool selection and rendering safety. No tool registry, uploader or application model
 is supplied. Forms is optional and isolated to the `/forms` entry point. Server-safe loading does not establish full
@@ -520,13 +619,13 @@ browser loading and component/holder ownership. Non-Angular integrations can use
 their own readiness, editor creation and destruction. See the
 [core package documentation](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/core#readme).
 
-| Need                             | Consumer responsibility / current boundary                                                                            |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Angular Forms                    | Opt-in Signal Forms value binding via `/forms`; no package-owned CVA. See the current interaction/reset limits above. |
-| SSR/hydration                    | Import and empty server-holder safety only; no full hydration guarantee or hydration providers.                       |
-| Tool registry and concrete tools | Supply compatible tools and their schemas; no registry or tool bundle is included.                                    |
-| Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads.                   |
-| Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.                      |
+| Need                             | Consumer responsibility / current boundary                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Angular Forms                    | Opt-in value binding, touch, availability and focus via `/forms`; no package-owned CVA. See reset/snapshot limits above. |
+| SSR/hydration                    | Import and empty server-holder safety only; no full hydration guarantee or hydration providers.                          |
+| Tool registry and concrete tools | Supply compatible tools and their schemas; no registry or tool bundle is included.                                       |
+| Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads.                      |
+| Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.                         |
 
 Package versions are independent from document schema/tool versions. During `0.x`,
 review [release notes](https://github.com/anarchitects/anarchitecture-community/releases)

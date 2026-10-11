@@ -13,6 +13,17 @@ import type {
 export function valueContract(
   control: EditorJsControl,
 ): FormValueControl<OutputData> {
+  control.focus({ preventScroll: true });
+  control.disabled();
+  control.readonly();
+  control.invalid();
+  control.pending();
+  control.touched();
+  control.dirty();
+  control.required();
+  control.errors();
+  control.name();
+  control.touch.subscribe(() => undefined);
   return control;
 }
 export const config: EditorJsControlConfig = { placeholder: 'Write' };
@@ -34,6 +45,9 @@ export const rejectedValue: ReturnType<EditorJsControl['value']> = null;
     <aa-editorjs-control
       [formField]="fields.body"
       [config]="config"
+      aria-label="Article"
+      aria-describedby="article-errors"
+      (touch)="onReady($event)"
       (ready)="onReady($event)"
       (change)="onChange($event)"
       (error)="onError($event)"
