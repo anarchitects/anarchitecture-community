@@ -1,0 +1,39 @@
+{
+  "name": "@anarchitects/editorjs-angular",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/common": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@editorjs/editorjs": "^2.31.7"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@anarchitects/editorjs-core": "^0.0.1"
+  },
+  "devDependencies": {
+    "@editorjs/editorjs": "2.31.7"
+  },
+  "type": "module",
+  "description": "Angular integration package for Editor.js.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/editorjs/angular"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/angular#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "@anarchitecture-community/source": "./src/index.ts"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "name": "editorjs-angular",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/editorjs/angular/src",
+  "prefix": "aa",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "manifestRootsToUpdate": [
+        "{projectRoot}",
+        {
+          "path": "dist/{projectRoot}",
+          "preserveLocalDependencyProtocols": false
+        }
+      ],
+      "currentVersionResolver": "git-tag",
+      "fallbackCurrentVersionResolver": "disk"
+    }
+  },
+  "tags": ["scope:editorjs", "type:angular"],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "inputs": ["production", "^production", "{workspaceRoot}/LICENSE"],
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "project": "packages/editorjs/angular/ng-package.json",
+        "tsConfig": "packages/editorjs/angular/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "packages/editorjs/angular/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["default", "^production"],
+      "options": {
+        "cwd": "packages/editorjs/angular",
+        "commands": [
+          "ngc -p tsconfig.lib.json --noEmit",
+          "tsc -p tsconfig.spec.json --noEmit"
+        ],
+        "parallel": false
+      }
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "inputs": ["default", "^production", "{workspaceRoot}/LICENSE"],
+      "dependsOn": ["build"],
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "coverage/packages/editorjs/angular"
+      }
+    },
+    "test-ci--tests/package.spec.ts": {
+      "dependsOn": ["build"]
+    },
+    "vite:test": {
+      "dependsOn": ["build"]
+    },
+    "vitest:test": {
+      "dependsOn": ["build"]
+    }
+  }
+}
