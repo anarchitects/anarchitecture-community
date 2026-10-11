@@ -11,6 +11,7 @@ import type {
   ToolRegistration,
   UploadedFile,
   UploadResponse,
+  OutputDataParseResult,
 } from '@anarchitects/editorjs-core';
 
 interface ToolData {
@@ -117,3 +118,13 @@ export const booleanStatus: UploadResponse = {
   success: true,
   file: { url: '/image.png' },
 };
+
+export function describeParsing(result: OutputDataParseResult): string {
+  if (!result.ok) {
+    return `${result.error.code}: ${result.error.path.join('.')}: ${result.error.message}`;
+  }
+  // @ts-expect-error Parsing the envelope does not establish a custom tool schema.
+  const unsafe = result.data.blocks[0].data.text;
+  void unsafe;
+  return `${result.data.blocks.length} blocks`;
+}

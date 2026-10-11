@@ -103,6 +103,8 @@ describe('published package', () => {
         assert.equal(typeof core, 'object');
         assert.ok(import.meta.resolve('@anarchitects/editorjs-core').endsWith('/dist/index.js'));
         assert.ok(import.meta.resolve('@anarchitects/editorjs-core/package.json').endsWith('/package.json'));
+        assert.deepEqual(core.parseOutputData('{"blocks":[]}'), { ok: true, data: { blocks: [] } });
+        assert.deepEqual(core.normalizeOutputData({ blocks: [], time: undefined }), { ok: true, data: { blocks: [] } });
         console.log('import ok');
       `,
       ],
