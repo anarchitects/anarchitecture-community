@@ -49,3 +49,11 @@ export type {
   OutputDataParseErrorCode,
   OutputDataParseResult,
 } from './lib/parse-output-data.js';
+
+export type {
+  EditorJsApi,
+  EditorJsChangeEvent,
+  EditorJsErrorEvent,
+  EditorJsOperation,
+  EditorJsReadyEvent,
+} from './lib/editor-contracts.js';

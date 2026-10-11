@@ -65,6 +65,42 @@ requires schema checks. Use `parseOutputData(savedJson)` when reading it back.
 - Runtime source is compiled in strict mode with only the ES2022 standard library
   and no ambient Node or DOM types. Browser access belongs in downstream adapters.
 
+## Framework-neutral editor integration contracts
+
+`EditorJsApi<Block>` describes an instance-owned asynchronous control facade:
+`save()`, `render(data)`, `clear()`, `focus(atEnd?)` and `setReadOnly(boolean)`.
+`EditorJsReadyEvent<Block>` carries that facade; `EditorJsChangeEvent<Block>`
+carries a saved `data` snapshot and increasing owner-local `sequence`.
+`EditorJsErrorEvent` carries an `operation`, a failure `code`, and the original
+`cause`. `EditorJsOperation` enumerates load/create/readiness, configuration/data,
+control operations and destruction. These are shared type contracts; core does
+not yet provide a runtime editor controller or create browser editor instances.
+
+```ts
+import type { EditorJsApi, OutputData } from '@anarchitects/editorjs-core';
+
+export async function replaceDocument(
+  editor: EditorJsApi,
+  document: OutputData,
+): Promise<OutputData> {
+  await editor.render(document);
+  return editor.save();
+}
+```
+
+Owner implementations serialize accepted operations, reject calls before ready
+or after destruction, and suppress late outputs. Programmatic document replacement
+does not emit editor-originated changes. Rapid editor notifications may coalesce;
+obsolete saved snapshots must be discarded, so sequence gaps are valid. Failures
+do not poison later queued work. Imperative failures reject and are observable
+through the owner's error channel while live; destruction emits no late events.
+Generic block parameters describe validated data, not a runtime schema check.
+
+Angular adapters reuse these contracts and core's normalization/validation rather
+than redefining them. Non-Angular hosts can implement the same contract without
+installing Angular or DOM declarations. Browser loading, holders, concrete editor
+drivers, UI lifecycle hooks and forms integration belong to downstream adapters.
+
 ## Document and block types
 
 `OutputData` has a required `blocks` array and optional `time` (milliseconds) and
@@ -467,6 +503,7 @@ response. These interfaces do not perform I/O or handle exceptions automatically
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Runtime functions  | `parseOutputData`, `normalizeOutputData`, `validateOutputData`, `parseContentWithProvenance`                                                                                                                           |
 | Documents and JSON | `OutputData`, `OutputBlockData`, `OutputBlockDataFor`, `JsonValue`, `JsonObject`, `JsonArray`                                                                                                                          |
+| Editor integration | `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`, `EditorJsErrorEvent`, `EditorJsOperation`                                                                                                                  |
 | Tool registration  | `ToolConstructor`, `ToolboxEntry`, `ToolOptions`, `ToolConfiguration`, `ToolRegistration`                                                                                                                              |
 | Uploads            | `UploadedFile`, `UploadSuccess`, `UploadFailure`, `UploadResponse`, `FileUploader`, `UrlUploader`, `ImageUploader`                                                                                                     |
 | Parsing            | `OutputDataParseResult`, `OutputDataParseError`, `OutputDataParseErrorCode`                                                                                                                                            |

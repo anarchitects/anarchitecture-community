@@ -16,13 +16,6 @@ export default [
             '{projectRoot}/vitest.config.mts',
             '{projectRoot}/tests/**/*',
           ],
-          // Scaffold contracts are declared before the editor implementation.
-          ignoredDependencies: [
-            '@angular/common',
-            '@angular/core',
-            '@editorjs/editorjs',
-            '@anarchitects/editorjs-core',
-          ],
         },
       ],
     },

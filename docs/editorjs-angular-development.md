@@ -4,13 +4,26 @@ Nx project: `editorjs-angular`. Package: `@anarchitects/editorjs-angular`.
 Consumer-facing behavior is documented in the
 [package README](../packages/editorjs/angular/README.md).
 
-## Scaffold boundary
+## Implementation boundary
 
-Issue #533 establishes packaging, dependencies, strict compilation and artifact
-checks. The entry point deliberately exports nothing; the generator's placeholder
-component is removed. Configuration contracts, the actual editor component,
-document events, imperative controls and browser integration are separate subissues
-of #67. Do not advertise those capabilities before they exist.
+Issue #533 established packaging and artifact checks. #534 adds typed configuration,
+shared controls/events and the lazy loader/provider seam. No component or control
+facade implementation ships yet; lifecycle/data/operation implementation remains
+#535–#538. Do not advertise those capabilities as implemented.
+
+Core owns framework-neutral controls/events and data algorithms. Angular re-exports
+the shared event/control types and consumes `normalizeOutputData` at the creation
+boundary. Editor.js configuration (which references browser types), Angular DI,
+platform checks and holder binding stay here. The loader returns a synchronous
+factory so an owner can check for destruction after awaiting code loading and
+before constructing an editor. Factory calls create separate instances, reserve
+holder/data/callback ownership, and propagate failures; no instance lives in DI.
+
+The contracts choose initialization-only configuration, serialized accepted data
+replacements/commands, coalesced automatic saves with stale-result suppression,
+and no programmatic-write feedback. Implement generic coordination in core behind
+non-DOM driver contracts as #536/#537 introduce it; Angular owns signal observation,
+outputs and component disposal. No generic queue or parser is duplicated here.
 
 All five repository ADRs were reviewed: Governance ADRs 0001–0003 retain their
 Governance scope; the accepted Modern Angular ADR and ADR 0004 apply to this
@@ -54,9 +67,8 @@ its standard `tslib` dependency.
 The generator adds ng-packagr, Angular ESLint and stylesheet build prerequisites
 as workspace development tooling. The ESLint utility is aligned with the existing
 8.68.0 TypeScript ESLint toolchain; its older transitive copy is deduplicated to
-avoid an incompatible TypeScript peer requirement. The empty scaffold explicitly
-allows its declared peers/core dependency in unused-dependency linting. Remove
-those exemptions as the owning runtime contracts are implemented. Test-only imports
+avoid an incompatible TypeScript peer requirement. Runtime dependencies are checked
+without scaffold exemptions. Test-only imports
 and Vitest configuration are excluded from runtime dependency checks.
 
 ## Validation
@@ -73,12 +85,20 @@ yarn nx format:check --projects=editorjs-angular
 - `typecheck` runs Angular compilation with no emit plus strict test typechecking.
 - `test` depends on build, packs the generated Angular artifact and core package,
   then unpacks them into an isolated temporary consumer without source aliases.
-- The scaffold import runs with Angular and Editor.js absent and browser globals
-  guarded. This checks module evaluation, not a complete SSR rendering contract.
+- The packed import runs in Node with Angular peers installed and Editor.js absent.
+  Angular peers initialize before browser-global guards (Angular itself probes
+  optional globals); the wrapper must introduce no further access. This checks
+  module evaluation, not a complete SSR rendering contract.
 - A separate consumer links the installed Angular 22.1.4 peers and compiler
   prerequisites, compiles a standalone host with strict templates against the
-  packed wrapper/core, and verifies Angular compilation output. Editor.js is not
-  required for this packaging-only check. Real editor integration comes later.
+  packed wrapper/core, and verifies Angular compilation output. Editor.js declarations
+  are supplied by the pinned peer; custom configuration, shared controls/events and
+  forbidden ownership fields are type-checked. Core separately compiles its full
+  public API in an ES2022-only consumer without Angular, Editor.js or DOM types.
+- Loader tests exercise actual Angular DI/platform selection, override scope,
+  deferred loading/construction, independent factories, protected options, core
+  normalization and error propagation. They use a fake Editor.js module; real
+  browser behavior remains #538.
 - Artifact tests check public paths, portable dependencies, current README and
   Apache-2.0 license, and exclusion of source/test files. Keep the package LICENSE
   synchronized with the repository license.
@@ -98,5 +118,5 @@ compatible version before an external consumer can install the wrapper.
 
 Use `init:` for this new package scaffold. The existing manual release workflow
 uses `--skip-publish`; creating or merging the scaffold does not publish it. Keep
-the README's scaffold limitation until real public functionality exists, and
+the README's component/facade limitation until those implementations exist, and
 complete #67's release-readiness checks before advertising a working editor.
