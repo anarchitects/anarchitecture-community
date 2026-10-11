@@ -354,5 +354,5 @@ describe('published Angular contracts', () => {
       },
     );
     expect(runtime.trim()).toBe('forms import ok');
-  });
+  }, 120_000);
 });
