@@ -5,6 +5,51 @@ with parsing, normalization, pluggable validation, and optional content provenan
 Use `import type` for contracts and regular imports for `parseOutputData`,
 `normalizeOutputData`, `validateOutputData`, and `parseContentWithProvenance`.
 
+Use this package in editors, services, importers, and storage adapters that need a
+shared document contract. The core defines the portable API; consumers adapt their
+domain models to it and own persistence, rendering, and migrations. It does not
+create an editor, install tools, perform uploads, or prescribe a storage envelope.
+
+## Installation
+
+Install a published release with your package manager:
+
+```sh
+npm install @anarchitects/editorjs-core
+# or
+yarn add @anarchitects/editorjs-core
+# or
+pnpm add @anarchitects/editorjs-core
+```
+
+No initialization, Angular provider, Nx workspace, or Editor.js installation is
+needed to use the core. An interactive editor integration installs and configures
+Editor.js and its tools separately.
+
+## Quick start
+
+Validate a document before passing it to your persistence layer:
+
+```ts
+import { validateOutputData } from '@anarchitects/editorjs-core';
+import type { OutputData } from '@anarchitects/editorjs-core';
+
+const draft: OutputData = {
+  blocks: [{ id: 'intro', type: 'paragraph', data: { text: 'Hello' } }],
+};
+const result = validateOutputData(draft, { blockIds: 'required' });
+if (!result.ok) {
+  throw new Error(result.errors.map((error) => error.message).join('; '));
+}
+
+export const savedJson = JSON.stringify(result.data);
+// {"blocks":[{"id":"intro","type":"paragraph","data":{"text":"Hello"}}]}
+```
+
+`savedJson` contains the normalized raw document. Validation checks the envelope
+and ID policy here; paragraph data needs a registered tool validator when the host
+requires schema checks. Use `parseOutputData(savedJson)` when reading it back.
+
 ## Runtime and Editor.js strategy
 
 - ESM package targeting ES2022, with TypeScript declarations. Supported Node.js
@@ -416,35 +461,105 @@ response. These interfaces do not perform I/O or handle exceptions automatically
 
 `@anarchitects/editorjs-core` resolves to `dist/index.js`, with declarations at
 `dist/index.d.ts`. Package metadata is available through
-`@anarchitects/editorjs-core/package.json`. Workspace tooling uses the existing
-`@anarchitecture-community/source` condition to resolve `src/index.ts`.
+`@anarchitects/editorjs-core/package.json`. Import contracts with `import type`:
 
-The package publishes `dist` and its README; source, tests, and build metadata are
-excluded. It follows the repository's independent Nx release configuration.
+| Area               | Public exports                                                                                                                                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime functions  | `parseOutputData`, `normalizeOutputData`, `validateOutputData`, `parseContentWithProvenance`                                                                                                                           |
+| Documents and JSON | `OutputData`, `OutputBlockData`, `OutputBlockDataFor`, `JsonValue`, `JsonObject`, `JsonArray`                                                                                                                          |
+| Tool registration  | `ToolConstructor`, `ToolboxEntry`, `ToolOptions`, `ToolConfiguration`, `ToolRegistration`                                                                                                                              |
+| Uploads            | `UploadedFile`, `UploadSuccess`, `UploadFailure`, `UploadResponse`, `FileUploader`, `UrlUploader`, `ImageUploader`                                                                                                     |
+| Parsing            | `OutputDataParseResult`, `OutputDataParseError`, `OutputDataParseErrorCode`                                                                                                                                            |
+| Validation         | `OutputDataValidationResult`, `OutputDataValidationOptions`, `OutputDataValidationError`, `OutputDataValidationErrorCode`, `ToolDataValidator`, `ToolValidationContext`, `ToolValidationIssue`, `ToolValidationResult` |
+| Provenance         | `ContentProvenance`, `ContentSchemaVersion`, `ContentProducer`, `ContentParseResult`                                                                                                                                   |
 
-## Development and CI
+Only the four functions have runtime exports; the remaining contracts are types.
+Import from the package root. Deep imports into `src`, `dist`, or helper modules
+are private and blocked by the export map. Use TypeScript's `NodeNext` resolution
+for Node ESM projects, or `Bundler` resolution for bundler-based projects. The
+published declarations require only ES2022 library types, without DOM or Node
+ambient declarations. CommonJS output is not supplied.
 
-From the repository root:
+## Consumer adapters
 
-```sh
-yarn nx run-many -p editorjs-core -t build typecheck test lint
+Keep application-specific records outside the core. Extract the raw document from
+your record, apply your version policy and any explicit migration, then validate
+before storing or editing it. A storage boundary can accept the core contracts
+without dictating a database, record shape, or framework:
+
+```ts
+import {
+  parseContentWithProvenance,
+  validateOutputData,
+} from '@anarchitects/editorjs-core';
+import type {
+  ContentProvenance,
+  OutputData,
+  OutputDataValidationOptions,
+} from '@anarchitects/editorjs-core';
+
+interface Storage {
+  save(document: OutputData, provenance?: ContentProvenance): Promise<void>;
+}
+
+export async function saveContent(
+  raw: unknown,
+  metadata: unknown,
+  validation: OutputDataValidationOptions,
+  storage: Storage,
+): Promise<void> {
+  // The caller applies its version policy/migrations before calling this function.
+  const parsed = parseContentWithProvenance(raw, metadata);
+  if (!parsed.ok) throw new Error(parsed.error.message);
+  const checked = validateOutputData(parsed.data, validation);
+  if (!checked.ok) {
+    throw new Error(checked.errors.map((error) => error.message).join('; '));
+  }
+  await storage.save(checked.data, parsed.provenance);
+}
 ```
 
-The existing CI `run-many` command discovers all four targets. The test target
-builds the package first, packs it into a temporary directory, and imports the
-unpacked artifact by package name in a separate Node process without workspace
-resolution or installed dependencies. Browser global access throws during import.
-The smoke tests also check that the published JavaScript and declarations exist,
-that source/tests are excluded from the archive, and that an isolated type-only
-consumer compiles with `skipLibCheck: false` and no DOM, Node, or Editor.js types.
-The `typecheck` target checks custom block narrowing, tool configuration, upload
-success/error cases, validator contracts, invalid shapes, and official declaration
-compatibility. `test` checks parsing diagnostics, ID policies, plugin validation
-and rejection diagnostics, content preservation, normalization idempotence,
-representative JSON round trips, optional provenance, unknown/future version
-preservation without migration, and host-supplied upload callbacks. The packed
-artifact smoke test calls parsing, validation, and provenance utilities in isolated Node.
-The isolated consumer also compiles a typed host/custom-tool registration example.
+Framework wrappers own editor creation, disposal, browser loading, forms, and SSR
+boundaries. Angular consumers choose their wrapper's supported Angular and forms
+APIs; the core has no Angular peer range or form-control interface. Tool packages
+own their data schemas and editor lifecycle. Upload adapters own transport and
+credentials. Applications own authorization, rendering safety, domain models,
+storage mappings, and migrations. Existing applications adopt these contracts
+through their own adapters rather than extending core with application fields.
 
-Angular wrappers, concrete tools, upload adapters, and application consumers are
-separate packages owned by the downstream epics linked from #66.
+## Package versioning
+
+The package is independently versioned. Its package version governs the exported
+API and documented behavior; it does not set `OutputData.version`, application
+schema versions, or tool versions. During `0.x`, review minor-release notes for
+breaking changes and pin the version or compatible range appropriate to your
+application. From `1.0`, incompatible API changes require a major release.
+Changes to signatures, accepted input, normalization, or diagnostic codes must be
+described in release notes with migration guidance when needed. Diagnostic message
+wording is explanatory; branch on codes and paths instead of exact message text.
+
+See [GitHub releases](https://github.com/anarchitects/anarchitecture-community/releases)
+for release notes under `editorjs-core@<version>` tags. An upstream Editor.js or
+tool update does not automatically change this package's support guarantees.
+
+## Troubleshooting
+
+| Symptom                                               | Action                                                                                                       |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| A type is missing at runtime                          | Use `import type`; interfaces and type aliases are erased.                                                   |
+| A package subpath is not exported                     | Import from `@anarchitects/editorjs-core`, not `src` or `dist`.                                              |
+| An installed package resolves to missing source files | Remove the repository-only `@anarchitecture-community/source` custom condition from the consumer's resolver. |
+| Parsing reports `non_json_value`                      | Pass plain JSON data; omit undefined fields, and convert class instances before parsing.                     |
+| Unknown tools pass validation                         | The default is `unknownTools: 'allow'`; register validators and use `'reject'` for an allowlist.             |
+| Content parses but a tool cannot render it            | Check the host's schema/tool version policy and migrate explicitly; parsing certifies structure only.        |
+| A custom validator returns a promise                  | Validators are synchronous; perform remote checks separately in the host.                                    |
+
+Report reproducible package problems through the
+[issue tracker](https://github.com/anarchitects/anarchitecture-community/issues),
+including package/runtime versions and a minimal payload without private content.
+Contributor checks and release preparation are documented in the
+[development guide](https://github.com/anarchitects/anarchitecture-community/blob/main/docs/editorjs-core-development.md).
+
+## License
+
+Apache-2.0.

@@ -14,6 +14,23 @@ permissions:
   contents: read
 
 jobs:
+  editorjs-core-runtime-baseline:
+    name: editorjs-core (Node 22.12.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          filter: tree:0
+          fetch-depth: 0
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: 'yarn'
+      - run: yarn install --immutable
+      # Avoid reusing results produced on Node 24 by the main job.
+      - run: yarn nx run-many -p editorjs-core -t build typecheck test lint --skipNxCache
+
   better-auth-typeorm-adapter-compatibility:
     name: better-auth-typeorm-adapter (Node ${{ matrix.node }}, TypeORM ${{ matrix.typeorm }})
     runs-on: ubuntu-latest
