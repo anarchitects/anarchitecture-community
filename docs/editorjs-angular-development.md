@@ -315,6 +315,13 @@ example and runs the same browser suite against the consumer build. The package 
 also compiles the published examples locally. This extends the workspace-linked host
 coverage without moving library contract fixtures into a separate project.
 
+## Signal Forms follow-up
+
+The [Signal Forms implementation contract](editorjs-angular-forms-design.md) defines
+the opt-in entry point, state ownership, reset/availability races and validation
+plan for epic #68. It is contributor planning; the planned Forms exports are not
+yet shipped. The standalone package remains usable without Angular Forms.
+
 ## Release configuration
 
 The project participates in independent Nx release configuration with
