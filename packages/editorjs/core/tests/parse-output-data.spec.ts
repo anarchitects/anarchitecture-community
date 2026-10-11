@@ -274,6 +274,86 @@ describe('normalizeOutputData', () => {
     expect(calls).toBe(0);
   });
 
+  it('optionally omits symbol-keyed metadata recursively without reading it or mutating input', () => {
+    let calls = 0;
+    const metadata = Symbol('tracking');
+    const block = { type: 'custom', data: { items: [{ text: 'Retained' }] } };
+    const input = { blocks: [block] };
+    for (const value of [
+      input,
+      input.blocks,
+      block,
+      block.data,
+      block.data.items,
+      block.data.items[0],
+    ]) {
+      Object.defineProperty(value, metadata, {
+        get() {
+          calls++;
+          throw new Error('Do not read');
+        },
+      });
+    }
+    expect(normalizeOutputData(input)).toMatchObject({
+      ok: false,
+      error: { code: 'non_json_value' },
+    });
+    expect(parseOutputData(input)).toMatchObject({
+      ok: false,
+      error: { code: 'non_json_value' },
+    });
+    const result = normalizeOutputData(input, { symbolKeys: 'omit' });
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        blocks: [{ type: 'custom', data: { items: [{ text: 'Retained' }] } }],
+      },
+    });
+    if (!result.ok) throw new Error('Expected normalized document');
+    expect(normalizeOutputData(result.data)).toEqual(result);
+    expect(result.data.blocks[0].data).not.toBe(block.data);
+    expect(Object.getOwnPropertySymbols(block)).toEqual([metadata]);
+    expect(calls).toBe(0);
+  });
+
+  it('retains strict JSON validation for string-keyed properties when omitting symbol keys', () => {
+    let calls = 0;
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    const values = [
+      Symbol('value'),
+      undefined,
+      NaN,
+      new Date(),
+      new Map(),
+      () => 1,
+      {
+        get text() {
+          calls++;
+          return 'Do not read';
+        },
+      },
+      {
+        toJSON() {
+          calls++;
+          return {};
+        },
+      },
+      Object.defineProperty({}, 'hidden', { value: 1 }),
+      new Array(2),
+      Object.assign([1], { extra: true }),
+      cyclic,
+    ];
+    for (const value of values) {
+      const input = { blocks: [{ type: 'custom', data: { value } }] };
+      expect(normalizeOutputData(input, { symbolKeys: 'omit' })).toEqual(
+        normalizeOutputData(input),
+      );
+      expect(normalizeOutputData(input, { symbolKeys: 'omit' }).ok).toBe(false);
+    }
+    expect(calls).toBe(0);
+  });
+
   it('reports unreadable objects without throwing and limits recursive nesting', () => {
     const proxy = Proxy.revocable({}, {});
     proxy.revoke();

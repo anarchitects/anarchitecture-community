@@ -37,6 +37,7 @@ export function copyJson(
   value: unknown,
   path: Path,
   ancestors: WeakSet<object>,
+  omitSymbolKeys = false,
 ): JsonValue {
   if (path.length > MAX_DEPTH) {
     fail(
@@ -86,7 +87,10 @@ export function copyJson(
       'Value could not be inspected as plain JSON data.',
     );
   }
-  if (Object.getOwnPropertySymbols(descriptors).length !== 0) {
+  if (
+    !omitSymbolKeys &&
+    Object.getOwnPropertySymbols(descriptors).length !== 0
+  ) {
     fail('non_json_value', path, 'Symbol keys cannot be stored as JSON.');
   }
   ancestors.add(value);
@@ -112,7 +116,12 @@ export function copyJson(
         );
       }
       return Array.from({ length }, (_, index) =>
-        copyProperty(descriptors[index], [...path, index], ancestors),
+        copyProperty(
+          descriptors[index],
+          [...path, index],
+          ancestors,
+          omitSymbolKeys,
+        ),
       );
     }
     const copy: JsonObject = {};
@@ -129,7 +138,7 @@ export function copyJson(
       }
       // Define an own property even for __proto__; never invoke a prototype setter.
       Object.defineProperty(copy, key, {
-        value: copyProperty(descriptor, childPath, ancestors),
+        value: copyProperty(descriptor, childPath, ancestors, omitSymbolKeys),
         enumerable: true,
         configurable: true,
         writable: true,
@@ -145,6 +154,7 @@ function copyProperty(
   descriptor: PropertyDescriptor,
   path: Path,
   ancestors: WeakSet<object>,
+  omitSymbolKeys = false,
 ): JsonValue {
   if (!descriptor.enumerable || !('value' in descriptor)) {
     fail(
@@ -153,5 +163,5 @@ function copyProperty(
       'Expected an enumerable data property, not an accessor.',
     );
   }
-  return copyJson(descriptor.value, path, ancestors);
+  return copyJson(descriptor.value, path, ancestors, omitSymbolKeys);
 }

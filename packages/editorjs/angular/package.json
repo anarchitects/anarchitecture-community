@@ -4,6 +4,7 @@
   "peerDependencies": {
     "@angular/common": "^22.0.0",
     "@angular/core": "^22.0.0",
+    "@angular/forms": "^22.0.0",
     "@editorjs/editorjs": "^2.31.7"
   },
   "sideEffects": false,
@@ -34,6 +35,14 @@
   "exports": {
     ".": {
       "@anarchitecture-community/source": "./src/index.ts"
+    },
+    "./forms": {
+      "@anarchitecture-community/source": "./forms/src/index.ts"
+    }
+  },
+  "peerDependenciesMeta": {
+    "@angular/forms": {
+      "optional": true
     }
   }
 }

@@ -107,6 +107,7 @@ describe('published Angular contracts', () => {
     expect(manifest.sideEffects).toBe(false);
     expect(Object.keys(manifest.exports).sort()).toEqual([
       '.',
+      './forms',
       './package.json',
     ]);
     for (const entry of [
@@ -114,6 +115,8 @@ describe('published Angular contracts', () => {
       manifest.typings,
       manifest.exports['.'].types,
       manifest.exports['.'].default,
+      manifest.exports['./forms'].types,
+      manifest.exports['./forms'].default,
     ]) {
       expect(existsSync(join(packageDirectory, entry))).toBe(true);
     }
@@ -122,8 +125,13 @@ describe('published Angular contracts', () => {
     expect(manifest.peerDependencies).toEqual({
       '@angular/common': '^22.0.0',
       '@angular/core': '^22.0.0',
+      '@angular/forms': '^22.0.0',
       '@editorjs/editorjs': '^2.31.7',
     });
+    expect(manifest.peerDependenciesMeta).toEqual({
+      '@angular/forms': { optional: true },
+    });
+    expect(manifest.optionalDependencies).toBeUndefined();
     const sourceManifest = JSON.parse(
       readFileSync(resolve(import.meta.dirname, '../package.json'), 'utf8'),
     );
@@ -150,7 +158,7 @@ describe('published Angular contracts', () => {
     );
   });
 
-  it('imports the installed artifact without Editor.js installed or browser global access', () => {
+  it('imports the root without Forms or Editor.js installed or browser global access', () => {
     const output = execFileSync(
       process.execPath,
       [
@@ -169,6 +177,7 @@ describe('published Angular contracts', () => {
       for (const name of ['window', 'document', 'navigator', 'HTMLElement', 'EditorJS']) {
         Object.defineProperty(globalThis, name, { configurable: true, get() { throw new Error('Browser access: ' + name); } });
       }
+      assert.throws(() => import.meta.resolve('@angular/forms'), { code: 'ERR_MODULE_NOT_FOUND' });
       const wrapper = await import('@anarchitects/editorjs-angular');
       assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EditorJs', 'EditorJsOperationError', 'provideEditorJsLoader']);
       assert.ok(import.meta.resolve('@anarchitects/editorjs-angular').includes('/fesm2022/'));
@@ -218,12 +227,10 @@ describe('published Angular contracts', () => {
     expect(output).toContain('server render ok');
   });
 
-  it('compiles the public contracts and every packed README example in Angular', () => {
+  it('compiles root declarations without Forms, then Forms contracts and every README example', () => {
     const consumerDirectory = join(temporaryDirectory, 'compiler-consumer');
     mkdirSync(consumerDirectory);
-    // Angular peers use the installed test baseline; both Anarchitects packages
-    // remain actual unpacked archives, never workspace source aliases.
-    for (const dependency of ['@editorjs/editorjs']) {
+    function linkPeer(dependency: string) {
       const target = join(temporaryDirectory, 'node_modules', dependency);
       mkdirSync(dirname(target), { recursive: true });
       symlinkSync(
@@ -232,67 +239,120 @@ describe('published Angular contracts', () => {
         'dir',
       );
     }
-    writeFileSync(
-      join(consumerDirectory, 'consumer.ts'),
-      readFileSync(join(import.meta.dirname, 'fixtures/consumer.ts')),
-    );
+    function fixture(name: string) {
+      writeFileSync(
+        join(consumerDirectory, name),
+        readFileSync(join(import.meta.dirname, 'fixtures', name)),
+      );
+    }
+    function compile(files: string[]) {
+      writeFileSync(
+        join(consumerDirectory, 'tsconfig.json'),
+        JSON.stringify({
+          compilerOptions: {
+            target: 'ES2022',
+            module: 'preserve',
+            moduleResolution: 'bundler',
+            lib: ['ES2022', 'DOM'],
+            types: [],
+            strict: true,
+            skipLibCheck: false,
+            experimentalDecorators: true,
+            outDir: './compiled',
+            rootDir: '.',
+          },
+          angularCompilerOptions: {
+            strictTemplates: true,
+            strictInjectionParameters: true,
+          },
+          files,
+        }),
+      );
+      const compilerManifestPath = require.resolve(
+        '@angular/compiler-cli/package.json',
+      );
+      const compilerManifest = JSON.parse(
+        readFileSync(compilerManifestPath, 'utf8'),
+      );
+      const compilation = spawnSync(
+        process.execPath,
+        [
+          resolve(dirname(compilerManifestPath), compilerManifest.bin.ngc),
+          '-p',
+          'tsconfig.json',
+        ],
+        {
+          cwd: consumerDirectory,
+          encoding: 'utf8',
+          env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
+        },
+      );
+      expect(compilation.error).toBeUndefined();
+      expect(compilation.status, compilation.stdout + compilation.stderr).toBe(
+        0,
+      );
+    }
+
+    // Both Anarchitects packages are unpacked archives, never source aliases.
+    linkPeer('@editorjs/editorjs');
+    fixture('consumer.ts');
+    expect(
+      existsSync(join(temporaryDirectory, 'node_modules/@angular/forms')),
+    ).toBe(false);
+    compile(['consumer.ts']);
+    expect(
+      readFileSync(join(consumerDirectory, 'compiled/consumer.js'), 'utf8'),
+    ).toContain('ɵɵdefineComponent');
+
+    linkPeer('@angular/forms');
+    fixture('forms-consumer.ts');
+    fixture('callout-tool.ts');
     const readme = readFileSync(join(packageDirectory, 'README.md'), 'utf8');
     const examples = [...readme.matchAll(/```ts\n([\s\S]*?)```/g)];
-    expect(examples.length).toBeGreaterThanOrEqual(4);
+    expect(examples.length).toBeGreaterThanOrEqual(5);
     const exampleFiles = examples.map((example, index) => {
       const name = `readme-${index}.ts`;
       writeFileSync(join(consumerDirectory, name), example[1]);
       return name;
     });
-    // The README explicitly assumes a consumer-owned CalloutTool implementation.
-    writeFileSync(
-      join(consumerDirectory, 'callout-tool.ts'),
-      readFileSync(join(import.meta.dirname, 'fixtures/callout-tool.ts')),
-    );
-    writeFileSync(
-      join(consumerDirectory, 'tsconfig.json'),
-      JSON.stringify({
-        compilerOptions: {
-          target: 'ES2022',
-          module: 'preserve',
-          moduleResolution: 'bundler',
-          lib: ['ES2022', 'DOM'],
-          types: [],
-          strict: true,
-          skipLibCheck: false,
-          experimentalDecorators: true,
-          outDir: './compiled',
-        },
-        angularCompilerOptions: {
-          strictTemplates: true,
-          strictInjectionParameters: true,
-        },
-        files: ['consumer.ts', 'callout-tool.ts', ...exampleFiles],
-      }),
-    );
-    const compilerManifestPath = require.resolve(
-      '@angular/compiler-cli/package.json',
-    );
-    const compilerManifest = JSON.parse(
-      readFileSync(compilerManifestPath, 'utf8'),
-    );
-    const compilation = spawnSync(
+    compile([
+      'consumer.ts',
+      'forms-consumer.ts',
+      'callout-tool.ts',
+      ...exampleFiles,
+    ]);
+    expect(
+      readFileSync(
+        join(consumerDirectory, 'compiled/forms-consumer.js'),
+        'utf8',
+      ),
+    ).toContain('ɵɵdefineComponent');
+    const runtime = execFileSync(
       process.execPath,
       [
-        resolve(dirname(compilerManifestPath), compilerManifest.bin.ngc),
-        '-p',
-        'tsconfig.json',
+        '--input-type=module',
+        '--eval',
+        `
+      import '@angular/compiler';
+      import '@angular/core';
+      import '@angular/common';
+      import assert from 'node:assert/strict';
+      for (const name of ['window', 'document', 'navigator', 'HTMLElement', 'EditorJS']) {
+        Object.defineProperty(globalThis, name, { configurable: true, get() { throw new Error('Browser access: ' + name); } });
+      }
+      const forms = await import('@anarchitects/editorjs-angular/forms');
+      assert.deepEqual(Object.keys(forms), ['EditorJsControl']);
+      assert.ok(import.meta.resolve('@anarchitects/editorjs-angular/forms').includes('/fesm2022/'));
+      await assert.rejects(import('@anarchitects/editorjs-angular/forms/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+      console.log('forms import ok');
+    `,
       ],
       {
-        cwd: consumerDirectory,
+        cwd: temporaryDirectory,
         encoding: 'utf8',
         env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
       },
     );
-    expect(compilation.error).toBeUndefined();
-    expect(compilation.status, compilation.stdout + compilation.stderr).toBe(0);
-    expect(
-      readFileSync(join(consumerDirectory, 'compiled/consumer.js'), 'utf8'),
-    ).toContain('ɵɵdefineComponent');
+    expect(runtime.trim()).toBe('forms import ok');
   });
 });

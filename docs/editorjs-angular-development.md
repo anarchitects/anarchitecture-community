@@ -315,12 +315,54 @@ example and runs the same browser suite against the consumer build. The package 
 also compiles the published examples locally. This extends the workspace-linked host
 coverage without moving library contract fixtures into a separate project.
 
-## Signal Forms follow-up
+## Signal Forms value binding
 
 The [Signal Forms implementation contract](editorjs-angular-forms-design.md) defines
 the opt-in entry point, state ownership, reset/availability races and validation
-plan for epic #68. It is contributor planning; the planned Forms exports are not
-yet shipped. The standalone package remains usable without Angular Forms.
+plan for epic #68. #549 adds the APF `/forms` entry point with `EditorJsControl`
+and `EditorJsControlConfig`. It composes the root component; normalization and
+operation ordering remain core-owned. The standalone package remains usable without
+Angular Forms, enforced by packed import and declaration checks.
+
+The accepted ADR inventory is unchanged from #548. A02/A05/A06/A07/A10 and ADR 0004
+govern this slice; no conflict was found. The Angular MCP endpoint still returned
+`Unexpected response type`, so implementation uses the inspected Angular 22 APIs.
+Nx generators created the secondary entry point/component. Their source alias and
+global component defaults were removed; resolution uses the linked APF package.
+The typecheck target depends on the package build because secondary-entry-point
+self-imports resolve the root APF declarations; this also prevents concurrent build
+cleanup from removing declarations during typechecking.
+Forms is a bounded optional peer, with 22.1.4 installed for development through Yarn.
+
+Angular Signal Forms 22 decorates array items with symbol-keyed identity metadata.
+Core now provides an explicit, framework-neutral `symbolKeys: 'omit'` normalization
+option; defaults and provenance parsing remain strict. The adapter opts in for
+inbound projection, and publishes a separate core-normalized model copy so Forms
+cannot decorate the public saved event. JSON copying and validation remain in core.
+This extends the core-first boundary without changing the accepted ADR decisions.
+
+Inbound values are normalized by core before projecting them to the child. Angular
+input lifecycle notifications distinguish external writes from the model's outgoing
+updates; an echoed published reference is suppressed. This prevents a save/render
+feedback loop without duplicating core fingerprinting. Invalid input retains the
+last valid projection and blocks outgoing updates until corrected; an invalid initial
+value does not create an editor. Child initialization failures retain the wrapper's
+recreation requirement.
+
+`tests/forms.spec.ts` exercises native FormField value binding with the built APF
+component, controlled editor drivers and zoneless Angular. Packed checks compile the
+root without Forms, then link the matching Forms peer and compile the secondary
+entry point plus every README example. The isolated matrix now installs matching
+Forms peers for declaration/example compilation; its browser scenarios still cover
+the standalone host. Interaction, reset/validation hardening, legacy interoperability,
+Forms browser coverage and final release certification remain #550–#554.
+
+Validation on 2026-10-11: core and Angular build/typecheck/lint checks passed, with
+148 core and 50 Angular tests (including 16 value-binding cases). E2E-project lint
+and typecheck passed. The packed matrix passed on Angular/Forms 22.0.0, 22.1.4 and
+22.2.2 with their recorded Node versions, including declaration/example compilation
+and 15 standalone browser checks. Existing lint warnings remain; no Forms browser
+certification is implied by these results.
 
 ## Release configuration
 

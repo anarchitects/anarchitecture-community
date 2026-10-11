@@ -45,6 +45,7 @@ export type {
   ToolValidationResult,
 } from './lib/validate-output-data.js';
 export type {
+  OutputDataNormalizationOptions,
   OutputDataParseError,
   OutputDataParseErrorCode,
   OutputDataParseResult,

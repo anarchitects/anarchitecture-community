@@ -62,7 +62,13 @@ async function validate(name, versions, archives) {
     rxjs: '7.8.2',
     tslib: '2.8.1',
   };
-  for (const packageName of ['core', 'common', 'compiler', 'platform-browser'])
+  for (const packageName of [
+    'core',
+    'common',
+    'compiler',
+    'platform-browser',
+    'forms',
+  ])
     dependencies[`@angular/${packageName}`] = versions.angular;
   await json(join(root, 'package.json'), {
     name: 'editorjs-packed-consumer',
@@ -248,7 +254,11 @@ async function assertDocumentation(root) {
   await mkdir(directory);
   for (const [index, match] of examples.entries())
     await writeFile(join(directory, `readme-${index}.ts`), match[1]);
-  for (const fixture of ['consumer.ts', 'callout-tool.ts']) {
+  for (const fixture of [
+    'consumer.ts',
+    'forms-consumer.ts',
+    'callout-tool.ts',
+  ]) {
     await cp(
       join(workspace, 'packages/editorjs/angular/tests/fixtures', fixture),
       join(directory, fixture),

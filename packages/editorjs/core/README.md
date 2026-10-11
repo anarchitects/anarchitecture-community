@@ -270,7 +270,8 @@ Upstream references: [saved data format](https://editorjs.io/saving-data/) and
 ## Parsing and normalization
 
 `parseOutputData(input: unknown)` accepts JSON text or an already decoded value.
-`normalizeOutputData(input: unknown)` accepts decoded input only. Both return an
+`normalizeOutputData(input: unknown, options?: OutputDataNormalizationOptions)`
+accepts decoded input only. Both return an
 `OutputDataParseResult`: `{ ok: true, data }` or `{ ok: false, error }`, with no
 partial document on failure. They check the JSON shape and document/block envelope,
 not the schema of any particular plugin.
@@ -304,6 +305,15 @@ empty block is generated. Null metadata is rejected. Other values are retained
 without trimming, defaulting, or coercion. Re-normalizing successful output gives
 the same data, and neither utility mutates its input.
 
+Symbol-keyed properties are rejected by default. For documents decorated with
+transient tracking metadata, explicitly use
+`normalizeOutputData(input, { symbolKeys: 'omit' })` to omit symbol-keyed properties
+recursively from the detached copy. The input is not changed and symbol accessors
+are not invoked. This option does not permit symbol values under string keys,
+accessors or hidden string-keyed properties, non-JSON values, cycles, or malformed
+documents. `parseOutputData` and provenance parsing retain strict defaults. This is
+a framework-neutral projection policy; adapters choose whether to opt in.
+
 The first error has a stable code, explanatory message, and an array of property
 names/array indices. An empty path means the root. Paths preserve unusual keys
 without ambiguous dot notation; error messages do not echo content.
@@ -320,8 +330,9 @@ without ambiguous dot notation; error messages do not echo content.
 
 Decoded inputs must contain finite numbers, dense arrays without extra properties,
 and plain objects (including null-prototype objects) with enumerable data
-properties. Functions, bigint, symbols, class instances, accessors, non-enumerable
-properties, and other `undefined` values are rejected instead of silently discarded
+properties. Functions, bigint, symbol values, class instances, accessors and
+non-enumerable string-keyed properties, and other `undefined` values are rejected
+instead of silently discarded
 or coerced by JSON serialization. Getters and `toJSON` hooks are not invoked.
 Shared references are copied independently; circular references are rejected.
 Prototype-like keys such as `__proto__` remain own data properties.
@@ -596,7 +607,7 @@ response. These interfaces do not perform I/O or handle exceptions automatically
 | Editor integration    | `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`, `EditorJsErrorEvent`, `EditorJsOperation`, `EditorJsOperationError` (class)                                                                                |
 | Tool registration     | `ToolConstructor`, `ToolboxEntry`, `ToolOptions`, `ToolConfiguration`, `ToolRegistration`                                                                                                                              |
 | Uploads               | `UploadedFile`, `UploadSuccess`, `UploadFailure`, `UploadResponse`, `FileUploader`, `UrlUploader`, `ImageUploader`                                                                                                     |
-| Parsing               | `OutputDataParseResult`, `OutputDataParseError`, `OutputDataParseErrorCode`                                                                                                                                            |
+| Parsing               | `OutputDataParseResult`, `OutputDataParseError`, `OutputDataParseErrorCode`, `OutputDataNormalizationOptions`                                                                                                          |
 | Validation            | `OutputDataValidationResult`, `OutputDataValidationOptions`, `OutputDataValidationError`, `OutputDataValidationErrorCode`, `ToolDataValidator`, `ToolValidationContext`, `ToolValidationIssue`, `ToolValidationResult` |
 | Provenance            | `ContentProvenance`, `ContentSchemaVersion`, `ContentProducer`, `ContentParseResult`                                                                                                                                   |
 

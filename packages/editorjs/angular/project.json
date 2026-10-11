@@ -43,7 +43,7 @@
     "typecheck": {
       "executor": "nx:run-commands",
       "cache": true,
-      "dependsOn": ["^build"],
+      "dependsOn": ["build"],
       "inputs": ["default", "^production"],
       "options": {
         "cwd": "packages/editorjs/angular",
@@ -73,6 +73,9 @@
       "dependsOn": ["build"]
     },
     "vitest:test": {
+      "dependsOn": ["build"]
+    },
+    "test-ci--tests/forms.spec.ts": {
       "dependsOn": ["build"]
     }
   }

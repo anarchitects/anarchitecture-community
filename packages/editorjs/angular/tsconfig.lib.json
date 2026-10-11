@@ -8,8 +8,13 @@
     "sourceMap": true,
     "types": []
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
+  "include": ["src/**/*.ts", "forms/src/**/*.ts"],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "forms/src/**/*.spec.ts",
+    "forms/src/**/*.test.ts"
+  ],
   "nx": {
     "sync": {
       "ignoredDependencies": ["editorjs-core"]

@@ -1,6 +1,8 @@
 # Editor.js Angular release readiness
 
-This is contributor/release guidance. Consumer instructions live in the
+This is contributor/release guidance for the standalone surface reviewed in #539.
+The incremental Forms value binding in #549 is covered by the development guide;
+full Forms release review remains #554. Consumer instructions live in the
 [package README](../packages/editorjs/angular/README.md); implementation and the
 workspace browser host are described in the [development guide](editorjs-angular-development.md).
 
@@ -148,7 +150,8 @@ Suggested release notes should state:
 - Input updates can coalesce; replacements are authoritative; already-running upstream
   work and never-settling readiness cannot be forcibly cancelled. Editor.js save is
   unavailable while read-only. Tools own their schemas and accessibility.
-- No Angular Forms integration, full SSR/hydration guarantee, registry, concrete tool
+- Opt-in Signal Forms value synchronization; composite touch, availability and reset
+  support remain pending. No full SSR/hydration guarantee, registry, concrete tool
   bundle, upload transport or persistence implementation.
 
 Do not present documentation, a merged PR or an unchanged manifest as a published

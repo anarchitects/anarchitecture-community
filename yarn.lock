@@ -46,7 +46,11 @@ __metadata:
   peerDependencies:
     "@angular/common": ^22.0.0
     "@angular/core": ^22.0.0
+    "@angular/forms": ^22.0.0
     "@editorjs/editorjs": ^2.31.7
+  peerDependenciesMeta:
+    "@angular/forms":
+      optional: true
   languageName: unknown
   linkType: soft
 
@@ -188,6 +192,7 @@ __metadata:
     "@angular/compiler": "npm:^22.0.0"
     "@angular/compiler-cli": "npm:^22.0.0"
     "@angular/core": "npm:^22.0.0"
+    "@angular/forms": "npm:22.1.4"
     "@angular/platform-browser": "npm:^22.0.0"
     "@angular/platform-server": "npm:^22.0.0"
     "@angular/router": "npm:^22.0.0"
@@ -618,6 +623,22 @@ __metadata:
     zone.js:
       optional: true
   checksum: 10c0/19ea2f4cf517a9a574f8ee5ef1462d0aaac35ff50da282e7f9de329ac2e183a2431035c5a3a447eb4783f98e16789393a01e42caf404fff8c732d3a4a6d8f6c5
+  languageName: node
+  linkType: hard
+
+"@angular/forms@npm:22.1.4":
+  version: 22.1.4
+  resolution: "@angular/forms@npm:22.1.4"
+  dependencies:
+    "@standard-schema/spec": "npm:^1.0.0"
+    tslib: "npm:^2.3.0"
+    zod: "npm:^4.0.10"
+  peerDependencies:
+    "@angular/common": 22.1.4
+    "@angular/core": 22.1.4
+    "@angular/platform-browser": 22.1.4
+    rxjs: ^6.5.3 || ^7.4.0
+  checksum: 10c0/746e6c88984c1472c47505eeabe635246be140a1d7f0dca8b2cbb9e3354403f8bbfdc4693bd70b7822dd487f6d9160701ac596ec8a307632274f155f841457c8
   languageName: node
   linkType: hard
 
@@ -22488,6 +22509,13 @@ __metadata:
     compress-commons: "npm:^6.0.2"
     readable-stream: "npm:^4.0.0"
   checksum: 10c0/50f2fb30327fb9d09879abf7ae2493705313adf403e794b030151aaae00009162419d60d0519e807673ec04d442e140c8879ca14314df0a0192de3b233e8f28b
+  languageName: node
+  linkType: hard
+
+"zod@npm:^4.0.10":
+  version: 4.6.6
+  resolution: "zod@npm:4.6.6"
+  checksum: 10c0/447a3113bb743c54ab839213ff95e9e8c197cc1206f65270c18aac35aa70c47a5c8cab753be911b574df9a8a9801ea74ed6be776575232cae0084e51dab3e970
   languageName: node
   linkType: hard
 
