@@ -1,0 +1,20 @@
+{
+  "angular22-minimum": {
+    "angular": "22.0.0",
+    "editorjs": "2.31.7",
+    "node": "22.22.3",
+    "typescript": "6.0.3"
+  },
+  "angular22-reference": {
+    "angular": "22.1.4",
+    "editorjs": "2.31.7",
+    "node": "24.15.0",
+    "typescript": "6.0.3"
+  },
+  "angular22-current": {
+    "angular": "22.2.2",
+    "editorjs": "2.31.7",
+    "node": "26.0.0",
+    "typescript": "6.0.3"
+  }
+}

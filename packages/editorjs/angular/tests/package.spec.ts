@@ -132,6 +132,11 @@ describe('published Angular contracts', () => {
     );
     expect(JSON.stringify(manifest.dependencies)).not.toContain('workspace:');
     expect(manifest.devDependencies).toBeUndefined();
+    expect(Object.keys(manifest.dependencies).sort()).toEqual([
+      '@anarchitects/editorjs-core',
+      'tslib',
+    ]);
+    expect(manifest.engines.node).toBe('^22.22.3 || ^24.15.0 || ^26.0.0');
     expect(
       packedFiles.some((file) =>
         /(^src\/|^tests\/|\.spec\.|\.tsbuildinfo$)/.test(file),
@@ -213,7 +218,7 @@ describe('published Angular contracts', () => {
     expect(output).toContain('server render ok');
   });
 
-  it('compiles a standalone Angular host against packed declarations and core contracts', () => {
+  it('compiles the public contracts and every packed README example in Angular', () => {
     const consumerDirectory = join(temporaryDirectory, 'compiler-consumer');
     mkdirSync(consumerDirectory);
     // Angular peers use the installed test baseline; both Anarchitects packages
@@ -230,6 +235,19 @@ describe('published Angular contracts', () => {
     writeFileSync(
       join(consumerDirectory, 'consumer.ts'),
       readFileSync(join(import.meta.dirname, 'fixtures/consumer.ts')),
+    );
+    const readme = readFileSync(join(packageDirectory, 'README.md'), 'utf8');
+    const examples = [...readme.matchAll(/```ts\n([\s\S]*?)```/g)];
+    expect(examples.length).toBeGreaterThanOrEqual(4);
+    const exampleFiles = examples.map((example, index) => {
+      const name = `readme-${index}.ts`;
+      writeFileSync(join(consumerDirectory, name), example[1]);
+      return name;
+    });
+    // The README explicitly assumes a consumer-owned CalloutTool implementation.
+    writeFileSync(
+      join(consumerDirectory, 'callout-tool.ts'),
+      readFileSync(join(import.meta.dirname, 'fixtures/callout-tool.ts')),
     );
     writeFileSync(
       join(consumerDirectory, 'tsconfig.json'),
@@ -249,7 +267,7 @@ describe('published Angular contracts', () => {
           strictTemplates: true,
           strictInjectionParameters: true,
         },
-        files: ['consumer.ts'],
+        files: ['consumer.ts', 'callout-tool.ts', ...exampleFiles],
       }),
     );
     const compilerManifestPath = require.resolve(

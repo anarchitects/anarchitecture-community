@@ -17,7 +17,7 @@
   "description": "Angular integration package for Editor.js.",
   "license": "Apache-2.0",
   "engines": {
-    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+    "node": "^22.22.3 || ^24.15.0 || ^26.0.0"
   },
   "repository": {
     "type": "git",
