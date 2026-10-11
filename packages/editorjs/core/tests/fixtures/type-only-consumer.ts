@@ -6,6 +6,11 @@ import type {
   OutputBlockData,
   OutputBlockDataFor,
   OutputData,
+  ImageUploader,
+  ToolConfiguration,
+  ToolRegistration,
+  UploadedFile,
+  UploadResponse,
 } from '@anarchitects/editorjs-core';
 
 interface ToolData {
@@ -47,3 +52,68 @@ export const invalidTime: OutputData = { blocks: [], time: 'now' };
 export const unsafeText = unknownDocument.blocks[0].data.text;
 // @ts-expect-error JSON values cannot contain functions.
 export const notJson: JsonValue = { callback: () => 'text' };
+
+interface ByteInput {
+  name: string;
+  bytes: Uint8Array;
+}
+
+interface Asset extends UploadedFile {
+  assetId: string;
+}
+
+interface HostError {
+  code: string;
+  message: string;
+}
+
+interface ImageConfig {
+  uploader: ImageUploader<ByteInput, Asset, HostError>;
+  captionPlaceholder?: string;
+}
+
+// A class supplied by a downstream custom-tool integration, not by core.
+declare class CustomImageTool {
+  constructor(options: { config?: ImageConfig });
+}
+
+// The host supplies actual transport and persistence. No fetch, File, or Buffer
+// declarations are needed by this server-side consumer.
+export function configureHost(
+  transport: ImageUploader<ByteInput, Asset, HostError>,
+): ToolConfiguration<typeof CustomImageTool, ImageConfig, { caption: string }> {
+  return {
+    class: CustomImageTool,
+    config: { uploader: transport, captionPlaceholder: 'Describe this image' },
+    inlineToolbar: ['bold'],
+    toolbox: { title: 'Image', data: { caption: '' } },
+  };
+}
+
+export const directRegistration: ToolRegistration<typeof CustomImageTool> =
+  CustomImageTool;
+
+export function describeUpload(
+  result: UploadResponse<Asset, HostError>,
+): string {
+  if (result.success === 1) {
+    return `${result.file.assetId}: ${result.file.url}`;
+  }
+  // @ts-expect-error Failed uploads do not expose a usable file.
+  const missingUrl = result.file.url;
+  void missingUrl;
+  return result.error?.message ?? 'Upload failed';
+}
+
+export const uploadFailure: UploadResponse<Asset, HostError> = {
+  success: 0,
+  error: { code: 'rejected', message: 'Host rejected upload' },
+};
+
+// @ts-expect-error A success result must carry file metadata with a URL.
+export const invalidUpload: UploadResponse = { success: 1, file: {} };
+export const booleanStatus: UploadResponse = {
+  // @ts-expect-error Upload status uses numeric literal discriminants.
+  success: true,
+  file: { url: '/image.png' },
+};

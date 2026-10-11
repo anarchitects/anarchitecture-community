@@ -1,6 +1,6 @@
 # @anarchitects/editorjs-core
 
-Framework-neutral document and block types for Editor.js integrations. Parsing,
+Framework-neutral document, tool configuration, and upload types for Editor.js integrations. Parsing,
 validation, normalization, and version compatibility utilities will follow in the
 remaining issues in epic #66. All current exports are types; use `import type`.
 
@@ -96,6 +96,100 @@ HTML strings. Runtime validation is a separate concern.
 Upstream references: [saved data format](https://editorjs.io/saving-data/) and
 [official document types](https://github.com/codex-team/editor.js/blob/v2.31.7/types/data-formats/output-data.d.ts).
 
+## Tool configuration
+
+`ToolConfiguration<Tool, Config, Data>` keeps a host-supplied class and its config
+typed. `ToolRegistration<Tool, Config, Data>` also accepts the class directly.
+`ToolOptions<Data>` covers inline toolbar, tunes, shortcut, and toolbox settings;
+`ToolboxEntry<Data>` allows partial saved-data overrides. `ToolConstructor` is an
+opaque class constraint, not an instantiation API. Pass a concrete `typeof MyTool`
+to retain that tool's constructor type.
+
+These are external-tool registration contracts. Core does not check that a class
+implements an editor's rendering API, infer its config from its constructor,
+register tools, or manage lifecycle. The host supplies compatible classes and
+validates configuration. Config can hold callbacks and services; do not serialize
+it as document data. Toolbox icon strings remain the host's responsibility.
+
+```ts
+import type {
+  ImageUploader,
+  ToolConfiguration,
+} from '@anarchitects/editorjs-core';
+
+interface Input {
+  name: string;
+  bytes: Uint8Array;
+}
+
+interface Asset {
+  url: string;
+  assetId: string;
+}
+
+interface HostError {
+  code: string;
+  message: string;
+}
+
+interface ImageConfig {
+  uploader: ImageUploader<Input, Asset, HostError>;
+  captionPlaceholder?: string;
+}
+
+// Declaration of a class supplied by a downstream custom-tool integration.
+declare class CustomImageTool {
+  constructor(options: { config?: ImageConfig });
+}
+
+function configureHost(
+  transport: ImageUploader<Input, Asset, HostError>,
+): ToolConfiguration<typeof CustomImageTool, ImageConfig, { caption: string }> {
+  return {
+    class: CustomImageTool,
+    config: { uploader: transport, captionPlaceholder: 'Describe this image' },
+    inlineToolbar: ['bold'],
+    toolbox: { title: 'Image', data: { caption: '' } },
+  };
+}
+```
+
+Settings compatibility is type-tested with Editor.js 2.31.7 when the host supplies
+an official `ToolConstructable`. See the upstream
+[tool settings](https://github.com/codex-team/editor.js/blob/v2.31.7/types/tools/tool-settings.d.ts).
+
+## Upload boundaries
+
+`ImageUploader<Input, FileData, ErrorData>` combines asynchronous `uploadByFile`
+and `uploadByUrl` callbacks. Use `FileUploader` or `UrlUploader` for a host that
+exposes only one capability. `Input` is explicit: browser consumers can use
+`File`, while server consumers can use their own byte or stream payload. The core
+imports neither DOM nor Node types.
+
+Both callbacks resolve to `UploadResponse<FileData, ErrorData>`:
+
+- Success: `{ success: 1, file: { url: string, ... } }`. Extend `UploadedFile` with
+  host metadata such as an asset ID or dimensions. `UploadSuccess` requires a file.
+- Expected failure: `{ success: 0 }` or `{ success: 0, error: ... }`.
+  `UploadFailure` has no usable file; error details default to `unknown`. The
+  optional `error` field is a host extension, not an Editor.js error standard.
+
+Narrow on `result.success === 1` before using `result.file`. A successful response
+cannot also carry error details. The response shape follows the
+[image tool upload contract](https://github.com/editor-js/image#providing-custom-uploading-methods);
+no image tool is installed or implemented here. A consuming adapter handles the
+concrete tool's behavior for failures and unsupported upload capabilities.
+
+The host owns transport, endpoints, credentials, URL/file validation, storage,
+retries, cancellation, and persistence. Returning metadata does not save the
+editor document. Persist only appropriate JSON metadata, not callbacks, credentials,
+or raw input bytes. URL validity, accessibility, and expiry need host validation.
+
+Expected failures can resolve with `success: 0`. Transport exceptions can also
+reject the promise; rejection values are not typed by TypeScript. Hosts must
+catch them as unknown and either report them or map them to an explicit failure
+response. These interfaces do not perform I/O or handle exceptions automatically.
+
 ## Package exports
 
 `@anarchitects/editorjs-core` resolves to `dist/index.js`, with declarations at
@@ -121,8 +215,10 @@ resolution or installed dependencies. Browser global access throws during import
 The smoke tests also check that the published JavaScript and declarations exist,
 that source/tests are excluded from the archive, and that an isolated type-only
 consumer compiles with `skipLibCheck: false` and no DOM, Node, or Editor.js types.
-The `typecheck` target checks custom block narrowing, invalid shapes, and official
-declaration compatibility; `test` checks representative JSON round trips.
+The `typecheck` target checks custom block narrowing, tool configuration, upload
+success/error cases, invalid shapes, and official declaration compatibility.
+`test` checks representative JSON round trips and host-supplied upload callbacks.
+The isolated consumer also compiles a typed host/custom-tool registration example.
 
 Angular wrappers, concrete tools, upload adapters, and application consumers are
 separate packages owned by the downstream epics linked from #66.
