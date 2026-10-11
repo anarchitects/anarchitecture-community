@@ -16,7 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 const workspaceRoot = resolve(import.meta.dirname, '../../../..');
 const require = createRequire(import.meta.url);
 
-describe('published Angular scaffold', () => {
+describe('published Angular contracts', () => {
   let temporaryDirectory: string;
   let packageDirectory: string;
   let packedFiles: string[];
@@ -74,6 +74,21 @@ describe('published Angular scaffold', () => {
       join(temporaryDirectory, 'package.json'),
       JSON.stringify({ type: 'module', private: true }),
     );
+    for (const dependency of [
+      '@angular/core',
+      '@angular/common',
+      '@angular/compiler',
+      'rxjs',
+      'tslib',
+    ]) {
+      const target = join(temporaryDirectory, 'node_modules', dependency);
+      mkdirSync(dirname(target), { recursive: true });
+      symlinkSync(
+        dirname(require.resolve(`${dependency}/package.json`)),
+        target,
+        'dir',
+      );
+    }
   }, 30_000);
 
   afterAll(() => {
@@ -128,7 +143,7 @@ describe('published Angular scaffold', () => {
     );
   });
 
-  it('imports the installed artifact without Angular or Editor.js evaluation or browser globals', () => {
+  it('imports the installed artifact without Editor.js installed or browser global access', () => {
     const output = execFileSync(
       process.execPath,
       [
@@ -136,15 +151,21 @@ describe('published Angular scaffold', () => {
         '--eval',
         `
       import assert from 'node:assert/strict';
+      // Unlinked Angular dependencies need the JIT compiler in a plain Node consumer.
+      import '@angular/compiler';
+      // Angular itself probes optional DOM globals. Initialize peers in Node first,
+      // then guard against any additional access introduced by this package.
+      import '@angular/core';
+      import '@angular/common';
+      assert.equal(typeof window, 'undefined');
+      assert.equal(typeof document, 'undefined');
       for (const name of ['window', 'document', 'navigator', 'HTMLElement', 'EditorJS']) {
         Object.defineProperty(globalThis, name, { configurable: true, get() { throw new Error('Browser access: ' + name); } });
       }
       const wrapper = await import('@anarchitects/editorjs-angular');
-      assert.deepEqual(Object.keys(wrapper), []);
+      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'provideEditorJsLoader']);
       assert.ok(import.meta.resolve('@anarchitects/editorjs-angular').includes('/fesm2022/'));
-      for (const specifier of ['@angular/core', '@editorjs/editorjs']) {
-        assert.throws(() => import.meta.resolve(specifier), { code: 'ERR_MODULE_NOT_FOUND' });
-      }
+      assert.throws(() => import.meta.resolve('@editorjs/editorjs'), { code: 'ERR_MODULE_NOT_FOUND' });
       await assert.rejects(import('@anarchitects/editorjs-angular/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
       console.log('import ok');
     `,
@@ -163,14 +184,8 @@ describe('published Angular scaffold', () => {
     mkdirSync(consumerDirectory);
     // Angular peers use the installed test baseline; both Anarchitects packages
     // remain actual unpacked archives, never workspace source aliases.
-    for (const dependency of [
-      '@angular/core',
-      '@angular/common',
-      '@angular/compiler',
-      'rxjs',
-      'tslib',
-    ]) {
-      const target = join(consumerDirectory, 'node_modules', dependency);
+    for (const dependency of ['@editorjs/editorjs']) {
+      const target = join(temporaryDirectory, 'node_modules', dependency);
       mkdirSync(dirname(target), { recursive: true });
       symlinkSync(
         dirname(require.resolve(`${dependency}/package.json`)),

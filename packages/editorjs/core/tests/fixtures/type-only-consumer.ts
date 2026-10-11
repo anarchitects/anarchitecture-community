@@ -33,6 +33,11 @@ import type {
   ToolValidationContext,
   ToolValidationIssue,
   ToolValidationResult,
+  EditorJsApi,
+  EditorJsReadyEvent,
+  EditorJsChangeEvent,
+  EditorJsErrorEvent,
+  EditorJsOperation,
 } from '@anarchitects/editorjs-core';
 
 // Keep every documented type reachable through the published root declarations.
@@ -53,6 +58,11 @@ export interface AdditionalPublicContracts {
   context: ToolValidationContext;
   issue: ToolValidationIssue;
   result: ToolValidationResult;
+  editor: EditorJsApi;
+  ready: EditorJsReadyEvent;
+  change: EditorJsChangeEvent;
+  editorError: EditorJsErrorEvent;
+  operation: EditorJsOperation;
 }
 
 interface ToolData {
@@ -70,6 +80,22 @@ export const document: OutputData<Block> = {
 };
 
 export const unknownDocument: OutputData = document;
+
+export async function saveTypedEditor(
+  api: EditorJsApi<Block>,
+): Promise<OutputData<Block>> {
+  await api.render(document);
+  await api.clear();
+  const focused: boolean = await api.focus();
+  const readOnly: boolean = await api.setReadOnly(true);
+  void focused;
+  void readOnly;
+  return api.save();
+}
+
+export function describeChange(event: EditorJsChangeEvent<Block>): string {
+  return event.data.blocks.map(summarize).join(',');
+}
 export const singleBlock: OutputBlockData<'custom', { value: boolean }> = {
   type: 'custom',
   data: { value: true },
