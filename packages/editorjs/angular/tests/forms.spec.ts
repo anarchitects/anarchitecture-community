@@ -2,7 +2,14 @@
 import '@angular/compiler';
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { FormField, form } from '@angular/forms/signals';
+import {
+  FormField,
+  form,
+  disabled,
+  readonly,
+  validate,
+  required,
+} from '@angular/forms/signals';
 import { By } from '@angular/platform-browser';
 import {
   BrowserTestingModule,
@@ -51,17 +58,29 @@ function rawEditor(
 ) {
   if (!options.data) throw new Error('Expected an initial document');
   let data = options.data;
+  let readOnly = options.config?.readOnly ?? false;
   const editor: EditorJsInstance = {
     isReady,
     destroy: vi.fn(),
     clear: vi.fn(),
     focus: vi.fn(() => true),
-    save: vi.fn(async () => data),
+    save: vi.fn(async () => {
+      if (readOnly) throw new Error('Cannot save while readonly');
+      return data;
+    }),
     render: vi.fn(async (next) => {
       data = next;
       options.onChange();
     }),
-    readOnly: { toggle: vi.fn(async (value) => value) },
+    readOnly: {
+      get isEnabled() {
+        return readOnly;
+      },
+      toggle: vi.fn(async (value) => {
+        readOnly = value;
+        return value;
+      }),
+    },
   };
   return {
     editor,
@@ -81,6 +100,9 @@ function rawEditor(
     @if (visible()) {
       <aa-editorjs-control
         [formField]="fields.body"
+        aria-label="Article body"
+        aria-describedby="body-help"
+        (touch)="touch()"
         (ready)="ready()"
         (change)="changes.push($event)"
         (error)="errors.push($event)"
@@ -90,9 +112,23 @@ function rawEditor(
 })
 class FormsHost {
   readonly model = signal<{ body: OutputData }>({ body: document('Initial') });
-  readonly fields = form(this.model);
+  readonly isDisabled = signal(false);
+  readonly isReadonly = signal(false);
+  readonly isInvalid = signal(false);
+  readonly isRequired = signal(false);
+  readonly fields = form(this.model, (path) => {
+    disabled(path.body, () => this.isDisabled());
+    readonly(path.body, () => this.isReadonly());
+    required(path.body, { when: () => this.isRequired() });
+    validate(path.body, () =>
+      this.isInvalid()
+        ? { kind: 'article', message: 'Explain the article.' }
+        : undefined,
+    );
+  });
   readonly visible = signal(true);
   readonly ready = vi.fn();
+  readonly touch = vi.fn();
   readonly changes: EditorJsChangeEvent[] = [];
   readonly errors: EditorJsErrorEvent[] = [];
 }
@@ -454,9 +490,479 @@ describe('standalone value model binding', () => {
     expect(host.errors).toMatchObject([
       { operation: 'data', code: 'invalid-data' },
     ]);
+    const node = fixture.debugElement.query(By.directive(EditorJsControl))
+      .nativeElement as HTMLElement;
+    expect(node.hasAttribute('aria-busy')).toBe(false);
+    expect((node.firstElementChild as HTMLElement).inert).toBe(true);
     host.value.set(document('Corrected'));
     await fixture.whenStable();
     await vi.waitFor(() => expect(created).toHaveLength(1));
     expect(created[0].options.data).toEqual(document('Corrected'));
+  });
+});
+
+describe('native Forms interaction and availability', () => {
+  async function readyControl() {
+    const context = setup();
+    await context.fixture.whenStable();
+    await vi.waitFor(() => expect(context.host.ready).toHaveBeenCalledOnce());
+    const element = context.fixture.debugElement.query(
+      By.directive(EditorJsControl),
+    );
+    const control = element.componentInstance as InstanceType<
+      typeof EditorJsControl
+    >;
+    const node = element.nativeElement as HTMLElement;
+    const region = node.firstElementChild as HTMLElement;
+    const raw = context.created[0];
+    const input = globalThis.document.createElement('input');
+    const toolbar = globalThis.document.createElement('button');
+    const outside = globalThis.document.createElement('button');
+    raw.options.holder.append(input, toolbar);
+    context.fixture.nativeElement.append(outside);
+    vi.mocked(raw.editor.focus).mockImplementation(() => {
+      input.focus();
+      return true;
+    });
+    return { ...context, control, node, region, raw, input, toolbar, outside };
+  }
+
+  it('emits touch once on composite exit, not on block/toolbar focus moves or readiness', async () => {
+    const { fixture, host, input, toolbar, outside } = await readyControl();
+    expect(host.touch).not.toHaveBeenCalled();
+    input.focus();
+    toolbar.focus();
+    await fixture.whenStable();
+    expect(host.touch).not.toHaveBeenCalled();
+    expect(host.fields.body().touched()).toBe(false);
+    outside.focus();
+    await fixture.whenStable();
+    expect(host.touch).toHaveBeenCalledOnce();
+    expect(host.fields.body().touched()).toBe(true);
+    expect(host.fields.body().dirty()).toBe(false);
+    expect(host.changes).toEqual([]);
+  });
+
+  it('checks final focus when relatedTarget is null and emits no duplicate exit', async () => {
+    const { fixture, host, input, toolbar, outside } = await readyControl();
+    input.focus();
+    input.dispatchEvent(
+      new FocusEvent('focusout', { bubbles: true, relatedTarget: null }),
+    );
+    toolbar.focus();
+    await fixture.whenStable();
+    expect(host.touch).not.toHaveBeenCalled();
+    toolbar.blur();
+    outside.focus();
+    await fixture.whenStable();
+    expect(host.touch).toHaveBeenCalledOnce();
+  });
+
+  it.each(['disabled', 'readonly'] as const)(
+    'applies initial %s without dirty, touch or a redundant mode call',
+    async (mode) => {
+      const { fixture, host, created } = setup();
+      (mode === 'disabled' ? host.isDisabled : host.isReadonly).set(true);
+      await fixture.whenStable();
+      await vi.waitFor(() => expect(host.ready).toHaveBeenCalledOnce());
+      await fixture.whenStable();
+      expect(created[0].options.config?.readOnly).toBe(true);
+      expect(created[0].editor.readOnly.toggle).not.toHaveBeenCalled();
+      const node = fixture.debugElement.query(By.directive(EditorJsControl))
+        .nativeElement as HTMLElement;
+      expect((node.firstElementChild as HTMLElement).inert).toBe(
+        mode === 'disabled',
+      );
+      expect(node.getAttribute('tabindex')).toBe(
+        mode === 'readonly' ? '0' : '-1',
+      );
+      expect(host.fields.body().dirty()).toBe(false);
+      expect(host.fields.body().touched()).toBe(false);
+      expect(host.changes).toEqual([]);
+    },
+  );
+
+  it('reconciles availability changed while readiness is pending without reconfiguring', async () => {
+    const readiness = deferred<void>();
+    const { fixture, host, created } = setup(undefined, readiness.promise);
+    await fixture.whenStable();
+    host.isReadonly.set(true);
+    await fixture.whenStable();
+    expect(created[0].options.config?.readOnly).toBe(false);
+    expect(created[0].editor.readOnly.toggle).not.toHaveBeenCalled();
+    readiness.resolve();
+    await vi.waitFor(() =>
+      expect(created[0].editor.readOnly.toggle).toHaveBeenCalledWith(true),
+    );
+    expect(host.errors).toEqual([]);
+    expect(host.changes).toEqual([]);
+    expect(host.fields.body().dirty()).toBe(false);
+  });
+
+  it('blocks keyboard, pointer and editing events while disabled and suppresses artificial blur', async () => {
+    const { fixture, host, raw, input, region, node, outside } =
+      await readyControl();
+    input.focus();
+    host.isDisabled.set(true);
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(raw.editor.readOnly.isEnabled).toBe(true));
+    expect(region.inert).toBe(true);
+    expect(node.getAttribute('aria-disabled')).toBe('true');
+    expect(globalThis.document.activeElement).not.toBe(input);
+    const listener = vi.fn();
+    for (const type of [
+      'keydown',
+      'pointerdown',
+      'click',
+      'beforeinput',
+      'paste',
+      'cut',
+      'drop',
+    ]) {
+      input.addEventListener(type, listener);
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      input.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+    }
+    expect(listener).not.toHaveBeenCalled();
+    input.focus();
+    expect(globalThis.document.activeElement).not.toBe(input);
+    outside.focus();
+    await fixture.whenStable();
+    expect(host.touch).not.toHaveBeenCalled();
+    expect(host.fields.body().touched()).toBe(false);
+    expect(host.fields.body().dirty()).toBe(false);
+    expect(host.model().body.blocks[0].data).toEqual({ text: 'Initial' });
+    host.isDisabled.set(false);
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(region.inert).toBe(false));
+    input.click();
+    expect(listener).toHaveBeenCalledOnce();
+    expect(host.errors).toEqual([]);
+  });
+
+  it('keeps interaction blocked until the last ordered rapid transition completes', async () => {
+    const { fixture, host, raw, region } = await readyControl();
+    const first = deferred<void>();
+    const last = deferred<void>();
+    const toggle = vi.mocked(raw.editor.readOnly.toggle);
+    const apply = toggle.getMockImplementation();
+    if (!apply) throw new Error('Expected fake mode driver');
+    toggle.mockImplementationOnce(async (mode) => {
+      await first.promise;
+      return apply(mode);
+    });
+    toggle.mockImplementationOnce(async (mode) => {
+      await last.promise;
+      return apply(mode);
+    });
+    host.isReadonly.set(true);
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(toggle).toHaveBeenCalledTimes(1));
+    host.isReadonly.set(false);
+    await fixture.whenStable();
+    expect(region.inert).toBe(true);
+    first.resolve();
+    await vi.waitFor(() => expect(toggle).toHaveBeenCalledTimes(2));
+    expect(toggle.mock.calls.map(([mode]) => mode)).toEqual([true, false]);
+    expect(region.inert).toBe(true);
+    last.resolve();
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(region.inert).toBe(false));
+    expect(raw.editor.readOnly.isEnabled).toBe(false);
+    expect(host.errors).toEqual([]);
+    expect(host.changes).toEqual([]);
+  });
+
+  it.each(['disabled', 'readonly'] as const)(
+    'preserves an already-running saved edit when entering %s',
+    async (mode) => {
+      const { fixture, host, raw } = await readyControl();
+      const saved = deferred<OutputData>();
+      vi.mocked(raw.editor.save).mockReturnValueOnce(saved.promise);
+      raw.edit(document('Before mode change'));
+      await vi.waitFor(() => expect(raw.editor.save).toHaveBeenCalledOnce());
+      (mode === 'disabled' ? host.isDisabled : host.isReadonly).set(true);
+      await fixture.whenStable();
+      expect(raw.editor.readOnly.toggle).not.toHaveBeenCalled();
+      saved.resolve(document('Before mode change'));
+      await vi.waitFor(() => expect(raw.editor.readOnly.isEnabled).toBe(true));
+      await fixture.whenStable();
+      expect(host.model().body.blocks[0].data).toEqual({
+        text: 'Before mode change',
+      });
+      expect(host.changes).toHaveLength(1);
+      // Angular suppresses computed dirty/touched for non-interactive fields.
+      expect(host.fields.body().dirty()).toBe(false);
+      expect(host.fields.body().touched()).toBe(false);
+      expect(raw.editor.render).not.toHaveBeenCalled();
+      (mode === 'disabled' ? host.isDisabled : host.isReadonly).set(false);
+      await fixture.whenStable();
+      await vi.waitFor(() => expect(raw.editor.readOnly.isEnabled).toBe(false));
+      expect(host.fields.body().dirty()).toBe(true);
+      expect(host.changes).toHaveLength(1);
+    },
+  );
+
+  it.each(['disabled', 'readonly'] as const)(
+    'allows value replacement and explicit-value reset while %s',
+    async (mode) => {
+      const { fixture, host, raw } = await readyControl();
+      (mode === 'disabled' ? host.isDisabled : host.isReadonly).set(true);
+      await fixture.whenStable();
+      await vi.waitFor(() => expect(raw.editor.readOnly.isEnabled).toBe(true));
+      host.model.set({ body: document('Replacement') });
+      await fixture.whenStable();
+      await vi.waitFor(() =>
+        expect(raw.editor.render).toHaveBeenCalledWith(document('Replacement')),
+      );
+      host.fields.body().markAsDirty();
+      host.fields.body().markAsTouched();
+      host.fields.body().reset(document('Reset value'));
+      await fixture.whenStable();
+      await vi.waitFor(() =>
+        expect(raw.editor.render).toHaveBeenLastCalledWith(
+          document('Reset value'),
+        ),
+      );
+      expect(host.model().body.blocks[0].data).toEqual({ text: 'Reset value' });
+      expect(host.fields.body().dirty()).toBe(false);
+      expect(host.fields.body().touched()).toBe(false);
+      expect(host.changes).toEqual([]);
+      expect(host.touch).not.toHaveBeenCalled();
+      expect(host.errors).toEqual([]);
+    },
+  );
+
+  it('retains requested field state and gates a failed transition until an explicit availability change', async () => {
+    const { fixture, host, raw, region } = await readyControl();
+    vi.mocked(raw.editor.readOnly.toggle).mockRejectedValueOnce(
+      new Error('Unsupported tool'),
+    );
+    host.isReadonly.set(true);
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(host.errors).toHaveLength(1));
+    expect(host.errors[0]).toMatchObject({
+      operation: 'readOnly',
+      code: 'operation-failed',
+    });
+    expect(host.fields.body().readonly()).toBe(true);
+    expect(raw.editor.readOnly.isEnabled).toBe(false);
+    expect(region.inert).toBe(true);
+    host.model.set({ body: document('Retained request') });
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(raw.editor.render).toHaveBeenCalledOnce());
+    expect(region.inert).toBe(true);
+    host.isReadonly.set(false);
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(region.inert).toBe(false));
+    expect(raw.editor.readOnly.toggle).toHaveBeenCalledTimes(2);
+    expect(host.errors).toHaveLength(1);
+    expect(host.changes).toEqual([]);
+  });
+
+  it('treats an unsuccessful mode result as a gated failure', async () => {
+    const { fixture, host, raw, region } = await readyControl();
+    vi.mocked(raw.editor.readOnly.toggle).mockResolvedValueOnce(false);
+    host.isReadonly.set(true);
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(host.errors).toHaveLength(1));
+    expect(host.errors[0]).toMatchObject({
+      operation: 'readOnly',
+      code: 'operation-failed',
+    });
+    expect(region.inert).toBe(true);
+    expect(host.fields.body().readonly()).toBe(true);
+  });
+
+  it('exposes field presentation inputs and preserves consumer label/error associations on a group', async () => {
+    const { fixture, host, control, node } = await readyControl();
+    host.isInvalid.set(true);
+    host.isRequired.set(true);
+    host.fields.body().markAsTouched();
+    await fixture.whenStable();
+    expect(control.invalid()).toBe(true);
+    expect(control.required()).toBe(true);
+    expect(control.touched()).toBe(true);
+    expect(control.dirty()).toBe(false);
+    expect(control.errors()).toMatchObject([
+      { kind: 'article', message: 'Explain the article.' },
+    ]);
+    expect(control.name()).toBe(host.fields.body().name());
+    expect(node.getAttribute('role')).toBe('group');
+    expect(node.getAttribute('aria-label')).toBe('Article body');
+    expect(node.getAttribute('aria-describedby')).toBe('body-help');
+    expect(node.getAttribute('data-invalid')).toBe('true');
+    expect(node.hasAttribute('aria-invalid')).toBe(false);
+    expect(node.hasAttribute('aria-required')).toBe(false);
+    expect(node.hasAttribute('aria-readonly')).toBe(false);
+    expect(host.changes).toEqual([]);
+  });
+
+  it('uses the native focus hook without marking interaction and focuses the group when readonly', async () => {
+    const { fixture, host, control, raw, node, input } = await readyControl();
+    expect(control.focus({ preventScroll: true })).toBeUndefined();
+    await vi.waitFor(() =>
+      expect(raw.editor.focus).toHaveBeenCalledWith(undefined),
+    );
+    expect(globalThis.document.activeElement).toBe(input);
+    expect(host.touch).not.toHaveBeenCalled();
+    expect(host.fields.body().dirty()).toBe(false);
+    host.isReadonly.set(true);
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(raw.editor.readOnly.isEnabled).toBe(true));
+    await fixture.whenStable();
+    host.fields.body().focusBoundControl({ preventScroll: true });
+    expect(globalThis.document.activeElement).toBe(node);
+    expect(raw.editor.focus).toHaveBeenCalledOnce();
+    expect(host.touch).not.toHaveBeenCalled();
+    host.isDisabled.set(true);
+    await fixture.whenStable();
+    control.focus();
+    expect(globalThis.document.activeElement).not.toBe(node);
+    expect(raw.editor.focus).toHaveBeenCalledOnce();
+  });
+
+  it.each(['false', 'throw'] as const)(
+    'reports focus failure (%s) once without an unhandled rejection',
+    async (failure) => {
+      const { host, control, raw } = await readyControl();
+      vi.mocked(raw.editor.focus).mockImplementation(() => {
+        if (failure === 'throw') throw new Error('Focus unavailable');
+        return false;
+      });
+      expect(control.focus()).toBeUndefined();
+      await vi.waitFor(() => expect(host.errors).toHaveLength(1));
+      expect(host.errors[0]).toMatchObject({
+        operation: 'focus',
+        code: 'operation-failed',
+      });
+      expect(host.changes).toEqual([]);
+      expect(host.touch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not defer focus requested before readiness or emit after disposal', async () => {
+    const readiness = deferred<void>();
+    const { fixture, host, created } = setup(undefined, readiness.promise);
+    await fixture.whenStable();
+    const control = fixture.debugElement.query(By.directive(EditorJsControl))
+      .componentInstance as InstanceType<typeof EditorJsControl>;
+    control.focus();
+    readiness.resolve();
+    await vi.waitFor(() => expect(host.ready).toHaveBeenCalledOnce());
+    expect(created[0].editor.focus).not.toHaveBeenCalled();
+    fixture.destroy();
+    control.focus();
+    expect(created[0].editor.focus).not.toHaveBeenCalled();
+    expect(host.errors).toEqual([]);
+    expect(host.touch).not.toHaveBeenCalled();
+  });
+
+  it('cancels a queued composite touch when its owner is destroyed', async () => {
+    const { fixture, host, input } = await readyControl();
+    input.focus();
+    input.blur();
+    fixture.destroy();
+    await Promise.resolve();
+    expect(host.touch).not.toHaveBeenCalled();
+    expect(host.errors).toEqual([]);
+  });
+
+  it('suppresses late transition errors and touch after destruction', async () => {
+    const { fixture, host, raw, input } = await readyControl();
+    const transition = deferred<void>();
+    vi.mocked(raw.editor.readOnly.toggle).mockImplementationOnce(async () => {
+      await transition.promise;
+      throw new Error('Late failure');
+    });
+    input.focus();
+    input.blur();
+    host.isReadonly.set(true);
+    await fixture.whenStable();
+    await vi.waitFor(() =>
+      expect(raw.editor.readOnly.toggle).toHaveBeenCalledOnce(),
+    );
+    host.touch.mockClear();
+    fixture.destroy();
+    transition.resolve();
+    await transition.promise;
+    await Promise.resolve();
+    expect(host.errors).toEqual([]);
+    expect(host.touch).not.toHaveBeenCalled();
+    expect(raw.editor.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('does not mark programmatic writes as touch but still observes the next user focus exit', async () => {
+    const { fixture, host, input, outside, raw } = await readyControl();
+    input.focus();
+    host.model.set({ body: document('External write') });
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(raw.editor.render).toHaveBeenCalledOnce());
+    expect(host.touch).not.toHaveBeenCalled();
+    outside.focus();
+    await fixture.whenStable();
+    expect(host.touch).toHaveBeenCalledOnce();
+    expect(host.fields.body().dirty()).toBe(false);
+  });
+
+  it('suppresses blur from replaced editor DOM and still observes later null-relatedTarget exit', async () => {
+    const { fixture, host, input, toolbar, raw } = await readyControl();
+    input.focus();
+    vi.mocked(raw.editor.render).mockImplementationOnce(async () => {
+      input.blur();
+      input.remove();
+    });
+    host.model.set({ body: document('Replacement') });
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(raw.editor.render).toHaveBeenCalledOnce());
+    expect(host.touch).not.toHaveBeenCalled();
+    toolbar.focus();
+    // A subsequent write need not replace the currently focused toolbar.
+    host.model.set({ body: document('Another replacement') });
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(raw.editor.render).toHaveBeenCalledTimes(2));
+    toolbar.blur();
+    await fixture.whenStable();
+    expect(host.touch).toHaveBeenCalledOnce();
+  });
+
+  it('reflects validation pending without disabling an otherwise ready editor', async () => {
+    setup();
+    const fixture = TestBed.createComponent(EditorJsControl);
+    fixture.componentRef.setInput('pending', true);
+    await fixture.whenStable();
+    await vi.waitFor(() =>
+      expect(
+        (fixture.nativeElement.firstElementChild as HTMLElement).inert,
+      ).toBe(false),
+    );
+    expect(fixture.nativeElement.getAttribute('aria-busy')).toBe('true');
+    fixture.componentRef.setInput('pending', false);
+    await fixture.whenStable();
+    expect(fixture.nativeElement.hasAttribute('aria-busy')).toBe(false);
+  });
+
+  it('keeps interaction and availability independent across controls', async () => {
+    const first = await readyControl();
+    const secondFixture = TestBed.createComponent(FormsHost);
+    await secondFixture.whenStable();
+    await vi.waitFor(() =>
+      expect(secondFixture.componentInstance.ready).toHaveBeenCalledOnce(),
+    );
+    first.host.isDisabled.set(true);
+    await first.fixture.whenStable();
+    await vi.waitFor(() =>
+      expect(first.raw.editor.readOnly.isEnabled).toBe(true),
+    );
+    const secondRaw = first.created[1];
+    expect(secondRaw.editor.readOnly.toggle).not.toHaveBeenCalled();
+    secondRaw.edit(document('Independent edit'));
+    await vi.waitFor(() =>
+      expect(secondFixture.componentInstance.changes).toHaveLength(1),
+    );
+    expect(first.host.changes).toEqual([]);
+    expect(first.host.fields.body().dirty()).toBe(false);
+    expect(secondFixture.componentInstance.fields.body().dirty()).toBe(true);
   });
 });

@@ -2,8 +2,9 @@
 
 This contributor contract implements the planning slice #548 of epic #68. It defines
 work for #549–#554. #549 implements the opt-in entry point and value binding;
-interaction state, reset/focus/snapshot controls and the remaining integration
-guarantees below are still planned in #550–#554. The
+#550 adds interaction state, availability, accessible presentation and focus. Reset
+invalidation, snapshot controls and remaining integration guarantees are planned in
+#551–#554. The
 [package README](../packages/editorjs/angular/README.md) remains the authority for
 currently available exports. The original #548 planning slice changed no runtime
 code, dependencies or release versions. Implementation status and evidence live in the
@@ -284,3 +285,18 @@ keys and all other invalid JSON structures remain errors. Outgoing model values
 are copied through core separately from saved change events, so Forms-owned
 metadata cannot alter those events. No Angular internals or private identity keys
 are referenced, and no JSON traversal is duplicated in the Angular package.
+
+## Interaction implementation note (#550)
+
+The adapter consumes native Forms state and delegates mode changes to the root
+component's existing API. No coordinator or generic queue was added to Angular.
+Initial availability is captured once in configuration; later requests remain
+ordered in core. Inert gating and capture listeners cover unavailable interaction,
+and composite focus tracking emits native touch. Failed/mismatched mode requests
+remain gated until another availability change or recreation. FocusOptions are
+accepted but ignored, as required by the initial contract.
+
+Angular 22.1.4 suppresses computed dirty/touched while fields are non-interactive;
+it retains their internal state for reactivation. Tests follow this native behavior
+and preserve pre-transition saved edits. Explicit-value resets while unavailable
+are covered; same-value reset and synchronous stale-work invalidation remain #551.

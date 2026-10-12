@@ -354,8 +354,9 @@ component, controlled editor drivers and zoneless Angular. Packed checks compile
 root without Forms, then link the matching Forms peer and compile the secondary
 entry point plus every README example. The isolated matrix now installs matching
 Forms peers for declaration/example compilation; its browser scenarios still cover
-the standalone host. Interaction, reset/validation hardening, legacy interoperability,
-Forms browser coverage and final release certification remain #550–#554.
+the standalone host. This is the #549 value-binding baseline; #550 interaction work
+is described below. Reset/validation hardening, legacy interoperability, Forms browser
+coverage and final release certification remain #551–#554.
 
 Validation on 2026-10-11: core and Angular build/typecheck/lint checks passed, with
 148 core and 50 Angular tests (including 16 value-binding cases). E2E-project lint
@@ -363,6 +364,38 @@ and typecheck passed. The packed matrix passed on Angular/Forms 22.0.0, 22.1.4 a
 22.2.2 with their recorded Node versions, including declaration/example compilation
 and 15 standalone browser checks. Existing lint warnings remain; no Forms browser
 certification is implied by these results.
+
+## Signal Forms interaction and availability (#550)
+
+The five-ADR inventory remains unchanged. A02/A05/A06/A07/A09/A10 and ADR 0004
+apply: native form-tree state, Angular-only DOM adaptation, ordered core operations,
+public entry-point composition and documented/tested consumer behavior. No accepted
+ADR conflict was found. The Angular MCP best-practices endpoint again returned
+`Unexpected response type`; the installed Angular 22.1.4 public declarations and
+the accepted engineering guides provide the implementation contract.
+
+The adapter captures initial availability in one child configuration, then uses
+`api.setReadOnly` for subsequent requests. An inert editor region and capture-phase
+event gating prevent interaction during loading, disablement, mode transitions and
+failed transitions. Core continues to own the command queue and pre-transition
+snapshot capture. Native Forms owns dirty/touched; the adapter only emits composite
+focus-exit touch. FocusOptions are accepted but not forwarded to Editor.js. Full
+same-value reset invalidation and snapshot/validation hardening remain #551.
+The [WAI-ARIA 1.2 group contract](https://www.w3.org/TR/wai-aria-1.2/#group) was
+checked for host attributes: `aria-disabled`/`aria-busy` are supported;
+`aria-invalid` is deprecated on group, and `aria-required`/`aria-readonly` are not
+supported. Those field flags use data attributes, visible labels/errors and
+consumer-owned `aria-describedby` associations instead.
+
+Validation on 2026-10-11: Angular build/typecheck/lint and 74 tests passed, including
+40 Forms cases. Tests cover composite focus exit, artificial blur, disabled input
+capture, readonly focus, pending edits, rapid/failing transitions, explicit-value
+reset while unavailable, error counts, disposal and independent owners. Angular
+retains and temporarily suppresses computed dirty/touched for non-interactive fields;
+pre-transition changes remain published. The packed public API/examples compiled
+across Angular/Forms 22.0.0, 22.1.4 and 22.2.2, with all 15 standalone browser checks
+passing. Forms browser interaction certification remains #553–#554. Existing lint
+warnings remain; no dependencies or release versions changed.
 
 ## Release configuration
 
