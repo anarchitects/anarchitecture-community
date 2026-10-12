@@ -224,7 +224,7 @@ imports preserve the intended boundary without source aliases.
 yarn nx run editorjs-angular-e2e:install-browsers
 # Production package builds, host build, managed server and browser tests.
 yarn nx run editorjs-angular-e2e:e2e
-# Interactive host (builds library dependencies first): http://127.0.0.1:4317
+# Interactive host: standalone at /, Forms at /?forms (port 4317).
 yarn nx run editorjs-angular-host:serve
 # All four projects' relevant checks; no empty host unit-test target.
 yarn nx run-many -p editorjs-core editorjs-angular editorjs-angular-host editorjs-angular-e2e -t build typecheck test lint e2e
@@ -474,6 +474,52 @@ Three copyable examples and direct-binding declaration fixtures compile from pub
 imports. No core or package implementation changes were needed.
 
 Validation results are recorded in the [release-readiness increment](editorjs-angular-release-readiness.md#native-legacy-forms-interoperability-552).
+
+## Dedicated Forms browser coverage (#553)
+
+All five ADRs remain unchanged since the previous review. Accepted Modern Angular
+A02/A03/A05/A06/A09/A10 and ADR0004 govern this increment: standalone composition,
+public artifacts, native form ownership, zoneless state, cleanup and bounded
+compatibility claims. The Angular MCP best-practices call again returned an
+unexpected response type; the already reviewed official API guidance and installed
+Angular 22.1.4 APIs supplied the fallback. The skill's Cypress/devtools example is
+not this repository's runner; the established Nx/Playwright projects remain the
+accepted testing seam. No architecture conflict or package runtime change.
+
+The existing private `editorjs-angular-host` serves standalone editors at `/` and
+Forms fixtures at `/?forms`. Nx generated the new standalone `FormsCard`; its
+browser tests live in `editorjs-angular-e2e/src/forms.spec.ts`, not in the library.
+Two independent Signal Forms controls and one native reactive control consume the
+built public `/forms` entry point. They retain generic `OutputData`, and the host
+owns content validation and simulated persistence. The reactive fixture follows
+#552's explicit reset-hook policy.
+
+`FormsWork` is per-card test instrumentation around the real lazy loader. It can
+pause delivery of one snapshot after real Editor.js capture, expose that captured
+document, release it after reset/disposal, or inject a save rejection. It also owns
+abort-aware async validation and explicitly completed submission promises. Nothing
+uses a fake editor, package internals, a global instance registry or application
+models. The loader forwards the live read-only getter without reading it before
+Editor.js readiness. Ownership counters still verify raw creation/destruction.
+
+Eight Forms scenarios add actual keyboard editing, focus moves inside/outside the
+composite control, event/model detachment, programmatic writes and flags,
+disabled/readonly transitions, unchanged-value reset during a captured save,
+repeated teardown with detached input/keyboard/focus events, independent controls,
+async validation/pending and failed submission, observable operation errors, and
+native reactive interoperability. Tests wait for observable state; the deliberate
+750ms negative-observation window covers Editor.js's 400ms mutation batching.
+
+The existing `e2e` target discovers both spec files and runs 13 scenarios. Its
+existing dependency chain still builds core, Angular APF and the host in order;
+`e2e-packed` runs the same 13 scenarios in each isolated consumer, in addition to
+#552's 40 native interop cases per cell. Existing CI browser/packed-consumer jobs
+already invoke these targets and collect reports, so no workflow or new project
+is needed. Package contract tests remain in the library. Full SSR/hydration and
+non-authoring-route bundle checks remain #69, with the final Forms release review
+in #554. CI is not monitored automatically.
+
+Validation results are recorded in the [release-readiness increment](editorjs-angular-release-readiness.md#dedicated-forms-browser-coverage-553).
 
 ## Release configuration
 

@@ -216,3 +216,27 @@ These interoperability tests use actual Angular directives and packed package AP
 with a controlled editor in TestBed/jsdom. They do not replace #553's Forms browser
 coverage or #554's final release certification. CI is not monitored; no publication
 or merge is performed.
+
+## Dedicated Forms browser coverage (#553)
+
+Adds a Forms view to the private host and eight real-Editor.js Playwright scenarios
+in the existing e2e project. The five standalone scenarios remain intact. Native
+Signal Forms and direct reactive binding use built public package entries; no
+package runtime, peer/dependency, release version or Nx project-boundary changes.
+Existing browser/packed-consumer CI targets automatically include the new spec.
+
+Validation on 2026-10-12: all 13 local Chromium scenarios passed. Angular/host builds,
+Angular/host/e2e type checks and lint passed; all 138 library tests passed. The final
+isolated packed matrix passed on Angular/Forms 22.0.0, 22.1.4 and 22.2.2: 13 browser
+scenarios per cell (39 total), 40 native legacy interoperability cases per cell,
+public declarations and every README example. Existing library and standalone-spec
+lint warnings remain; the new host/spec adds none. Formatting and whitespace checks
+passed. CI was not monitored, and nothing was merged, published or versioned.
+
+Deterministic host controls delay delivery after real editor capture, expose the
+captured document, and explicitly resolve validation/submission. Assertions cover
+model and form flags after reset/disposal, three remount cycles, raw ownership
+counts, detached DOM events and independent editing. This is bounded Chromium
+coverage, not a full browser matrix, screen-reader audit or third-party leak proof.
+Full SSR/hydration and non-authoring-route bundle validation remain #69; #554 owns
+the final Forms release review.

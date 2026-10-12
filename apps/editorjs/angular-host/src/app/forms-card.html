@@ -1,0 +1,154 @@
+<section [attr.aria-label]="label() + ' form'">
+  <h2>{{ label() }} {{ legacy() ? 'reactive' : 'Signal' }} Forms</h2>
+  <p role="status">
+    {{ ready() ? 'Ready' : mounted() ? 'Loading' : 'Unmounted' }}
+  </p>
+  @if (mounted()) { @if (legacy()) {
+  <aa-editorjs-control
+    [formControl]="legacyBody"
+    [config]="config"
+    [attr.aria-label]="label() + ' document'"
+    (ready)="onReady()"
+    (touch)="onTouch()"
+    (change)="onChange($event)"
+    (error)="onError($event)"
+  />
+  } @else {
+  <aa-editorjs-control
+    [formField]="fields.body"
+    [config]="config"
+    [attr.aria-label]="label() + ' document'"
+    [attr.aria-describedby]="label() + '-errors'"
+    (ready)="onReady()"
+    (touch)="onTouch()"
+    (change)="onChange($event)"
+    (error)="onError($event)"
+  />
+  } }
+  <div>
+    <button type="button" (click)="focus()">Focus</button>
+    <button type="button" (click)="write()">Replace value</button>
+    <button type="button" (click)="reset()">Reset</button>
+    <button type="button" (click)="resetSame()">Reset same value</button>
+    <button type="button" (click)="reset(true)">Empty document</button>
+    <button
+      type="button"
+      (click)="toggleDisabled()"
+      [attr.aria-pressed]="unavailable()"
+    >
+      Disabled
+    </button>
+    @if (!legacy()) {
+    <button
+      type="button"
+      (click)="readOnly.set(!readOnly())"
+      [attr.aria-pressed]="readOnly()"
+    >
+      Read only
+    </button>
+    }
+    <button type="button" (click)="toggleMount()">
+      {{ mounted() ? 'Unmount' : 'Mount' }}
+    </button>
+    <button type="button" (click)="save()" [disabled]="!ready()">
+      Capture
+    </button>
+    <button type="button" (click)="write(true)">Invalid document</button>
+    <button type="button" (click)="mutateEvent()" [disabled]="!lastChange()">
+      Mutate event
+    </button>
+    <button
+      type="button"
+      (click)="work.armed.set(true)"
+      [disabled]="work.held()"
+    >
+      Hold next save
+    </button>
+    <button type="button" (click)="work.release()" [disabled]="!work.held()">
+      Release save
+    </button>
+    <button type="button" (click)="work.failNext = true">Fail next save</button>
+    @if (!legacy()) {
+    <button type="button" (click)="reviewRound.set(reviewRound() + 1)">
+      Start validation
+    </button>
+    <button
+      type="button"
+      (click)="work.finishReview(false)"
+      [disabled]="!work.validating()"
+    >
+      Accept validation
+    </button>
+    <button
+      type="button"
+      (click)="work.finishReview(true)"
+      [disabled]="!work.validating()"
+    >
+      Reject validation
+    </button>
+    <button
+      type="button"
+      (click)="persist()"
+      [disabled]="!ready() || fields().submitting()"
+    >
+      Submit
+    </button>
+    <button
+      type="button"
+      (click)="work.finishSubmission(false)"
+      [disabled]="!work.submitting()"
+    >
+      Fail submission
+    </button>
+    <button
+      type="button"
+      (click)="work.finishSubmission(true)"
+      [disabled]="!work.submitting()"
+    >
+      Complete submission
+    </button>
+    }
+  </div>
+  <dl>
+    <dt>Dirty</dt>
+    <dd data-testid="dirty">{{ dirty() }}</dd>
+    <dt>Touched</dt>
+    <dd data-testid="touched">{{ touched() }}</dd>
+    <dt>Changes</dt>
+    <dd data-testid="changes">{{ changes() }}</dd>
+    <dt>Touches</dt>
+    <dd data-testid="touches">{{ touches() }}</dd>
+    <dt>Ready count</dt>
+    <dd data-testid="ready-count">{{ readyCount() }}</dd>
+    <dt>Errors</dt>
+    <dd data-testid="errors">{{ errorCount() }}</dd>
+    <dt>Save held</dt>
+    <dd data-testid="held">{{ work.held() }}</dd>
+    <dt>Save armed</dt>
+    <dd data-testid="armed">{{ work.armed() }}</dd>
+    @if (!legacy()) {
+    <dt>Pending</dt>
+    <dd data-testid="pending">{{ fields.body().pending() }}</dd>
+    <dt>Invalid</dt>
+    <dd data-testid="invalid">{{ fields.body().invalid() }}</dd>
+    <dt>Submitting</dt>
+    <dd data-testid="submitting">{{ fields().submitting() }}</dd>
+    }
+  </dl>
+  @if (operationError()) {
+  <p role="alert">{{ operationError() }}</p>
+  }
+  <p data-testid="result">{{ result() }}</p>
+  <p
+    [id]="label() + '-errors'"
+    data-testid="validation-errors"
+    aria-live="polite"
+  >
+    @if (!legacy()) { @for (error of fields.body().errors(); track $index) { {{
+    error.message }} } }
+  </p>
+  <pre aria-label="Held document">{{ work.heldDocument() | json }}</pre>
+  <pre aria-label="Model document">{{ value() | json }}</pre>
+  <pre aria-label="Change document">{{ lastChange()?.data | json }}</pre>
+  <pre aria-label="Captured document">{{ captured() | json }}</pre>
+</section>
