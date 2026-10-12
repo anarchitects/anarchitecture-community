@@ -194,3 +194,25 @@ type checks and lint passed. Final packed declarations/README examples compiled
 on Angular/Forms 22.0.0, 22.1.4 and 22.2.2; all 15 standalone Chromium checks
 passed. Root-only consumers remained independent of Forms. Existing lint warnings
 remain; no CI monitoring or publication was performed.
+
+## Native legacy Forms interoperability (#552)
+
+Adds 40 native interoperability contract cases and three public migration examples.
+Direct `formControl`/`formControlName`, `compatForm` and `SignalFormControl.fieldTree`
+have explicitly bounded support. `ngModel` is characterized but excluded from clean
+initialization/reset support because of transient null and stale-view behavior.
+The README specifies non-null models, reset hooks, immediate publication despite
+legacy `updateOn` modes, silent-write limitations and schema-owned compatibility
+control state. No package runtime, dependency/peer or release version changes.
+
+Validation on 2026-10-12: all 138 Angular tests passed, including 40 native legacy
+interoperability cases. Angular and consumer-host builds, Angular/e2e type checks
+and lint passed. The existing root-only package check still compiles without Forms.
+The final isolated matrix passed on Angular/Forms 22.0.0, 22.1.4 and 22.2.2:
+40 interoperability cases per cell, public declarations and every README example,
+and all 15 existing standalone Chromium checks. Existing lint warnings remain.
+
+These interoperability tests use actual Angular directives and packed package APIs
+with a controlled editor in TestBed/jsdom. They do not replace #553's Forms browser
+coverage or #554's final release certification. CI is not monitored; no publication
+or merge is performed.

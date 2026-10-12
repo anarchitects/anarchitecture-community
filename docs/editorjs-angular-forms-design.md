@@ -327,3 +327,25 @@ Native async validators and submission remain consumer-owned. Tests show strict
 single-field submission example deliberately validates its fresh captured payload
 inside the action, independently of the older model's schema result. Native submit
 still supplies duplicate prevention, submitting state and server-error placement.
+
+## Native legacy interoperability boundary (#552)
+
+The public README now specifies the tested Angular 22.0.0/22.1.4/22.2.2 migration
+boundary. Direct reactive bindings, retained controls in `compatForm`, and
+`SignalFormControl.fieldTree` use Angular's native integration without a package
+CVA. Legacy `updateOn` modes do not defer saved editor publications. Non-nullable
+editing models and explicit reset values remain the consumer's responsibility.
+
+Legacy `FormControl.reset()` does not dispatch the editor's reset hook. Consumers
+call `EditorJsControl.reset()` before legacy resets and before direct legacy writes
+that can overtake editor work. `SignalFormControl.reset()` dispatches it natively.
+Silent writes to retained `compatForm` controls remain unobserved until an event;
+legacy imperative validator/availability APIs are not universally supported by
+`SignalFormControl`.
+
+Direct `ngModel` is not a supported clean initialization/reset path on these
+baselines: its initial null causes an operational diagnostic, and a concurrent
+model assignment and editor reset can leave its view/control value stale. Tests
+characterize this boundary rather than adding null coercion or parallel form state.
+The native contract suite runs against each isolated packed consumer. Full Forms
+browser coverage and release certification remain #553 and #554.

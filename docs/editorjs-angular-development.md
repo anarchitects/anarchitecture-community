@@ -437,6 +437,44 @@ README examples on Angular/Forms 22.0.0, 22.1.4 and 22.2.2; all 15 existing
 standalone Chromium checks passed. Native Forms browser scenarios remain #553;
 this matrix run does not claim that coverage. CI was not monitored.
 
+## Native legacy Forms interoperability (#552)
+
+Re-enumerated all five ADRs and checked the applicable engineering guides before
+implementation. ADR0004 and Modern Angular decisions A02/A05/A06/A07/A09/A10
+apply; the governance ADRs retain their own scope. This is the accepted migration
+seam for existing forms, not a change to the Signal Forms default. There are no
+conflicts, dependency/peer changes, package-owned CVAs or new runtime providers.
+Angular MCP best-practices retrieval failed with an unexpected response type;
+official Angular migration/API docs and versioned installed public APIs supplied
+the fallback evidence.
+
+The new `forms-interop.spec.ts` suite exercises native `formControl`,
+`formControlName`, `ngModel`, retained `FormControl` leaves in `compatForm`, and
+`SignalFormControl.fieldTree`. It tests value/flag projection, disabled state,
+validation and async pending/errors, non-null reset, reset/write races, and native
+`updateOn` behavior. Tests consume built APF locally; the packed matrix copies the
+same suite into each isolated consumer and runs it with that cell's Angular/Forms
+and Node versions. These are TestBed/jsdom contracts with a controlled upstream
+editor, separate from the Forms browser scenarios assigned to #553.
+
+Supported reactive/compatibility bindings publish immediately for `updateOn: blur`
+and `submit`. Retained legacy controls require an explicit `EditorJsControl.reset()`
+hook to invalidate editor work during reset; direct legacy authoritative writes
+need it before input delivery too. `SignalFormControl` dispatches the native hook.
+`compatForm` does not observe `emitEvent: false` writes until the control emits.
+Schema rules own `SignalFormControl` availability/validation; legacy imperative
+`disable`, `setValidators` and `setErrors` throw. These are bounded native semantics,
+not gaps to fill with a second state model inside the package.
+
+Direct `ngModel` is characterized but excluded from the support claim: initialization
+delivers a transient null and emits `invalid-data`, and simultaneous model assignment
+and editor reset can leave its view/control value stale. The public README describes
+these limitations, nullable-model adaptation and working migration alternatives.
+Three copyable examples and direct-binding declaration fixtures compile from public
+imports. No core or package implementation changes were needed.
+
+Validation results are recorded in the [release-readiness increment](editorjs-angular-release-readiness.md#native-legacy-forms-interoperability-552).
+
 ## Release configuration
 
 The project participates in independent Nx release configuration with

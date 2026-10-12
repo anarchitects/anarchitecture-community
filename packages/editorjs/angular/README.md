@@ -44,9 +44,9 @@ The packed component and its public examples are checked with these combinations
 
 These are tested combinations, not every version permutation or a full browser
 matrix. They cover standalone, zoneless editing, saved changes, imperative controls
-and teardown for the standalone component. Forms value-binding declarations and
-examples compile on these baselines; Forms browser certification and full
-SSR/hydration support are not established. No
+and teardown for the standalone component. Forms declarations/examples compile and native legacy interoperability contract tests
+pass on these baselines, within the limits documented below. Forms browser
+certification and full SSR/hydration support are not established. No
 CommonJS build is supplied. Nx is not a consumer dependency. Angular peers are
 evaluated normally; Editor.js is loaded only during browser initialization.
 
@@ -199,9 +199,8 @@ npm install @anarchitects/editorjs-angular @anarchitects/editorjs-core @editorjs
 
 Forms is an optional `^22.0.0` peer. Root-only `EditorJs` consumers do not need it.
 This entry point supports value synchronization, composite touch, disabled/readonly
-state, native focus/reset hooks and explicit snapshots. Legacy Forms integration
-is not yet certified. Schema
-availability rules control editing, but do not flush asynchronous saves.
+state, native focus/reset hooks and explicit snapshots. Native legacy integration
+is supported within the boundaries described below. Schema availability rules control editing, but do not flush asynchronous saves.
 
 ```ts
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
@@ -332,7 +331,182 @@ The model holds the last successful published snapshot, subject to native Forms
 synchronization/debounce. It may lag a current edit; submitting or changing form
 validation state does not await Editor.js. Use the control's `save()` when submission
 requires a current snapshot, then validate that snapshot before persistence.
-Full SSR/hydration and legacy Forms behavior are not certified.
+Full SSR/hydration is not certified; legacy bindings have the limitations below.
+
+### Existing reactive and template-driven forms
+
+Angular supplies the bindings; the package supplies a native value control. There
+is no package `ControlValueAccessor`, `NG_VALUE_ACCESSOR` provider, or shadow
+`FormControl`. Import legacy modules only in the consuming component. Prefer
+Signal Forms for new forms and Angular's
+[migration APIs](https://angular.dev/guide/forms/signals/migration) for gradual adoption.
+
+The same native-binding contract tests run against packed packages with matched
+Angular/Forms **22.0.0, 22.1.4 and 22.2.2**. The support boundary is identical on
+these three baselines:
+
+| Binding                                       | Supported boundary                                                                                                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `[formControl]`, `formControlName`            | Non-null values, native dirty/touched/disabled/validation state; explicit control reset hook as below.                                                                                           |
+| `compatForm` + `[formField]`                  | Retains a consumer-owned `FormControl`; use event-emitting writes and the explicit control reset hook.                                                                                           |
+| `SignalFormControl.fieldTree` + `[formField]` | Signal Forms value, schema state and native reset, while participating in a legacy `FormGroup`.                                                                                                  |
+| `[(ngModel)]`                                 | Characterized, but not supported as a clean initialization path: Angular first delivers `null`, producing an `invalid-data` event before the valid model arrives. Use one of the other bindings. |
+
+These are zoneless TestBed/jsdom contract checks with a controlled editor. They
+establish Angular integration behavior, not real-browser Forms certification.
+The characterized `ngModel` path can also leave its view/control value stale when an
+external model assignment coincides with an editor reset; it is excluded from the
+supported reset/write contract. All public examples also compile against each
+baseline's installed declarations.
+
+Direct legacy bindings and retained controls inside `compatForm` publish a
+successfully saved edit immediately even with `updateOn: 'blur'` or `'submit'`.
+They mark dirty on publication and touched on the control's `touch` event. Do not
+use those options to defer this editor's model changes or assume submit flushes
+Editor.js. Use `save()` and validate the captured snapshot as described below.
+
+Use `FormControl<OutputData>` with `nonNullable: true`. Calling `reset()` then
+restores its initial document; an explicit `reset({ blocks: [] })` clears it.
+A nullable control's `null` reset is rejected as `invalid-data`; it is not silently
+converted to an empty document or turned into a validation error. Keep nullable
+storage/API models at the consumer boundary and map them to a non-null editing
+model before binding.
+
+For direct legacy bindings, call `editor.reset()` **before** a form reset or an
+external authoritative value write that may overtake editor work. The hook
+invalidates pending work synchronously; Angular subsequently projects the new
+value. It does not reset the form's flags itself. Legacy `FormControl.reset()` does
+not invoke this hook, including an unchanged-value reset. Let Angular render
+before requesting the next snapshot. Silent legacy writes and state-only changes
+may also need consumer change-detection scheduling; use normal event-emitting
+operations in zoneless hosts.
+
+```ts
+import { ChangeDetectionStrategy, Component, viewChild } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { EditorJsControl } from '@anarchitects/editorjs-angular/forms';
+import type { OutputData } from '@anarchitects/editorjs-core';
+
+@Component({
+  selector: 'app-existing-article-form',
+  imports: [EditorJsControl, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <form [formGroup]="article">
+      <aa-editorjs-control formControlName="body" aria-label="Article body" />
+      <button type="button" (click)="reset()">Reset article</button>
+    </form>
+  `,
+})
+export class ExistingArticleForm {
+  readonly body = new FormControl<OutputData>(
+    { blocks: [] },
+    { nonNullable: true },
+  );
+  readonly article = new FormGroup({ body: this.body });
+  readonly editor = viewChild(EditorJsControl);
+
+  reset(): void {
+    this.editor()?.reset();
+    this.article.reset({ body: { blocks: [] } });
+  }
+  load(body: OutputData): void {
+    this.editor()?.reset();
+    this.body.setValue(body);
+  }
+}
+```
+
+For a standalone reactive field, use `[formControl]="body"` with the same imports
+and reset/write policy. Validators remain on the legacy control. Their errors
+reach `EditorJsControl.errors()` with `kind` and `context`; display messages from
+your own error mapping. Operational `error` events remain separate from validation.
+
+To keep an existing control while migrating the template, put it in `compatForm`
+and bind the unwrapped field. Do not bind both `[formField]` and a legacy directive
+to the same editor. `extractValue` unwraps retained controls for reading; the
+original model still contains `FormControl` objects and is not a storage payload.
+`emitEvent: false` writes are not observed by this compatibility field until the
+control emits again (for example via `updateValueAndValidity()`). Legacy reset
+still needs the editor hook; `compatForm` does not add a subscription that invokes it.
+
+```ts
+import {
+  ChangeDetectionStrategy,
+  Component,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { FormControl } from '@angular/forms';
+import { FormField } from '@angular/forms/signals';
+import { compatForm, extractValue } from '@angular/forms/signals/compat';
+import { EditorJsControl } from '@anarchitects/editorjs-angular/forms';
+import type { OutputData } from '@anarchitects/editorjs-core';
+
+@Component({
+  selector: 'app-migrating-article',
+  imports: [EditorJsControl, FormField],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <aa-editorjs-control [formField]="fields.body" aria-label="Article body" />
+    <button type="button" (click)="reset()">Reset article</button>
+  `,
+})
+export class MigratingArticle {
+  readonly body = new FormControl<OutputData>(
+    { blocks: [] },
+    { nonNullable: true },
+  );
+  readonly model = signal({ body: this.body });
+  readonly fields = compatForm(this.model);
+  readonly editor = viewChild(EditorJsControl);
+
+  readPublishedValue() {
+    return extractValue(this.fields);
+  }
+  reset(): void {
+    this.editor()?.reset();
+    this.body.reset({ blocks: [] });
+  }
+}
+```
+
+Alternatively, introduce a `SignalFormControl` into a legacy group and bind its
+`fieldTree`. Its reset calls the native editor hook, including unchanged-value
+resets. Use Signal Forms schema rules for availability, errors and async validation.
+It is not a drop-in replacement for every `FormControl` method: on the tested
+baselines, imperative `disable()`, `setValidators()` and `setErrors()` throw.
+Do not assume legacy event-option parity; consult Angular's
+[`SignalFormControl` API](https://angular.dev/api/forms/signals/compat/SignalFormControl).
+
+```ts
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { FormGroup } from '@angular/forms';
+import { FormField, disabled } from '@angular/forms/signals';
+import { SignalFormControl } from '@angular/forms/signals/compat';
+import { EditorJsControl } from '@anarchitects/editorjs-angular/forms';
+import type { OutputData } from '@anarchitects/editorjs-core';
+
+@Component({
+  selector: 'app-signal-field-in-legacy-form',
+  imports: [EditorJsControl, FormField],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <aa-editorjs-control
+      [formField]="body.fieldTree"
+      aria-label="Article body"
+    />
+    <button type="button" (click)="body.reset()">Reset article</button>
+  `,
+})
+export class SignalFieldInLegacyForm {
+  readonly locked = signal(false);
+  readonly body = new SignalFormControl<OutputData>({ blocks: [] }, (path) => {
+    disabled(path, () => this.locked());
+  });
+  readonly article = new FormGroup({ body: this.body });
+}
+```
 
 ### Interaction, availability and focus
 

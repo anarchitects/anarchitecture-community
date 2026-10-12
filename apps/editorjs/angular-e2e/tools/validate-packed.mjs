@@ -81,6 +81,8 @@ async function validate(name, versions, archives) {
       '@angular/cli': versions.angular,
       '@angular/compiler-cli': versions.angular,
       typescript: versions.typescript,
+      vitest: '4.0.18',
+      jsdom: '22.1.0',
       node: versions.node,
     },
   });
@@ -213,6 +215,19 @@ async function validate(name, versions, archives) {
       ],
       root,
     );
+    // Run the identical native Forms contract against each cell's installed APF/peers.
+    // This uses jsdom and a fake upstream editor; Forms browser coverage is separate.
+    await cp(
+      join(workspace, 'packages/editorjs/angular/tests/forms-interop.spec.ts'),
+      join(root, 'forms-interop.spec.ts'),
+    );
+    await writeFile(
+      join(root, 'vitest.config.mjs'),
+      "export default { test: { include: ['forms-interop.spec.ts'] } };\n",
+    );
+    await run(node, ['node_modules/vitest/vitest.mjs', 'run'], root, false, {
+      EDITORJS_INTEROP_PACKED: 'true',
+    });
     await run(node, ['node_modules/@angular/cli/bin/ng.js', 'build'], root);
     // Reuse the five real-browser scenarios against the separately installed app.
     await run(
