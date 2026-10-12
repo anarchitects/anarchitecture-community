@@ -4,6 +4,11 @@ Nx project: `editorjs-angular`. Package: `@anarchitects/editorjs-angular`.
 Consumer-facing behavior is documented in the
 [package README](../packages/editorjs/angular/README.md).
 
+The [SSR and hydration contract](editorjs-angular-ssr-design.md) defines #69's
+rendering modes, ownership, private fixture arrangement and evidence gates. #562
+adds that design record only; public SSR/hydration support remains unestablished
+until the server/browser and packed-consumer implementation slices are validated.
+
 ## Implementation boundary
 
 Issue #533 established packaging and artifact checks. #534 adds typed configuration,
