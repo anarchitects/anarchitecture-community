@@ -1,7 +1,7 @@
 # ADR 0006: Nest 12 SSR Compatibility and First-Party Capability Boundaries
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 The ecosystem has selected Nest 12 as the active feature track, Nest 11 for patches only, and Zod as the target contract schema. The existing `@anarchitects/nest-angular-ssr` supports Nest 11/Fastify with explicit Angular 21/22 fixtures. Its adapter-agnostic evolution belongs to [ADR 0005](0005-nest-angular-ssr-http-adapter-composition.md) and [epic #33](https://github.com/anarchitects/anarchitecture-community/issues/33).
