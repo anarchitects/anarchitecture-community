@@ -25,3 +25,7 @@ Before generating, editing or refactoring **any code**, enumerate and read **ALL
 - The `nx-generate` skill handles generator discovery internally - don't call nx_docs just to look up generator syntax
 
 <!-- nx configuration end-->
+
+## Ecosystem architecture decisions
+
+For changes affecting HTTP adapters, Nest presentation, SSR or generator defaults, review the applicable cross-repository architecture decisions in [Anarchitecture Meta](https://github.com/anarchitects/anarchitecture-meta/tree/main/adr), especially [HTTP Platform Independence](https://github.com/anarchitects/anarchitecture-meta/blob/main/adr/0008-http-platform-independence.md) and [Native Node Candidate Default](https://github.com/anarchitects/anarchitecture-meta/blob/main/adr/0009-native-node-candidate-default.md), **as well as all repository ADRs**. Proposed ADRs establish review intent, not currently shipped behavior or automatic authorization to change supported defaults. If Meta is inaccessible, report that explicitly and avoid assuming the policy was reviewed; local ADRs remain authoritative for repository implementation details. Do not silently change existing Fastify behavior or advertised compatibility.
