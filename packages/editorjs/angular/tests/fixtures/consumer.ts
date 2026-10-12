@@ -168,3 +168,8 @@ export class PackageConsumer {
     console.error(event.operation, event.code, event.cause);
   }
 }
+
+export function reconcileBoundData(editor: EditorJs): void {
+  editor.invalidate();
+  editor.reconcile();
+}

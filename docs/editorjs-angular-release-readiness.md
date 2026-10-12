@@ -151,7 +151,9 @@ Suggested release notes should state:
   work and never-settling readiness cannot be forcibly cancelled. Editor.js save is
   unavailable while read-only. Tools own their schemas and accessibility.
 - Opt-in Signal Forms value synchronization, composite touch, disabled/readonly and
-  focus; reset invalidation and explicit snapshots remain pending. No full
+  focus, reset invalidation and explicit snapshots. Snapshots superseded by newer
+  authoritative work reject with `superseded`; failed render/clear requires an
+  explicit successful reconciliation before publication resumes. No full
   SSR/hydration guarantee, registry, concrete tool bundle, upload transport or
   persistence implementation.
 
@@ -173,3 +175,22 @@ These are not implemented promises of the standalone wrapper. Existing applicati
 adapt to the generic packages; their adoption does not gate this release. No concrete
 consumer adoption gap was discovered by this package-focused review. If one is found,
 track it separately rather than changing core or the wrapper around that consumer.
+
+## Signal Forms lifecycle increment (#551)
+
+Adds native reset and explicit snapshot methods, core-owned synchronous invalidation,
+failed-render publication suspension, typed `superseded` snapshot rejection and
+validation/submission documentation. This changes earlier explicit-save semantics:
+a later accepted replacement now rejects an obsolete pending snapshot. Release
+notes must describe this behavior even though the development commit uses `init`.
+There is no version bump or publication in this change.
+
+Native Angular contract tests supply deterministic race/failure evidence; full Forms
+browser certification remains #553–#554. Existing standalone browser checks and
+packed declaration/example compilation protect the earlier support surface.
+
+Validation on 2026-10-12: 152 core tests, 98 Angular tests (62 Forms), builds,
+type checks and lint passed. Final packed declarations/README examples compiled
+on Angular/Forms 22.0.0, 22.1.4 and 22.2.2; all 15 standalone Chromium checks
+passed. Root-only consumers remained independent of Forms. Existing lint warnings
+remain; no CI monitoring or publication was performed.

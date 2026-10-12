@@ -7,19 +7,26 @@ import {
   DestroyRef,
   ElementRef,
   inject,
+  Injector,
   input,
   model,
   output,
   signal,
+  untracked,
   viewChild,
   type OnChanges,
   type OnInit,
   type SimpleChanges,
 } from '@angular/core';
-import type { FormValueControl, ValidationError } from '@angular/forms/signals';
+import {
+  FORM_FIELD,
+  type FormValueControl,
+  type ValidationError,
+} from '@angular/forms/signals';
 import { EditorJs, type EditorJsConfig } from '@anarchitects/editorjs-angular';
 import {
   normalizeOutputData,
+  EditorJsOperationError,
   type EditorJsChangeEvent,
   type EditorJsErrorEvent,
   type EditorJsReadyEvent,
@@ -98,6 +105,9 @@ export class EditorJsControl
   );
   private readonly editor = viewChild(EditorJs);
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  readonly #injector = inject(Injector);
+  #observedValue: OutputData | undefined;
+  readonly #resetRequested = signal(false);
   #configured = false;
   #initialReadOnly = false;
   #appliedReadOnly = false;
@@ -115,6 +125,14 @@ export class EditorJsControl
     destroyRef.onDestroy(() => {
       this.#destroyed = true;
       this.#forgetFocus();
+    });
+    afterRenderEffect(() => {
+      if (!this.#resetRequested()) return;
+      untracked(() => {
+        if (this.#destroyed) return;
+        this.#resetRequested.set(false);
+        this.#project(this.value(), true);
+      });
     });
     afterRenderEffect(() => {
       if (!this.interactionBlocked()) return;
@@ -170,12 +188,50 @@ export class EditorJsControl
     }
     if (changes['value']) {
       this.#inputSeen = true;
-      this.#project(this.value());
+      const resetting = this.#resetRequested();
+      this.#resetRequested.set(false);
+      this.#project(this.value(), resetting);
     }
   }
 
   ngOnInit(): void {
     if (!this.#inputSeen) this.#project(this.value());
+  }
+
+  /** Native Forms reset hook. Reset the field tree to change values/interaction flags. */
+  reset(): void {
+    if (this.#destroyed) return;
+    this.#forgetFocus();
+    this.editor()?.invalidate();
+    this.#resetRequested.set(true);
+  }
+
+  /** Current snapshot only; does not update or validate the form model. */
+  save(): Promise<OutputData> {
+    const editor = this.editor();
+    if (!this.#destroyed && editor) {
+      this.#invalidateUnobservedWrite();
+      return editor.api.save().then((snapshot) => {
+        if (this.#destroyed) return this.#rejectSnapshot('destroyed');
+        // A native write may also arrive while the underlying save is running.
+        if (this.#invalidateUnobservedWrite())
+          return this.#rejectSnapshot('superseded');
+        return snapshot;
+      });
+    }
+    return this.#rejectSnapshot(this.#destroyed ? 'destroyed' : 'not-ready');
+  }
+
+  #rejectSnapshot(
+    code: 'destroyed' | 'not-ready' | 'superseded',
+  ): Promise<never> {
+    const error = new EditorJsOperationError({
+      operation: 'save',
+      code,
+      cause: new Error(`The editor snapshot is ${code}.`),
+    });
+    if (!this.#destroyed) this.error.emit(error);
+    return Promise.reject(error);
   }
 
   /** Angular's synchronous hook; options cannot be forwarded to Editor.js focus. */
@@ -296,7 +352,12 @@ export class EditorJsControl
   }
 
   protected acceptChange(event: EditorJsChangeEvent): void {
-    if (this.#destroyed || !this.#validInput) return;
+    if (
+      this.#destroyed ||
+      !this.#validInput ||
+      this.#invalidateUnobservedWrite()
+    )
+      return;
     // Forms can attach tracking metadata to the model. Keep the public event detached.
     const result = normalizeOutputData(event.data);
     if (!result.ok) {
@@ -313,8 +374,25 @@ export class EditorJsControl
     if (!this.#destroyed) this.change.emit(event);
   }
 
-  #project(value: OutputData): void {
-    if (value === this.#published && this.#validInput) return;
+  #invalidateUnobservedWrite(): boolean {
+    // Resolve lazily: the co-located directive may itself discover this control.
+    // Native model writes are visible here before Angular delivers their input.
+    const binding = this.#injector.get(FORM_FIELD, null, { self: true });
+    if (!binding) return false;
+    const requested = binding.state().value();
+    if (requested === this.#observedValue) return false;
+    if (requested === this.#published) {
+      this.#observedValue = this.#published;
+      return false;
+    }
+    this.editor()?.invalidate();
+    return true;
+  }
+
+  #project(value: OutputData, force = false): void {
+    if (!force && value === this.#published && this.#validInput) return;
+    this.#observedValue = value;
+    this.editor()?.invalidate();
     this.#published = undefined;
     // Signal Forms decorates array items with symbol-keyed identity metadata.
     const result = normalizeOutputData(value, { symbolKeys: 'omit' });
@@ -336,5 +414,6 @@ export class EditorJsControl
       });
     }
     this.editorData.set(result.data);
+    this.editor()?.reconcile();
   }
 }

@@ -49,21 +49,32 @@ export class EditorJsDocumentCoordinator {
   #fingerprint: string | undefined;
   #needsBaseline = false;
   #readOnly = false;
+  #invalidated = false;
 
   /** Stable, bound facade; safe to retain or destructure, even before readiness. */
   readonly api: EditorJsApi = Object.freeze({
-    save: () => this.#command('save', () => () => this.#readSnapshot()),
+    save: () =>
+      this.#command('save', () => {
+        const generation = this.#generation;
+        return async () => {
+          this.#assertSnapshotCurrent(generation);
+          const saved = await this.#readSnapshot();
+          this.#assertSnapshotCurrent(generation);
+          return saved;
+        };
+      }),
     render: (data: OutputData) =>
       this.#command('render', () => {
         const document = this.#normalize(data, 'render');
-        this.#acceptReplacement();
-        return () => this.#write(() => this.#options.driver.render(document));
+        const generation = this.#acceptReplacement();
+        return () =>
+          this.#write(() => this.#options.driver.render(document), generation);
       }),
     clear: () =>
       this.#command('clear', () => {
         const clear = this.#capability('clear');
-        this.#acceptReplacement();
-        return () => this.#write(() => clear());
+        const generation = this.#acceptReplacement();
+        return () => this.#write(() => clear(), generation);
       }),
     focus: (atEnd?: boolean) =>
       this.#command('focus', () => {
@@ -89,6 +100,17 @@ export class EditorJsDocumentCoordinator {
     this.#schedule();
   }
 
+  /** Suspend publications synchronously until a successful replacement reconciles the view.
+   * Safe before readiness; running upstream work cannot be physically cancelled.
+   */
+  invalidate(): void {
+    if (this.#destroyed) return;
+    this.#revision++;
+    this.#generation++;
+    this.#pendingChange = false;
+    this.#invalidated = true;
+  }
+
   /** Accept an input replacement before/after readiness; undefined clears content. */
   replace(data: unknown): void {
     if (this.#destroyed) return;
@@ -102,10 +124,13 @@ export class EditorJsDocumentCoordinator {
       this.#reportAutomatic('data', error);
       return;
     }
-    this.#acceptReplacement();
+    const generation = this.#acceptReplacement();
     this.#queue.push(async () => {
       try {
-        await this.#write(() => this.#options.driver.render(document));
+        await this.#write(
+          () => this.#options.driver.render(document),
+          generation,
+        );
       } catch (cause) {
         this.#reportAutomatic('render', cause);
       }
@@ -119,6 +144,7 @@ export class EditorJsDocumentCoordinator {
       this.#destroyed ||
       !this.#ready ||
       this.#readOnly ||
+      this.#invalidated ||
       this.#mutating ||
       this.#replacements > 0
     )
@@ -152,11 +178,10 @@ export class EditorJsDocumentCoordinator {
     this.#cancellations.clear();
   }
 
-  #acceptReplacement(): void {
-    this.#revision++;
-    this.#generation++;
-    this.#pendingChange = false;
+  #acceptReplacement(): number {
+    this.invalidate();
     this.#replacements++;
+    return this.#generation;
   }
 
   #normalize(data: unknown, operation: EditorJsOperation): OutputData {
@@ -254,11 +279,12 @@ export class EditorJsDocumentCoordinator {
     }
   }
 
-  async #write<T>(write: () => T | Promise<T>): Promise<T> {
+  async #write<T>(write: () => T | Promise<T>, generation: number): Promise<T> {
     this.#mutating = true;
     this.#needsBaseline = true;
     try {
       const result = await write();
+      if (generation === this.#generation) this.#invalidated = false;
       if (!this.#destroyed && !this.#readOnly) await this.#capture('baseline');
       return result;
     } catch (cause) {
@@ -291,6 +317,18 @@ export class EditorJsDocumentCoordinator {
     }
   }
 
+  #assertSnapshotCurrent(generation: number): void {
+    if (generation !== this.#generation || this.#invalidated) {
+      throw new EditorJsOperationError({
+        operation: 'save',
+        code: 'superseded',
+        cause: new Error(
+          'The snapshot was superseded by an authoritative replacement. Reconcile before retrying.',
+        ),
+      });
+    }
+  }
+
   async #readSnapshot(): Promise<OutputData> {
     try {
       return this.#normalize(await this.#options.driver.save(), 'save');
@@ -315,7 +353,8 @@ export class EditorJsDocumentCoordinator {
     this.#needsBaseline = false;
     this.#fingerprint = fingerprint;
     this.#pendingChange = false;
-    if (!silent) this.#options.onChange({ data: saved, sequence });
+    if (!silent && !this.#invalidated)
+      this.#options.onChange({ data: saved, sequence });
   }
 
   #failure(

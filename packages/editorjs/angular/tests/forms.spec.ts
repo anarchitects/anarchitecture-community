@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import '@angular/compiler';
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  resource,
+  signal,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   FormField,
@@ -9,6 +14,9 @@ import {
   readonly,
   validate,
   required,
+  submit,
+  validateAsync,
+  debounce,
 } from '@angular/forms/signals';
 import { By } from '@angular/platform-browser';
 import {
@@ -965,4 +973,516 @@ describe('native Forms interaction and availability', () => {
     expect(first.host.fields.body().dirty()).toBe(false);
     expect(secondFixture.componentInstance.fields.body().dirty()).toBe(true);
   });
+});
+
+describe('reset and asynchronous Forms lifecycle', () => {
+  it.each(['same', 'different', 'implicit'] as const)(
+    'invalidates a pending save synchronously on %s-value reset',
+    async (kind) => {
+      const { fixture, host, created } = setup();
+      await fixture.whenStable();
+      await vi.waitFor(() => expect(host.ready).toHaveBeenCalledOnce());
+      const raw = created[0];
+      raw.edit(document('Published'));
+      await vi.waitFor(() => expect(host.changes).toHaveLength(1));
+      await fixture.whenStable();
+      host.fields.body().markAsTouched();
+      const saving = deferred<OutputData>();
+      vi.mocked(raw.editor.save).mockReturnValueOnce(saving.promise);
+      raw.edit(document('Obsolete draft'));
+      await vi.waitFor(() => expect(raw.editor.save).toHaveBeenCalledTimes(2));
+      const expected = document(kind === 'different' ? 'Reset' : 'Published');
+      const resetValue =
+        kind === 'different' ? document('Reset') : host.model().body;
+      if (kind === 'implicit') host.fields.body().reset();
+      else host.fields.body().reset(resetValue);
+      // Resolve before waiting for Angular: invalidation must happen inside the hook.
+      saving.resolve(document('Obsolete draft'));
+      await fixture.whenStable();
+      await vi.waitFor(() =>
+        expect(raw.editor.render).toHaveBeenLastCalledWith(expected),
+      );
+      const control = fixture.debugElement.query(By.directive(EditorJsControl))
+        .componentInstance as InstanceType<typeof EditorJsControl>;
+      expect(await control.save()).toEqual(expected);
+      expect(raw.editor.render).toHaveBeenCalledOnce();
+      expect(host.model().body).toMatchObject(resetValue);
+      expect(host.fields.body().dirty()).toBe(false);
+      expect(host.fields.body().touched()).toBe(false);
+      expect(host.changes).toHaveLength(1);
+      expect(host.errors).toEqual([]);
+    },
+  );
+
+  it('settles rapid reset/write requests behind an in-flight render on the final requested value', async () => {
+    const { fixture, host, created } = setup();
+    await fixture.whenStable();
+    const raw = created[0];
+    const rendering = deferred<void>();
+    vi.mocked(raw.editor.render).mockImplementationOnce(
+      () => rendering.promise,
+    );
+    host.model.set({ body: document('Rendering') });
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(raw.editor.render).toHaveBeenCalledOnce());
+    host.fields.body().reset(document('Reset'));
+    host.model.set({ body: document('Final') });
+    rendering.resolve();
+    await fixture.whenStable();
+    await vi.waitFor(() =>
+      expect(raw.editor.render).toHaveBeenLastCalledWith(document('Final')),
+    );
+    const control = fixture.debugElement.query(By.directive(EditorJsControl))
+      .componentInstance as InstanceType<typeof EditorJsControl>;
+    expect(await control.save()).toEqual(document('Final'));
+    expect(host.fields.body().dirty()).toBe(false);
+    expect(host.changes).toEqual([]);
+  });
+
+  it.each(['load', 'ready'] as const)(
+    'reconciles same-value reset while %s is pending',
+    async (phase) => {
+      const loading = deferred<EditorJsFactory>();
+      const readiness = deferred<void>();
+      const { fixture, host, created, create } = setup(
+        phase === 'load' ? () => loading.promise : undefined,
+        phase === 'ready' ? readiness.promise : undefined,
+      );
+      await fixture.whenStable();
+      host.fields.body().reset(host.model().body);
+      host.fields.body().reset(document('Latest reset'));
+      await fixture.whenStable();
+      loading.resolve(create);
+      readiness.resolve();
+      await vi.waitFor(() => expect(host.ready).toHaveBeenCalledOnce());
+      const control = fixture.debugElement.query(By.directive(EditorJsControl))
+        .componentInstance as InstanceType<typeof EditorJsControl>;
+      expect(await control.save()).toEqual(document('Latest reset'));
+      expect(created).toHaveLength(1);
+      expect(host.fields.body().dirty()).toBe(false);
+      expect(host.changes).toEqual([]);
+    },
+  );
+
+  it('disposes between reset and reconciliation and rejects a retained snapshot without late output', async () => {
+    const { fixture, host, created } = setup();
+    await fixture.whenStable();
+    const control = fixture.debugElement.query(By.directive(EditorJsControl))
+      .componentInstance as InstanceType<typeof EditorJsControl>;
+    const saving = deferred<OutputData>();
+    vi.mocked(created[0].editor.save).mockReturnValueOnce(saving.promise);
+    const snapshot = control.save().catch((error: unknown) => error);
+    await vi.waitFor(() =>
+      expect(created[0].editor.save).toHaveBeenCalledOnce(),
+    );
+    host.fields.body().reset();
+    fixture.destroy();
+    expect(await snapshot).toMatchObject({ code: 'destroyed' });
+    saving.resolve(document('Late'));
+    await expect(control.save()).rejects.toMatchObject({ code: 'destroyed' });
+    expect(created[0].editor.destroy).toHaveBeenCalledOnce();
+    expect(host.changes).toEqual([]);
+    expect(host.errors).toEqual([]);
+  });
+
+  it('reports a failed render once, preserves the requested model and retries through reset', async () => {
+    const { fixture, host, created } = setup();
+    await fixture.whenStable();
+    const raw = created[0];
+    vi.mocked(raw.editor.render).mockRejectedValueOnce(
+      new Error('Partial render'),
+    );
+    host.model.set({ body: document('Authoritative') });
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(host.errors).toHaveLength(1));
+    raw.edit(document('Partial'));
+    raw.edit(document('Still partial'));
+    expect(host.model().body).toMatchObject(document('Authoritative'));
+    expect(host.errors[0]).toMatchObject({
+      operation: 'render',
+      code: 'operation-failed',
+    });
+    host.fields.body().reset();
+    await fixture.whenStable();
+    const control = fixture.debugElement.query(By.directive(EditorJsControl))
+      .componentInstance as InstanceType<typeof EditorJsControl>;
+    expect(await control.save()).toEqual(document('Authoritative'));
+    expect(host.errors).toHaveLength(1);
+    expect(host.changes).toEqual([]);
+    expect(host.fields.body().dirty()).toBe(false);
+  });
+
+  it('separates snapshot failures from field validation and permits a later save', async () => {
+    const { fixture, host, created } = setup();
+    await fixture.whenStable();
+    host.isInvalid.set(true);
+    await fixture.whenStable();
+    const control = fixture.debugElement.query(By.directive(EditorJsControl))
+      .componentInstance as InstanceType<typeof EditorJsControl>;
+    vi.mocked(created[0].editor.save).mockRejectedValueOnce(
+      new Error('Save failed'),
+    );
+    await expect(control.save()).rejects.toMatchObject({
+      operation: 'save',
+      code: 'operation-failed',
+    });
+    expect(host.errors).toHaveLength(1);
+    expect(control.errors()).toMatchObject([{ kind: 'article' }]);
+    expect(host.fields.body().dirty()).toBe(false);
+    expect(await control.save()).toEqual(document('Initial'));
+    expect(host.changes).toEqual([]);
+    expect(host.errors).toHaveLength(1);
+  });
+
+  it.each(['load', 'create', 'ready'] as const)(
+    'preserves the model on %s failure and recovers on remount',
+    async (phase) => {
+      const failure = new Error(`${phase} failed`);
+      let failing = true;
+      const raws: ReturnType<typeof rawEditor>[] = [];
+      const { fixture, host } = setup(async () => {
+        if (failing && phase === 'load') throw failure;
+        return (options) => {
+          if (failing && phase === 'create') throw failure;
+          const raw = rawEditor(
+            options,
+            failing && phase === 'ready'
+              ? Promise.reject(failure)
+              : Promise.resolve(),
+          );
+          raws.push(raw);
+          return raw.editor;
+        };
+      });
+      await fixture.whenStable();
+      await vi.waitFor(() => expect(host.errors).toHaveLength(1));
+      expect(host.errors[0]).toEqual({
+        operation: phase,
+        code: 'operation-failed',
+        cause: failure,
+      });
+      expect(host.model().body).toMatchObject(document('Initial'));
+      expect(host.ready).not.toHaveBeenCalled();
+      expect(host.changes).toEqual([]);
+      expect(host.fields.body().dirty()).toBe(false);
+      host.visible.set(false);
+      await fixture.whenStable();
+      failing = false;
+      host.visible.set(true);
+      await fixture.whenStable();
+      await vi.waitFor(() => expect(host.ready).toHaveBeenCalledOnce());
+      expect(host.errors).toHaveLength(1);
+      if (phase === 'ready')
+        expect(raws[0].editor.destroy).toHaveBeenCalledOnce();
+    },
+  );
+});
+
+@Component({
+  selector: 'aa-validation-test-host',
+  imports: [EditorJsControl, FormField],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<aa-editorjs-control
+    [formField]="fields.body"
+    (error)="errors.push($event)"
+  />`,
+})
+class ValidationHost {
+  readonly model = signal<{ body: OutputData }>({ body: document('Initial') });
+  readonly asyncEnabled = signal(false);
+  readonly check = vi.fn(async (data: OutputData) => data.blocks.length > 0);
+  readonly errors: EditorJsErrorEvent[] = [];
+  readonly fields = form(this.model, (path) => {
+    required(path.body);
+    validate(path.body, ({ value }) =>
+      value().blocks.some((block) => {
+        const text = (block.data as { text?: unknown }).text;
+        return typeof text === 'string' && text.trim().length > 0;
+      })
+        ? undefined
+        : { kind: 'content', message: 'Write meaningful content.' },
+    );
+    validateAsync(path.body, {
+      when: () => this.asyncEnabled(),
+      params: ({ value }) => value(),
+      factory: (params) =>
+        resource({ params, loader: ({ params }) => this.check(params) }),
+      onSuccess: (valid) =>
+        valid ? undefined : { kind: 'review', message: 'Review the article.' },
+      onError: () => ({
+        kind: 'validation-service',
+        message: 'Validation unavailable.',
+      }),
+    });
+  });
+}
+function validationSetup() {
+  let raw!: ReturnType<typeof rawEditor>;
+  TestBed.configureTestingModule({
+    imports: [ValidationHost],
+    providers: [
+      {
+        provide: EDITOR_JS_LOADER,
+        useValue: async () => (options: EditorJsCreateOptions) => {
+          raw = rawEditor(options);
+          return raw.editor;
+        },
+      },
+    ],
+  });
+  const fixture = TestBed.createComponent(ValidationHost);
+  return {
+    fixture,
+    host: fixture.componentInstance,
+    raw: () => raw,
+    control: () =>
+      fixture.debugElement.query(By.directive(EditorJsControl))
+        .componentInstance as InstanceType<typeof EditorJsControl>,
+  };
+}
+
+describe('native validation and submission freshness', () => {
+  it('requires meaningful content separately from a structurally valid non-null document', async () => {
+    const { fixture, host, control } = validationSetup();
+    host.model.set({ body: { blocks: [] } });
+    await fixture.whenStable();
+    expect(control().required()).toBe(true);
+    expect(control().invalid()).toBe(true);
+    expect(control().errors()).toMatchObject([{ kind: 'content' }]);
+    expect(host.errors).toEqual([]);
+    host.model.set({ body: document('Written') });
+    await fixture.whenStable();
+    expect(control().invalid()).toBe(false);
+  });
+
+  it('presents native async pending/errors and blocks strict submission while validation is pending', async () => {
+    const { fixture, host, control } = validationSetup();
+    await fixture.whenStable();
+    const validation = deferred<boolean>();
+    host.check.mockReturnValueOnce(validation.promise);
+    host.asyncEnabled.set(true);
+    await vi.waitFor(() => expect(control().pending()).toBe(true));
+    const action = vi.fn(async () => undefined);
+    expect(
+      await submit(host.fields, { ignoreValidators: 'none', action }),
+    ).toBe(false);
+    expect(action).not.toHaveBeenCalled();
+    expect(host.fields().submitting()).toBe(false);
+    expect(
+      fixture.nativeElement
+        .querySelector('aa-editorjs-control')
+        .getAttribute('aria-busy'),
+    ).toBe('true');
+    validation.resolve(false);
+    await fixture.whenStable();
+    expect(control().pending()).toBe(false);
+    expect(control().errors()).toMatchObject([{ kind: 'review' }]);
+    expect(host.errors).toEqual([]);
+    host.check.mockRejectedValueOnce(new Error('Validation network failure'));
+    host.model.set({ body: document('Retry validation') });
+    await fixture.whenStable();
+    expect(control().errors()).toMatchObject([{ kind: 'validation-service' }]);
+    expect(host.errors).toEqual([]);
+  });
+
+  it('captures and validates the submit-time snapshot, prevents duplicate submission and retains data on server failure', async () => {
+    const { fixture, host, raw, control } = validationSetup();
+    await fixture.whenStable();
+    const saving = deferred<OutputData>();
+    vi.mocked(raw().editor.save).mockReturnValueOnce(saving.promise);
+    raw().edit(document('Immediate edit'));
+    await vi.waitFor(() => expect(raw().editor.save).toHaveBeenCalledOnce());
+    expect(host.model().body).toMatchObject(document('Initial'));
+    expect(control().pending()).toBe(false); // Editor save is not validation.
+    const checking = deferred<boolean>();
+    const validateSnapshot = vi.fn((snapshot: OutputData) => {
+      expect(snapshot).toEqual(document('Immediate edit'));
+      return checking.promise;
+    });
+    const server = vi.fn(async (value: OutputData) => {
+      expect(value).toEqual(document('Immediate edit'));
+      throw new Error('Server unavailable');
+    });
+    const action = vi.fn(async () => {
+      const snapshot = await control().save();
+      if (!(await validateSnapshot(snapshot)))
+        return { kind: 'snapshot', fieldTree: host.fields.body };
+      try {
+        await server(snapshot);
+      } catch {
+        return {
+          kind: 'server',
+          message: 'Try again.',
+          fieldTree: host.fields.body,
+        };
+      }
+      return undefined;
+    });
+    const first = submit(host.fields, { ignoreValidators: 'all', action });
+    expect(host.fields().submitting()).toBe(true);
+    expect(await submit(host.fields, { ignoreValidators: 'all', action })).toBe(
+      false,
+    );
+    saving.resolve(document('Immediate edit'));
+    await vi.waitFor(() => expect(validateSnapshot).toHaveBeenCalledOnce());
+    expect(server).not.toHaveBeenCalled();
+    checking.resolve(true);
+    expect(await first).toBe(false);
+    await fixture.whenStable();
+    expect(server).toHaveBeenCalledExactlyOnceWith(document('Immediate edit'));
+    expect(action).toHaveBeenCalledOnce();
+    expect(host.fields().submitting()).toBe(false);
+    expect(host.model().body).toMatchObject(document('Immediate edit'));
+    expect(control().errors()).toMatchObject([{ kind: 'server' }]);
+    expect(host.errors).toEqual([]);
+    host.fields.body().reset();
+    await fixture.whenStable();
+    expect(host.fields.body().dirty()).toBe(false);
+    expect(host.fields.body().touched()).toBe(false);
+  });
+});
+
+describe('snapshot availability and supersession', () => {
+  it('rejects before the child exists and before readiness with one live error per call', async () => {
+    const loading = deferred<EditorJsFactory>();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: EDITOR_JS_LOADER, useValue: () => loading.promise },
+      ],
+    });
+    const fixture = TestBed.createComponent(EditorJsControl);
+    const errors: EditorJsErrorEvent[] = [];
+    fixture.componentInstance.error.subscribe((error) => errors.push(error));
+    await expect(fixture.componentInstance.save()).rejects.toMatchObject({
+      code: 'not-ready',
+    });
+    await fixture.whenStable();
+    await expect(fixture.componentInstance.save()).rejects.toMatchObject({
+      code: 'not-ready',
+    });
+    expect(errors).toHaveLength(2);
+  });
+
+  it.each(['disabled', 'readonly'] as const)(
+    'supports same-value reset while %s and reports an unavailable snapshot once',
+    async (mode) => {
+      const { fixture, host, created } = setup();
+      await fixture.whenStable();
+      if (mode === 'disabled') host.isDisabled.set(true);
+      else host.isReadonly.set(true);
+      await fixture.whenStable();
+      await vi.waitFor(() =>
+        expect(created[0].editor.readOnly.toggle).toHaveBeenCalledWith(true),
+      );
+      host.fields.body().reset();
+      await fixture.whenStable();
+      await vi.waitFor(() =>
+        expect(created[0].editor.render).toHaveBeenCalledWith(
+          document('Initial'),
+        ),
+      );
+      const control = fixture.debugElement.query(By.directive(EditorJsControl))
+        .componentInstance as InstanceType<typeof EditorJsControl>;
+      await expect(control.save()).rejects.toMatchObject({
+        operation: 'save',
+        code: 'operation-failed',
+      });
+      expect(host.errors).toHaveLength(1);
+      expect(host.changes).toEqual([]);
+      expect(host.fields.body().dirty()).toBe(false);
+    },
+  );
+
+  it.each(['reset', 'write'] as const)(
+    'rejects an explicit save overtaken by a native %s once and keeps the field pristine',
+    async (operation) => {
+      const { fixture, host, created } = setup();
+      await fixture.whenStable();
+      const control = fixture.debugElement.query(By.directive(EditorJsControl))
+        .componentInstance as InstanceType<typeof EditorJsControl>;
+      const saving = deferred<OutputData>();
+      vi.mocked(created[0].editor.save).mockReturnValueOnce(saving.promise);
+      const result = control.save().catch((error: unknown) => error);
+      await vi.waitFor(() =>
+        expect(created[0].editor.save).toHaveBeenCalledOnce(),
+      );
+      if (operation === 'reset') host.fields.body().reset(document('Reset'));
+      else host.model.set({ body: document('Reset') });
+      saving.resolve(document('Obsolete'));
+      const failure = await result;
+      expect(failure).toMatchObject({ code: 'superseded', operation: 'save' });
+      expect(host.errors).toEqual([failure]);
+      await fixture.whenStable();
+      expect(await control.save()).toEqual(document('Reset'));
+      expect(host.fields.body().dirty()).toBe(false);
+      expect(host.fields.body().touched()).toBe(false);
+      expect(host.changes).toEqual([]);
+    },
+  );
+
+  it('makes an observed programmatic write authoritative over an in-flight automatic save', async () => {
+    const { fixture, host, created } = setup();
+    await fixture.whenStable();
+    const saving = deferred<OutputData>();
+    vi.mocked(created[0].editor.save).mockReturnValueOnce(saving.promise);
+    created[0].edit(document('Old draft'));
+    await vi.waitFor(() =>
+      expect(created[0].editor.save).toHaveBeenCalledOnce(),
+    );
+    host.model.set({ body: document('External') });
+    saving.resolve(document('Old draft'));
+    await fixture.whenStable();
+    const control = fixture.debugElement.query(By.directive(EditorJsControl))
+      .componentInstance as InstanceType<typeof EditorJsControl>;
+    expect(await control.save()).toEqual(document('External'));
+    expect(host.model().body).toMatchObject(document('External'));
+    expect(host.fields.body().dirty()).toBe(false);
+    expect(host.changes).toEqual([]);
+  });
+});
+
+@Component({
+  selector: 'aa-debounced-test-host',
+  imports: [EditorJsControl, FormField],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<aa-editorjs-control
+    [formField]="fields.body"
+    (change)="changes.push($event)"
+  />`,
+})
+class DebouncedHost {
+  readonly model = signal<{ body: OutputData }>({ body: document('Initial') });
+  readonly synchronization = deferred<void>();
+  readonly fields = form(this.model, (path) =>
+    debounce(path.body, () => this.synchronization.promise),
+  );
+  readonly changes: EditorJsChangeEvent[] = [];
+}
+
+it('preserves successive editor changes while native Forms defers model synchronization', async () => {
+  let raw!: ReturnType<typeof rawEditor>;
+  TestBed.configureTestingModule({
+    imports: [DebouncedHost],
+    providers: [
+      {
+        provide: EDITOR_JS_LOADER,
+        useValue: async () => (options: EditorJsCreateOptions) => {
+          raw = rawEditor(options);
+          return raw.editor;
+        },
+      },
+    ],
+  });
+  const fixture = TestBed.createComponent(DebouncedHost);
+  const host = fixture.componentInstance;
+  await fixture.whenStable();
+  raw.edit(document('First'));
+  await vi.waitFor(() => expect(host.changes).toHaveLength(1));
+  raw.edit(document('Second'));
+  await vi.waitFor(() => expect(host.changes).toHaveLength(2));
+  expect(host.model().body).toMatchObject(document('Initial'));
+  host.synchronization.resolve();
+  await fixture.whenStable();
+  expect(host.model().body).toMatchObject(document('Second'));
+  expect(raw.editor.render).not.toHaveBeenCalled();
 });

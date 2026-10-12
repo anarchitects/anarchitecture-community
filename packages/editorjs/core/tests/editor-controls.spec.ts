@@ -117,7 +117,7 @@ describe('instance-scoped core controls', () => {
     const input = document('API');
     const render = api.render(input);
     input.blocks.length = 0;
-    const saved = api.save();
+    const saved = api.save().catch((error: unknown) => error);
     coordinator.replace(document('Input'));
     const focus = api.focus(true);
     const clear = api.clear();
@@ -125,7 +125,7 @@ describe('instance-scoped core controls', () => {
     const result = await Promise.all([render, saved, focus, clear, mode]);
     expect(result).toEqual([
       undefined,
-      document('API'),
+      expect.objectContaining({ operation: 'save', code: 'superseded' }),
       false,
       undefined,
       true,
@@ -136,7 +136,6 @@ describe('instance-scoped core controls', () => {
     ]);
     expect(calls).toEqual([
       'render',
-      'save',
       'save',
       'render',
       'save',
@@ -222,7 +221,7 @@ describe('instance-scoped core controls', () => {
       else driver[operation].mockRejectedValueOnce(cause);
       coordinator.markReady();
       const result = invoke(api, operation).catch((error: unknown) => error);
-      const following = api.save();
+      const following = api.save().catch((error: unknown) => error);
       const failure = await result;
       expect(failure).toBeInstanceOf(EditorJsOperationError);
       expect(failure).toMatchObject({
@@ -231,7 +230,11 @@ describe('instance-scoped core controls', () => {
         cause,
       });
       expect(errors[0]).toBe(failure);
-      await expect(following).resolves.toEqual(document('Initial'));
+      if (operation === 'render' || operation === 'clear') {
+        expect(await following).toMatchObject({ code: 'superseded' });
+        await api.render(document('Recovered'));
+        expect(await api.save()).toEqual(document('Recovered'));
+      } else expect(await following).toEqual(document('Initial'));
     },
   );
 
@@ -283,6 +286,7 @@ describe('instance-scoped core controls', () => {
       driver.save.mockReturnValueOnce(saving.promise);
       coordinator.markReady();
       const active = api.save().catch((error: unknown) => error);
+      await vi.waitFor(() => expect(driver.save).toHaveBeenCalledOnce());
       const queued = api
         .render(document('Never rendered'))
         .catch((error: unknown) => error);

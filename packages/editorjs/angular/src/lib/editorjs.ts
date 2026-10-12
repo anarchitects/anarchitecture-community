@@ -11,6 +11,7 @@ import {
   input,
   output,
   PLATFORM_ID,
+  signal,
   untracked,
   viewChild,
 } from '@angular/core';
@@ -54,6 +55,8 @@ export class EditorJs {
   #readinessSettled = false;
   #started = false;
   #observedConfig: EditorJsConfig | undefined;
+  readonly #reconciliation = signal(0);
+  #reconciled = 0;
   #observedData: OutputData | undefined;
   readonly #documents = new EditorJsDocumentCoordinator({
     driver: {
@@ -85,10 +88,23 @@ export class EditorJs {
       if (browser && !this.#destroyed) void this.#initialize();
     });
     afterRenderEffect(() => {
+      this.#reconciliation();
       const data = this.data();
       const config = this.config();
       untracked(() => this.#syncInputs(data, config));
     });
+  }
+
+  /** Suspend stale publications immediately, including before readiness. */
+  invalidate(): void {
+    this.#documents.invalidate();
+  }
+
+  /** Reapply the bound data after Angular renders, even when its identity is unchanged. */
+  reconcile(): void {
+    if (this.#destroyed) return;
+    this.invalidate();
+    this.#reconciliation.update((revision) => revision + 1);
   }
 
   #syncInputs(
@@ -106,7 +122,12 @@ export class EditorJs {
         ),
       });
     }
-    if (this.#instance && data !== this.#observedData) {
+    if (
+      this.#instance &&
+      (data !== this.#observedData ||
+        this.#reconciled !== this.#reconciliation())
+    ) {
+      this.#reconciled = this.#reconciliation();
       this.#observedData = data;
       this.#documents.replace(data);
     }

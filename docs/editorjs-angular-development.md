@@ -397,6 +397,46 @@ across Angular/Forms 22.0.0, 22.1.4 and 22.2.2, with all 15 standalone browser c
 passing. Forms browser interaction certification remains #553–#554. Existing lint
 warnings remain; no dependencies or release versions changed.
 
+## Reset, validation and async failures (#551)
+
+Re-enumerated and reviewed all five accepted ADRs and relevant architecture,
+reactivity, Forms, SSR/builds and testing guides. Governance ADRs retain their own
+scope. Modern Angular A02/A05/A06/A07/A09/A10 and ADR 0004 apply; no conflict was
+found. Angular MCP best-practices again returned `Unexpected response type`.
+Installed Angular 22.1.4 declarations/runtime and the official
+[FormUiControl](https://angular.dev/api/forms/signals/FormUiControl),
+[submit](https://angular.dev/api/forms/signals/submit) and
+[async operations](https://angular.dev/guide/forms/signals/async-operations)
+references informed the implementation.
+
+Core owns synchronous invalidation, generation checks and the shared queue.
+Writes retain their acceptance generation. Explicit snapshots now reject with
+`superseded` after newer authoritative work; a failed render/clear keeps publication
+suspended until explicit reconciliation. The Angular wrapper exposes a two-phase
+invalidation/reconciliation seam, and Forms supplies the native reset hook and
+snapshot method. A lazy, optional lookup of the public `FORM_FIELD` token checks
+native field state before publishing or saving, closing the interval between a model
+write and Angular input delivery. It preserves native debounce and introduces no
+fake NgControl or parallel field state. No dependency, peer range or release version
+changes.
+
+Native form-tree tests cover unchanged/different/implicit reset during save,
+queued render/reset/write, pre-ready reset, teardown, remount, typed error counts,
+required/custom/async validation and immediate-edit submission. Submission tests
+verify captured-payload validation, duplicate prevention and retained values after
+server failure. Full Forms browser certification remains #553–#554, legacy binding
+#552, and full SSR/hydration #69. Running upstream work is not forcibly cancelled.
+
+Local validation on 2026-10-12: core/Angular builds, type checks and lint passed;
+152 core tests and 98 Angular tests passed, including 62 native Forms cases.
+Existing lint warnings remain. Coverage includes native deferred synchronization,
+pre-input-delivery writes, completion-time snapshot guards and one reconciliation
+per reset. The root package remains usable without Forms. Formatting and whitespace
+diff checks passed. The final packed artifacts compiled public declarations and all
+README examples on Angular/Forms 22.0.0, 22.1.4 and 22.2.2; all 15 existing
+standalone Chromium checks passed. Native Forms browser scenarios remain #553;
+this matrix run does not claim that coverage. CI was not monitored.
+
 ## Release configuration
 
 The project participates in independent Nx release configuration with

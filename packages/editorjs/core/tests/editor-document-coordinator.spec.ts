@@ -24,6 +24,7 @@ function setup() {
   const events: EditorJsChangeEvent[] = [];
   const errors: EditorJsErrorEvent[] = [];
   const driver = {
+    focus: vi.fn(() => true),
     save: vi.fn(async (): Promise<unknown> => content),
     render: vi.fn(async (data: OutputData) => {
       content = data;
@@ -305,5 +306,79 @@ describe('framework-neutral document coordination', () => {
     second.edit(document('Second'));
     await vi.waitFor(() => expect(second.events).toHaveLength(1));
     expect(first.events).toEqual([]);
+  });
+});
+
+describe('authoritative invalidation', () => {
+  it('suspends publications between invalidation and reconciliation, including an in-flight save', async () => {
+    const { coordinator, driver, events, edit } = setup();
+    const saving = deferred<unknown>();
+    driver.save.mockReturnValueOnce(saving.promise);
+    coordinator.markReady();
+    edit(document('Obsolete'));
+    await vi.waitFor(() => expect(driver.save).toHaveBeenCalledOnce());
+    coordinator.invalidate();
+    saving.resolve(document('Obsolete'));
+    await coordinator.api.focus();
+    edit(document('Also obsolete'));
+    expect(driver.save).toHaveBeenCalledOnce();
+    expect(events).toEqual([]);
+    coordinator.replace(document('Authoritative'));
+    await vi.waitFor(() => expect(driver.save).toHaveBeenCalledTimes(2));
+    edit(document('New edit'));
+    await vi.waitFor(() => expect(events).toHaveLength(1));
+    expect(events[0].data).toEqual(document('New edit'));
+  });
+
+  it('does not let a queued earlier replacement release a later invalidation', async () => {
+    const { coordinator, driver, events, edit } = setup();
+    coordinator.replace(document('Queued before ready'));
+    coordinator.invalidate();
+    coordinator.markReady();
+    await vi.waitFor(() => expect(driver.save).toHaveBeenCalledOnce());
+    edit(document('Obsolete after queued render'));
+    await coordinator.api.focus();
+    expect(events).toEqual([]);
+    expect(driver.save).toHaveBeenCalledOnce();
+    coordinator.replace(document('Reset'));
+    await vi.waitFor(() => expect(driver.save).toHaveBeenCalledTimes(2));
+    edit(document('Accepted'));
+    await vi.waitFor(() => expect(events).toHaveLength(1));
+  });
+
+  it('keeps a failed replacement authoritative until an explicit successful retry', async () => {
+    const { coordinator, driver, events, errors, edit } = setup();
+    driver.render.mockRejectedValueOnce(new Error('Partial render'));
+    coordinator.markReady();
+    coordinator.replace(document('Requested'));
+    await vi.waitFor(() => expect(errors).toHaveLength(1));
+    edit(document('Partial content'));
+    edit(document('More partial content'));
+    expect(events).toEqual([]);
+    expect(driver.save).not.toHaveBeenCalled();
+    await expect(coordinator.api.save()).rejects.toMatchObject({
+      code: 'superseded',
+    });
+    coordinator.replace(document('Requested'));
+    await vi.waitFor(() => expect(driver.save).toHaveBeenCalledOnce());
+    edit(document('Recovered edit'));
+    await vi.waitFor(() => expect(events).toHaveLength(1));
+  });
+
+  it('rejects an in-flight explicit snapshot invalidated by reset exactly once and permits retry', async () => {
+    const { coordinator, driver, errors } = setup();
+    const saving = deferred<unknown>();
+    driver.save.mockReturnValueOnce(saving.promise);
+    coordinator.markReady();
+    const result = coordinator.api.save().catch((error: unknown) => error);
+    await vi.waitFor(() => expect(driver.save).toHaveBeenCalledOnce());
+    coordinator.invalidate();
+    coordinator.replace(document('Reset'));
+    saving.resolve(document('Obsolete'));
+    const failure = await result;
+    expect(failure).toMatchObject({ operation: 'save', code: 'superseded' });
+    expect(errors).toEqual([failure]);
+    await vi.waitFor(() => expect(driver.save).toHaveBeenCalledTimes(2));
+    expect(await coordinator.api.save()).toEqual(document('Reset'));
   });
 });
