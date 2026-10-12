@@ -55,3 +55,8 @@ Call `ci_information` with the provided URL. Return ONLY: `{ shortLink, cipeUrl 
 Before generating, editing, refactoring, migrating, testing or scaffolding **any code** (including templates and examples), **enumerate and read every ADR** in BOTH (1) `anarchitects/anarchitecture-meta/adr/**` and (2) this repository's ADR directories (`adr/**`, `docs/adr/**` and any other ADR locations). This includes accepted, proposed, historical and superseded records; respect their status. Apply accepted ADRs and applicable local refinements; proposals do not silently override accepted decisions. Explicitly identify relevant decisions and conflicts before implementation and repeat the preflight if scope changes. If Meta or local ADRs cannot be accessed, report the blocker, do not claim to have reviewed them, and request access before code generation. Follow existing local architecture and published compatibility contracts until reviewed amendments are accepted.
 
 Meta ADR index: https://github.com/anarchitects/anarchitecture-meta/tree/main/adr
+
+
+## Mandatory ADR preflight for AI code generation
+
+Before generating or modifying any code, tests, templates or migrations, enumerate and read every ADR in BOTH `anarchitects/anarchitecture-meta/adr/**` and this repository (`adr/**`, `docs/adr/**`, and any other ADR directories). Review all accepted, proposed, historical and superseded records and respect their status. Record applicable decisions and conflicts; proposals do not supersede accepted decisions. Re-check after scope changes. If either ADR source is inaccessible, stop code generation and report the blocker. See https://github.com/anarchitects/anarchitecture-meta/tree/main/adr.
