@@ -1,6 +1,7 @@
 <main>
   <h1>Editor.js Angular browser host</h1>
-  <p>Two independent editors with document and lifecycle controls.</p>
+  <p>Independent editors with document and lifecycle controls.</p>
+  <nav><a href="/">Standalone</a> · <a href="/?forms">Forms</a></nav>
   <aside aria-label="Instance ownership">
     Created:
     <span data-testid="created">{{ ownership.created() }}</span> Destroyed:
@@ -10,6 +11,12 @@
     >
     Outputs: <span data-testid="outputs">{{ ownership.outputs() }}</span>
   </aside>
+  @if (formsMode) {
+  <aa-forms-card label="First" />
+  <aa-forms-card label="Second" />
+  <aa-forms-card label="Legacy" [legacy]="true" />
+  } @else {
   <aa-editor-card label="First" />
   <aa-editor-card label="Second" />
+  }
 </main>

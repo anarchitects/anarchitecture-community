@@ -349,3 +349,15 @@ model assignment and editor reset can leave its view/control value stale. Tests
 characterize this boundary rather than adding null coercion or parallel form state.
 The native contract suite runs against each isolated packed consumer. Full Forms
 browser coverage and release certification remain #553 and #554.
+
+## Dedicated browser evidence (#553)
+
+The existing private host and e2e projects now exercise real Editor.js with two
+Signal Forms owners and one native reactive owner through built public imports.
+The host owns deterministic save-delivery, async validation and persistence
+controls. This preserves package/core responsibilities and the no-CVA decision.
+
+Browser assertions cover document and form-state results, held snapshots overtaken
+by reset/disposal, detached DOM events, repeated remount and independent editing.
+They complement the library's deterministic contracts; SSR/hydration and
+non-authoring-route bundles remain #69. The final release gate remains #554.

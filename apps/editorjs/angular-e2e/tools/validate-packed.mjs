@@ -229,7 +229,7 @@ async function validate(name, versions, archives) {
       EDITORJS_INTEROP_PACKED: 'true',
     });
     await run(node, ['node_modules/@angular/cli/bin/ng.js', 'build'], root);
-    // Reuse the five real-browser scenarios against the separately installed app.
+    // Reuse the standalone and Forms browser scenarios against the isolated app.
     await run(
       process.execPath,
       [

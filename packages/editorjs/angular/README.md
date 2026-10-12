@@ -43,11 +43,12 @@ The packed component and its public examples are checked with these combinations
 | 22.2.2  | 2.31.7    | 26.0.0          | 6.0.3      | Chromium |
 
 These are tested combinations, not every version permutation or a full browser
-matrix. They cover standalone, zoneless editing, saved changes, imperative controls
-and teardown for the standalone component. Forms declarations/examples compile and native legacy interoperability contract tests
-pass on these baselines, within the limits documented below. Forms browser
-certification and full SSR/hydration support are not established. No
-CommonJS build is supplied. Nx is not a consumer dependency. Angular peers are
+matrix. Chromium checks cover standalone editing and controls, plus zoneless Signal
+Forms editing, value writes, dirty/touch, focus, disabled/readonly modes, reset,
+validation, submission failure and teardown. Native reactive Forms has a browser
+scenario; the broader legacy interoperability contract uses TestBed/jsdom within
+the limits documented below. Forms declarations and examples compile on every
+baseline. Full SSR/hydration support is not established. No CommonJS build is supplied. Nx is not a consumer dependency. Angular peers are
 evaluated normally; Editor.js is loaded only during browser initialization.
 
 ## Quick start
@@ -353,7 +354,9 @@ these three baselines:
 | `[(ngModel)]`                                 | Characterized, but not supported as a clean initialization path: Angular first delivers `null`, producing an `invalid-data` event before the valid model arrives. Use one of the other bindings. |
 
 These are zoneless TestBed/jsdom contract checks with a controlled editor. They
-establish Angular integration behavior, not real-browser Forms certification.
+establish the broader Angular integration contract. Separate Chromium scenarios
+exercise Signal Forms and direct reactive binding with real Editor.js; they do not
+certify every legacy binding in every browser.
 The characterized `ngModel` path can also leave its view/control value stale when an
 external model assignment coincides with an editor reset; it is excluded from the
 supported reset/write contract. All public examples also compile against each
