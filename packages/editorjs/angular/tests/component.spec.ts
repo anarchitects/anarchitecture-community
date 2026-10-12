@@ -684,3 +684,54 @@ describe('component imperative facade', () => {
     expect(editors[1].focus).toHaveBeenCalledOnce();
   });
 });
+
+describe('adapter reconciliation seam', () => {
+  it('suspends immediately and re-renders the same bound input only when reconciliation is requested', async () => {
+    const editor = instance();
+    let options!: EditorJsCreateOptions;
+    setup(async () => (value) => {
+      options = value;
+      return editor;
+    });
+    const { fixture, ready, errors, changes } = mount();
+    const data: OutputData = { blocks: [] };
+    fixture.componentRef.setInput('data', data);
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(ready).toHaveBeenCalledOnce());
+    const saving = deferred<OutputData>();
+    vi.mocked(editor.save).mockReturnValueOnce(saving.promise);
+    options.onChange();
+    await vi.waitFor(() => expect(editor.save).toHaveBeenCalledOnce());
+    fixture.componentInstance.invalidate();
+    saving.resolve({
+      blocks: [{ type: 'paragraph', data: { text: 'Obsolete' } }],
+    });
+    await fixture.componentInstance.api.focus();
+    expect(changes).toEqual([]);
+    expect(editor.render).not.toHaveBeenCalled();
+    fixture.componentInstance.reconcile();
+    await fixture.whenStable();
+    await fixture.componentInstance.api.focus();
+    expect(editor.render).toHaveBeenCalledExactlyOnceWith(data);
+    expect(changes).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  it('retains a reconciliation request made before creation until readiness', async () => {
+    const loading = deferred<EditorJsFactory>();
+    const editor = instance();
+    setup(() => loading.promise);
+    const { fixture, ready } = mount();
+    fixture.componentInstance.reconcile();
+    const data: OutputData = {
+      blocks: [{ type: 'paragraph', data: { text: 'Latest' } }],
+    };
+    fixture.componentRef.setInput('data', data);
+    await fixture.whenStable();
+    expect(editor.render).not.toHaveBeenCalled();
+    loading.resolve(() => editor);
+    await vi.waitFor(() => expect(ready).toHaveBeenCalledOnce());
+    await fixture.componentInstance.api.focus();
+    expect(editor.render).toHaveBeenCalledExactlyOnceWith(data);
+  });
+});

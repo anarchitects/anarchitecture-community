@@ -13,6 +13,9 @@ import type {
 export function valueContract(
   control: EditorJsControl,
 ): FormValueControl<OutputData> {
+  control.reset();
+  const snapshot: Promise<OutputData> = control.save();
+  void snapshot;
   control.focus({ preventScroll: true });
   control.disabled();
   control.readonly();

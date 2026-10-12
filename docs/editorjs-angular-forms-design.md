@@ -2,9 +2,9 @@
 
 This contributor contract implements the planning slice #548 of epic #68. It defines
 work for #549–#554. #549 implements the opt-in entry point and value binding;
-#550 adds interaction state, availability, accessible presentation and focus. Reset
-invalidation, snapshot controls and remaining integration guarantees are planned in
-#551–#554. The
+#550 adds interaction state, availability, accessible presentation and focus. #551
+adds reset invalidation, snapshots and validation/submission lifecycle contracts.
+Remaining integration certification is planned in #552–#554. The
 [package README](../packages/editorjs/angular/README.md) remains the authority for
 currently available exports. The original #548 planning slice changed no runtime
 code, dependencies or release versions. Implementation status and evidence live in the
@@ -182,11 +182,11 @@ when the hook is called. It must also force reconciliation when object identity 
 unchanged: an in-progress editor draft can differ from the last saved model.
 
 The current wrapper observes data changes after rendering and compares references.
-Its `api.render` invalidates queued change work synchronously when ready, but there
-is no public equivalent for all pre-ready/same-value reset cases. #551 must establish
-a supported invalidation/replacement seam that works across those states, with the
-generation and queue logic remaining in core. Waiting solely for an effect, cloning
-a document just to trigger an input, or dropping one next change cannot prove the
+Its `api.render` invalidates queued change work synchronously when ready. #551 adds
+`invalidate()` and `reconcile()` to the root component for pre-ready/same-value reset
+cases, backed by core invalidation. Reconciliation applies the bound input after
+Angular renders; generation and queue logic remain in core. Waiting solely for an
+effect, cloning a document just to trigger an input, or dropping one next change cannot prove the
 reset guarantee. Test an already-running save, queued render, rapid reset/write,
 reset while disabled and destruction between reset and reconciliation.
 
@@ -299,4 +299,31 @@ accepted but ignored, as required by the initial contract.
 Angular 22.1.4 suppresses computed dirty/touched while fields are non-interactive;
 it retains their internal state for reactivation. Tests follow this native behavior
 and preserve pre-transition saved edits. Explicit-value resets while unavailable
-are covered; same-value reset and synchronous stale-work invalidation remain #551.
+are covered; same-value reset and synchronous stale-work invalidation are added in #551.
+
+## Reset and failure implementation note (#551)
+
+Core `invalidate()` suspends publication immediately and advances the replacement
+generation. Each write retains its acceptance generation so earlier queued work
+cannot release a later reset. A failed render/clear remains unreconciled until an
+explicit successful write; successful writes with a failed baseline save retain
+the existing silent-baseline recovery. Explicit snapshots overtaken by invalidation
+or a later accepted replacement reject with the additive `superseded` error code.
+This deliberately tightens the previous explicit-save behavior; ordinary editor
+edits after capture still belong to the caller's concurrency policy.
+
+The root wrapper exposes `invalidate()` and `reconcile()` without Forms imports.
+The Forms hook invalidates synchronously, forgets artificial focus and schedules
+reconciliation after the new bound value arrives. New inbound values invalidate
+when observed by the control. A lazy optional public `FORM_FIELD` lookup also
+rejects stale publications/snapshots when the native model changes before input
+delivery; the last observed and last published references preserve native debounce.
+Model-only bindings have no field-tree reference and take effect when Angular
+delivers the input; signals can coalesce before observation. The adapter continues
+using core normalization and has no independent operation queue.
+
+Native async validators and submission remain consumer-owned. Tests show strict
+`ignoreValidators: 'none'` refuses a pending form rather than awaiting it. The README
+single-field submission example deliberately validates its fresh captured payload
+inside the action, independently of the older model's schema result. Native submit
+still supplies duplicate prevention, submitting state and server-error placement.

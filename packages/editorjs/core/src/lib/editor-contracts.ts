@@ -47,6 +47,7 @@ export interface EditorJsErrorEvent {
   readonly code:
     | 'not-ready'
     | 'destroyed'
+    | 'superseded'
     | 'config-changed'
     | 'invalid-data'
     | 'unsupported-platform'

@@ -137,6 +137,7 @@ partially failed transition. The owner calls these lifecycle/input methods:
 | `markReady(readOnly?)` | Activate once the editor is usable, supplying its initial read-only mode (default false); drain accepted replacements. Repeated calls do nothing.                                                                                     |
 | `replace(data)`        | Validate and detach the input on acceptance; serialize replacements in order, waiting for readiness. `undefined` means `{ blocks: [] }`. Invalid values report `data` / `invalid-data` without invalidating accepted work.            |
 | `notifyChange()`       | Notify of an editor-originated invalidation. Coalesce automatic saves and discard snapshots superseded by a newer notification or accepted replacement. Ignore notifications before readiness or while replacement is queued/running. |
+| `invalidate()`         | Immediately suspend automatic publications and supersede pending explicit snapshots. Safe before readiness. Resume through a successful `replace`/render/clear; repeated invalidations are safe.                                      |
 | `dispose()`            | Discard queued work and suppress all future events/errors. Immediately rejects active/queued controls with `destroyed`. Does not destroy the editor or cancel an in-flight driver operation. Repeated calls do nothing.               |
 
 A replacement takes precedence over edits to the previous document. After each
@@ -151,8 +152,10 @@ Failures use the shared error contract and do not poison subsequent queued work.
 Invalid saved data reports `save` / `invalid-data` with the normalization diagnostic.
 Driver rejections report the failing `save` or `render` operation and original cause.
 There is no automatic retry. Failed renders may leave partially modified content;
-after a replacement or baseline-save failure, the next successful snapshot becomes
-a silent recovery baseline. Edits included in that recovery snapshot are not emitted
+after a failed render/clear, publications remain suspended until an explicit successful
+replacement. Snapshots reject with `superseded` while unreconciled. After a successful
+write whose baseline save failed, the next successful snapshot becomes a silent
+recovery baseline. Edits included in that recovery snapshot are not emitted
 separately. Ordinary automatic-save failures allow the next notification to retry
 without resetting the baseline. Reapply a known document if recovery must be exact.
 
@@ -161,8 +164,18 @@ The stable `api: EditorJsApi` facade provides `save`, `render`, `clear`, `focus`
 readiness reject with `not-ready`; after disposal they reject with `destroyed`.
 Ready calls execute in acceptance order alongside input replacements and automatic
 saves. An explicit save returns a detached snapshot without emitting a change or
-updating the automatic baseline; its result is not discarded when later work arrives.
-Only automatic change publications are suppressed when superseded.
+updating the automatic baseline. A later accepted replacement or `invalidate()`
+supersedes pending explicit saves: they reject with `save` / `superseded` instead
+of returning obsolete content. Calls queued before replacement may reject without
+invoking the driver; running driver work is still awaited. A save queued after a
+replacement succeeds once that replacement reconciles the view. Later editor edits
+alone do not supersede an explicit snapshot: consumers own edits made after capture.
+
+Use `invalidate()` for a two-phase reset when the authoritative value is not yet
+available, then `replace(value)` when it is. It also prevents earlier queued writes
+from resuming publications before that later reconciliation. A failed normalization
+in `replace` does not invalidate by itself; owners can invalidate first when an
+invalid external request must remain authoritative.
 
 `render` validates and copies its required document immediately; invalid input
 rejects with `render` / `invalid-data`. `render` and `clear` invalidate automatic
