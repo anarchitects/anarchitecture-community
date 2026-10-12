@@ -7,6 +7,17 @@ import { provideRouter, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
+    path: 'forms-deferred',
+    loadComponent: () =>
+      import('./deferred-forms-page').then((m) => m.DeferredFormsPage),
+  },
+  {
+    path: 'forms-incremental',
+    data: { incremental: true },
+    loadComponent: () =>
+      import('./deferred-forms-page').then((m) => m.DeferredFormsPage),
+  },
+  {
     path: 'deferred',
     loadComponent: () => import('./deferred-page').then((m) => m.DeferredPage),
   },

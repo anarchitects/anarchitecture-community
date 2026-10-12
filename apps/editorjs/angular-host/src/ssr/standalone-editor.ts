@@ -17,7 +17,7 @@ import {
   type EditorJsErrorEvent,
 } from '@anarchitects/editorjs-angular';
 import type { OutputData } from '@anarchitects/editorjs-core';
-import { controlledStandaloneLoader, LifetimeWork } from './lifetime-probe';
+import { controlledLifetimeLoader, LifetimeWork } from './lifetime-probe';
 
 const document = (text: string): OutputData => ({
   blocks: [{ type: 'paragraph', data: { text } }],
@@ -29,7 +29,7 @@ type Command = 'save' | 'render' | 'clear' | 'focus' | 'readonly';
   imports: [EditorJs, JsonPipe],
   providers: [
     LifetimeWork,
-    { provide: EDITOR_JS_LOADER, useFactory: controlledStandaloneLoader },
+    { provide: EDITOR_JS_LOADER, useFactory: controlledLifetimeLoader },
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

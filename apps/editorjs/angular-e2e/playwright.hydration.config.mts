@@ -27,7 +27,7 @@ export default defineConfig({
   })),
   projects: cells.map(({ name, suffix, port }) => ({
     name,
-    testIgnore: name === 'full' ? '**/deferred.spec.ts' : [],
+    testIgnore: name === 'full' ? '**/*deferred.spec.ts' : [],
     metadata: {
       buildDirectory: `dist/apps/editorjs/angular-host-ssr${suffix}`,
     },

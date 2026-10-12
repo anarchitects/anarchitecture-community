@@ -39,7 +39,7 @@ export class LifetimeWork {
   }
 }
 
-export function controlledStandaloneLoader(): EditorJsLoader {
+export function controlledLifetimeLoader(): EditorJsLoader {
   const load = inject(EDITOR_JS_LOADER, { skipSelf: true });
   const work = inject(LifetimeWork);
   return async () => {

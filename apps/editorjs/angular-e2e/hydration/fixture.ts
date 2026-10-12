@@ -167,6 +167,7 @@ export async function bootstrap(
   path: string,
   plans: Plan[] = [],
   holders = 1,
+  beforeBootstrap?: () => Promise<void>,
 ): Promise<void> {
   let resume!: () => void;
   const gate = new Promise<void>((resolve) => {
@@ -193,7 +194,11 @@ export async function bootstrap(
     body: await response.text(),
     contentType: 'text/html',
   });
-  resume();
+  try {
+    await beforeBootstrap?.();
+  } finally {
+    resume();
+  }
   await page.waitForLoadState('load');
 }
 export async function retained(page: Page): Promise<void> {

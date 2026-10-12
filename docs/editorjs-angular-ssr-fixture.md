@@ -1,10 +1,10 @@
 # Editor.js Angular SSR fixture
 
 This private fixture implements server evidence (#563) and standalone hydration
-and asynchronous lifetime evidence (#564) from the [SSR contract](editorjs-angular-ssr-design.md).
-Native Forms hydration and pre-hydration safety (#565), non-authoring delivery
-(#566), and the packed SSR version matrix (#567) remain separate slices. Public
-package support claims are unchanged.
+and asynchronous lifetime evidence (#564), plus native Signal Forms hydration and
+pre-hydration safety (#565), from the [SSR contract](editorjs-angular-ssr-design.md).
+Non-authoring delivery (#566) and the packed SSR version matrix (#567) remain
+separate slices. Public package support claims are unchanged.
 
 ## Architecture review
 
@@ -58,6 +58,8 @@ A five-second shutdown deadline kills a stuck process and fails the assertion.
 | `/deferred`          | Request SSR | Interaction-triggered ordinary defer    |
 | `/incremental`       | Request SSR | One incremental interaction boundary    |
 | `/forms`             | Request SSR | Optional native Signal Forms entry      |
+| `/forms-deferred`    | Request SSR | Ordinary interaction-deferred form      |
+| `/forms-incremental` | Request SSR | Incrementally hydrated form boundary    |
 | `/sample/public`     | Prerender   | Fixed public page                       |
 | `/sample/standalone` | Prerender   | Fixed synthetic document                |
 | `/sample/forms`      | Prerender   | Fixed synthetic document and form state |
@@ -220,6 +222,96 @@ console messages, actual versions, the workspace lockfile, build metadata and se
 retained on failure. Existing server-import, request-isolation, core, Angular,
 root-without-Forms and CSR tests remain separate checks. These results certify only
 this bounded workspace fixture, not the future packed matrix or arbitrary tools.
+
+## Native Signal Forms hydration and reset evidence (#565)
+
+The complete ADR and engineering-guide preflight was repeated for this slice on
+2026-10-12: seven local records and all fifteen Meta records at
+`e2f34553c6e2492d0ab6f80ac795de44fc592a70`, including accepted, proposed and historical
+records. A01/A02 preserve matched Forms peers and the optional public entry point;
+A03/A05 retain component ownership and the existing framework-neutral coordinator;
+A07 requires native values, flags and reset; A08–A10 require real Angular activation
+and integration evidence. The public HTTP-contract, Nest and governance decisions
+introduce no additional fixture changes. No conflict or exception was required.
+The relevant guide topics were reviewed again. The Angular MCP best-practices
+endpoint still failed; its API search and installed declarations confirmed
+[public form naming](https://angular.dev/api/forms/signals/FormOptions).
+
+`/forms` and `/sample/forms` now render a private reusable form owner. Each instance
+has its own non-null signal model, native `form()` tree, schema-owned disabled and
+readonly state, validation resource, optional loader probe and mock submission
+completion. The abort regression exposed that a resource created in native
+validation metadata did not follow component disposal in this baseline. Passing
+the owning component injector explicitly to `resource()` closes that host lifetime
+gap through the public API; the test requires both abort and settlement. The root
+form name is explicitly stable per owner through Angular's
+`FormOptions.name`; this avoids process-wide generated names changing otherwise
+identical SSR responses. There are no manual name/value/flag bindings on the native
+`[formField]` input and no new package form abstraction or CVA.
+
+The two new lazy routes use Angular `@defer` directly: ordinary `on interaction`
+and `on interaction; hydrate on interaction`. The latter renders the main form on
+the server and hydrates it on a host activation click or Enter. Client navigation
+uses the ordinary placeholder/interaction path. These routes run in default
+production and diagnostic profiles; the explicitly non-incremental `full` profile
+runs immediate Forms, prerender and lifetime cases. There is one activation
+boundary, with no time-based trigger, private flag or skip-hydration exception.
+
+The 69 added browser cases cover:
+
+- Matched Angular/Forms 22.1.4 SSR and fixed prerender hydration, retained root/editor/
+  holder nodes, non-null data, schema availability and initially valid, pristine,
+  untouched, non-pending state. Readiness occurs once and initialization publishes
+  no saved change or touch.
+- Held bootstrap, JavaScript-disabled browsing, and a held incremental view module.
+  Real mouse/Enter interactions cannot submit disabled native controls; browser
+  `FormData` contains no successful controls before activation. The host activation
+  click replays once after module delivery; it does not replay editor keystrokes
+  into an editor DOM that did not exist on the server. No native POST, navigation
+  or duplicate fixture submission occurs.
+- Keyboard editing, focus movement within the composite control and touch on exit;
+  synchronous content errors, asynchronous pending/rejected review, native
+  submitting state, submission errors and reset/retry. `submit()` with
+  `ignoreValidators: 'none'` refuses pending/invalid models; it does not wait and
+  automatically retry. The host explicitly calls `EditorJsControl.save()` and
+  validates the exact captured document. A held automatic save proves that this
+  explicit capture works when the form model lags the edited DOM.
+- Writes and native resets while module loading or readiness is held; subsequent
+  disabled/readonly transitions; same-value reset overtaking automatic, explicit
+  and submission snapshots. Native reset restores flags, suppresses old automatic
+  publication and produces the existing typed `superseded` result for explicit saves.
+- Independent A/B owners and replacement during pending load, readiness or save,
+  on both resolution and rejection. Old owners emit no late outputs into their
+  replacement. Pending validation aborts and settles on disposal. Reset or disposal
+  also abandons the host's pending mock submission result; a replacement starts
+  with fresh native flags and no captured document or submission count.
+
+The disabled fieldset is host policy, including its native note input and submit
+button; the adapter's inert editing region alone does not disable an enclosing
+form. The fieldset remains disabled until real editor readiness and during native
+submission. Its note is synthetic test data, not a credential. The controls used
+to trigger races live outside the fieldset and are explicitly `type="button"`.
+Native submit handlers prevent the default action immediately and fence concurrent
+attempts. Host operation epochs guard host-owned snapshot/result display after a
+reset or destruction; they do not replace the editor coordinator or native flags.
+Mock completion performs no persistence. Already-sent real requests still require
+application-specific cancellation/idempotency policy.
+
+This evidence covers ordinary user interactions with this bounded form. Disabled
+controls do not make a general form-submission firewall: application code calling
+native `form.submit()`, enabled controls outside the fieldset, hidden inputs or
+other submitters require their own host policy. Event replay does not defer a
+browser's native form action until Angular is ready. No-JavaScript visitors retain
+the unavailable message; they cannot author or submit in this fixture.
+
+The Forms and core libraries needed no changes. Existing CSR `[formControl]`
+coverage and native interoperability unit contracts remain intact. This slice
+adds no legacy SSR, `ngModel`, CVA, package `FormControl`/`FormGroup`, automatic
+save-on-submit or persistence support. The complete hydration run contains 118
+cases, including the existing 49 standalone cases. Evidence uses the same HTML,
+per-owner events, diagnostics, version/lockfile/build metadata and failure traces
+as #564; server import/request cleanup and the 13-case CSR suite are separate
+regressions. Public support claims remain bounded pending the packed SSR matrix.
 
 ## Validation boundary
 
