@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { FormField, form, type FormValueControl } from '@angular/forms/signals';
 import {
   EditorJsControl,
@@ -70,4 +71,23 @@ export class FormsConsumer {
   onError(event: EditorJsErrorEvent): void {
     void event;
   }
+}
+
+// Compile the direct native directive syntax as well as the migration README examples.
+// ngModel compilation does not imply clean initialization; see its documented runtime limits.
+@Component({
+  selector: 'aa-legacy-bindings-consumer',
+  imports: [EditorJsControl, FormsModule, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <aa-editorjs-control [formControl]="body" />
+    <aa-editorjs-control [(ngModel)]="model" />
+  `,
+})
+export class LegacyBindingsConsumer {
+  readonly body = new FormControl<OutputData>(
+    { blocks: [] },
+    { nonNullable: true },
+  );
+  model: OutputData = { blocks: [] };
 }
