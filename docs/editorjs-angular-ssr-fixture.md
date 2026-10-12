@@ -1,10 +1,10 @@
-# Editor.js Angular server fixture
+# Editor.js Angular SSR fixture
 
-This private fixture implements the server evidence slice (#563) of the
-[SSR contract](editorjs-angular-ssr-design.md). **Server-render success is not
-hydration certification.** Browser node reuse, event replay, delayed activation,
-pre-hydration interaction, lazy browser delivery and the packed SSR version matrix
-remain the subsequent slices. Public package support claims are unchanged.
+This private fixture implements server evidence (#563) and standalone hydration
+and asynchronous lifetime evidence (#564) from the [SSR contract](editorjs-angular-ssr-design.md).
+Native Forms hydration and pre-hydration safety (#565), non-authoring delivery
+(#566), and the packed SSR version matrix (#567) remain separate slices. Public
+package support claims are unchanged.
 
 ## Architecture review
 
@@ -39,6 +39,7 @@ From the repository root:
 yarn nx run editorjs-angular-host:build-ssr
 yarn nx run editorjs-angular-host:serve-ssr
 yarn nx run editorjs-angular-e2e:test-ssr
+yarn nx run editorjs-angular-e2e:e2e-hydration
 yarn nx run-many -p editorjs-angular-host,editorjs-angular-e2e -t typecheck,typecheck-ssr,lint
 yarn nx run-many -p editorjs-core,editorjs-angular -t test
 yarn nx run editorjs-angular-e2e:e2e
@@ -54,6 +55,8 @@ A five-second shutdown deadline kills a stuck process and fails the assertion.
 | -------------------- | ----------- | --------------------------------------- |
 | `/`                  | Request SSR | Lightweight public page                 |
 | `/standalone`        | Request SSR | Public root editor entry                |
+| `/deferred`          | Request SSR | Interaction-triggered ordinary defer    |
+| `/incremental`       | Request SSR | One incremental interaction boundary    |
 | `/forms`             | Request SSR | Optional native Signal Forms entry      |
 | `/sample/public`     | Prerender   | Fixed public page                       |
 | `/sample/standalone` | Prerender   | Fixed synthetic document                |
@@ -131,6 +134,92 @@ prerender HTML, server logs, import-guard negative control, build statistics,
 actual versions and the workspace lockfile. Nx retains build failures in task
 output; a failed dependency prevents the test from running. Generated artifacts
 are ignored by Git.
+
+## Standalone hydration and lifetime evidence (#564)
+
+Before implementation on 2026-10-12, all seven local ADRs and all fifteen Meta
+records were enumerated and read again, at Meta commit
+`e2f34553c6e2492d0ab6f80ac795de44fc592a70`. This includes newly accepted Meta ADR 0012:
+canonical public HTTP contracts belong to `anarchitecture-contracts`. This private
+fixture changes no shared HTTP contract. Relevant Modern Angular architecture,
+provider/routing, reactivity, rendering, SSR/build and testing guides were reviewed.
+A03/A05 keep ownership and ordering explicit; A08/A09 require supported defer and
+hydration APIs with matching DOM; A10 requires observable integration evidence.
+No conflict, exception, dependency upgrade or public API change was needed.
+The Angular MCP incremental-hydration documentation and installed Angular APIs
+confirmed the two interaction-trigger forms and host-owned hydration profiles.
+
+`e2e-hydration` builds three isolated application outputs, then runs Chromium
+against three owned Node servers. It never reuses a developer server:
+
+| Profile             | Build configuration | Port | Cases                                                                                |
+| ------------------- | ------------------- | ---- | ------------------------------------------------------------------------------------ |
+| Default production  | `production`        | 4320 | Immediate SSR, fixed prerender, ordinary defer, incremental boundary, lifetime races |
+| Default diagnostics | `diagnostic`        | 4321 | Same cases, with development hydration diagnostics enabled                           |
+| Full with replay    | `full`              | 4322 | Immediate SSR, fixed prerender, lifetime races                                       |
+
+The shared server/browser `full` build replacement supplies
+`withNoIncrementalHydration()` and `withEventReplay()`. Both profiles disable HTTP
+transfer caching. The production output remains `angular-host-ssr`; the other
+outputs append `-diagnostic` and `-full`. The uncached `build-hydration` aggregate
+runs those cacheable builds sequentially; the browser target is also uncached.
+No library hydration provider, private Angular flag, skip-hydration exception,
+second queue or timing-based activation policy is introduced.
+
+The suite holds bootstrap scripts, captures the parsed server root, editor host
+and empty holder, then verifies those exact nodes remain connected and reused.
+Shell render status is only a fixture checkpoint, never a claim that all deferred
+content has hydrated. Browser console errors, hydration diagnostics, page errors
+and unhandled rejections fail each test. Injected operational failures must arrive
+through the editor's typed error output; diagnostics are not broadly suppressed.
+
+The standalone card uses the public component, inputs, outputs and controls. Its
+optional browser-test probe decorates the public real loader: actual Editor.js
+creates the holder content, resolves readiness, edits, renders and captures every
+save. Each component owns its probe session. The Playwright-owned observer can
+hold module loading, readiness after the real instance settles, or a captured
+real save; it records terminal events and releases or rejects a specific operation.
+It intentionally retains old callbacks and DOM only inside an isolated test page
+for disposal assertions. No probe exists in ordinary use, and none is serialized
+or installed on the server.
+
+The 49 browser cases establish:
+
+- Retained SSR/prerender nodes, one instance and ready event per live holder,
+  keyboard editing, detached change payloads, save/render/clear/focus/readonly
+  controls and no synthetic change from authoritative input replacement.
+- Latest input before module resolution, before readiness and after readiness;
+  replacement of a captured save rejects with the existing `superseded` contract.
+  The race waits for Angular to render the new bound input before releasing the
+  save; a button click alone does not establish that checkpoint.
+- Navigation before load/readiness resolves or rejects; no abandoned creation or
+  stale output, with physical disposal when readiness safely settles. Load and
+  initialization failure report once, and component recreation recovers.
+- Captured automatic and imperative saves during removal/navigation, including
+  rejection after a new owner is ready; repeated remounts and simultaneous A/B
+  owners with distinct holders and independent documents. Disconnected DOM and
+  retained upstream callbacks cannot publish; every created instance in the
+  repeated-owner scenario is destroyed exactly once.
+- Ordinary defer's placeholder, loading and error states, plus reload recovery
+  after failed module delivery. The failed view asset is located through builder
+  input/output metadata, not a guessed hashed filename. Incremental interaction
+  reuses server content, replays activation, and creates one editor; subsequent
+  client navigation follows the ordinary interaction trigger. Both boundaries
+  may be abandoned before activation or while the editor loader is pending.
+
+Readiness is still upstream-owned. A never-settling readiness promise cannot be
+forcibly cancelled, and safe physical cleanup is only demonstrated on settlement.
+Custom router strategies that retain components are outside this fixture's default
+route-destruction coverage. A failed JavaScript module is cached by the browser;
+view-delivery recovery explicitly reloads, whereas editor-loader/readiness recovery
+recreates the component. No implicit retry or new recovery API is added.
+
+The evidence required no library or core change. Reports, HTML, per-session events,
+console messages, actual versions, the workspace lockfile, build metadata and server logs are retained in
+`apps/editorjs/angular-e2e/test-output/hydration`; browser traces/screenshots are
+retained on failure. Existing server-import, request-isolation, core, Angular,
+root-without-Forms and CSR tests remain separate checks. These results certify only
+this bounded workspace fixture, not the future packed matrix or arbitrary tools.
 
 ## Validation boundary
 

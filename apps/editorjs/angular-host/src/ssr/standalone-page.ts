@@ -4,13 +4,14 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { EDITOR_JS_LOADER, EditorJs } from '@anarchitects/editorjs-angular';
+import { EDITOR_JS_LOADER } from '@anarchitects/editorjs-angular';
 import { RequestState } from './request-state';
 import { observedLoader } from './observed-loader';
+import { StandaloneEditor } from './standalone-editor';
 
 @Component({
   selector: 'aa-standalone-page',
-  imports: [EditorJs],
+  imports: [StandaloneEditor],
   providers: [
     RequestState,
     { provide: EDITOR_JS_LOADER, useFactory: observedLoader },
@@ -19,26 +20,30 @@ import { observedLoader } from './observed-loader';
   template: `
     <h1>Standalone authoring</h1>
     <p data-testid="marker">{{ state.initial.marker }}</p>
-    <section aria-labelledby="editor-label" aria-describedby="editor-status">
-      <h2 id="editor-label">Document</h2>
-      <p id="editor-status" role="status">
-        {{ ready() ? 'Editor ready' : 'Editor activates in the browser' }}
-      </p>
-      <aa-editorjs
-        [data]="state.initial.document"
-        [config]="config"
-        (ready)="ready.set(true)"
+    <button type="button" (click)="mounted.set(!mounted())">Toggle A</button>
+    <button type="button" (click)="second.set(!second())">Toggle B</button>
+    @if (mounted()) {
+      <aa-standalone-editor
+        data-owner="A"
+        label="A"
+        [initial]="state.initial.document"
+        [initialReadOnly]="state.initial.readonly"
       />
-    </section>
-  `,
-  styles: `
-    aa-editorjs {
-      min-height: 8rem;
+    }
+    @if (second()) {
+      <aa-standalone-editor
+        data-owner="B"
+        label="B"
+        [initial]="secondDocument"
+      />
     }
   `,
 })
 export class StandalonePage {
   readonly state = inject(RequestState);
-  readonly ready = signal(false);
-  readonly config = { minHeight: 80, readOnly: this.state.initial.readonly };
+  readonly mounted = signal(true);
+  readonly second = signal(false);
+  readonly secondDocument = {
+    blocks: [{ type: 'paragraph', data: { text: 'B initial' } }],
+  };
 }

@@ -138,6 +138,34 @@
           "optimization": false,
           "extractLicenses": false,
           "sourceMap": true
+        },
+        "diagnostic": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "outputPath": "dist/apps/editorjs/angular-host-ssr-diagnostic"
+        },
+        "full": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "1mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all",
+          "outputPath": "dist/apps/editorjs/angular-host-ssr-full",
+          "fileReplacements": [
+            {
+              "replace": "apps/editorjs/angular-host/src/ssr/hydration.ts",
+              "with": "apps/editorjs/angular-host/src/ssr/hydration.full.ts"
+            }
+          ]
         }
       },
       "inputs": [
@@ -172,6 +200,18 @@
       ],
       "options": {
         "command": "ngc -p apps/editorjs/angular-host/tsconfig.ssr.json --noEmit"
+      }
+    },
+    "build-hydration": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "commands": [
+          "yarn nx run editorjs-angular-host:build-ssr:production",
+          "yarn nx run editorjs-angular-host:build-ssr:diagnostic",
+          "yarn nx run editorjs-angular-host:build-ssr:full"
+        ],
+        "parallel": false
       }
     }
   },

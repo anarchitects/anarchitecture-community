@@ -2,13 +2,19 @@ import {
   ApplicationConfig,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
-import {
-  provideClientHydration,
-  withNoHttpTransferCache,
-} from '@angular/platform-browser';
+import { hydration } from './hydration';
 import { provideRouter, Routes } from '@angular/router';
 
 const routes: Routes = [
+  {
+    path: 'deferred',
+    loadComponent: () => import('./deferred-page').then((m) => m.DeferredPage),
+  },
+  {
+    path: 'incremental',
+    data: { incremental: true },
+    loadComponent: () => import('./deferred-page').then((m) => m.DeferredPage),
+  },
   {
     path: '',
     loadComponent: () => import('./public-page').then((m) => m.PublicPage),
@@ -43,6 +49,6 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideClientHydration(withNoHttpTransferCache()),
+    hydration,
   ],
 };
