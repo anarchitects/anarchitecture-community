@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  signal,
+} from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 
 @Component({
@@ -9,9 +14,16 @@ import { RouterLink, RouterOutlet } from '@angular/router';
     <nav aria-label="Fixture routes">
       <a routerLink="/">Public</a>
       <a routerLink="/standalone">Standalone</a>
+      <a routerLink="/deferred">Deferred</a>
+      <a routerLink="/incremental">Incremental</a>
       <a routerLink="/forms">Signal Forms</a>
     </nav>
-    <main><router-outlet /></main>
+    <main [attr.data-rendered]="rendered()"><router-outlet /></main>
   `,
 })
-export class App {}
+export class App {
+  readonly rendered = signal(false);
+  constructor() {
+    afterNextRender(() => this.rendered.set(true));
+  }
+}
