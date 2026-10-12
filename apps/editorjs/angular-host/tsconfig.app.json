@@ -5,7 +5,13 @@
     "types": []
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/ssr/**/*.ts",
+    "src/main.server.ts",
+    "src/server.ts"
+  ],
   "nx": {
     "sync": {
       "ignoredDependencies": ["editorjs-core", "editorjs-angular"]

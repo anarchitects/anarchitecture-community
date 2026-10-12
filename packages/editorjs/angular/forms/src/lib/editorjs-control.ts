@@ -50,7 +50,10 @@ import type { EditorJsControlConfig } from './editorjs-control-config.js';
     '(focusout)': 'onFocusOut($event)',
   },
   template: `
-    <div [inert]="interactionBlocked()">
+    <div
+      [inert]="interactionBlocked()"
+      [attr.inert]="interactionBlocked() ? '' : null"
+    >
       @if (editorData(); as document) {
         <aa-editorjs
           [data]="document"

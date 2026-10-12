@@ -7,6 +7,9 @@ in #563–#568; it does **not** certify SSR/hydration support. The
 current consumer support. No runtime code, exports, peers, versions or public
 README claims change in this slice.
 
+The subsequent [server fixture](editorjs-angular-ssr-fixture.md) records #563's
+implementation, reproducible commands and server-only evidence boundary.
+
 ## Decisions and existing evidence
 
 All five repository ADRs were enumerated and reviewed on 2026-10-12:

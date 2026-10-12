@@ -43,6 +43,21 @@
         "command": "node apps/editorjs/angular-e2e/tools/validate-packed.mjs {args.cell}",
         "cell": "all"
       }
+    },
+    "test-ssr": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": ["editorjs-angular-host"],
+          "target": "build-ssr"
+        }
+      ],
+      "outputs": ["{projectRoot}/test-output/ssr"],
+      "options": {
+        "command": "node apps/editorjs/angular-e2e/tools/validate-ssr.mjs"
+      },
+      "parallelism": false
     }
   },
   "tags": ["scope:editorjs", "type:e2e", "npm:private"]
