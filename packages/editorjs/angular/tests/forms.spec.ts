@@ -502,6 +502,7 @@ describe('standalone value model binding', () => {
       .nativeElement as HTMLElement;
     expect(node.hasAttribute('aria-busy')).toBe(false);
     expect((node.firstElementChild as HTMLElement).inert).toBe(true);
+    expect(node.firstElementChild?.hasAttribute('inert')).toBe(true);
     host.value.set(document('Corrected'));
     await fixture.whenStable();
     await vi.waitFor(() => expect(created).toHaveLength(1));
@@ -615,6 +616,7 @@ describe('native Forms interaction and availability', () => {
     await fixture.whenStable();
     await vi.waitFor(() => expect(raw.editor.readOnly.isEnabled).toBe(true));
     expect(region.inert).toBe(true);
+    expect(region.hasAttribute('inert')).toBe(true);
     expect(node.getAttribute('aria-disabled')).toBe('true');
     expect(globalThis.document.activeElement).not.toBe(input);
     const listener = vi.fn();
@@ -644,6 +646,7 @@ describe('native Forms interaction and availability', () => {
     host.isDisabled.set(false);
     await fixture.whenStable();
     await vi.waitFor(() => expect(region.inert).toBe(false));
+    expect(region.hasAttribute('inert')).toBe(false);
     input.click();
     expect(listener).toHaveBeenCalledOnce();
     expect(host.errors).toEqual([]);

@@ -92,6 +92,87 @@
       "options": {
         "command": "ngc -p apps/editorjs/angular-host/tsconfig.app.json --noEmit"
       }
+    },
+    "build-ssr": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/apps/editorjs/angular-host-ssr",
+        "browser": "apps/editorjs/angular-host/src/ssr/main.ts",
+        "tsConfig": "apps/editorjs/angular-host/tsconfig.ssr.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/editorjs/angular-host/public"
+          }
+        ],
+        "styles": ["apps/editorjs/angular-host/src/styles.css"],
+        "server": "apps/editorjs/angular-host/src/main.server.ts",
+        "ssr": {
+          "entry": "apps/editorjs/angular-host/src/server.ts"
+        },
+        "outputMode": "server",
+        "statsJson": true,
+        "security": {
+          "allowedHosts": ["localhost", "127.0.0.1"]
+        }
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "1mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      },
+      "inputs": [
+        "production",
+        "^production",
+        "{workspaceRoot}/tsconfig.base.json",
+        {
+          "runtime": "node --version"
+        },
+        "{workspaceRoot}/yarn.lock"
+      ],
+      "cache": true,
+      "dependsOn": ["^build"]
+    },
+    "serve-ssr": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "cache": false,
+      "dependsOn": ["build-ssr"],
+      "options": {
+        "command": "node dist/apps/editorjs/angular-host-ssr/server/server.mjs"
+      }
+    },
+    "typecheck-ssr": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": [
+        "default",
+        "^production",
+        "{workspaceRoot}/tsconfig.base.json"
+      ],
+      "options": {
+        "command": "ngc -p apps/editorjs/angular-host/tsconfig.ssr.json --noEmit"
+      }
     }
   },
   "implicitDependencies": ["editorjs-angular"]

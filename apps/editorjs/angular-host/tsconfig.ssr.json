@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../../dist/out-tsc/ssr",
+    "types": ["node"]
+  },
+  "files": ["src/ssr/main.ts", "src/main.server.ts", "src/server.ts"],
+  "include": [],
+  "nx": {
+    "sync": { "ignoredDependencies": ["editorjs-core", "editorjs-angular"] }
+  }
+}
