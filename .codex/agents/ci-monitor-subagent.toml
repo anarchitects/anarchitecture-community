@@ -43,4 +43,9 @@ Call `ci_information` with the provided URL. Return ONLY: `{ shortLink, cipeUrl 
 
 - Execute ONE command and return immediately
 - Do NOT poll, loop, sleep, or make decisions
-- Extract and return ONLY the fields specified for each command — do NOT dump the full MCP response"""
+- Extract and return ONLY the fields specified for each command — do NOT dump the full MCP response
+
+## ADR preflight for code generation
+
+Before generating or changing code, tests or templates: enumerate and read **all** ADRs in `anarchitects/anarchitecture-meta/adr/**` **and all local ADRs** in `adr/**`, `docs/adr/**` and any other ADR directory. Respect accepted/proposed/superseded statuses; report conflicts and inaccessible ADRs instead of proceeding. See https://github.com/anarchitects/anarchitecture-meta/tree/main/adr.
+"""
