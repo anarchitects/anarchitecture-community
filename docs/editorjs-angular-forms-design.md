@@ -4,7 +4,8 @@ This contributor contract implements the planning slice #548 of epic #68. It def
 work for #549–#554. #549 implements the opt-in entry point and value binding;
 #550 adds interaction state, availability, accessible presentation and focus. #551
 adds reset invalidation, snapshots and validation/submission lifecycle contracts.
-Remaining integration certification is planned in #552–#554. The
+Native migration paths (#552), dedicated browser coverage (#553), and the final
+packed optional-peer/documentation review (#554) are now implemented. The
 [package README](../packages/editorjs/angular/README.md) remains the authority for
 currently available exports. The original #548 planning slice changed no runtime
 code, dependencies or release versions. Implementation status and evidence live in the
@@ -39,7 +40,8 @@ The inspected declarations were `types/signals.d.ts`, `types/_structure-chunk.d.
 and `types/signals-compat.d.ts`. The published runtime was also inspected for the
 custom-control binding, dirty propagation and reset order. This establishes API
 availability, **not** compilation or browser certification of the planned adapter.
-The packed-consumer matrix in #554 must supply that evidence on these baselines.
+The completed packed-consumer review in #554 supplies implementation evidence on
+these baselines; see the [release-readiness record](editorjs-angular-release-readiness.md).
 
 Official references:
 
@@ -361,3 +363,18 @@ Browser assertions cover document and form-state results, held snapshots overtak
 by reset/disposal, detached DOM events, repeated remount and independent editing.
 They complement the library's deterministic contracts; SSR/hydration and
 non-authoring-route bundles remain #69. The final release gate remains #554.
+
+## Final portable readiness review (#554)
+
+Each isolated consumer now proves standalone root imports/declarations with Forms
+absent, then installs the matched optional peer and verifies the secondary exports,
+compiled public examples, native migration contracts and real browser integration.
+Core remains dependency-neutral and the root does not require Forms. The public
+README describes consumer actions and limits; fixture and release procedures remain
+in contributor documentation under ADR0004.
+
+The [consolidated release record](editorjs-angular-release-readiness.md) is the
+current evidence/semver/CI-gate authority. Earlier increment notes above record the
+state at each delivery step, not outstanding implementation requirements. Publication
+still requires maintainer approval and green CI for the release commit; no CI
+monitoring, merge, version bump or publication is performed by this review.

@@ -46,8 +46,8 @@ These are tested combinations, not every version permutation or a full browser
 matrix. Chromium checks cover standalone editing and controls, plus zoneless Signal
 Forms editing, value writes, dirty/touch, focus, disabled/readonly modes, reset,
 validation, submission failure and teardown. Native reactive Forms has a browser
-scenario; the broader legacy interoperability contract uses TestBed/jsdom within
-the limits documented below. Forms declarations and examples compile on every
+scenario; other native legacy bindings have the specific support limits documented
+below. Forms declarations and examples compile on every
 baseline. Full SSR/hydration support is not established. No CommonJS build is supplied. Nx is not a consumer dependency. Angular peers are
 evaluated normally; Editor.js is loaded only during browser initialization.
 
@@ -195,10 +195,13 @@ Import `EditorJsControl` from `@anarchitects/editorjs-angular/forms` and install
 packages. For example, for an Angular 22.1.4 application:
 
 ```sh
-npm install @anarchitects/editorjs-angular @anarchitects/editorjs-core @editorjs/editorjs@^2.31.7 @angular/forms@22.1.4
+npm install @anarchitects/editorjs-angular @anarchitects/editorjs-core @editorjs/editorjs@2.31.7 @angular/forms@22.1.4
 ```
 
-Forms is an optional `^22.0.0` peer. Root-only `EditorJs` consumers do not need it.
+Forms is an optional `^22.0.0` peer. Root-only `EditorJs` consumers do not need it:
+keep imports on `@anarchitects/editorjs-angular` when Forms is not installed.
+Importing `/forms` requires the matching Forms peer; the package does not install
+or provide a substitute for it.
 This entry point supports value synchronization, composite touch, disabled/readonly
 state, native focus/reset hooks and explicit snapshots. Native legacy integration
 is supported within the boundaries described below. Schema availability rules control editing, but do not flush asynchronous saves.
@@ -342,9 +345,8 @@ is no package `ControlValueAccessor`, `NG_VALUE_ACCESSOR` provider, or shadow
 Signal Forms for new forms and Angular's
 [migration APIs](https://angular.dev/guide/forms/signals/migration) for gradual adoption.
 
-The same native-binding contract tests run against packed packages with matched
-Angular/Forms **22.0.0, 22.1.4 and 22.2.2**. The support boundary is identical on
-these three baselines:
+Native bindings support matched Angular/Forms **22.0.0, 22.1.4 and 22.2.2**
+within the following boundaries, which are identical on these three baselines:
 
 | Binding                                       | Supported boundary                                                                                                                                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -353,14 +355,13 @@ these three baselines:
 | `SignalFormControl.fieldTree` + `[formField]` | Signal Forms value, schema state and native reset, while participating in a legacy `FormGroup`.                                                                                                  |
 | `[(ngModel)]`                                 | Characterized, but not supported as a clean initialization path: Angular first delivers `null`, producing an `invalid-data` event before the valid model arrives. Use one of the other bindings. |
 
-These are zoneless TestBed/jsdom contract checks with a controlled editor. They
-establish the broader Angular integration contract. Separate Chromium scenarios
-exercise Signal Forms and direct reactive binding with real Editor.js; they do not
-certify every legacy binding in every browser.
+Signal Forms and direct reactive binding have been checked with real Editor.js in
+Chromium. The compatibility table does not promise every legacy option or browser
+combination. Match the Angular Forms peer to your application's other Angular packages.
 The characterized `ngModel` path can also leave its view/control value stale when an
 external model assignment coincides with an editor reset; it is excluded from the
-supported reset/write contract. All public examples also compile against each
-baseline's installed declarations.
+supported reset/write contract. Use a supported reactive or migration binding
+for these workflows.
 
 Direct legacy bindings and retained controls inside `compatForm` publish a
 successfully saved edit immediately even with `updateOn: 'blur'` or `'submit'`.
@@ -1044,7 +1045,7 @@ payload-free; controls are obtained from the component's `api`.
 | Loader rejects on the server                                    | Invoke it only from browser initialization after rendering. Do not initialize editors from server requests.                       |
 | Tool fails during creation or rendering                         | Check its Editor.js compatibility and tool-specific input/configuration; core type compatibility is not runtime validation.       |
 | Configuration changes or in-place data mutations have no effect | Supply a new document reference; recreate the component to change configuration. Observe the error output for rejected updates.   |
-| Angular peer mismatch                                           | Use matching Angular 22 core/common versions and their supported tooling.                                                         |
+| Angular peer mismatch                                           | Use matching Angular 22 core/common/Forms versions (Forms only when using `/forms`) and their supported tooling.                  |
 | Private subpath or source file cannot resolve                   | Import the package root and remove repository-only `@anarchitecture-community/source` resolution conditions.                      |
 
 Report reproducible problems with package, Angular, Editor.js and Node versions

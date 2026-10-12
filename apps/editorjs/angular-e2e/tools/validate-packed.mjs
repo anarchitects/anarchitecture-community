@@ -62,13 +62,7 @@ async function validate(name, versions, archives) {
     rxjs: '7.8.2',
     tslib: '2.8.1',
   };
-  for (const packageName of [
-    'core',
-    'common',
-    'compiler',
-    'platform-browser',
-    'forms',
-  ])
+  for (const packageName of ['core', 'common', 'compiler', 'platform-browser'])
     dependencies[`@angular/${packageName}`] = versions.angular;
   await json(join(root, 'package.json'), {
     name: 'editorjs-packed-consumer',
@@ -93,27 +87,10 @@ async function validate(name, versions, archives) {
     const node = join(root, 'node_modules/node/bin/node');
     const actualNode = (await run(node, ['--version'], root, true)).trim();
     assert.equal(actualNode, `v${versions.node}`);
-    for (const [packageName, expected] of Object.entries(dependencies)) {
-      const packageRoot = join(root, 'node_modules', packageName);
-      assert(
-        (await realpath(packageRoot)).startsWith(root + sep),
-        `Non-isolated dependency: ${packageName}`,
-      );
-      const manifest = JSON.parse(
-        await readFile(join(packageRoot, 'package.json'), 'utf8'),
-      );
-      if (!packageName.startsWith('@anarchitects/'))
-        assert.equal(manifest.version, expected);
-    }
-    await json(join(report, 'versions.json'), {
-      ...versions,
-      actualNode,
-      platform: process.platform,
-      arch: process.arch,
-    });
+    await assertInstalled(root, dependencies);
     await cp(
       join(root, 'package-lock.json'),
-      join(report, 'package-lock.json'),
+      join(report, 'root-only-package-lock.json'),
     );
     await assertDocumentation(root);
     await cp(
@@ -182,39 +159,51 @@ async function validate(name, versions, archives) {
     const compilerManifest = JSON.parse(
       await readFile(join(compilerRoot, 'package.json'), 'utf8'),
     );
+    const compiler = resolve(compilerRoot, compilerManifest.bin.ngc);
+    // Certify the optional peer boundary before installing Forms in this cell.
+    await json(join(root, 'tsconfig.root.json'), {
+      ...tsconfig,
+      include: [],
+      files: ['examples/consumer.ts'],
+    });
+    await assertBoundaries(root, node, false);
+    await run(node, [compiler, '-p', 'tsconfig.root.json'], root);
+    console.log(`Root declarations/imports without Forms passed: ${name}`);
+
     await run(
-      node,
+      'npm',
       [
-        resolve(compilerRoot, compilerManifest.bin.ngc),
-        '-p',
-        'tsconfig.examples.json',
+        'install',
+        '--save-exact',
+        '--no-audit',
+        '--no-fund',
+        `@angular/forms@${versions.angular}`,
       ],
       root,
     );
-    await run(
-      node,
-      [
-        '--input-type=module',
-        '--eval',
-        `
-      import assert from 'node:assert/strict';
-      import '@angular/compiler';
-      import '@angular/core';
-      import '@angular/common';
-      for (const name of ['window', 'document', 'navigator', 'HTMLElement', 'EditorJS']) {
-        Object.defineProperty(globalThis, name, { configurable: true, get() { throw new Error('Browser access: ' + name); } });
-      }
-      const wrapper = await import('@anarchitects/editorjs-angular');
-      const core = await import('@anarchitects/editorjs-core');
-      assert.equal(wrapper.EditorJsOperationError, core.EditorJsOperationError);
-      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EditorJs', 'EditorJsOperationError', 'provideEditorJsLoader']);
-      assert.ok(import.meta.resolve('@anarchitects/editorjs-angular').includes('/fesm2022/'));
-      assert.ok(import.meta.resolve('@anarchitects/editorjs-core').includes('/dist/'));
-      await assert.rejects(import('@anarchitects/editorjs-angular/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
-    `,
-      ],
-      root,
+    dependencies['@angular/forms'] = versions.angular;
+    await assertInstalled(root, dependencies);
+    await assertBoundaries(root, node, true);
+    await run(node, [compiler, '-p', 'tsconfig.examples.json'], root);
+    await json(join(report, 'versions.json'), {
+      ...versions,
+      actualNode,
+      forms: versions.angular,
+      platform: process.platform,
+      arch: process.arch,
+    });
+    await cp(
+      join(root, 'package-lock.json'),
+      join(report, 'package-lock.json'),
     );
+    await json(join(report, 'package-boundaries.json'), {
+      rootWithoutForms: 'passed',
+      rootDeclarationsWithoutForms: 'passed',
+      formsWithMatchedPeer: 'passed',
+      guardedImportsAndPublicExports: 'passed',
+      neutralCoreDependencies: 'passed',
+      packedReadmeAndExamples: 'passed',
+    });
     // Run the identical native Forms contract against each cell's installed APF/peers.
     // This uses jsdom and a fake upstream editor; Forms browser coverage is separate.
     await cp(
@@ -251,6 +240,70 @@ async function validate(name, versions, archives) {
     // Only the disposable tree is removed; reports and dependency locks survive.
     await rm(root, { recursive: true, force: true });
   }
+}
+
+async function assertInstalled(root, dependencies) {
+  for (const [packageName, expected] of Object.entries(dependencies)) {
+    const packageRoot = join(root, 'node_modules', packageName);
+    assert(
+      (await realpath(packageRoot)).startsWith(root + sep),
+      `Non-isolated dependency: ${packageName}`,
+    );
+    const manifest = JSON.parse(
+      await readFile(join(packageRoot, 'package.json'), 'utf8'),
+    );
+    if (!packageName.startsWith('@anarchitects/'))
+      assert.equal(manifest.version, expected);
+  }
+}
+
+async function assertBoundaries(root, node, withForms) {
+  await run(
+    node,
+    [
+      '--input-type=module',
+      '--eval',
+      `
+    import assert from 'node:assert/strict';
+    import { readFileSync } from 'node:fs';
+    // Angular peers can probe optional globals; guard subsequent package imports.
+    import '@angular/compiler';
+    import '@angular/core';
+    import '@angular/common';
+    const withForms = ${JSON.stringify(withForms)};
+    if (!withForms) {
+      assert.throws(() => import.meta.resolve('@angular/forms'), { code: 'ERR_MODULE_NOT_FOUND' });
+    }
+    for (const name of ['window', 'document', 'navigator', 'HTMLElement', 'EditorJS']) {
+      Object.defineProperty(globalThis, name, { configurable: true, get() { throw new Error('Browser access: ' + name); } });
+    }
+    const manifest = JSON.parse(readFileSync(new URL(import.meta.resolve('@anarchitects/editorjs-angular/package.json')), 'utf8'));
+    const coreManifest = JSON.parse(readFileSync(new URL(import.meta.resolve('@anarchitects/editorjs-core/package.json')), 'utf8'));
+    assert.deepEqual(Object.keys(manifest.exports).sort(), ['.', './forms', './package.json']);
+    assert.deepEqual(Object.keys(manifest.dependencies).sort(), ['@anarchitects/editorjs-core', 'tslib']);
+    assert.deepEqual(manifest.peerDependencies, {
+      '@angular/common': '^22.0.0', '@angular/core': '^22.0.0',
+      '@angular/forms': '^22.0.0', '@editorjs/editorjs': '^2.31.7',
+    });
+    assert.deepEqual(manifest.peerDependenciesMeta, { '@angular/forms': { optional: true } });
+    assert.deepEqual(Object.keys({ ...coreManifest.dependencies, ...coreManifest.peerDependencies, ...coreManifest.optionalDependencies }), []);
+    const core = await import('@anarchitects/editorjs-core');
+    const wrapper = await import('@anarchitects/editorjs-angular');
+    assert.equal(wrapper.EditorJsOperationError, core.EditorJsOperationError);
+    assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EditorJs', 'EditorJsOperationError', 'provideEditorJsLoader']);
+    assert.ok(import.meta.resolve('@anarchitects/editorjs-angular').includes('/fesm2022/'));
+    assert.ok(import.meta.resolve('@anarchitects/editorjs-core').includes('/dist/'));
+    await assert.rejects(import('@anarchitects/editorjs-angular/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+    if (withForms) {
+      const forms = await import('@anarchitects/editorjs-angular/forms');
+      assert.deepEqual(Object.keys(forms), ['EditorJsControl']);
+      assert.ok(import.meta.resolve('@anarchitects/editorjs-angular/forms').includes('/fesm2022/'));
+      await assert.rejects(import('@anarchitects/editorjs-angular/forms/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+    }
+  `,
+    ],
+    root,
+  );
 }
 
 async function assertDocumentation(root) {

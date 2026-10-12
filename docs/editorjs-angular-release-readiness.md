@@ -1,63 +1,60 @@
 # Editor.js Angular release readiness
 
-This is contributor/release guidance for the standalone surface reviewed in #539.
-Forms value binding and interaction in #549–#550 are covered by the development guide;
-full Forms release review remains #554. Consumer instructions live in the
-[package README](../packages/editorjs/angular/README.md); implementation and the
-workspace browser host are described in the [development guide](editorjs-angular-development.md).
+This record reviews the standalone and opt-in Forms surfaces through #554.
+Consumer installation, examples and support limits live in the
+[package README](../packages/editorjs/angular/README.md). The
+[development guide](editorjs-angular-development.md) records implementation evidence
+and workspace fixture instructions; the [Forms design](editorjs-angular-forms-design.md)
+records the accepted ownership contract. This review does not publish a release or
+replace the requirement for green CI on the intended release commit.
 
-## Reviewed decisions and scope
+## Reviewed decisions and public surface
 
-All five repository ADRs were reviewed for #539. Governance ADRs 0001–0003 retain
-their Governance scope. Accepted Modern Angular decisions A01/A02/A03/A05/A06/A09/A10/A11
-require bounded compatibility, standalone ownership, public entry points, deliberate
-async semantics, supported builders and packed-consumer evidence. ADR 0004 requires
-consumer documentation in the actual archive, with internal fixtures and release
-procedures kept here. No conflict or new runtime architecture decision is introduced.
+All five ADRs were re-enumerated and remain unchanged since the implementation
+reviews. Governance ADRs 0001–0003 retain their own scope. Accepted Modern Angular
+A01/A02/A03/A05/A06/A09/A10/A11 require bounded compatibility, native form ownership,
+explicit async semantics, cleanup, supported builders and public artifact evidence.
+ADR0004 requires a current consumer README in the archive and keeps fixture/release
+procedures in contributor documentation. No conflict or new runtime decision was
+introduced. Nx workspace/task skills and the reviewed Angular guidance apply;
+this final increment changes validation and documentation, not Angular runtime code.
 
-The Angular MCP best-practices endpoint remained unavailable. The accepted Angular
-guides and installed compiler/API contracts govern this work. The wrapper continues
-to use explicit OnPush and signals. No Angular dependency is added to core.
+| Surface                                   | Reviewed contract                                                                                                                                                                 | Evidence                                                                                         |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Root `EditorJs`                           | Immutable `config`/`data`, initialization-only configuration, payload-free `ready`, detached `change`, typed `error`.                                                             | Packed declarations, library contracts and standalone browser scenarios.                         |
+| Root `api`, `invalidate()`, `reconcile()` | One core queue; save/render/clear/focus/read-only controls, readiness/disposal guards and explicit reconciliation.                                                                | Public fixtures, core/component tests and browser cases.                                         |
+| Root loading and types                    | `EDITOR_JS_LOADER`, `provideEditorJsLoader`, config/tools/loading types and core event/control re-exports. `EditorJsOperationError` preserves core class identity.                | Exact runtime export checks, typed consumer fixture and real lazy-loader integration.            |
+| `/forms` exports                          | Only runtime `EditorJsControl`; type-only `EditorJsControlConfig`; no CVA, fake NgControl or package-owned FormControl/FormGroup.                                                 | Exact secondary export checks, public declaration/example compilation and implementation review. |
+| Forms value/config                        | Non-null `OutputData`, immutable initialization config; no separate `data` or `api`. Invalid input retains the requested model and reports an operational error.                  | Native binding, normalization and browser failure/recovery tests.                                |
+| Forms state and outputs                   | `disabled`, `readonly`, `invalid`, `pending`, `touched`, `dirty`, `required`, `name`, `errors`; native `touch`, plus `ready`/`change`/`error`. Angular owns flags and validation. | Native contracts and keyboard/focus/availability browser assertions.                             |
+| Forms `focus()`, `reset()`, `save()`      | Native focus/reset hooks and detached snapshots. Reset invalidates synchronously; superseded snapshots reject. Save does not publish value, mark dirty or run validation.         | Deterministic race tests and held real-editor snapshots in the browser.                          |
+| Native migration bindings                 | Direct reactive controls, `compatForm` and `SignalFormControl.fieldTree` with bounded option/reset behavior. `ngModel` excluded from clean initialization/reset support.          | Forty interop cases per packed baseline; direct reactive browser scenario; compiled examples.    |
+| Packaging                                 | APF/ESM root, `/forms` and `package.json`; core/tslib dependencies; optional Forms peer; no Forms dependency in core/root.                                                        | Two installation stages per matrix cell, export/dependency allowlists and guarded imports.       |
 
-## Public API review
-
-| Surface                                     | Reviewed contract                                                                                                    | Evidence                                                                                                                      |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `EditorJs` / `aa-editorjs`                  | Standalone component; optional immutable `config` and `data`; configuration is initialization-only.                  | Strict packed template compilation; deterministic input/lifecycle tests; browser mount and replacement.                       |
-| `ready`, `change`, `error`                  | Payload-free readiness; detached saved changes with owner-local sequence; typed operation/code/cause errors.         | Packed event bindings, core queue tests and browser output assertions.                                                        |
-| `api`                                       | Stable per-owner save/render/clear/focus/read-only facade; readiness and disposal guards; one core queue.            | Every control in packed declarations and browser scenarios; deterministic pending-operation and failure tests.                |
-| `EditorJsOperationError`                    | Same core class re-exported by Angular; imperative rejection and live error output share identity.                   | Public export equality in each isolated consumer; component tests.                                                            |
-| Configuration/loading types                 | `EditorJsConfig`, `EditorJsTools`, `EditorJsLoader`, `EditorJsFactory`, `EditorJsCreateOptions`, `EditorJsInstance`. | Packed consumer compiles all names; owned config fields are rejected with type assertions.                                    |
-| Shared event/control types                  | `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`, `EditorJsErrorEvent`, `EditorJsOperation`.               | Packed consumer compile; core independently compiles ES2022-only declarations.                                                |
-| `EDITOR_JS_LOADER`, `provideEditorJsLoader` | Lazy stateless loading infrastructure; one raw instance per factory call; environment-scoped overrides.              | DI/platform/ownership tests; packed import guards; browser integration delegates to the real default loader.                  |
-| Entry points and dependencies               | Package root plus `package.json`; APF/ESM; actual core dependency plus tslib; Angular and Editor.js peers.           | Exact runtime exports and dependency allowlist, blocked private subpath, declaration resolution and npm archive installation. |
-
-Core owns normalization, shared controls/events, serialization/coalescing and disposal
-guards. Angular owns signal/DI/platform/holder adaptation and editor lifetime. A
-non-Angular host can use `EditorJsDocumentCoordinator` with its own non-DOM driver,
-readiness and teardown. Core validation remains independent of Angular adoption.
+Core owns normalization, the shared queue, coalescing, invalidation and disposal
+checks. Angular owns signals, DI/platform adaptation and holder/component lifetime.
+The Forms adapter consumes Angular's native field state; it introduces no second
+operation queue or application form model. Non-Angular hosts can use the neutral
+core coordinator with their own driver, readiness and teardown.
 
 ## Compatibility matrix and reproduction
 
-The authoritative executable cells are in
+The executable cells live in
 [compatibility-matrix.json](../apps/editorjs/angular-e2e/tools/compatibility-matrix.json).
-Registry metadata was checked on 2026-10-11: Editor.js 2.31.7 is the current published
-reference; Angular 22.2.2 is the current Angular 22 release. These exact cells do
-not track an unbounded `latest` tag.
+These pinned reference cells do not track `latest` or claim every patch permutation.
 
-| Cell                  | Angular core/common/compiler/CLI/build | Editor.js | Consumer Node | TypeScript |
-| --------------------- | -------------------------------------- | --------- | ------------- | ---------- |
-| `angular22-minimum`   | 22.0.0                                 | 2.31.7    | 22.22.3       | 6.0.3      |
-| `angular22-reference` | 22.1.4                                 | 2.31.7    | 24.15.0       | 6.0.3      |
-| `angular22-current`   | 22.2.2                                 | 2.31.7    | 26.0.0        | 6.0.3      |
+| Cell                  | Angular core/common/compiler/platform-browser/Forms/CLI/build | Editor.js | Consumer Node | TypeScript |
+| --------------------- | ------------------------------------------------------------- | --------- | ------------- | ---------- |
+| `angular22-minimum`   | 22.0.0                                                        | 2.31.7    | 22.22.3       | 6.0.3      |
+| `angular22-reference` | 22.1.4                                                        | 2.31.7    | 24.15.0       | 6.0.3      |
+| `angular22-current`   | 22.2.2                                                        | 2.31.7    | 26.0.0        | 6.0.3      |
 
-The supported Angular peer range stays `^22.0.0`, Editor.js stays `^2.31.7`, and the
-Angular package's tooling range is bounded to `^22.22.3 || ^24.15.0 || ^26.0.0`.
-Future Angular/Editor.js majors and Node 27+ are not promised. These paired cells
-are representative baselines, not the Cartesian product of every patch and browser.
-Core's independent Node baseline and engine policy are unchanged.
-
-From the repository root:
+Angular peers remain `^22.0.0`; Forms must match the application's other Angular
+packages. Editor.js remains `^2.31.7`, with 2.31.7 pinned in the fixtures/install
+examples. Angular tooling is bounded to `^22.22.3 || ^24.15.0 || ^26.0.0`;
+future Angular/Editor.js majors and Node 27+ are not promised. Core retains its
+independent Node >=22.12.0 baseline. Chromium/macOS local evidence and Linux CI
+jobs do not constitute a full browser, OS or Windows-tooling certification.
 
 ```sh
 yarn nx run editorjs-angular-e2e:install-browsers
@@ -67,176 +64,136 @@ yarn nx run editorjs-angular-e2e:e2e-packed
 yarn nx run editorjs-angular-e2e:e2e-packed --cell=angular22-minimum
 ```
 
-`e2e-packed` depends on the normal Nx build graph. It packs both libraries, creates
-an owned temporary directory outside the workspace, installs the archives plus fresh
-pinned peers and a cell-specific Node binary, then checks actual installed versions
-and paths. There are no workspace source aliases or peer symlinks. It copies the
-existing host source into that consumer and builds with the supported Angular
-application builder via the cell's CLI. Nx orchestrates the repository target but
-is not installed in the consumer application.
+`e2e-packed` packs both libraries and installs them in an owned temporary directory
+outside the workspace, using fresh exact peers and a cell-specific Node binary.
+It asserts actual versions and paths, without workspace aliases, peer symlinks or
+Nx installed in the consumer. Each cell performs two installation stages:
 
-Each cell compiles every TypeScript block extracted from the **packed** README,
-plus the public-contract fixture. The custom-tool example explicitly assumes a
-consumer-supplied tool; a small fixture supplies that implementation for compilation.
-The ordinary library package test performs the same README compilation on the
-workspace peer baseline without requiring a registry install.
+1. **Forms absent:** install the archives and root prerequisites; require resolution
+   of `@angular/forms` to fail; import the root under browser-global guards; compile
+   the standalone public declaration fixture with the cell's Angular compiler.
+2. **Forms installed:** install the exact matching Forms peer, recheck all dependency
+   versions/paths, and assert root/secondary exports and blocked private subpaths.
+   Both imports remain guarded against package-introduced browser-global access.
+   Compile every TypeScript block from the installed README and both public contract
+   fixtures, run forty native interop cases, build the consumer with its Angular CLI,
+   and run thirteen Chromium scenarios (five standalone, eight Forms).
 
-Each cell also imports the packed runtime with guarded browser globals and checks
-core export identity and public paths, then runs all five existing Playwright
-scenarios against its own production bundle. A local static server uses the cell's
-Node binary on port 4318; Playwright starts it, waits for readiness and terminates
-it. The normal workspace E2E uses port 4317. The helper runs on the repository's
-macOS/Linux tooling baseline; this is not a Windows runner certification.
+Each stage also checks the optional peer metadata, Angular's core/tslib dependency
+allowlist and core's empty runtime/peer/optional dependency set. Exact packed README
+bytes must match the source. The documented custom-tool import is supplied by a
+small consumer-owned fixture; validation/submission example endpoints remain
+application responsibilities. The ordinary library package test additionally checks
+root imports and an empty-holder server render without Editor.js installed.
 
-Network/package installation is deliberate and `e2e-packed` is not cached. Exact
-installed transitive dependency locks and version records, HTML reports and failure
-traces/screenshots are retained under
-`apps/editorjs/angular-e2e/test-output/compatibility/<cell>`; temporary applications
-are removed on success or failure. Re-run after updating a matrix baseline, and
-review the retained lock when comparing runs.
+Reports in `apps/editorjs/angular-e2e/test-output/compatibility/<cell>` include
+`root-only-package-lock.json`, the final `package-lock.json`, `versions.json`,
+`package-boundaries.json`, browser HTML reports and failure traces/screenshots.
+The boundary record certifies its listed stages only; later browser failures still
+fail the Nx target. Temporary applications are removed on success or failure.
+The target is deliberately networked and uncached; review retained locks when
+comparing runs. Packed servers use port 4318, workspace browser tests use 4317.
+
+## Documentation review
+
+The packed README covers purpose, prerequisites/install, standalone and Signal Forms
+quick starts, native state/focus/reset, current-snapshot submission, validation and
+operational errors, deferred save limitations, supported migration paths, public
+exports, ownership and troubleshooting. All TypeScript examples compile on every
+cell; both installation stages exercise the optional-peer contract. Contributor-only
+fixture descriptions were removed from the public README under ADR0004.
+
+The supported reset model is explicitly non-null. Legacy controls require the
+editor reset hook when reset/write can overtake editor work; `SignalFormControl`
+dispatches it natively. Legacy `updateOn` modes do not defer saved publications,
+`compatForm` silent writes are unobserved until an event, and compatibility control
+availability/validation belongs to native schema rules. Direct `ngModel` has a
+transient-null diagnostic and a simultaneous reset/write stale-view limitation.
+No blanket legacy-option parity or automatic save-on-submit is promised.
 
 ## Release gates and evidence limits
 
-Local validation on 2026-10-11 (macOS arm64) passed all three packed cells: public
-contract and README compilation, guarded imports, production builds and 15 Chromium
-checks. Each consumer used the exact Node version recorded above. The four-project
-Nx build/typecheck/test/lint/E2E run also passed all 14 applicable tasks, including
-the five workspace browser scenarios. `yarn install --immutable` succeeded with
-the existing workspace peer-dependency warning and no lockfile change.
+Local validation on 2026-10-12 (macOS arm64) passed all fifteen relevant Nx tasks
+across core, Angular, the browser host and e2e project; four tasks used valid cache
+results. This includes build/typecheck/lint, 152 core tests, 138 Angular tests and
+thirteen workspace Chromium scenarios. All three packed cells passed both peer
+installation stages, declaration/README compilation, forty native interop cases
+per cell (120 executions) and thirteen Chromium scenarios per cell (39 executions).
+Retained locks confirm Forms is absent initially and exactly matched afterward.
+Existing lint warnings remain: one in core, eleven in Angular and six in the
+standalone browser spec; no lint errors. This is local evidence, without CI
+monitoring, version changes or publication.
 
-The required CI paths are the main build/typecheck/test/lint job, the independent
-core Node 22.12 baseline, the workspace Chromium job and all three packed-consumer
-matrix jobs. The matrix jobs install Chromium with Linux OS dependencies and upload
-per-cell artifacts on failure or success. Existing workspace checks remain required;
-this change does not weaken or bypass branch protection.
+Required CI paths remain:
 
-Before a release, require a green run for the exact release commit and review its
-matrix artifacts. A passing local check is not evidence of a hosted CI result.
-CI monitoring is intentionally omitted from this implementation workflow at the
-maintainer's request; release approval remains a separate gate.
+- Main workspace build/typecheck/test/lint job.
+- Independent `editorjs-core` Node 22.12.0 baseline.
+- Workspace Chromium job (`editorjs-angular-browser`).
+- All three packed-consumer matrix jobs (`editorjs-angular-packed-consumers`).
 
-The browser scenarios validate initial data, editing/change/save, focus, render,
-input replacement, clear, read-only transitions, accessible host labels/errors,
-independent editors and repeated teardown. They establish observable ownership and
-output silence, not universal third-party leak freedom or tool accessibility.
-Server import/empty-holder smoke checks do not establish full SSR/hydration support.
-No runtime/API change is needed to pass this review beyond bounding tooling metadata.
+Before release, require green checks for the exact release commit and review its
+matrix artifacts and final tarballs after any version/manifest transforms. Local
+success and merged implementation PRs are not hosted CI or publication evidence.
+CI monitoring is intentionally omitted unless the maintainer requests it. Existing
+workspace checks and branch protection remain in force.
 
-## Semver and release-note guidance
+Browser evidence includes value/flag synchronization, keyboard/composite focus,
+availability, reset, validation/submission failure, independent controls and repeated
+teardown. Save delivery can be held after a real capture to verify invalidation and
+output silence. This is not proof of universal third-party leak freedom, tool
+accessibility, screen-reader conformance or every browser combination. Guarded imports
+and empty-holder server smoke checks do not establish SSR/hydration or non-authoring
+route bundle isolation; those remain #69.
 
-No package version, tag or registry publication is changed by #539. `init` commits
-do not request a semver bump in this workspace. The current working manifests stay
-at 0.0.1; the release author must select the actual release version after comparing
-the intended surface with any previously published artifact. Core and Angular are
-independently versioned; publish a compatible core before the Angular package and
-verify that the generated manifest's core range resolves from the registry.
+## Semver and release notes
 
-During `0.x`, an incompatible public contract change requires an explicit minor
-release with migration instructions. From `1.0`, use a major. Treat peer/runtime
-narrowing, accepted document shape, output/error semantics and loader obligations
-as compatibility changes. In particular, replace the previous open-ended Node 26+
-claim with the bounded Node 26 range in release notes if the old metadata was published.
-Do not classify that metadata correction as automatically non-breaking simply
-because the implementation commit uses `init`.
+No version, release tag or registry publication changes in #554. Working manifests
+remain 0.0.1. `init` does not request a semver bump here and does not classify the
+compatibility impact. Compare the intended release with the previously published
+artifact, choose the version explicitly, publish a compatible core before Angular,
+and verify that the generated core dependency range resolves from the registry.
 
-Suggested release notes should state:
+During `0.x`, incompatible contract changes need an explicit minor release and
+migration guidance; from `1.0`, use a major. Peer/runtime narrowing, accepted document
+shape, loader obligations and event/error semantics are compatibility decisions.
+The optional secondary entry is additive, but the core/root snapshot change is
+material: later authoritative replacement/reset rejects pending snapshots with
+`superseded`. Failed render/clear suspends publication until successful explicit
+reconciliation. Do not describe the entire increment as automatically non-breaking.
 
-- Standalone Angular 22 `EditorJs`, immutable configuration/data inputs and payload-free
-  readiness, saved changes and typed errors.
-- Per-instance save/render/clear/focus/read-only controls using shared core coordination,
-  with explicit readiness/disposal rejection and documented recovery limitations.
-- Lazy browser loading, per-component teardown, APF public exports and the tested
-  Angular/Editor.js/Node/Chromium combinations above.
-- Input updates can coalesce; replacements are authoritative; already-running upstream
-  work and never-settling readiness cannot be forcibly cancelled. Editor.js save is
-  unavailable while read-only. Tools own their schemas and accessibility.
-- Opt-in Signal Forms value synchronization, composite touch, disabled/readonly and
-  focus, reset invalidation and explicit snapshots. Snapshots superseded by newer
-  authoritative work reject with `superseded`; failed render/clear requires an
-  explicit successful reconciliation before publication resumes. No full
-  SSR/hydration guarantee, registry, concrete tool bundle, upload transport or
-  persistence implementation.
+Release notes should describe:
 
-Do not present documentation, a merged PR or an unchanged manifest as a published
-release. Review the package README in the final tarball after any release transform.
+- Standalone Angular 22 editing, immutable configuration/data, typed outputs and
+  per-owner controls backed by the generic core coordinator.
+- Opt-in `@anarchitects/editorjs-angular/forms`, the matching optional Forms peer,
+  `EditorJsControl`/`EditorJsControlConfig`, native value/state/touch/focus/reset and
+  explicit snapshots; no CVA or separate package FormControl.
+- Non-null models, superseded snapshot rejection and reset/reconciliation recovery;
+  already-running upstream work cannot be forcibly cancelled.
+- Native legacy support boundaries and migration actions above, including `ngModel`
+  exclusion, immediate `updateOn` publication and explicit legacy reset hooks.
+- Read-only save restrictions, asynchronous validation versus editor work, and the
+  consumer's responsibility to capture and validate the exact persistence payload.
+- Lazy loading, disposal, public APF exports and the exact tested combinations;
+  no full SSR/hydration, tool registry/bundle, uploads or persistence implementation.
 
-## Downstream boundaries
+If earlier published metadata claimed unbounded Node 26+, also explain the bounded
+Node 26 tooling range. Review the actual final README and exports after release
+transforms rather than treating an unchanged source manifest as publication proof.
 
-| Workstream | Follow-up ownership                              |
-| ---------- | ------------------------------------------------ |
-| #68        | Angular Forms / Signal Forms integration.        |
-| #69        | Full SSR/hydration integration and evidence.     |
-| #70        | Registry composition.                            |
-| #71 / #73  | Concrete tools and their integration.            |
-| #72        | Upload transports and integration.               |
-| #74        | Persistence and application storage integration. |
+## Downstream ownership
 
-These are not implemented promises of the standalone wrapper. Existing applications
-adapt to the generic packages; their adoption does not gate this release. No concrete
-consumer adoption gap was discovered by this package-focused review. If one is found,
-track it separately rather than changing core or the wrapper around that consumer.
+The implemented Forms surface completes the package work reviewed under #68.
+Maintainer merge/release approval remains separate. Further work stays downstream:
 
-## Signal Forms lifecycle increment (#551)
+| Workstream | Ownership                                                   |
+| ---------- | ----------------------------------------------------------- |
+| #69        | Full SSR/hydration and non-authoring-route bundle evidence. |
+| #70        | Registry composition.                                       |
+| #71 / #73  | Concrete tools and their integration.                       |
+| #72        | Upload transports and integration.                          |
+| #74        | Persistence and application storage.                        |
 
-Adds native reset and explicit snapshot methods, core-owned synchronous invalidation,
-failed-render publication suspension, typed `superseded` snapshot rejection and
-validation/submission documentation. This changes earlier explicit-save semantics:
-a later accepted replacement now rejects an obsolete pending snapshot. Release
-notes must describe this behavior even though the development commit uses `init`.
-There is no version bump or publication in this change.
-
-Native Angular contract tests supply deterministic race/failure evidence; full Forms
-browser certification remains #553–#554. Existing standalone browser checks and
-packed declaration/example compilation protect the earlier support surface.
-
-Validation on 2026-10-12: 152 core tests, 98 Angular tests (62 Forms), builds,
-type checks and lint passed. Final packed declarations/README examples compiled
-on Angular/Forms 22.0.0, 22.1.4 and 22.2.2; all 15 standalone Chromium checks
-passed. Root-only consumers remained independent of Forms. Existing lint warnings
-remain; no CI monitoring or publication was performed.
-
-## Native legacy Forms interoperability (#552)
-
-Adds 40 native interoperability contract cases and three public migration examples.
-Direct `formControl`/`formControlName`, `compatForm` and `SignalFormControl.fieldTree`
-have explicitly bounded support. `ngModel` is characterized but excluded from clean
-initialization/reset support because of transient null and stale-view behavior.
-The README specifies non-null models, reset hooks, immediate publication despite
-legacy `updateOn` modes, silent-write limitations and schema-owned compatibility
-control state. No package runtime, dependency/peer or release version changes.
-
-Validation on 2026-10-12: all 138 Angular tests passed, including 40 native legacy
-interoperability cases. Angular and consumer-host builds, Angular/e2e type checks
-and lint passed. The existing root-only package check still compiles without Forms.
-The final isolated matrix passed on Angular/Forms 22.0.0, 22.1.4 and 22.2.2:
-40 interoperability cases per cell, public declarations and every README example,
-and all 15 existing standalone Chromium checks. Existing lint warnings remain.
-
-These interoperability tests use actual Angular directives and packed package APIs
-with a controlled editor in TestBed/jsdom. They do not replace #553's Forms browser
-coverage or #554's final release certification. CI is not monitored; no publication
-or merge is performed.
-
-## Dedicated Forms browser coverage (#553)
-
-Adds a Forms view to the private host and eight real-Editor.js Playwright scenarios
-in the existing e2e project. The five standalone scenarios remain intact. Native
-Signal Forms and direct reactive binding use built public package entries; no
-package runtime, peer/dependency, release version or Nx project-boundary changes.
-Existing browser/packed-consumer CI targets automatically include the new spec.
-
-Validation on 2026-10-12: all 13 local Chromium scenarios passed. Angular/host builds,
-Angular/host/e2e type checks and lint passed; all 138 library tests passed. The final
-isolated packed matrix passed on Angular/Forms 22.0.0, 22.1.4 and 22.2.2: 13 browser
-scenarios per cell (39 total), 40 native legacy interoperability cases per cell,
-public declarations and every README example. Existing library and standalone-spec
-lint warnings remain; the new host/spec adds none. Formatting and whitespace checks
-passed. CI was not monitored, and nothing was merged, published or versioned.
-
-Deterministic host controls delay delivery after real editor capture, expose the
-captured document, and explicitly resolve validation/submission. Assertions cover
-model and form flags after reset/disposal, three remount cycles, raw ownership
-counts, detached DOM events and independent editing. This is bounded Chromium
-coverage, not a full browser matrix, screen-reader audit or third-party leak proof.
-Full SSR/hydration and non-authoring-route bundle validation remain #69; #554 owns
-the final Forms release review.
+Existing applications adapt to these generic packages; adoption does not gate this
+release. No concrete consumer-adoption gap was found in this review. Track a newly
+found gap separately rather than redesigning the package around an existing consumer.

@@ -473,7 +473,7 @@ these limitations, nullable-model adaptation and working migration alternatives.
 Three copyable examples and direct-binding declaration fixtures compile from public
 imports. No core or package implementation changes were needed.
 
-Validation results are recorded in the [release-readiness increment](editorjs-angular-release-readiness.md#native-legacy-forms-interoperability-552).
+Validation results are recorded in the [release-readiness increment](editorjs-angular-release-readiness.md#release-gates-and-evidence-limits).
 
 ## Dedicated Forms browser coverage (#553)
 
@@ -519,7 +519,30 @@ is needed. Package contract tests remain in the library. Full SSR/hydration and
 non-authoring-route bundle checks remain #69, with the final Forms release review
 in #554. CI is not monitored automatically.
 
-Validation results are recorded in the [release-readiness increment](editorjs-angular-release-readiness.md#dedicated-forms-browser-coverage-553).
+Validation results are recorded in the [release-readiness increment](editorjs-angular-release-readiness.md#release-gates-and-evidence-limits).
+
+## Final Forms readiness review (#554)
+
+The [release-readiness record](editorjs-angular-release-readiness.md) now reviews
+both public entry points, the complete Forms surface and the implemented support
+limits. It supersedes the earlier standalone-only readiness summary; the preceding
+sections retain the implementation chronology.
+
+Every packed matrix cell first installs both archives without Forms. It verifies
+that the peer cannot resolve, compiles the standalone declaration fixture and
+imports the root under browser-global guards. It then installs the exact matching
+Forms peer, rechecks versions/paths, verifies secondary exports and private-subpath
+blocking, and compiles the packed README/examples before native interop and browser
+checks. Core's empty runtime dependency set and Angular's optional-peer/dependency
+allowlists are asserted in both stages. The root-only and final locks, matched
+Forms version and package-boundary results are retained with the existing reports.
+
+ADR0004 review removed contributor test-fixture details from the public README,
+clarified optional-peer installation, and kept native migration/reset limitations
+consumer-facing. The release record documents the material `superseded` snapshot
+semantics, explicit semver choice, exact-commit CI gates and #69/downstream limits.
+No runtime change, version bump or publication is part of this review. Validation
+results and the limits of local evidence are recorded in that release record.
 
 ## Release configuration
 
