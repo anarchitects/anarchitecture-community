@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises';
-import { workspaceRoot } from '@nx/devkit';
 import {
   test,
   expect,
@@ -103,7 +102,7 @@ test('incremental form stays safe during held view activation and replays its ho
 }, testInfo) => {
   const stats = JSON.parse(
     await readFile(
-      `${workspaceRoot}/${testInfo.project.metadata['buildDirectory']}/stats.json`,
+      `${testInfo.project.metadata['buildDirectory']}/stats.json`,
       'utf8',
     ),
   ) as {

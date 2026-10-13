@@ -1,20 +1,28 @@
 import { defineConfig, devices } from '@playwright/test';
 import { workspaceRoot } from '@nx/devkit';
+import {
+  buildDirectory,
+  reportDirectory,
+  fixturePort,
+} from './tools/ssr-environment.mjs';
 
 const cells = [
-  { name: 'production', suffix: '', port: 4320 },
-  { name: 'diagnostic', suffix: '-diagnostic', port: 4321 },
-  { name: 'full', suffix: '-full', port: 4322 },
+  { name: 'production', suffix: '', port: fixturePort(0) },
+  { name: 'diagnostic', suffix: '-diagnostic', port: fixturePort(1) },
+  { name: 'full', suffix: '-full', port: fixturePort(2) },
 ];
 export default defineConfig({
   testDir: './hydration',
   workers: 2,
   retries: 0,
   forbidOnly: !!process.env['CI'],
-  outputDir: './test-output/hydration/results',
+  outputDir: `${reportDirectory('hydration')}/results`,
   reporter: [
     ['list'],
-    ['html', { outputFolder: './test-output/hydration/report', open: 'never' }],
+    [
+      'html',
+      { outputFolder: `${reportDirectory('hydration')}/report`, open: 'never' },
+    ],
   ],
   use: { trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   webServer: cells.map(({ name, suffix, port }) => ({
@@ -29,7 +37,7 @@ export default defineConfig({
     name,
     testIgnore: name === 'full' ? '**/*deferred.spec.ts' : [],
     metadata: {
-      buildDirectory: `dist/apps/editorjs/angular-host-ssr${suffix}`,
+      buildDirectory: buildDirectory(suffix),
     },
     use: { ...devices['Desktop Chrome'], baseURL: `http://127.0.0.1:${port}` },
   })),

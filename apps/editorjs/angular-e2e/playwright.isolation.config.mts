@@ -1,26 +1,30 @@
 import { defineConfig, devices } from '@playwright/test';
 import { workspaceRoot } from '@nx/devkit';
+import { reportDirectory, fixturePort } from './tools/ssr-environment.mjs';
 
 export default defineConfig({
   testDir: './isolation',
   workers: 2,
   retries: 0,
   forbidOnly: !!process.env['CI'],
-  outputDir: './test-output/isolation/results',
+  outputDir: `${reportDirectory('isolation')}/results`,
   reporter: [
     ['list'],
-    ['html', { outputFolder: './test-output/isolation/report', open: 'never' }],
+    [
+      'html',
+      { outputFolder: `${reportDirectory('isolation')}/report`, open: 'never' },
+    ],
   ],
   use: {
     ...devices['Desktop Chrome'],
-    baseURL: 'http://127.0.0.1:4323',
+    baseURL: `http://127.0.0.1:${fixturePort(3)}`,
     serviceWorkers: 'block',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   webServer: [
-    { name: 'production', suffix: 'default', port: 4323 },
-    { name: 'eager-control', suffix: '-eager', port: 4324 },
+    { name: 'production', suffix: 'default', port: fixturePort(3) },
+    { name: 'eager-control', suffix: '-eager', port: fixturePort(4) },
   ].map(({ name, suffix, port }) => ({
     command: `node apps/editorjs/angular-e2e/tools/hydration-server.mjs ${name} ${suffix} ${port} isolation`,
     url: `http://127.0.0.1:${port}/fixture-health`,

@@ -3,8 +3,9 @@
 This private fixture implements server evidence (#563) and standalone hydration
 and asynchronous lifetime evidence (#564), plus native Signal Forms hydration and
 pre-hydration safety (#565) and non-authoring route isolation (#566), from the
-[SSR contract](editorjs-angular-ssr-design.md). The packed SSR version matrix (#567)
-remains a separate slice. Public package support claims are unchanged.
+[SSR contract](editorjs-angular-ssr-design.md). The packed SSR version matrix and CI
+gates (#567) run these same checks against installed artifacts. Public package
+support claims and the final release-readiness review remain separate (#568).
 
 ## Architecture review
 
@@ -41,6 +42,9 @@ yarn nx run editorjs-angular-host:serve-ssr
 yarn nx run editorjs-angular-e2e:test-ssr
 yarn nx run editorjs-angular-e2e:e2e-hydration
 yarn nx run editorjs-angular-e2e:e2e-isolation
+yarn nx run editorjs-angular-e2e:e2e-packed-ssr
+# Or one exact installed-consumer cell:
+yarn nx run editorjs-angular-e2e:e2e-packed-ssr --cell=angular22-minimum
 yarn nx run-many -p editorjs-angular-host,editorjs-angular-e2e -t typecheck,typecheck-ssr,lint
 yarn nx run-many -p editorjs-core,editorjs-angular -t test
 yarn nx run editorjs-angular-e2e:e2e
@@ -222,7 +226,7 @@ console messages, actual versions, the workspace lockfile, build metadata and se
 `apps/editorjs/angular-e2e/test-output/hydration`; browser traces/screenshots are
 retained on failure. Existing server-import, request-isolation, core, Angular,
 root-without-Forms and CSR tests remain separate checks. These results certify only
-this bounded workspace fixture, not the future packed matrix or arbitrary tools.
+this bounded workspace fixture; the separate packed evidence is recorded below.
 
 ## Native Signal Forms hydration and reset evidence (#565)
 
@@ -312,7 +316,8 @@ save-on-submit or persistence support. The complete hydration run contains 118
 cases, including the existing 49 standalone cases. Evidence uses the same HTML,
 per-owner events, diagnostics, version/lockfile/build metadata and failure traces
 as #564; server import/request cleanup and the 13-case CSR suite are separate
-regressions. Public support claims remain bounded pending the packed SSR matrix.
+regressions. The packed SSR matrix is recorded below; final public support review
+remains separate.
 
 ## Non-authoring route isolation (#566)
 
@@ -388,12 +393,118 @@ raw runtime execution counts and per-owner lifetime events. The HTML report link
 the attachments; browser traces and screenshots are retained on failure. Existing
 server, hydration and CSR suites remain separate regressions.
 
+## Packed SSR consumers and required CI (#567)
+
+Before implementation on 2026-10-13, all seven local ADRs and all fifteen Meta
+records were enumerated and read again, at Meta commit
+`e2f34553c6e2492d0ab6f80ac795de44fc592a70`. The architecture, provider/routing,
+reactivity, Forms, rendering, SSR/build, testing, validation and API guides were
+reviewed. A01 requires exact compatibility evidence; A02/A09 keep public package
+and browser/server boundaries intact; A10/A11 require installed artifacts and
+release gates. ADR 0004 requires checking the actual packed READMEs. Governance,
+Nest, authentication and public HTTP-contract decisions add no runtime change to
+this private consumer. Proposed and historical decisions remain contextual; no
+conflict, exception or dependency upgrade was needed. The Angular MCP provider
+documentation was available; its best-practices endpoint still failed.
+
+`e2e-packed-ssr` extends the existing two-stage packed consumer. It builds both
+libraries through explicit Nx dependencies, packs them once and installs the
+archives into owned temporary directories outside the workspace. The consumer has
+no Nx installation, source aliases or workspace peer links. Every direct runtime
+and build dependency is checked for its actual version and a real path inside the
+consumer. Production metadata must identify installed Angular APF and core `dist`
+inputs, and must not contain workspace library sources.
+
+| Cell                  | All Angular runtime/SSR/build/Forms peers | Consumer Node | Editor.js | TypeScript |
+| --------------------- | ----------------------------------------- | ------------- | --------- | ---------- |
+| `angular22-minimum`   | 22.0.0                                    | 22.22.3       | 2.31.7    | 6.0.3      |
+| `angular22-reference` | 22.1.4                                    | 24.15.0       | 2.31.7    | 6.0.3      |
+| `angular22-current`   | 22.2.2                                    | 26.0.0        | 2.31.7    | 6.0.3      |
+
+The matched Angular set includes core, common, compiler, compiler-cli,
+platform-browser, platform-server, router, SSR, CLI, build and Forms. The first
+stage intentionally omits Forms and proves the root imports and declarations work
+without it. The second installs the exact Forms peer. Both stages retain browser
+global guards, public export/private-subpath checks and neutral core dependency
+checks. Both packed READMEs must match their source; the Angular README TypeScript
+examples and public declaration fixtures compile with the cell's compiler.
+
+Each cell then runs the existing forty native Forms interoperability tests and
+thirteen real CSR browser cases. It copies the same SSR host sources and application
+builder configuration into the isolated consumer, with standalone local TypeScript
+configuration. The cell's Node binary runs its Angular compiler/builds and all
+consumer servers. Workspace Playwright drives Chromium as external test tooling;
+it is not installed into or resolved by the application.
+
+All four SSR builds run per cell: default production, diagnostics, full hydration
+with replay and the deliberately eager negative control. The complete server suite,
+118 hydration cases and ten route-isolation cases run without reducing the
+assertions for older minors. This exercises the installed default incremental
+behavior and the explicit full-hydration opt-out independently. The server suite
+allocates a port and proves clean process/socket teardown. Browser suites own ports
+4330–4334, separate from workspace SSR ports 4320–4324; packed CSR keeps 4318.
+They never reuse a developer server. Cells and builds run sequentially locally;
+CI matrix cells run in separate machines.
+
+Angular 22.0/22.1 emit a combined `stats.json`; the installed 22.2 builder emits
+`browser-stats.json` and `server-stats.json`. The harness retains both originals
+and writes a combined view for the shared assertions, with a `sources` field and
+unchanged output records. Duplicate output keys fail rather than silently hiding
+one graph. The same input provenance, eager-closure and server-import controls
+apply to both metadata layouts.
+
+The networked target is uncached and declares its dependencies, configuration,
+lock/runtime inputs and report outputs. Existing workspace build caching and the
+independent `e2e-packed` CSR target remain available. Do not run multiple packed
+matrix invocations concurrently on one machine: they share reserved ports and
+per-cell report directories. Each command has a fifteen-minute failure deadline,
+then a five-second termination grace period. Interruptions terminate the owned
+command process group; consumer directories and the task-owned npm cache are
+removed in finalization. No global package cache or developer process is removed.
+
+Evidence lives in `apps/editorjs/angular-e2e/test-output/ssr-compatibility/<cell>`:
+both tarballs with SHA-256 identifiers, initial/final dependency locks and manifest,
+actual dependency versions/paths, exact application/TypeScript build configurations,
+command logs, all four emitted builds, server HTML/import-guard logs, hydration and
+isolation reports/attachments, browser diagnostics and failure traces/screenshots.
+`result.json` records completion or failure; `cleanup.json` records temporary
+consumer removal. Build output is retained even when a later assertion fails.
+
+The existing CI workflow adds these required release paths, with no
+`continue-on-error` and always-run artifact upload:
+
+- `editorjs-angular SSR (Chromium)`: workspace server, hydration and route-isolation
+  targets, executed sequentially.
+- `editorjs-angular packed SSR (angular22-minimum)`,
+  `editorjs-angular packed SSR (angular22-reference)` and
+  `editorjs-angular packed SSR (angular22-current)`: fresh full consumers in
+  independent matrix jobs, with fail-fast disabled and seven-day artifact retention.
+
+These gates supplement the main workspace checks, standalone Node 22.12.0 core
+baseline, workspace CSR and existing packed CSR matrix. Release requires all gates
+green on the exact intended release commit and review of the retained artifacts.
+Workflow wiring does not modify repository branch-protection settings or establish
+that hosted CI passed. This task does not monitor CI, merge, publish or bump versions.
+
+Local validation on 2026-10-13 passed all three packed SSR cells: each completed
+forty native Forms tests, thirteen CSR browser cases, all four SSR builds, the
+server suite, 118 hydration cases and ten route-isolation cases. Minimum and
+reference passed in the full-matrix invocation; current passed in a focused rerun
+after adding support for its split build metadata. Each cell retained a passing
+result and cleanup record, and its consumer and scratch directories were confirmed
+absent. A deliberate offline-install failure also retained its failure log and
+removed its temporary consumer. Workspace server/hydration/isolation suites,
+standalone packed reference CSR, core and Angular unit tests, and e2e lint/type
+checks passed. These are local results; hosted CI remains a separate release gate.
+
 ## Validation boundary
 
 The workspace runtime is Angular 22.1.4 (including Forms/platform-server), with
-build/SSR tooling 22.1.6 and Node 24.21.0 at validation. This is workspace evidence,
-not the matched three-cell packed SSR matrix planned in #567. Existing package
+build/SSR tooling 22.1.6 and Node 24.21.0 at validation. The separately installed
+matrix above matches runtime and SSR/build peers in each cell. Existing package
 checks retain root-only operation without Angular Forms or installed Editor.js and
 core declarations without Angular/browser dependencies. Existing CSR browser
-coverage is retained. No merge, release, version bump or automatic CI monitoring
-is part of this slice.
+coverage is retained. Evidence remains bounded to the documented interaction
+profiles, default route destruction, fixture tools and Chromium. It does not
+certify arbitrary tools, route-reuse strategies, nested hydration, other browsers
+or edge runtimes. Final consumer-facing support and release readiness remain #568.

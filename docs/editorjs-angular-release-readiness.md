@@ -1,6 +1,8 @@
 # Editor.js Angular release readiness
 
 This record reviews the standalone and opt-in Forms surfaces through #554.
+The later [packed SSR evidence and additional required CI gates](editorjs-angular-ssr-fixture.md#packed-ssr-consumers-and-required-ci-567)
+are recorded separately; the final SSR release-readiness assessment remains #568.
 Consumer installation, examples and support limits live in the
 [package README](../packages/editorjs/angular/README.md). The
 [development guide](editorjs-angular-development.md) records implementation evidence
@@ -130,6 +132,8 @@ Required CI paths remain:
 - Independent `editorjs-core` Node 22.12.0 baseline.
 - Workspace Chromium job (`editorjs-angular-browser`).
 - All three packed-consumer matrix jobs (`editorjs-angular-packed-consumers`).
+- Workspace SSR/hydration/isolation (`editorjs-angular-ssr`) and all three
+  packed SSR jobs (`editorjs-angular-packed-ssr`), added with #567.
 
 Before release, require green checks for the exact release commit and review its
 matrix artifacts and final tarballs after any version/manifest transforms. Local

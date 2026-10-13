@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixture.js';
 import { arm, held, release, events } from '../hydration/fixture.js';
+import { fixturePort } from '../tools/ssr-environment.mjs';
 
 /** A bounded idle observation, not a timer-based application activation policy. */
 async function idleWindow(page: Page) {
@@ -229,7 +230,7 @@ test.describe('deliberately eager production negative control', () => {
     expect(() => graph.assertIsolated()).toThrow(
       'Editor.js runtime enters the public eager dependency closure',
     );
-    await page.goto('http://127.0.0.1:4324/');
+    await page.goto(`http://127.0.0.1:${fixturePort(4)}/`);
     await idleWindow(page);
     const eager = await delivery.checkpoint(
       'eager negative control public idle',

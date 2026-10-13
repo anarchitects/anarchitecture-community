@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { join, posix } from 'node:path';
-import { workspaceRoot } from '@nx/devkit';
+import { buildDirectory } from '../tools/ssr-environment.mjs';
 
 interface Output {
   entryPoint?: string;
@@ -14,10 +14,7 @@ interface Metadata {
 
 /** Output membership comes from emitted browser files, provenance from builder metadata. */
 export async function buildGraph(eager = false) {
-  const directory = join(
-    workspaceRoot,
-    `dist/apps/editorjs/angular-host-ssr${eager ? '-eager' : ''}`,
-  );
+  const directory = buildDirectory(eager ? '-eager' : '');
   const metadata: Metadata = JSON.parse(
     await readFile(join(directory, 'stats.json'), 'utf8'),
   );
