@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.ssr.json",
+  "files": [
+    "src/isolation/main.eager.ts",
+    "src/main.server.ts",
+    "src/server.ts"
+  ]
+}

@@ -166,6 +166,24 @@
               "with": "apps/editorjs/angular-host/src/ssr/hydration.full.ts"
             }
           ]
+        },
+        "eager-control": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "1mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all",
+          "browser": "apps/editorjs/angular-host/src/isolation/main.eager.ts",
+          "tsConfig": "apps/editorjs/angular-host/tsconfig.isolation.json",
+          "outputPath": "dist/apps/editorjs/angular-host-ssr-eager"
         }
       },
       "inputs": [
@@ -210,6 +228,17 @@
           "yarn nx run editorjs-angular-host:build-ssr:production",
           "yarn nx run editorjs-angular-host:build-ssr:diagnostic",
           "yarn nx run editorjs-angular-host:build-ssr:full"
+        ],
+        "parallel": false
+      }
+    },
+    "build-isolation": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "commands": [
+          "yarn nx run editorjs-angular-host:build-ssr:production",
+          "yarn nx run editorjs-angular-host:build-ssr:eager-control"
         ],
         "parallel": false
       }

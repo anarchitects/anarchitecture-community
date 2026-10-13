@@ -126,7 +126,12 @@ async function validate(name, versions, archives) {
       },
       include: ['src/**/*.ts'],
       // This consumer certifies the existing CSR entry; SSR has its own fixture.
-      exclude: ['src/ssr/**/*.ts', 'src/main.server.ts', 'src/server.ts'],
+      exclude: [
+        'src/ssr/**/*.ts',
+        'src/isolation/**/*.ts',
+        'src/main.server.ts',
+        'src/server.ts',
+      ],
     };
     await json(join(root, 'tsconfig.json'), tsconfig);
     await json(join(root, 'tsconfig.examples.json'), {
