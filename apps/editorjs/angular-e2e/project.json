@@ -74,6 +74,22 @@
         "cwd": "apps/editorjs/angular-e2e",
         "command": "playwright test --config=playwright.hydration.config.mts"
       }
+    },
+    "e2e-isolation": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "parallelism": false,
+      "dependsOn": [
+        {
+          "projects": ["editorjs-angular-host"],
+          "target": "build-isolation"
+        }
+      ],
+      "outputs": ["{projectRoot}/test-output/isolation"],
+      "options": {
+        "cwd": "apps/editorjs/angular-e2e",
+        "command": "playwright test --config=playwright.isolation.config.mts"
+      }
     }
   },
   "tags": ["scope:editorjs", "type:e2e", "npm:private"]

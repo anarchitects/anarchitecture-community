@@ -1,19 +1,27 @@
 import { spawn } from 'node:child_process';
 import {
   mkdirSync,
+  cpSync,
+  rmSync,
   createWriteStream,
   copyFileSync,
   writeFileSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
 
-const [name, suffix, port] = process.argv.slice(2);
-const output = 'apps/editorjs/angular-e2e/test-output/hydration';
+const [name, suffix, port, evidence = 'hydration'] = process.argv.slice(2);
+if (!['hydration', 'isolation'].includes(evidence))
+  throw new Error('Unknown evidence suite');
+const output = `apps/editorjs/angular-e2e/test-output/${evidence}`;
 mkdirSync(output, { recursive: true });
 copyFileSync('yarn.lock', `${output}/yarn.lock`);
 const require = createRequire(import.meta.url);
 const buildDirectory = `dist/apps/editorjs/angular-host-ssr${suffix === 'default' ? '' : suffix}`;
 copyFileSync(`${buildDirectory}/stats.json`, `${output}/stats-${name}.json`);
+if (evidence === 'isolation') {
+  rmSync(`${output}/build-${name}`, { recursive: true, force: true });
+  cpSync(buildDirectory, `${output}/build-${name}`, { recursive: true });
+}
 writeFileSync(
   `${output}/versions.json`,
   JSON.stringify(

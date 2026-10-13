@@ -13,6 +13,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
   template: `
     <nav aria-label="Fixture routes">
       <a routerLink="/">Public</a>
+      <a routerLink="/sample/public">Public sample</a>
       <a routerLink="/standalone">Standalone</a>
       <a routerLink="/deferred">Deferred</a>
       <a routerLink="/incremental">Incremental</a>

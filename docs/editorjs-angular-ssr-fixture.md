@@ -2,9 +2,9 @@
 
 This private fixture implements server evidence (#563) and standalone hydration
 and asynchronous lifetime evidence (#564), plus native Signal Forms hydration and
-pre-hydration safety (#565), from the [SSR contract](editorjs-angular-ssr-design.md).
-Non-authoring delivery (#566) and the packed SSR version matrix (#567) remain
-separate slices. Public package support claims are unchanged.
+pre-hydration safety (#565) and non-authoring route isolation (#566), from the
+[SSR contract](editorjs-angular-ssr-design.md). The packed SSR version matrix (#567)
+remains a separate slice. Public package support claims are unchanged.
 
 ## Architecture review
 
@@ -40,6 +40,7 @@ yarn nx run editorjs-angular-host:build-ssr
 yarn nx run editorjs-angular-host:serve-ssr
 yarn nx run editorjs-angular-e2e:test-ssr
 yarn nx run editorjs-angular-e2e:e2e-hydration
+yarn nx run editorjs-angular-e2e:e2e-isolation
 yarn nx run-many -p editorjs-angular-host,editorjs-angular-e2e -t typecheck,typecheck-ssr,lint
 yarn nx run-many -p editorjs-core,editorjs-angular -t test
 yarn nx run editorjs-angular-e2e:e2e
@@ -312,6 +313,80 @@ cases, including the existing 49 standalone cases. Evidence uses the same HTML,
 per-owner events, diagnostics, version/lockfile/build metadata and failure traces
 as #564; server import/request cleanup and the 13-case CSR suite are separate
 regressions. Public support claims remain bounded pending the packed SSR matrix.
+
+## Non-authoring route isolation (#566)
+
+The complete preflight was repeated on 2026-10-13: all seven local ADRs and all
+fifteen Meta records at `e2f34553c6e2492d0ab6f80ac795de44fc592a70`, including proposed
+and historical records, plus the relevant Modern Angular guides. A01 preserves
+installed peers; A02 requires actual dependency-graph evidence; A03/A05 retain
+component ownership and the existing coordinator; A04 separates route loading
+from dependency injection; A08–A10 require real defer and production browser/SSR
+evidence. Governance, Nest and public HTTP contracts remain unchanged. No conflict
+or exception was required. Angular MCP route-loading documentation and the
+installed builder/browser tooling informed the checks; its best-practices endpoint
+still returned `Unexpected response type`.
+
+`e2e-isolation` runs ten Chromium cases against two owned production Node servers:
+the ordinary build on port 4323 and an intentionally eager control on 4324. The
+uncached `build-isolation` aggregate builds them sequentially. The eager control
+uses a separate browser entry and output directory (`angular-host-ssr-eager`),
+statically imports the real Editor.js constructor and retains it on `window`.
+It never creates an editor. This entry is excluded from ordinary CSR and packed
+CSR compilation; the normal production bootstrap is unchanged.
+
+The graph check reads the production builder's input/output metadata and actual
+emitted browser files. Positive `bytesInOutput` contributions from the Editor.js
+package identify runtime-bearing outputs, independently of their hashed names.
+It traverses static import edges from the browser entry and public route, adding
+actual HTML script and preload/prefetch roots observed in the browser. Dynamic
+imports are excluded from this eager closure and traversed separately to prove
+the runtime remains reachable for authoring. Missing metadata, unclassified
+external dependencies and an absent runtime fail the check. The eager control
+must fail the same public-closure assertion. This uses the builder's
+[metafile provenance](https://esbuild.github.io/api/#metafile), not source grep,
+barrel structure or a size budget.
+
+Fresh browser contexts capture requests, responses, HTML/HTTP resource hints and
+Chromium precise execution coverage. Positive execution counts distinguish module
+evaluation from parsing or delivery; the existing real-loader probe separately
+records each owner and Editor.js instance. The cases establish:
+
+- Cold request SSR (`/`) and prerender (`/sample/public`) loads, followed by actual
+  client navigation between public routes, request no runtime, advertise no
+  runtime preload/prefetch, execute no runtime and start no editor owner. Each
+  public checkpoint includes a one-second observation bracketed by browser idle
+  callbacks. Root identity confirms navigation did not reload the document.
+- All six standalone/Forms authoring routes load and edit successfully. Deferred
+  routes remain isolated before interaction; incremental routes reached through
+  client navigation use their ordinary interaction trigger. Holding the actual
+  runtime request proves request, delivery/evaluation and holder creation are
+  separate stages. Releasing it produces real readiness and keyboard edits.
+- Exit destroys the old editor while a captured real save is pending. Re-entry
+  creates a fresh owner using the cached module. Releasing the old save and
+  invoking its retained callback cannot publish stale outputs or overwrite the
+  new owner. The new instance is also destroyed on exit. No claim is made that
+  navigation unloads JavaScript from the browser's module cache.
+- A deliberate `modulepreload` downloads the runtime without evaluating it or
+  creating an editor, and fails the same public-delivery assertion. The eager
+  build both downloads and evaluates it on a public route, creates no editor,
+  and fails both graph and browser isolation assertions.
+
+The host uses lazy routes with no router preloading strategy, authoring prefetch
+policy or service worker; the browser suite explicitly blocks service workers.
+These bounded idle checks do not prove the absence of arbitrary future timers.
+Host-selected [route preloading](https://angular.dev/guide/routing/loading-strategies),
+resource hints or eager imports can change delivery without changing per-holder
+ownership. Applications must apply their own delivery policy; the library does
+not prevent a host from preloading its modules. This slice adds no library or
+core change and makes no new packed-version or custom-tool support claim.
+
+Evidence is retained in `apps/editorjs/angular-e2e/test-output/isolation`: complete
+ordinary/eager build copies, statistics, actual versions and workspace lockfile,
+owned-server logs, graph reports, public HTML, network/resource-hint checkpoints,
+raw runtime execution counts and per-owner lifetime events. The HTML report links
+the attachments; browser traces and screenshots are retained on failure. Existing
+server, hydration and CSR suites remain separate regressions.
 
 ## Validation boundary
 

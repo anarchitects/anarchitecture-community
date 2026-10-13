@@ -10,7 +10,8 @@
     "src/**/*.test.ts",
     "src/ssr/**/*.ts",
     "src/main.server.ts",
-    "src/server.ts"
+    "src/server.ts",
+    "src/isolation/**/*.ts"
   ],
   "nx": {
     "sync": {
