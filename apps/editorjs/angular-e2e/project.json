@@ -44,6 +44,30 @@
         "cell": "all"
       }
     },
+    "e2e-packed-ssr": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "parallelism": false,
+      "dependsOn": [
+        {
+          "projects": ["editorjs-angular"],
+          "target": "build",
+          "params": "ignore"
+        }
+      ],
+      "inputs": [
+        "default",
+        "^production",
+        "{workspaceRoot}/yarn.lock",
+        { "runtime": "node --version" },
+        { "env": "CI" }
+      ],
+      "outputs": ["{projectRoot}/test-output/ssr-compatibility"],
+      "options": {
+        "command": "node apps/editorjs/angular-e2e/tools/validate-packed.mjs {args.cell} ssr",
+        "cell": "all"
+      }
+    },
     "test-ssr": {
       "executor": "nx:run-commands",
       "cache": false,

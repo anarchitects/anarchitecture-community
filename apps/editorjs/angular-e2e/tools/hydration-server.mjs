@@ -8,34 +8,47 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
+import { join } from 'node:path';
+import {
+  fixtureRoot,
+  fixtureNode,
+  packed,
+  buildDirectory,
+  reportDirectory,
+} from './ssr-environment.mjs';
 
 const [name, suffix, port, evidence = 'hydration'] = process.argv.slice(2);
 if (!['hydration', 'isolation'].includes(evidence))
   throw new Error('Unknown evidence suite');
-const output = `apps/editorjs/angular-e2e/test-output/${evidence}`;
+const output = reportDirectory(evidence);
 mkdirSync(output, { recursive: true });
-copyFileSync('yarn.lock', `${output}/yarn.lock`);
-const require = createRequire(import.meta.url);
-const buildDirectory = `dist/apps/editorjs/angular-host-ssr${suffix === 'default' ? '' : suffix}`;
-copyFileSync(`${buildDirectory}/stats.json`, `${output}/stats-${name}.json`);
+const lock = packed ? 'package-lock.json' : 'yarn.lock';
+copyFileSync(join(fixtureRoot, lock), `${output}/${lock}`);
+const require = createRequire(join(fixtureRoot, 'package.json'));
+const build = buildDirectory(suffix === 'default' ? '' : suffix);
+copyFileSync(`${build}/stats.json`, `${output}/stats-${name}.json`);
 if (evidence === 'isolation') {
   rmSync(`${output}/build-${name}`, { recursive: true, force: true });
-  cpSync(buildDirectory, `${output}/build-${name}`, { recursive: true });
+  cpSync(build, `${output}/build-${name}`, { recursive: true });
 }
 writeFileSync(
   `${output}/versions.json`,
   JSON.stringify(
     {
-      node: process.version,
+      launcherNode: process.version,
+      serverNode: fixtureNode,
+      playwright: createRequire(import.meta.url)(
+        '@playwright/test/package.json',
+      ).version,
       packages: Object.fromEntries(
         [
           '@angular/core',
+          '@angular/forms',
           '@angular/platform-browser',
           '@angular/platform-server',
           '@angular/ssr',
           '@angular/build',
           '@editorjs/editorjs',
-          '@playwright/test',
           'typescript',
         ].map((name) => [name, require(`${name}/package.json`).version]),
       ),
@@ -45,7 +58,8 @@ writeFileSync(
   ),
 );
 const log = createWriteStream(`${output}/server-${name}.log`);
-const child = spawn(process.execPath, [`${buildDirectory}/server/server.mjs`], {
+const child = spawn(fixtureNode, [`${build}/server/server.mjs`], {
+  cwd: fixtureRoot,
   env: { ...process.env, PORT: port },
   stdio: ['ignore', 'pipe', 'pipe'],
 });

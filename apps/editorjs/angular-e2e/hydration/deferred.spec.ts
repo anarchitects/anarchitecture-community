@@ -96,10 +96,9 @@ test('ordinary defer shows loading and an actionable error on failed view delive
   page,
 }, testInfo) => {
   const { readFile } = await import('node:fs/promises');
-  const { workspaceRoot } = await import('@nx/devkit');
   const stats = JSON.parse(
     await readFile(
-      `${workspaceRoot}/${testInfo.project.metadata['buildDirectory']}/stats.json`,
+      `${testInfo.project.metadata['buildDirectory']}/stats.json`,
       'utf8',
     ),
   ) as {

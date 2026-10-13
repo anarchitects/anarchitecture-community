@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { createWriteStream } from 'node:fs';
+import { createHash } from 'node:crypto';
 import {
   cp,
   mkdir,
@@ -10,7 +12,8 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve, sep } from 'node:path';
+import { basename, join, resolve, sep } from 'node:path';
+import { validatePackedSsr } from './packed-ssr.mjs';
 
 const workspace = resolve(import.meta.dirname, '../../../..');
 const project = resolve(import.meta.dirname, '..');
@@ -21,6 +24,8 @@ const matrix = JSON.parse(
   ),
 );
 const selected = process.argv[2] ?? 'all';
+const mode = process.argv[3] ?? 'csr';
+assert(['csr', 'ssr'].includes(mode), `Unknown consumer mode: ${mode}`);
 const names = selected === 'all' ? Object.keys(matrix) : [selected];
 assert(
   names.every((name) => Object.hasOwn(matrix, name)),
@@ -30,6 +35,26 @@ const scratch = await realpath(
   await mkdtemp(join(tmpdir(), 'editorjs-packed-')),
 );
 const cache = join(scratch, 'npm-cache');
+let activeReport;
+let commandSequence = 0;
+let interrupted = false;
+const children = new Set();
+const terminate = (child, signal) => {
+  try {
+    if (process.platform === 'win32') child.kill(signal);
+    else process.kill(-child.pid, signal);
+  } catch (error) {
+    if (error.code !== 'ESRCH') throw error;
+  }
+};
+for (const signal of ['SIGINT', 'SIGTERM'])
+  process.once(signal, () => {
+    interrupted = true;
+    for (const child of children) terminate(child, 'SIGTERM');
+    setTimeout(() => {
+      for (const child of children) terminate(child, 'SIGKILL');
+    }, 5_000).unref();
+  });
 
 try {
   const archives = {};
@@ -52,10 +77,28 @@ try {
 
 async function validate(name, versions, archives) {
   const root = join(scratch, name);
-  const report = join(project, 'test-output/compatibility', name);
+  const report = join(
+    project,
+    'test-output',
+    mode === 'ssr' ? 'ssr-compatibility' : 'compatibility',
+    name,
+  );
   await mkdir(root);
   await rm(report, { recursive: true, force: true });
   await mkdir(report, { recursive: true });
+  activeReport = report;
+  commandSequence = 0;
+  const artifacts = {};
+  for (const [packageName, archive] of Object.entries(archives)) {
+    await cp(archive, join(report, basename(archive)));
+    artifacts[packageName] = {
+      archive: basename(archive),
+      sha256: createHash('sha256')
+        .update(await readFile(archive))
+        .digest('hex'),
+    };
+  }
+  await json(join(report, 'artifacts.json'), artifacts);
   const dependencies = {
     ...archives,
     '@editorjs/editorjs': versions.editorjs,
@@ -64,6 +107,9 @@ async function validate(name, versions, archives) {
   };
   for (const packageName of ['core', 'common', 'compiler', 'platform-browser'])
     dependencies[`@angular/${packageName}`] = versions.angular;
+  if (mode === 'ssr')
+    for (const packageName of ['router', 'platform-server', 'ssr'])
+      dependencies[`@angular/${packageName}`] = versions.angular;
   await json(join(root, 'package.json'), {
     name: 'editorjs-packed-consumer',
     version: '0.0.0',
@@ -78,6 +124,7 @@ async function validate(name, versions, archives) {
       vitest: '4.0.18',
       jsdom: '22.1.0',
       node: versions.node,
+      ...(mode === 'ssr' ? { '@types/node': '20.19.9' } : {}),
     },
   });
   console.log(`\nValidating ${name}`, versions);
@@ -88,6 +135,10 @@ async function validate(name, versions, archives) {
     const actualNode = (await run(node, ['--version'], root, true)).trim();
     assert.equal(actualNode, `v${versions.node}`);
     await assertInstalled(root, dependencies);
+    const installed = JSON.parse(
+      await readFile(join(root, 'package.json'), 'utf8'),
+    );
+    await assertInstalled(root, installed.devDependencies);
     await cp(
       join(root, 'package-lock.json'),
       join(report, 'root-only-package-lock.json'),
@@ -198,6 +249,10 @@ async function validate(name, versions, archives) {
       forms: versions.angular,
       platform: process.platform,
       arch: process.arch,
+      installed: await assertInstalled(root, {
+        ...dependencies,
+        ...installed.devDependencies,
+      }),
     });
     await cp(
       join(root, 'package-lock.json'),
@@ -242,14 +297,47 @@ async function validate(name, versions, archives) {
         EDITORJS_PACKED_REPORT: report,
       },
     );
+    if (mode === 'ssr')
+      await validatePackedSsr({
+        root,
+        report,
+        node,
+        workspace,
+        project,
+        tsconfig,
+        run,
+      });
+    await json(join(report, 'result.json'), {
+      status: 'passed',
+      mode,
+      cell: name,
+    });
     console.log(`Packed consumer ${name} passed.`);
+  } catch (error) {
+    await json(join(report, 'result.json'), {
+      status: 'failed',
+      mode,
+      cell: name,
+      error: String(error),
+    });
+    throw error;
   } finally {
     // Only the disposable tree is removed; reports and dependency locks survive.
+    for (const file of ['package.json', 'package-lock.json'])
+      await cp(join(root, file), join(report, file)).catch((error) => {
+        if (error.code !== 'ENOENT') throw error;
+      });
     await rm(root, { recursive: true, force: true });
+    await json(join(report, 'cleanup.json'), {
+      consumerRemoved: true,
+      interrupted,
+    });
+    activeReport = undefined;
   }
 }
 
 async function assertInstalled(root, dependencies) {
+  const installed = {};
   for (const [packageName, expected] of Object.entries(dependencies)) {
     const packageRoot = join(root, 'node_modules', packageName);
     assert(
@@ -261,7 +349,12 @@ async function assertInstalled(root, dependencies) {
     );
     if (!packageName.startsWith('@anarchitects/'))
       assert.equal(manifest.version, expected);
+    installed[packageName] = {
+      version: manifest.version,
+      realpath: await realpath(packageRoot),
+    };
   }
+  return installed;
 }
 
 async function assertBoundaries(root, node, withForms) {
@@ -314,6 +407,13 @@ async function assertBoundaries(root, node, withForms) {
 }
 
 async function assertDocumentation(root) {
+  assert.equal(
+    await readFile(
+      join(root, 'node_modules/@anarchitects/editorjs-core/README.md'),
+      'utf8',
+    ),
+    await readFile(join(workspace, 'packages/editorjs/core/README.md'), 'utf8'),
+  );
   const installed = join(root, 'node_modules/@anarchitects/editorjs-angular');
   const readme = await readFile(join(installed, 'README.md'), 'utf8');
   assert.equal(
@@ -346,9 +446,17 @@ async function json(path, value) {
 }
 
 function run(command, args, cwd, capture = false, extraEnv = {}) {
+  if (interrupted) throw new Error('Packed validation interrupted');
   return new Promise((yes, no) => {
+    const log = activeReport
+      ? createWriteStream(
+          join(activeReport, `command-${++commandSequence}.log`),
+        )
+      : undefined;
+    log?.write(JSON.stringify({ command, args, cwd }) + '\n');
     const child = spawn(command, args, {
       cwd,
+      detached: process.platform !== 'win32',
       env: {
         ...process.env,
         NODE_OPTIONS: '',
@@ -357,17 +465,45 @@ function run(command, args, cwd, capture = false, extraEnv = {}) {
         NG_CLI_ANALYTICS: 'false',
         ...extraEnv,
       },
-      stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
+    children.add(child);
+    let timedOut = false;
+    let spawnError;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      terminate(child, 'SIGTERM');
+    }, 15 * 60_000);
+    const deadline = setTimeout(
+      () => terminate(child, 'SIGKILL'),
+      15 * 60_000 + 5_000,
+    );
     let output = '';
     child.stdout?.on('data', (chunk) => {
-      output += chunk;
+      if (capture) output += chunk;
+      else process.stdout.write(chunk);
+      log?.write(chunk);
     });
-    child.once('error', no);
-    child.once('close', (code) =>
-      code === 0
-        ? yes(output)
-        : no(new Error(`${command} ${args.join(' ')} exited with ${code}`)),
-    );
+    child.stderr.on('data', (chunk) => {
+      process.stderr.write(chunk);
+      log?.write(chunk);
+    });
+    child.once('error', (error) => {
+      spawnError = error;
+    });
+    child.once('close', (code) => {
+      children.delete(child);
+      clearTimeout(timeout);
+      clearTimeout(deadline);
+      log?.end(`\nExit: ${code}\n`);
+      if (code === 0 && !interrupted && !timedOut && !spawnError) yes(output);
+      else
+        no(
+          spawnError ??
+            new Error(
+              `${command} ${args.join(' ')} exited with ${code}${timedOut ? ' after timeout' : ''}`,
+            ),
+        );
+    });
   });
 }

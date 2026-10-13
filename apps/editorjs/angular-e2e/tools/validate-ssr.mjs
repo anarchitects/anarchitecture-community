@@ -2,19 +2,26 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { basename, join, resolve } from 'node:path';
+import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { JSDOM } from 'jsdom';
+import {
+  fixtureRoot,
+  fixtureNode,
+  packed,
+  buildDirectory,
+  reportDirectory,
+} from './ssr-environment.mjs';
 
-const workspace = resolve(import.meta.dirname, '../../../..');
-const output = join(workspace, 'dist/apps/editorjs/angular-host-ssr');
-const report = resolve(import.meta.dirname, '../test-output/ssr');
+const output = buildDirectory();
+const report = reportDirectory('ssr');
 await rm(report, { recursive: true, force: true });
 await mkdir(report, { recursive: true });
 await cp(join(output, 'stats.json'), join(report, 'stats.json'));
-await cp(join(workspace, 'yarn.lock'), join(report, 'yarn.lock'));
-const require = createRequire(import.meta.url);
+const lock = packed ? 'package-lock.json' : 'yarn.lock';
+await cp(join(fixtureRoot, lock), join(report, lock));
+const require = createRequire(join(fixtureRoot, 'package.json'));
 await writeFile(
   join(report, 'versions.json'),
   JSON.stringify(
@@ -66,9 +73,9 @@ await writeFile(join(report, 'import-negative-control.log'), control.stderr);
 let stdout = '';
 let stderr = '';
 const child = spawn(
-  process.execPath,
+  fixtureNode,
   ['--import', guard, join(output, 'server/server.mjs')],
-  { cwd: workspace, env, stdio: ['ignore', 'pipe', 'pipe'] },
+  { cwd: fixtureRoot, env, stdio: ['ignore', 'pipe', 'pipe'] },
 );
 child.stdout.on('data', (chunk) => {
   stdout += chunk;
@@ -344,8 +351,8 @@ async function until(predicate, label) {
   }
 }
 async function childResult(args) {
-  const process = spawn(globalThis.process.execPath, args, {
-    cwd: workspace,
+  const process = spawn(fixtureNode, args, {
+    cwd: fixtureRoot,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
