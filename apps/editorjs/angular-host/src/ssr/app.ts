@@ -17,6 +17,8 @@ import { RouterLink, RouterOutlet } from '@angular/router';
       <a routerLink="/deferred">Deferred</a>
       <a routerLink="/incremental">Incremental</a>
       <a routerLink="/forms">Signal Forms</a>
+      <a routerLink="/forms-deferred">Deferred Forms</a>
+      <a routerLink="/forms-incremental">Incremental Forms</a>
     </nav>
     <main [attr.data-rendered]="rendered()"><router-outlet /></main>
   `,
