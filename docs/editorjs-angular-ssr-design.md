@@ -7,8 +7,11 @@ in #563–#568; it does **not** certify SSR/hydration support. The
 current consumer support. No runtime code, exports, peers, versions or public
 README claims change in this slice.
 
-The subsequent [server fixture](editorjs-angular-ssr-fixture.md) records #563's
-implementation, reproducible commands and server-only evidence boundary.
+The subsequent [fixture record](editorjs-angular-ssr-fixture.md) covers #563–#567
+server/browser/matrix evidence. The [release review](editorjs-angular-release-readiness.md)
+consolidates #568's public support and packed README checks. The design-stage
+limitations and future-tense delivery requirements below are retained as history;
+current support is the bounded contract in the package README.
 
 ## Decisions and existing evidence
 

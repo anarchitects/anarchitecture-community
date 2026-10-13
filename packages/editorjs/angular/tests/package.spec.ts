@@ -227,7 +227,7 @@ describe('published Angular contracts', () => {
     expect(output).toContain('server render ok');
   });
 
-  it('compiles root declarations without Forms, then Forms contracts and every README example', () => {
+  it('compiles root declarations without Forms, then Forms contracts and CSR README examples', () => {
     const consumerDirectory = join(temporaryDirectory, 'compiler-consumer');
     mkdirSync(consumerDirectory);
     function linkPeer(dependency: string) {
@@ -308,11 +308,16 @@ describe('published Angular contracts', () => {
     fixture('forms-consumer.ts');
     fixture('callout-tool.ts');
     const readme = readFileSync(join(packageDirectory, 'README.md'), 'utf8');
-    const examples = [...readme.matchAll(/```ts\n([\s\S]*?)```/g)];
+    // Host-only SSR recipes are compiled and run by the matched packed SSR matrix.
+    const examples = [
+      ...readme.matchAll(
+        /(?:<!-- (ssr-)?example-file: ([\w.-]+) -->\s*)?```ts\n([\s\S]*?)```/g,
+      ),
+    ].filter((example) => !example[1]);
     expect(examples.length).toBeGreaterThanOrEqual(5);
     const exampleFiles = examples.map((example, index) => {
-      const name = `readme-${index}.ts`;
-      writeFileSync(join(consumerDirectory, name), example[1]);
+      const name = example[2] ?? `readme-${index}.ts`;
+      writeFileSync(join(consumerDirectory, name), example[3]);
       return name;
     });
     compile([
