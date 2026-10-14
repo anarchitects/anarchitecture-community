@@ -1,6 +1,6 @@
 # ADR: Initial package releases and Nx-compatible versioning
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-14
 - **Scope:** All Anarchitects versioned/distributed packages
 - **Canonical owner:** anarchitecture-meta
