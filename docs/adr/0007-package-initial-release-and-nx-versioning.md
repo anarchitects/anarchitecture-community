@@ -23,22 +23,34 @@ Packages in Nx monorepositories have independent release lifecycles. Initial imp
 
 ## Nx release configuration illustration
 
-Merge into the existing `nx.json` release configuration without losing release groups or existing bump types:
+The `conventionalCommits.types` mapping MUST explicitly define **all allowed types**, not only `init`. A partial override may change how omitted types are interpreted and cause unintended bumps. Use a complete reviewed baseline, while preserving repository-specific types and deliberate policies:
 
 ```json
 {
   "release": {
-    "version": {
-      "conventionalCommits": true
-    },
+    "version": { "conventionalCommits": true },
     "conventionalCommits": {
       "types": {
-        "init": { "semverBump": "none" }
+        "init": { "semverBump": "none" },
+        "feat": { "semverBump": "minor" },
+        "fix": { "semverBump": "patch" },
+        "perf": { "semverBump": "patch" },
+        "refactor": { "semverBump": "patch" },
+        "revert": { "semverBump": "patch" },
+        "docs": { "semverBump": "none" },
+        "chore": { "semverBump": "none" },
+        "style": { "semverBump": "none" },
+        "test": { "semverBump": "none" },
+        "e2e": { "semverBump": "none" },
+        "build": { "semverBump": "none" },
+        "ci": { "semverBump": "none" }
       }
     }
   }
 }
 ```
+
+Inventory every permitted standard and custom commit type in each repository. Every permitted type MUST have an explicit Nx bump setting; unknown types MUST be rejected by commit validation. This is a policy baseline, not authorization to silently alter pre-existing intentional mappings. Verify breaking-change notation and bump behavior with the installed Nx version and release dry runs.
 
 For **anarchitecture-contracts**, remove version-plan keys and associated workflow automation when implementing this ADR. Nx configuration schema/behavior MUST be verified against the installed Nx version. Merely setting `init` to `none` does not enforce the first release number or prevent publish.
 
