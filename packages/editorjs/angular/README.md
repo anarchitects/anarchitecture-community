@@ -48,12 +48,18 @@ Forms editing, value writes, dirty/touch, focus, disabled/readonly modes, reset,
 validation, submission failure and teardown. Native reactive Forms has a browser
 scenario; other native legacy bindings have the specific support limits documented
 below. Forms declarations and examples compile on every
-baseline. Full SSR/hydration support is not established. No CommonJS build is supplied. Nx is not a consumer dependency. Angular peers are
+baseline. SSR, prerendering and hydration support is bounded to the profiles below,
+with matching router/platform-server/SSR/CLI/build peers in each tested row.
+Local browser evidence is Chromium on macOS arm64; other browsers, operating
+systems and Windows tooling are not certified by that evidence.
+No CommonJS build is supplied. Nx is not a consumer dependency. Angular peers are
 evaluated normally; Editor.js is loaded only during browser initialization.
 
 ## Quick start
 
 Import the standalone component in an existing Angular 22 application:
+
+<!-- example-file: article-editor.ts -->
 
 ```ts
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
@@ -119,6 +125,275 @@ a detached saved document. Your application decides whether and how to persist i
 Call `loadDocument` with a new document to replace editor content. Keep saved output
 separate from the input unless you intentionally want to render it back into the editor.
 
+## SSR, prerendering and hydration
+
+Both `EditorJs` and the Signal Forms `EditorJsControl` support request-time SSR,
+fixed public prerendered pages and browser hydration in the combinations above.
+The server renders an **empty editor holder**, not saved blocks, tool markup or an
+editable document. Render a public article through your own safe display component;
+this editor is not a server-side document renderer.
+
+| Host profile                         | Supported behavior                                                                                                                                          |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Immediate request-rendered editor    | Hydration reuses the holder, then creates one browser editor. Default incremental hydration and explicit full hydration with replay are covered.            |
+| Fixed public prerendered editor      | The default hydration profile activates a public sample document in the browser. Never prerender private request data.                                      |
+| Ordinary interaction defer           | Server renders a lightweight placeholder; the editor component is created after activation.                                                                 |
+| One incremental interaction boundary | Server renders the main Angular structure and empty holder; a host button activates hydration. Client navigation uses the ordinary interaction placeholder. |
+| Client-only application              | Existing standalone and Forms editing remain available without hydration providers.                                                                         |
+
+This contract covers a single, non-nested interaction boundary and normal router
+component destruction. It does not certify nested hydration, every idle/viewport/
+timer trigger, `hydrate never` for editing, custom route reuse, multiple Angular
+applications in one document, streaming/edge runtimes, Nest integration or arbitrary
+third-party tools. Legacy Forms bindings retain their earlier CSR limits; the SSR
+Forms contract here is for Signal Forms.
+
+### Host configuration and routes
+
+Use an Angular SSR application with matching Angular runtime, router,
+platform-server and SSR/build tooling. For a 22.1.4 application, the additional
+runtime packages are:
+
+```sh
+npm install @angular/router@22.1.4 @angular/platform-server@22.1.4 @angular/ssr@22.1.4
+```
+
+Keep the application's Angular CLI/build/compiler packages at the same version.
+Configure routing and hydration once in the host, shared by browser and server.
+Neither editor entry point installs application providers. On the three tested
+baselines, `provideClientHydration()` enables incremental hydration and replay.
+To select full hydration with replay, pass `true` to both configuration functions
+below. Do not mix different server and browser profiles.
+
+Save the quick-start component as `article-editor.ts` and the Signal Forms example
+below as `article-form.ts`. Add these files beside them. The sample documents are
+public constants; replace them with request-owned application data for real editing.
+Omit the Forms routes and incremental Forms example if you do not install Forms.
+
+`public-page.ts`:
+
+<!-- ssr-example-file: public-page.ts -->
+
+```ts
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+
+@Component({
+  selector: 'app-public-page',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: '<h1>Articles</h1><p>Choose an article to edit.</p>',
+})
+export class PublicPage {}
+```
+
+`article.config.ts`:
+
+<!-- ssr-example-file: article.config.ts -->
+
+```ts
+import type { ApplicationConfig } from '@angular/core';
+import { provideRouter, type Routes } from '@angular/router';
+import {
+  provideClientHydration,
+  withEventReplay,
+  withNoHttpTransferCache,
+  withNoIncrementalHydration,
+} from '@angular/platform-browser';
+
+const routes: Routes = [
+  {
+    path: '',
+    loadComponent: () => import('./public-page').then((m) => m.PublicPage),
+  },
+  {
+    path: 'edit',
+    loadComponent: () =>
+      import('./article-editor').then((m) => m.ArticleEditor),
+  },
+  {
+    path: 'form',
+    loadComponent: () => import('./article-form').then((m) => m.ArticleForm),
+  },
+  {
+    path: 'delayed',
+    loadComponent: () =>
+      import('./delayed-article').then((m) => m.DelayedArticle),
+  },
+  {
+    path: 'incremental',
+    loadComponent: () =>
+      import('./incremental-article').then((m) => m.IncrementalArticle),
+  },
+  {
+    path: 'sample/edit',
+    loadComponent: () =>
+      import('./article-editor').then((m) => m.ArticleEditor),
+  },
+  {
+    path: 'sample/form',
+    loadComponent: () => import('./article-form').then((m) => m.ArticleForm),
+  },
+];
+
+export function articleConfig(fullHydration = false): ApplicationConfig {
+  return {
+    providers: [
+      provideRouter(routes),
+      provideClientHydration(
+        withNoHttpTransferCache(),
+        ...(fullHydration
+          ? [withNoIncrementalHydration(), withEventReplay()]
+          : []),
+      ),
+    ],
+  };
+}
+```
+
+Use `articleConfig()` as the browser bootstrap configuration, with a root component
+that imports `RouterOutlet` and renders `<router-outlet />`. This example disables
+HTTP transfer caching; your host owns any separate caching/privacy policy.
+
+`article.config.server.ts`:
+
+<!-- ssr-example-file: article.config.server.ts -->
+
+```ts
+import { mergeApplicationConfig } from '@angular/core';
+import { provideServerRendering, RenderMode, withRoutes } from '@angular/ssr';
+import { articleConfig } from './article.config';
+
+export function articleServerConfig(fullHydration = false) {
+  return mergeApplicationConfig(articleConfig(fullHydration), {
+    providers: [
+      provideServerRendering(
+        withRoutes([
+          { path: 'sample/edit', renderMode: RenderMode.Prerender },
+          { path: 'sample/form', renderMode: RenderMode.Prerender },
+          { path: '**', renderMode: RenderMode.Server },
+        ]),
+      ),
+    ],
+  });
+}
+```
+
+Use `articleServerConfig()` in your SSR bootstrap, passing the server's
+`BootstrapContext` to `bootstrapApplication`. Retain your Angular application's
+server entry and asset serving. Rendering modes and deployment are host decisions.
+Configure the application builder's `security.allowedHosts` for the actual host
+names you serve (for local use, `localhost` and `127.0.0.1`); retain host validation
+when deploying behind a proxy.
+Keep public display routes free of eager editor/tool imports, authoring barrels,
+router preloading and editor prefetch if they must not download editor code.
+Lazy routes alone cannot undo another eager import or host preload policy.
+
+### Delayed activation
+
+`delayed-article.ts` creates the standalone quick-start editor on interaction:
+
+<!-- ssr-example-file: delayed-article.ts -->
+
+```ts
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ArticleEditor } from './article-editor';
+
+@Component({
+  selector: 'app-delayed-article',
+  imports: [ArticleEditor],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <button #activate type="button">Activate article</button>
+    @defer (on interaction(activate)) {
+      <app-article-editor />
+    } @placeholder {
+      <p>Activate to load the editor.</p>
+    } @loading {
+      <p role="status">Loading editor view…</p>
+    } @error {
+      <p role="alert">Editor view unavailable. Reload the page to retry.</p>
+    }
+  `,
+})
+export class DelayedArticle {}
+```
+
+`incremental-article.ts` renders the Forms example's Angular structure on the
+server and hydrates it on interaction under the default profile:
+
+<!-- ssr-example-file: incremental-article.ts -->
+
+```ts
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ArticleForm } from './article-form';
+
+@Component({
+  selector: 'app-incremental-article',
+  imports: [ArticleForm],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @defer (on interaction; hydrate on interaction) {
+      <section aria-label="Article editing">
+        <button type="button">Activate article</button>
+        <app-article-form />
+      </section>
+    } @placeholder {
+      <button type="button">Activate article</button>
+    } @loading {
+      <p role="status">Loading editor view…</p>
+    } @error {
+      <p role="alert">Editor view unavailable. Reload the page to retry.</p>
+    }
+  `,
+})
+export class IncrementalArticle {}
+```
+
+The activation button must remain outside disabled/inert regions. Keep deferred
+dependencies in separate files and avoid eager references or component queries
+that defeat their lazy boundary. Placeholder/loading/error content is eager and
+should stay lightweight. Reserve layout space in the host, outside the owned
+holder. Use matching initial markup and stable label IDs; do not insert saved HTML
+into the holder or use broad `ngSkipHydration` to hide mismatches.
+
+A failed Angular view download selects `@error`; reloading after fixing delivery is
+the supported recovery here. An Editor.js loader/create/readiness failure happens
+after the view exists and uses the component's `error` output instead. Display it
+and recreate the owner to retry; `@error` does not handle that operation.
+
+### Initial data, requests and pre-hydration safety
+
+Give server and client the same initial document, form availability and conditional
+markup. Fetch and authorize data in your host; transfer only safe, serializable
+initial values through Angular's supported `TransferState` or an appropriately
+scoped data mechanism. Consume request data once on the client and give each owner
+its own copy. Never concatenate documents into inline scripts, and never put
+request documents, credentials, field trees, holders or editor instances in
+module-level mutable variables. Transferred values are visible in response HTML.
+Core validates JSON shape; tool schemas and safe public rendering remain yours.
+
+The examples above use only `type="button"` controls and do not submit a native
+form. When adding a real form, gate native inputs and submit buttons with a
+fieldset disabled in server HTML until the host is active and the editor is ready.
+Keep a safe POST method/action as a fallback; never allow sensitive values to fall
+back to a GET query string. The control's inert editing region is separate from
+the fieldset: disabling a fieldset does not disable arbitrary contenteditable DOM.
+Do not overwrite schema-owned disabled state merely to implement the host gate.
+
+Before hydration, Angular submit handlers and directives are not attached. Replay,
+`aria-disabled` and a future handler are not native-submission safeguards. Check
+click and Enter with JavaScript delayed or unavailable. Replay can invoke a
+server-rendered host activation control; it cannot recover typing into editor DOM
+that did not yet exist. Once ready, explicitly capture and validate the current
+snapshot before persistence as described in the submission section below.
+
+Each live component owns its editor; each request owns its initial state. Route
+exit or conditional removal disposes that component and fences late outputs.
+Already-running work cannot be forcibly cancelled. Reset invalidates obsolete
+snapshots synchronously but reconciles the view asynchronously; await a later
+usable state before saving again. A custom reuse strategy that retains components
+must define its own lifetime policy. Recreating an owner gives it fresh controls;
+retained controls from the old owner stay disposed.
+
 ## Component inputs, outputs and lifetime
 
 | Surface  | Current behavior                                                                                                                                                                                                                                              |
@@ -136,8 +411,8 @@ There is no automatic retry. Recreate the component after fixing configuration,
 data or loading failures. Initialization errors never produce a `ready` event.
 
 The component initializes only after browser rendering. On the server it renders
-an empty holder and does not invoke even a custom loader. This baseline does not
-claim full SSR/hydration support or install application hydration providers.
+an empty holder and does not invoke even a custom loader. The supported host
+profiles and required application configuration are described above.
 
 Removing the component destroys its editor. Removing it during code loading
 prevents construction; removing it during readiness suppresses late outputs and
@@ -205,6 +480,8 @@ or provide a substitute for it.
 This entry point supports value synchronization, composite touch, disabled/readonly
 state, native focus/reset hooks and explicit snapshots. Native legacy integration
 is supported within the boundaries described below. Schema availability rules control editing, but do not flush asynchronous saves.
+
+<!-- example-file: article-form.ts -->
 
 ```ts
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
@@ -335,7 +612,8 @@ The model holds the last successful published snapshot, subject to native Forms
 synchronization/debounce. It may lag a current edit; submitting or changing form
 validation state does not await Editor.js. Use the control's `save()` when submission
 requires a current snapshot, then validate that snapshot before persistence.
-Full SSR/hydration is not certified; legacy bindings have the limitations below.
+For SSR, follow the host hydration and pre-hydration safety contract above; legacy
+bindings have the limitations below.
 
 ### Existing reactive and template-driven forms
 
@@ -1010,8 +1288,9 @@ inputs listed above, `touch`, `ready`, `change`, `error`, `focus()`, `reset()` a
 from `@anarchitects/editorjs-core`.
 Applications own persistence records, storage mappings, migrations, transports,
 tool selection and rendering safety. No tool registry, uploader or application model
-is supplied. Forms is optional and isolated to the `/forms` entry point. Server-safe loading does not establish full
-SSR/hydration support. Editor.js remains an application-owned peer dependency.
+is supplied. Forms is optional and isolated to the `/forms` entry point. SSR and
+hydration require the host composition described above. Editor.js remains an
+application-owned peer dependency.
 
 Core implements document normalization, the shared operation queue, change coalescing
 and disposal guards. Angular adds signal inputs/outputs, dependency injection,
@@ -1020,13 +1299,13 @@ browser loading and component/holder ownership. Non-Angular integrations can use
 their own readiness, editor creation and destruction. See the
 [core package documentation](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/core#readme).
 
-| Need                             | Consumer responsibility / current boundary                                                                |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Angular Forms                    | Opt-in value binding, touch, availability, focus, reset and snapshots via `/forms`; no package-owned CVA. |
-| SSR/hydration                    | Import and empty server-holder safety only; no full hydration guarantee or hydration providers.           |
-| Tool registry and concrete tools | Supply compatible tools and their schemas; no registry or tool bundle is included.                        |
-| Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads.       |
-| Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.          |
+| Need                             | Consumer responsibility / current boundary                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Angular Forms                    | Opt-in value binding, touch, availability, focus, reset and snapshots via `/forms`; no package-owned CVA.     |
+| SSR/hydration                    | Supported profiles above; host owns providers, routes, initial data, native submission safety and deployment. |
+| Tool registry and concrete tools | Supply compatible tools and their schemas; no registry or tool bundle is included.                            |
+| Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads.           |
+| Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.              |
 
 Package versions are independent from document schema/tool versions. During `0.x`,
 review [release notes](https://github.com/anarchitects/anarchitecture-community/releases)

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { validateReadmeSsr } from './readme-ssr.mjs';
 
 /** Reuse the real fixture and its assertions; only installation/build roots differ. */
 export async function validatePackedSsr({
@@ -134,6 +135,15 @@ export async function validatePackedSsr({
       false,
       env,
     );
+  await validateReadmeSsr({
+    root,
+    report,
+    node,
+    workspace,
+    project,
+    tsconfig,
+    run,
+  });
 }
 
 async function buildMetadata(output) {

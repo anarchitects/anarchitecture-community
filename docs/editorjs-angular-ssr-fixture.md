@@ -5,7 +5,8 @@ and asynchronous lifetime evidence (#564), plus native Signal Forms hydration an
 pre-hydration safety (#565) and non-authoring route isolation (#566), from the
 [SSR contract](editorjs-angular-ssr-design.md). The packed SSR version matrix and CI
 gates (#567) run these same checks against installed artifacts. Public package
-support claims and the final release-readiness review remain separate (#568).
+support claims live in the README; the [consolidated release review](editorjs-angular-release-readiness.md)
+records #568's final assessment and executable packed README examples.
 
 ## Architecture review
 
@@ -507,4 +508,5 @@ core declarations without Angular/browser dependencies. Existing CSR browser
 coverage is retained. Evidence remains bounded to the documented interaction
 profiles, default route destruction, fixture tools and Chromium. It does not
 certify arbitrary tools, route-reuse strategies, nested hydration, other browsers
-or edge runtimes. Final consumer-facing support and release readiness remain #568.
+or edge runtimes. Consumer-facing support and the final release gates are recorded
+in the release review linked above.
