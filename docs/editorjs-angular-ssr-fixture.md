@@ -229,6 +229,34 @@ retained on failure. Existing server-import, request-isolation, core, Angular,
 root-without-Forms and CSR tests remain separate checks. These results certify only
 this bounded workspace fixture; the separate packed evidence is recorded below.
 
+### Ordinary defer activation during route delivery
+
+PR #576's hosted trace exposed a click before the lazy route had attached its
+interaction listener, even though the shell already reported `data-rendered=true`.
+The ordinary activation button now renders disabled on the server and becomes
+available after the owning route's browser render. This is a local control-readiness
+checkpoint, not a universal hydration-completion signal. Incremental activation
+and its replay contract remain separate.
+
+The failed-view-delivery test holds the route module while allowing the shell to
+render, checks the disabled button, then releases the route and exercises the
+loading, error and reload-recovery states. Both route and view assets are identified
+from build metadata. The regression fails against the previous fixture in both
+production and diagnostic profiles; no sleeps, retries or relaxed assertions are
+needed.
+
+The 2026-10-23 preflight read all eight local ADRs and all sixteen Meta records at
+`a66c525132cab0e59d12d55a92bb0d1830953f8e`, including proposed records, plus the
+applicable Angular and fixture guides. Accepted Modern Angular A05/A08/A09/A10
+require owned state and behavioral defer/hydration evidence; ADR 0004 keeps this
+record in contributor documentation. No decision conflict, dependency change or
+public package API change is involved.
+
+Local validation passed on Angular 22.1.4 / Node 24.22.1: twenty focused regression
+runs, the full workspace SSR, hydration and route-isolation targets, affected
+type checks and lint, formatting and diff checks. The hosted packed matrix remains
+an exact-commit CI gate.
+
 ## Native Signal Forms hydration and reset evidence (#565)
 
 The complete ADR and engineering-guide preflight was repeated for this slice on

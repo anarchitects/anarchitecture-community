@@ -104,38 +104,65 @@ test('ordinary defer shows loading and an actionable error on failed view delive
   ) as {
     outputs: Record<string, { inputs: Record<string, unknown> }>;
   };
-  const assets = Object.entries(stats.outputs)
-    .filter(
-      ([name, entry]) =>
-        name.endsWith('.js') &&
-        Object.keys(entry.inputs).some((input) =>
-          input.endsWith('/ssr/standalone-editor.ts'),
-        ),
-    )
-    .map(([name]) => name);
+  const assetsFor = (source: string) =>
+    Object.entries(stats.outputs)
+      .filter(
+        ([name, entry]) =>
+          name.endsWith('.js') &&
+          Object.keys(entry.inputs).some((input) =>
+            input.endsWith(`/ssr/${source}.ts`),
+          ),
+      )
+      .map(([name]) => name);
+  const assets = assetsFor('standalone-editor');
+  const routeAssets = assetsFor('deferred-page');
   expect(assets).toHaveLength(1);
-  await bootstrap(page, '/deferred', [], 0);
-  await expect(page.locator('main')).toHaveAttribute('data-rendered', 'true');
+  expect(routeAssets).toHaveLength(1);
+  let finishRoute!: () => void;
+  const routeGate = new Promise<void>((resolve) => {
+    finishRoute = resolve;
+  });
   let finish!: () => void;
   const gate = new Promise<void>((resolve) => {
     finish = resolve;
   });
-  await page.route(`**/${assets[0]}`, async (route) => {
-    await gate;
-    await route.fulfill({
-      status: 200,
-      contentType: 'text/javascript',
-      body: 'throw new Error("Injected deferred view failure");',
+  await bootstrap(page, '/deferred', [], 0, async () => {
+    await page.route(`**/${routeAssets[0]}`, async (route) => {
+      await routeGate;
+      await route.continue();
+    });
+    await page.route(`**/${assets[0]}`, async (route) => {
+      await gate;
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/javascript',
+        body: 'throw new Error("Injected deferred view failure");',
+      });
     });
   });
-  await page.getByRole('button', { name: 'Activate editor' }).click();
-  await expect(page.getByTestId('loading')).toBeVisible();
-  expect(await page.evaluate(() => window.hydrationTest.sessions)).toEqual([]);
-  finish();
-  await expect(page.getByRole('alert')).toContainText('Editor view failed');
-  expect(await page.evaluate(() => window.hydrationTest.sessions)).toEqual([]);
+  const activate = page.getByRole('button', { name: 'Activate editor' });
+  try {
+    await expect(page.locator('main')).toHaveAttribute('data-rendered', 'true');
+    // The shell can render while the route and its defer listener are still absent.
+    await expect(activate).toBeDisabled();
+    finishRoute();
+    await activate.click();
+    await expect(page.getByTestId('loading')).toBeVisible();
+    expect(await page.evaluate(() => window.hydrationTest.sessions)).toEqual(
+      [],
+    );
+    finish();
+    await expect(page.getByRole('alert')).toContainText('Editor view failed');
+    expect(await page.evaluate(() => window.hydrationTest.sessions)).toEqual(
+      [],
+    );
+  } finally {
+    finishRoute();
+    finish();
+  }
   // Reload clears the browser's failed module cache, then activation can retry delivery.
   await page.unroute(`**/${assets[0]}`);
+  await page.unroute(`**/${routeAssets[0]}`);
   await page.reload();
   await page.getByRole('button', { name: 'Activate editor' }).click();
   await ready(page);
