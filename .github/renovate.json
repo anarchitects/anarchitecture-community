@@ -1,0 +1,147 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "enabledManagers": ["npm", "pep621", "github-actions"],
+  "includePaths": [
+    "apps/editorjs/angular-e2e/package.json",
+    "apps/editorjs/angular-host/package.json",
+    "package.json",
+    "packages/better-auth/typeorm-adapter/package.json",
+    "packages/editorjs/angular/package.json",
+    "packages/editorjs/core/package.json",
+    "packages/governance/adapter-dbt/package.json",
+    "packages/governance/adapter-typescript/package.json",
+    "packages/governance/cli/package.json",
+    "packages/governance/core/package.json",
+    "packages/governance/extension-dbt/package.json",
+    "packages/governance/extension-typescript/package.json",
+    "packages/governance/runtime-dbt/package.json",
+    "packages/nest/angular-ssr/package.json",
+    ".yarnrc.yml",
+    "packages/governance/host-dbt/uv.lock",
+    "yarn.lock",
+    ".github/workflows/**",
+    ".github/actions/**",
+    "packages/governance/host-dbt/pyproject.toml"
+  ],
+  "timezone": "Europe/Brussels",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "semanticCommitScope": null,
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 1,
+  "automerge": false,
+  "platformAutomerge": false,
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
+  "osvVulnerabilityAlerts": false,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"],
+    "automerge": false
+  },
+  "packageRules": [
+    {
+      "description": "Override preset grouping; keep production updates and majors separate unless explicitly grouped below.",
+      "matchManagers": ["npm", "pep621", "github-actions"],
+      "groupName": null,
+      "automerge": false
+    },
+    {
+      "description": "Group ordinary development tools only for minor and patch updates.",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": [
+        "@eslint/js",
+        "@playwright/test",
+        "@swc-node/register",
+        "@swc/core",
+        "@swc/helpers",
+        "@swc/jest",
+        "@types/jest",
+        "@types/node",
+        "@typescript-eslint/parser",
+        "@typescript-eslint/utils",
+        "@vitest/coverage-v8",
+        "@vitest/ui",
+        "eslint",
+        "eslint-config-prettier",
+        "eslint-plugin-playwright",
+        "jest",
+        "jiti",
+        "jsdom",
+        "jsonc-eslint-parser",
+        "prettier",
+        "ts-jest",
+        "typescript",
+        "typescript-eslint",
+        "vite",
+        "vite-plugin-dts",
+        "vitest",
+        "webpack",
+        "webpack-cli",
+        "webpack-dev-server"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "development-updates"
+    },
+    {
+      "description": "Keep first-party Nx packages aligned; review and run required Nx migrations.",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["nx", "@nx/**"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "nx-updates"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "@angular/**",
+        "@angular-devkit/**",
+        "@schematics/angular",
+        "angular-eslint",
+        "ng-packagr"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "angular-updates"
+    },
+    {
+      "matchManagers": ["pep621"],
+      "matchPackageNames": ["autopep8", "pytest", "pytest-*", "ruff"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "python-development-updates"
+    },
+    {
+      "description": "Nest 11 is patch-only; Nest 12 adoption remains a separately reviewed migration.",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "@nestjs/common",
+        "@nestjs/core",
+        "@nestjs/testing",
+        "@nestjs/platform-*",
+        "@nestjs/microservices",
+        "@nestjs/websockets"
+      ],
+      "matchCurrentVersion": "11.x",
+      "matchUpdateTypes": ["minor", "major"],
+      "enabled": false
+    },
+    {
+      "description": "Keep major upgrades separate and require manual review for every update.",
+      "matchManagers": ["npm", "pep621", "github-actions"],
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "automerge": false
+    }
+  ],
+  "prBodyNotes": [
+    "Manual review required. Preserve existing runtime compatibility; package upgrades do not perform Nx migrations or authorize a Nest 12/Native migration.",
+    "For published packages, review the affected Nx projects and correct Conventional Commit/release intent before merging. No automatic publishing or merging."
+  ]
+}
