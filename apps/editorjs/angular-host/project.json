@@ -222,7 +222,8 @@
     },
     "build-hydration": {
       "executor": "nx:run-commands",
-      "cache": false,
+      "cache": true,
+      "parallelism": false,
       "options": {
         "commands": [
           "yarn nx run editorjs-angular-host:build-ssr:production",
@@ -230,18 +231,54 @@
           "yarn nx run editorjs-angular-host:build-ssr:full"
         ],
         "parallel": false
-      }
+      },
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/tsconfig.json"
+      ],
+      "outputs": [
+        "{workspaceRoot}/dist/apps/editorjs/angular-host-ssr",
+        "{workspaceRoot}/dist/apps/editorjs/angular-host-ssr-diagnostic",
+        "{workspaceRoot}/dist/apps/editorjs/angular-host-ssr-full"
+      ]
     },
     "build-isolation": {
       "executor": "nx:run-commands",
-      "cache": false,
+      "cache": true,
+      "parallelism": false,
       "options": {
         "commands": [
           "yarn nx run editorjs-angular-host:build-ssr:production",
           "yarn nx run editorjs-angular-host:build-ssr:eager-control"
         ],
         "parallel": false
-      }
+      },
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/tsconfig.json"
+      ],
+      "outputs": [
+        "{workspaceRoot}/dist/apps/editorjs/angular-host-ssr",
+        "{workspaceRoot}/dist/apps/editorjs/angular-host-ssr-eager"
+      ]
     }
   },
   "implicitDependencies": ["editorjs-angular"]

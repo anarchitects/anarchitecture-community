@@ -48,7 +48,20 @@
           "extractLicenses": false,
           "sourceMap": true
         }
-      }
+      },
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/apps/fixtures/nest-angular-split/tsconfig.base.json"
+      ]
     },
     "serve": {
       "continuous": true,
@@ -76,7 +89,22 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "tsc --noEmit -p apps/fixtures/nest-angular-split/frontend/tsconfig.app.json"
-      }
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/apps/fixtures/nest-angular-split/tsconfig.base.json"
+      ],
+      "outputs": []
     }
   }
 }

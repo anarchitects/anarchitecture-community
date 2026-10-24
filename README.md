@@ -181,6 +181,11 @@ Key v1 references:
 - Add docs and tests with each public API addition.
 - Treat examples as validation surfaces, not product packages.
 
+CI caches deterministic builds and checks with declared inputs and outputs.
+Browser, server, database and fresh packed-consumer checks retain their runtime
+validation. See the [CI cache contracts and performance findings](docs/editorjs-angular-ssr-fixture.md#ci-cache-implementation-2026-10-24)
+for the covered tasks, restoration evidence and remaining setup optimizations.
+
 ## Relationship To Anarchitecture Bricks
 
 This repo complements, but does not replace, the main Bricks monorepo.

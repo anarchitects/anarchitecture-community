@@ -169,8 +169,9 @@ against three owned Node servers. It never reuses a developer server:
 The shared server/browser `full` build replacement supplies
 `withNoIncrementalHydration()` and `withEventReplay()`. Both profiles disable HTTP
 transfer caching. The production output remains `angular-host-ssr`; the other
-outputs append `-diagnostic` and `-full`. The uncached `build-hydration` aggregate
-runs those cacheable builds sequentially; the browser target is also uncached.
+outputs append `-diagnostic` and `-full`. The cacheable `build-hydration` aggregate
+runs those builds sequentially on a miss and restores all three output directories
+on a hit. The browser target remains uncached.
 No library hydration provider, private Angular flag, skip-hydration exception,
 second queue or timing-based activation policy is introduced.
 
@@ -286,7 +287,7 @@ Ubuntu downloaded 25.9 MB of OS packages in 9m39s, while the browser downloads
 took about nine seconds. These are observations from one run, not steady-state
 benchmarks.
 
-The resolved Nx graph has 60 cacheable targets among the 66 targets named
+At the time of this audit, the resolved Nx graph had 60 cacheable targets among the 66 targets named
 `build`, `test`, `lint` or `typecheck`. There is room to extend caching, but the
 remaining targets need explicit contracts before enabling it:
 
@@ -299,10 +300,10 @@ remaining targets need explicit contracts before enabling it:
 | dbt `test`                              | First pin/hash the Python/dbt toolchain and account for `dbt deps` and database state.                            |
 | Core Node 22 baseline                   | Hash the Node runtime before replacing the intentional `--skipNxCache`; a Node 24 result cannot certify Node 22.  |
 
-SSR builds already cache each build configuration. The uncached hydration and
-isolation aggregate targets invoke those cached builds. Exposing the individual
-builds as task-graph dependencies would improve scheduling; caching the wrappers
-alone would not safely restore every build directory. Fresh process/browser and
+SSR builds already cache each build configuration. At audit time the hydration
+and isolation aggregate targets were uncached wrappers around those builds.
+Caching those wrappers requires declaring every build directory as an output;
+the implementation below supplies that contract. Fresh process/browser and
 packed-consumer checks remain uncached under the validation contract above.
 Changing that contract requires separating reusable checks from fresh release
 evidence, especially because packed installs resolve transitive npm dependencies
@@ -320,8 +321,87 @@ can distribute cacheable independent tasks. The existing compatibility matrices
 already use separate GitHub machines. Evaluate Agents on the main job after
 declaring missing cache contracts, with a launch template providing its Python,
 uv and dbt requirements. The commented JavaScript-only example in `ci.yml` is
-not a complete configuration for this workspace. This audit changes neither
-runner provisioning nor the fresh-evidence policy.
+not a complete configuration for this workspace.
+
+### CI cache implementation (2026-10-24)
+
+Before implementation, all eight local ADRs and all sixteen Meta records were
+enumerated and read at Meta commit `a66c525132cab0e59d12d55a92bb0d1830953f8e`.
+The relevant Governance, Nest consumer and Modern Angular engineering guides
+were also reviewed. Local ADRs 0001–0003 retain package boundaries; 0004 keeps
+contributor instructions and packed documentation consistent; 0005–0006 preserve
+the real CJS/ESM and split Nest/Angular consumers; Modern Angular A01/A09/A10
+retain fresh compatibility and hydration evidence. ADR 0007 permits an unscoped
+repository CI commit without a package version bump. Proposed Meta records do
+not override accepted decisions. No conflict or public contract change was found.
+
+Ten additional targets now have explicit cache contracts:
+
+| Targets                                        | Cache contract                                                                                                                                                         |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Split Nest frontend/backend `typecheck`        | Project/dependency inputs, shared TypeScript config, lockfile and Node runtime; backend builds its referenced package first.                                           |
+| Nest CJS/ESM consumer `build`                  | The same source/runtime boundaries and complete `dist` outputs.                                                                                                        |
+| Split Nest backend `fixture-build`             | Backend `dist`, frontend build dependency, root config and runtime inputs; exclusive local scheduling avoids overlapping its inferred build output.                    |
+| dbt `validate`, `pack`, `build`                | Project source, Git ignore rules and pack script inputs; `pack` owns `dist`, while `build` restores it through its dependency.                                         |
+| Editor.js `build-hydration`, `build-isolation` | All three hydration and both isolation output directories, project/dependency/config/runtime inputs and exclusive local scheduling for their shared production output. |
+
+The resolved graph now caches 65 of 66 targets named `build`, `test`, `lint` or
+`typecheck`; dbt's database `test` remains uncached. The already-cacheable split
+frontend build also hashes the shared fixture
+TypeScript configuration. Node-dependent targets added here hash the exact Node
+version, platform, architecture and `NODE_OPTIONS`; dbt source assembly hashes
+the Node version/platform/architecture. Core build, test, lint and typecheck now
+separate Node 22.12.0 from Node 24, allowing the minimum-runtime CI job to use
+cache safely. A shared configuration change invalidates affected type checks.
+
+The dbt packer copies tracked and nonignored untracked source files. It excludes
+ignored `.user.yml`, lockfiles, DuckDB databases and other runtime state that Nx
+does not hash. The previous broad `rsync` could include such files. The packer
+still works before new source files have been staged; no runtime package depends
+on Nx or this repository tool.
+
+Local validation on Node 24.22.1 included a cold fixture/dbt run, then removal of
+five output directories and byte-for-byte comparison after cache restoration:
+14/14 tasks hit cache in 500 ms versus 8.8 s for the initial run. Hydration and
+isolation wrappers restored all four distinct build directories exactly in
+347 ms; the previous hydration wrapper alone took 7.4 s even with all nested
+builds cached. Core checks ran independently on Node 22.12.0, then reused 4/4
+results on each runtime. Source additions invalidated dbt packing, ignored
+database state stayed out of the artifact, and a shared TypeScript configuration
+edit invalidated the frontend check. These are local observations, not hosted
+CI timing guarantees. Fresh SSR, hydration, isolation, packed Nest CJS/ESM
+consumers and the split Angular/Nest fixture also passed.
+
+Uncached work can be accelerated without reusing its result:
+
+- **Browser setup:** CI uses `install-browsers:ci`, which installs Chromium with
+  `--with-deps --only-shell`. All current suites use the default headless Chromium
+  channel. The ordinary local target still installs full Chromium for headed
+  debugging. [Playwright documents this headless-shell option](https://playwright.dev/docs/browsers#chromium-headless-shell).
+  A version-matched [Playwright image](https://playwright.dev/docs/docker) is the
+  next experiment for removing apt variability. Measure image pulls and enforce
+  alignment with the installed Playwright version before adopting it; ordinary
+  browser caching does not remove OS dependency installation.
+- **Fresh packed consumers:** retain fresh directories and registry resolution,
+  but consider restoring npm's content-addressed download cache between jobs.
+  The split Nest validator already reuses a temporary npm cache; Editor.js and
+  the Nest matrix currently discard their task-owned caches. Cache downloads,
+  not `node_modules`, lockfile-free resolution results or the validation result.
+- **Database checks:** dbt tests remain uncached because they resolve external
+  dependencies and mutate database state. Pinning the Python/dbt environment
+  and restoring package downloads would reduce setup. PostgreSQL integration
+  suites could share a job-scoped container with isolated databases, after
+  verifying isolation; no container lifecycle change is included here.
+- **Scheduling:** compatibility cells already run on separate GitHub machines.
+  More browser sharding duplicates server/build setup and needs isolated ports.
+  Evaluate Nx Agents for independent cacheable main-job tasks with a complete
+  Python/uv/dbt launch environment. Distribution does not replace the uncached
+  runtime gates or fix browser assertion failures.
+
+Linux dependency installation and hosted performance require a CI run; local
+browser-install dry-run confirmed that CI requests headless shell and FFmpeg,
+without the full Chromium download. Runner images and Nx Agents remain follow-up
+experiments, not changes enabled by this implementation.
 
 ## Native Signal Forms hydration and reset evidence (#565)
 
@@ -429,7 +509,8 @@ still returned `Unexpected response type`.
 
 `e2e-isolation` runs ten Chromium cases against two owned production Node servers:
 the ordinary build on port 4323 and an intentionally eager control on 4324. The
-uncached `build-isolation` aggregate builds them sequentially. The eager control
+cacheable `build-isolation` aggregate builds them sequentially on a miss and
+restores both output directories on a hit. The eager control
 uses a separate browser entry and output directory (`angular-host-ssr-eager`),
 statically imports the real Editor.js constructor and retains it on `window`.
 It never creates an editor. This entry is excluded from ordinary CSR and packed

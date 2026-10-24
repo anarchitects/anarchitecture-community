@@ -49,9 +49,12 @@ false`. The repository-only source condition must not be enabled in this consume
 | Editor.js 2.31.7 | Pinned dev-only declarations check document and tool-settings compatibility                                         | No editor instance, plugin runtime, or full Editor.js version matrix                            |
 | Data and plugins | Parsing/normalization, IDs, synchronous tool validators, upload contracts, provenance and future versions           | No HTML sanitization, storage implementation, automatic migration, or concrete tool integration |
 
-Keep the dedicated minimum-runtime job and the main job green. The minimum-runtime
-job bypasses Nx cache so it cannot reuse Node 24 results. Nx inputs include
-README changes so packed documentation checks cannot reuse a stale test result.
+Keep the dedicated minimum-runtime job and the main job green. Core build,
+typecheck, test and lint inputs hash the exact Node version, platform, architecture
+and `NODE_OPTIONS`, so the minimum-runtime job can reuse Node 22 results without
+accepting Node 24 evidence. Inputs also cover the lockfile, root TypeScript
+configuration and README; lint includes the shared ESLint rules and tests hash
+`CI`. Build inputs retain the production exclusions used by dependency checking.
 Do not replace packed consumers with source-alias tests. Update the public export
 table, type-only fixture, runtime export assertion, and examples together when an
 intentional public API change is made.
