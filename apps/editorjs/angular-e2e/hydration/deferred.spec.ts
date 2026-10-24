@@ -126,26 +126,43 @@ test('ordinary defer shows loading and an actionable error on failed view delive
   const gate = new Promise<void>((resolve) => {
     finish = resolve;
   });
-  await bootstrap(page, '/deferred', [], 0, async () => {
-    await page.route(`**/${routeAssets[0]}`, async (route) => {
-      await routeGate;
-      await route.continue();
-    });
-    await page.route(`**/${assets[0]}`, async (route) => {
-      await gate;
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/javascript',
-        body: 'throw new Error("Injected deferred view failure");',
-      });
+  // Register before navigation: packed SSR HTML can preload either module.
+  await page.route(`**/${routeAssets[0]}`, async (route) => {
+    await routeGate;
+    await route.continue();
+  });
+  await page.route(`**/${assets[0]}`, async (route) => {
+    await gate;
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/javascript',
+      body: 'throw new Error("Injected deferred view failure");',
     });
   });
   const activate = page.getByRole('button', { name: 'Activate editor' });
   try {
-    await expect(page.locator('main')).toHaveAttribute('data-rendered', 'true');
-    // The shell can render while the route and its defer listener are still absent.
-    await expect(activate).toBeDisabled();
-    finishRoute();
+    const routeRequested = page.waitForRequest(`**/${routeAssets[0]}`);
+    await Promise.all([
+      bootstrap(page, '/deferred', [], 0, async () => {
+        // Exercise early preloading even when the builder does not emit this hint.
+        await page.evaluate((asset) => {
+          const preload = document.createElement('link');
+          preload.rel = 'modulepreload';
+          preload.href = `/${asset}`;
+          document.head.append(preload);
+        }, routeAssets[0]);
+        await routeRequested;
+      }),
+      (async () => {
+        await expect(page.locator('main')).toHaveAttribute(
+          'data-rendered',
+          'true',
+        );
+        // Shell rendering does not imply that the route's listener is installed.
+        await expect(activate).toBeDisabled();
+        finishRoute();
+      })(),
+    ]);
     await activate.click();
     await expect(page.getByTestId('loading')).toBeVisible();
     expect(await page.evaluate(() => window.hydrationTest.sessions)).toEqual(

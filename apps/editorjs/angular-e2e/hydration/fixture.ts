@@ -175,7 +175,8 @@ export async function bootstrap(
   });
   await page.route('**/*.js', async (route) => {
     await gate;
-    await route.continue();
+    // Preserve pre-navigation interceptors, including modules requested by preload hints.
+    await route.fallback();
   });
   const response = await page.goto(path, { waitUntil: 'commit' });
   if (!response) throw new Error('Expected an SSR response');
