@@ -7,8 +7,21 @@
   "targets": {
     "fixture-build": {
       "executor": "nx:run-commands",
+      "parallelism": false,
       "dependsOn": ["nest-angular-split-frontend:fixture-build", "^build"],
-      "inputs": ["default", "^default"],
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/tsconfig.json"
+      ],
       "options": {
         "command": "webpack-cli build",
         "env": {
@@ -22,7 +35,9 @@
             "NODE_ENV": "development"
           }
         }
-      }
+      },
+      "cache": true,
+      "outputs": ["{projectRoot}/dist"]
     },
     "prune-lockfile": {
       "dependsOn": ["fixture-build"],
@@ -79,7 +94,23 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "tsc --noEmit -p apps/fixtures/nest-angular-split/backend/tsconfig.app.json"
-      }
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/apps/fixtures/nest-angular-split/tsconfig.base.json"
+      ],
+      "outputs": ["{projectRoot}/dist/tsconfig.app.tsbuildinfo"],
+      "dependsOn": ["^build"]
     }
   }
 }

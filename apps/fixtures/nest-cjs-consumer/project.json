@@ -12,7 +12,21 @@
       "options": {
         "command": "npm run build",
         "cwd": "apps/fixtures/nest-cjs-consumer"
-      }
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        }
+      ],
+      "outputs": ["{projectRoot}/dist"]
     },
     "serve": {
       "continuous": true,

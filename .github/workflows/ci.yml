@@ -28,8 +28,8 @@ jobs:
           node-version: 22.12.0
           cache: 'yarn'
       - run: yarn install --immutable
-      # Avoid reusing results produced on Node 24 by the main job.
-      - run: yarn nx run-many -p editorjs-core -t build typecheck test lint --skipNxCache
+      # Runtime-specific inputs keep Node 22 and Node 24 cache results separate.
+      - run: yarn nx run-many -p editorjs-core -t build typecheck test lint
 
   better-auth-typeorm-adapter-compatibility:
     name: better-auth-typeorm-adapter (Node ${{ matrix.node }}, TypeORM ${{ matrix.typeorm }})
@@ -98,7 +98,7 @@ jobs:
           node-version: 24
           cache: 'yarn'
       - run: yarn install --immutable
-      - run: yarn nx run editorjs-angular-e2e:install-browsers --with-deps
+      - run: yarn nx run editorjs-angular-e2e:install-browsers:ci
       - run: yarn nx run editorjs-angular-e2e:e2e
       - uses: actions/upload-artifact@v4
         if: always()
@@ -129,7 +129,7 @@ jobs:
           node-version: 24
           cache: 'yarn'
       - run: yarn install --immutable
-      - run: yarn nx run editorjs-angular-e2e:install-browsers --with-deps
+      - run: yarn nx run editorjs-angular-e2e:install-browsers:ci
       - run: yarn nx run editorjs-angular-e2e:e2e-packed --cell=${{ matrix.cell }}
       - uses: actions/upload-artifact@v4
         if: always()
@@ -153,7 +153,7 @@ jobs:
           node-version: 24
           cache: 'yarn'
       - run: yarn install --immutable
-      - run: yarn nx run editorjs-angular-e2e:install-browsers --with-deps
+      - run: yarn nx run editorjs-angular-e2e:install-browsers:ci
       - run: yarn nx run editorjs-angular-e2e:test-ssr
       - run: yarn nx run editorjs-angular-e2e:e2e-hydration
       - run: yarn nx run editorjs-angular-e2e:e2e-isolation
@@ -189,7 +189,7 @@ jobs:
           node-version: 24
           cache: 'yarn'
       - run: yarn install --immutable
-      - run: yarn nx run editorjs-angular-e2e:install-browsers --with-deps
+      - run: yarn nx run editorjs-angular-e2e:install-browsers:ci
       - run: yarn nx run editorjs-angular-e2e:e2e-packed-ssr --cell=${{ matrix.cell }}
       - uses: actions/upload-artifact@v4
         if: always()

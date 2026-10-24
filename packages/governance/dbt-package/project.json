@@ -33,7 +33,16 @@
           "test -f packages/governance/dbt-package/tests/fixtures/smoke/models/schema.yml"
         ],
         "parallel": false
-      }
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "{workspaceRoot}/.gitignore",
+        "{workspaceRoot}/tools/fixtures/pack-governance-dbt-package.mjs",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        }
+      ]
     },
     "test": {
       "executor": "nx:run-commands",
@@ -56,27 +65,42 @@
           "dbt run-operation governance_print_profile_template --profiles-dir ."
         ],
         "parallel": false
-      }
+      },
+      "cache": false
     },
     "pack": {
       "executor": "nx:run-commands",
       "dependsOn": ["validate"],
       "outputs": ["{projectRoot}/dist"],
       "options": {
-        "commands": [
-          "mkdir -p packages/governance/dbt-package/dist",
-          "rsync -a --delete --exclude dist --exclude target --exclude dbt_packages --exclude logs packages/governance/dbt-package/ packages/governance/dbt-package/dist/"
-        ],
-        "parallel": false
-      }
+        "command": "node tools/fixtures/pack-governance-dbt-package.mjs"
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "{workspaceRoot}/.gitignore",
+        "{workspaceRoot}/tools/fixtures/pack-governance-dbt-package.mjs",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        }
+      ]
     },
     "build": {
       "executor": "nx:run-commands",
       "dependsOn": ["pack"],
-      "outputs": ["{projectRoot}/dist"],
+      "outputs": [],
       "options": {
         "command": "echo 'dbt package assembled by pack target.'"
-      }
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "{workspaceRoot}/.gitignore",
+        "{workspaceRoot}/tools/fixtures/pack-governance-dbt-package.mjs",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        }
+      ]
     },
     "nx-release-publish": {
       "executor": "nx:run-commands",

@@ -31,6 +31,12 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "playwright install chromium"
+      },
+      "cache": false,
+      "configurations": {
+        "ci": {
+          "command": "playwright install chromium --with-deps --only-shell"
+        }
       }
     },
     "e2e-packed": {
@@ -59,8 +65,12 @@
         "default",
         "^production",
         "{workspaceRoot}/yarn.lock",
-        { "runtime": "node --version" },
-        { "env": "CI" }
+        {
+          "runtime": "node --version"
+        },
+        {
+          "env": "CI"
+        }
       ],
       "outputs": ["{projectRoot}/test-output/ssr-compatibility"],
       "options": {
