@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { EDITOR_JS_LOADER } from '@anarchitects/editorjs-angular';
 import { RequestState } from './request-state';
@@ -39,7 +45,9 @@ import { StandaloneEditor } from './standalone-editor';
         </p>
       }
     } @else {
-      <button #activate type="button">Activate editor</button>
+      <button #activate type="button" [disabled]="!rendered()">
+        Activate editor
+      </button>
       @defer (on interaction(activate)) {
         <aa-standalone-editor
           data-owner="A"
@@ -59,8 +67,14 @@ import { StandaloneEditor } from './standalone-editor';
   `,
 })
 export class DeferredPage {
+  readonly rendered = signal(false);
   readonly state = inject(RequestState);
   readonly incremental =
     inject(ActivatedRoute).snapshot.data['incremental'] === true;
   activated = false;
+
+  constructor() {
+    // Shell rendering does not establish that this lazy route's listeners exist.
+    afterNextRender(() => this.rendered.set(true));
+  }
 }

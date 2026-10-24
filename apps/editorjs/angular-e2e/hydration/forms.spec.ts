@@ -167,7 +167,9 @@ test('keyboard edits, composite focus, native validation and explicit snapshot s
   await page.keyboard.press('Enter');
   await page.keyboard.type('Second block');
   await expect(state(page)).toHaveAttribute('data-touched', 'false');
-  await form(page).getByRole('textbox').click();
+  await form(page)
+    .getByRole('textbox', { name: 'Private fixture note', exact: true })
+    .click();
   await expect(state(page)).toHaveAttribute('data-touched', 'true');
   await expect(form(page).getByTestId('touches')).toHaveText('1');
   await button(page, 'Reset empty').click();

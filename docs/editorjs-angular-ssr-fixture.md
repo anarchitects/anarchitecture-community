@@ -5,7 +5,8 @@ and asynchronous lifetime evidence (#564), plus native Signal Forms hydration an
 pre-hydration safety (#565) and non-authoring route isolation (#566), from the
 [SSR contract](editorjs-angular-ssr-design.md). The packed SSR version matrix and CI
 gates (#567) run these same checks against installed artifacts. Public package
-support claims and the final release-readiness review remain separate (#568).
+support claims live in the README; the [consolidated release review](editorjs-angular-release-readiness.md)
+records #568's final assessment and executable packed README examples.
 
 ## Architecture review
 
@@ -227,6 +228,100 @@ console messages, actual versions, the workspace lockfile, build metadata and se
 retained on failure. Existing server-import, request-isolation, core, Angular,
 root-without-Forms and CSR tests remain separate checks. These results certify only
 this bounded workspace fixture; the separate packed evidence is recorded below.
+
+### Ordinary defer activation during route delivery
+
+PR #576's hosted trace exposed a click before the lazy route had attached its
+interaction listener, even though the shell already reported `data-rendered=true`.
+The ordinary activation button now renders disabled on the server and becomes
+available after the owning route's browser render. This is a local control-readiness
+checkpoint, not a universal hydration-completion signal. Incremental activation
+and its replay contract remain separate.
+
+The failed-view-delivery test holds the route module while allowing the shell to
+render, checks the disabled button, then releases the route and exercises the
+loading, error and reload-recovery states. Both route and view assets are identified
+from build metadata. The regression fails against the previous fixture in both
+production and diagnostic profiles; no sleeps, retries or relaxed assertions are
+needed.
+
+The subsequent packed CI run exposed a separate interception-order bug in this
+regression: emitted HTML could preload the route before the test registered its
+handler. The bootstrap handler's `continue()` also bypassed other handlers. Both
+module handlers now register before navigation, and bootstrap uses `fallback()`
+after releasing its script gate. The test explicitly adds a module-preload hint
+before bootstrap so workspace builds exercise this ordering too. It checks shell
+rendering and releases the route concurrently with the load-state wait, avoiding
+a dependency on whether a builder's preload delays the page load event.
+
+The 2026-10-23 preflight read all eight local ADRs and all sixteen Meta records at
+`a66c525132cab0e59d12d55a92bb0d1830953f8e`, including proposed records, plus the
+applicable Angular and fixture guides. Accepted Modern Angular A05/A08/A09/A10
+require owned state and behavioral defer/hydration evidence; ADR 0004 keeps this
+record in contributor documentation. No decision conflict, dependency change or
+public package API change is involved.
+
+Local validation passed on Angular 22.1.4 / Node 24.22.1: twenty focused regression
+runs, the full workspace SSR, hydration and route-isolation targets, affected
+type checks and lint, formatting and diff checks. The hosted packed matrix remains
+an exact-commit CI gate.
+
+The 2026-10-24 interception correction passed the complete uncached packed SSR
+matrix on all three Angular/Node cells, including 118 hydration, 10 isolation and
+13 README browser cases per cell, plus the existing package, Forms, CSR and
+server checks. The full workspace hydration suite (118 cases), affected lint and
+type checks, formatting and diff checks also passed. Reverting bootstrap to
+`continue()` made the forced-preload regression fail in both profiles. An earlier
+local matrix attempt was interrupted by system sleep; the successful clean run
+inhibited idle sleep for the command and completed in 9m14s. Hosted exact-commit
+CI remains separate evidence.
+
+### CI distribution and cache audit (2026-10-24)
+
+The [failed hosted run](https://github.com/anarchitects/anarchitecture-community/actions/runs/39980527553)
+failed the same interception assertion in all three packed SSR cells. Task
+distribution does not address that failure. Its completed workspace SSR job took
+14m46s, versus 3m36s for the main job. Browser installation consumed 10m14s:
+Ubuntu downloaded 25.9 MB of OS packages in 9m39s, while the browser downloads
+took about nine seconds. These are observations from one run, not steady-state
+benchmarks.
+
+The resolved Nx graph has 60 cacheable targets among the 66 targets named
+`build`, `test`, `lint` or `typecheck`. There is room to extend caching, but the
+remaining targets need explicit contracts before enabling it:
+
+| Candidate                               | Required work                                                                                                     |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Split Nest frontend/backend `typecheck` | Declare source, dependency and shared TypeScript configuration inputs; verify no-emit checks restore correctly.   |
+| Nest CJS/ESM consumer `build`           | Declare emitted outputs and dependency/configuration inputs, then verify restoration on a clean output directory. |
+| Split Nest backend `fixture-build`      | Declare outputs and preserve the frontend fixture dependency; avoid conflicting with its inferred `build` output. |
+| dbt `validate`, `pack`, `build`         | Cache the actual packing task with complete inputs/outputs, not just the final echo wrapper.                      |
+| dbt `test`                              | First pin/hash the Python/dbt toolchain and account for `dbt deps` and database state.                            |
+| Core Node 22 baseline                   | Hash the Node runtime before replacing the intentional `--skipNxCache`; a Node 24 result cannot certify Node 22.  |
+
+SSR builds already cache each build configuration. The uncached hydration and
+isolation aggregate targets invoke those cached builds. Exposing the individual
+builds as task-graph dependencies would improve scheduling; caching the wrappers
+alone would not safely restore every build directory. Fresh process/browser and
+packed-consumer checks remain uncached under the validation contract above.
+Changing that contract requires separating reusable checks from fresh release
+evidence, especially because packed installs resolve transitive npm dependencies
+again on each run.
+
+The first performance experiment should be a version-matched Playwright container
+or agent image with OS dependencies installed. Ordinary browser-binary caching
+does not eliminate the measured apt delay; Playwright also
+[does not recommend it by default](https://playwright.dev/docs/ci#caching-browsers).
+Keep the container version aligned with the installed Playwright version and
+measure image-pull time against the existing setup.
+
+[Nx Agents](https://nx.dev/docs/features/ci-features/distribute-task-execution)
+can distribute cacheable independent tasks. The existing compatibility matrices
+already use separate GitHub machines. Evaluate Agents on the main job after
+declaring missing cache contracts, with a launch template providing its Python,
+uv and dbt requirements. The commented JavaScript-only example in `ci.yml` is
+not a complete configuration for this workspace. This audit changes neither
+runner provisioning nor the fresh-evidence policy.
 
 ## Native Signal Forms hydration and reset evidence (#565)
 
@@ -507,4 +602,5 @@ core declarations without Angular/browser dependencies. Existing CSR browser
 coverage is retained. Evidence remains bounded to the documented interaction
 profiles, default route destruction, fixture tools and Chromium. It does not
 certify arbitrary tools, route-reuse strategies, nested hydration, other browsers
-or edge runtimes. Final consumer-facing support and release readiness remain #568.
+or edge runtimes. Consumer-facing support and the final release gates are recorded
+in the release review linked above.

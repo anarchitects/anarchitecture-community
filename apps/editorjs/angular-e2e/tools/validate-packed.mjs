@@ -423,12 +423,22 @@ async function assertDocumentation(root) {
       'utf8',
     ),
   );
-  const examples = [...readme.matchAll(/```ts\n([\s\S]*?)```/g)];
+  const examples = [
+    ...readme.matchAll(
+      /(?:<!-- (ssr-)?example-file: ([\w.-]+) -->\s*)?```ts\n([\s\S]*?)```/g,
+    ),
+  ];
   assert(examples.length >= 4, 'Expected all documented TypeScript examples');
   const directory = join(root, 'examples');
   await mkdir(directory);
-  for (const [index, match] of examples.entries())
-    await writeFile(join(directory, `readme-${index}.ts`), match[1]);
+  for (const [index, match] of examples.entries()) {
+    // SSR recipes require host peers absent from the independent CSR consumer.
+    if (match[1] && mode !== 'ssr') continue;
+    await writeFile(
+      join(directory, match[2] ?? `readme-${index}.ts`),
+      match[3],
+    );
+  }
   for (const fixture of [
     'consumer.ts',
     'forms-consumer.ts',

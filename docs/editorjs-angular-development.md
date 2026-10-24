@@ -5,9 +5,11 @@ Consumer-facing behavior is documented in the
 [package README](../packages/editorjs/angular/README.md).
 
 The [SSR and hydration contract](editorjs-angular-ssr-design.md) defines #69's
-rendering modes, ownership, private fixture arrangement and evidence gates. #562
-adds that design record only; public SSR/hydration support remains unestablished
-until the server/browser and packed-consumer implementation slices are validated.
+rendering modes and ownership. The [fixture evidence](editorjs-angular-ssr-fixture.md)
+and [consolidated release review](editorjs-angular-release-readiness.md) record the
+completed bounded SSR/hydration support and packed README verification through #568.
+The implementation sections below preserve their historical scope; their earlier
+“remains #69” statements are superseded by that review, not broader support claims.
 
 ## Implementation boundary
 
@@ -557,7 +559,7 @@ updated during versioning, and publishing targets the generated APF directory.
 Dist manifests remove local dependency protocols. Core must be available at a
 compatible version before an external consumer can install the wrapper.
 
-Use `init:` for this new package scaffold. The existing manual release workflow
-uses `--skip-publish`; creating or merging the scaffold does not publish it. Keep
-the README's forms/hydration limitations until those implementations exist, and
-complete #67's release-readiness checks before advertising a working editor.
+Use `init` with the exact affected Nx project scopes for this package work. The
+manual release workflow uses `--skip-publish`; merging does not publish a package.
+Apply the consolidated release review's exact-commit checks, bounded support and
+semver assessment before release. The prefix is not a version classification.
