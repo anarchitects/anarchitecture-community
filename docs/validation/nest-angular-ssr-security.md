@@ -102,17 +102,31 @@ hosted CI results are still required on the reviewed commit.
 
 ## Release and adoption gates
 
-The npm registry still reports `@anarchitects/nest-angular-ssr@0.3.1`. These
-changes are unpublished, and local tarballs retain that baseline version until
-Nx release assigns a new one. Do not upload them as a replacement for 0.3.1.
-Use `fix(nest-angular-ssr): ...` release intent and the existing reviewed
-release/publish workflows; verify the selected version against any other
-unreleased commits before releasing a maintenance patch.
+`@anarchitects/nest-angular-ssr@0.3.2` was manually published by the maintainer
+on 2026-10-25. npm metadata verified that day identifies:
 
-Before FoF adoption, record the reviewed commit, green hosted CI, exact new
-package version/tag, npm tarball integrity and packed runtime results. Then
-adopt that immutable version under FoF #163. No published fix or hosted CI link
-is claimed by this local validation record.
+- [Published package](https://www.npmjs.com/package/@anarchitects/nest-angular-ssr/v/0.3.2)
+  and [immutable tarball](https://registry.npmjs.org/@anarchitects/nest-angular-ssr/-/nest-angular-ssr-0.3.2.tgz).
+- Release tag: `nest-angular-ssr@0.3.2`; npm `gitHead`:
+  `ae31ea974a6659efaee7746b2831db80ba35445e`.
+- npm integrity:
+  `sha512-TZYeSr+wZ3EhkgaP+7ELvxk5/VtMpLoQEmAvOnpJ9s4bRDbI1ZlJvpXo4yZQDAHeqZW0jXFPhJz/uWfmVSCecw==`.
+
+The [publication validation run](https://github.com/anarchitects/anarchitecture-community/actions/runs/40178049767/job/121122924963)
+passed all 99 unit tests, both packed security-conformance checks and direct
+CJS/ESM consumer checks, but the Ubuntu consumer runner did not exit. The run
+was **cancelled**, completing cancellation at 08:58 UTC. The affected PR/main
+runs were also cancelled at the maintainer's request; macOS consumers and the
+other 16 jobs passed in those runs. These are partial results, **not green full
+pipelines**. [Community #590](https://github.com/anarchitects/anarchitecture-community/issues/590)
+tracks the runner defect and exit verification separately from publication.
+Do not republish or replace immutable npm version 0.3.2.
+
+FoF adoption remains separately tracked in
+[FoF #163](https://github.com/anarchitects/fitoverforty/issues/163). Record the
+reviewed consumer commit, green hosted CI and packed runtime results when
+adopting the published artifact; local runner validation does not establish
+hosted CI success or completed deployment.
 
 Deployment prerequisites: upgrade the Nest Fastify adapter to at least 11.1.29,
 retain the independent host Fastify security patch (including Nest's nested
@@ -125,3 +139,47 @@ registration (`enabled: false`), serve public browser output at a patched
 edge/static server and retain Nest for API traffic. SSR rendering is lost in
 that fallback; returning to the vulnerable static dependency is not a security
 rollback. No deployment, publication or FoF source change is performed here.
+
+## Consumer runner lifecycle — #590
+
+The follow-up preflight read all eight local ADRs and all 17 Meta ADR records
+at Meta commit `71c46b1d044804f4b8eeaa062537d1b2d72a9c04`, including proposed
+and historical records. The accepted decisions and guide constraints above
+still apply; no conflict or public runtime/support change was introduced.
+
+Packed CJS/ESM attempts now launch `process.execPath` with `dist/main.js`
+directly. Startup and HTTP assertions share cleanup, including spawn failure,
+early exit and startup timeout. On Ubuntu/macOS the runner owns a separate
+process group, sends SIGTERM, allows two seconds for closure, then sends
+SIGKILL to any remaining group and allows two more seconds. It observes pipe
+closure as well as process exit and releases its pipe handles even if shutdown
+fails. SIGINT/SIGTERM abort pending requests, clean up the group and preserve
+nonzero interruption status. Readiness probes and assertion requests have
+bounded timeouts.
+
+`test-nest-angular-ssr-consumer-lifecycle` runs before the consumer task, so the
+existing Ubuntu/macOS CI jobs and the publication validation gate both include
+it. Its subprocess tests assert runner exit, stopped server/descendant PIDs and
+reusable ports after success, failed assertions, spawn errors, early code/signal
+exit, startup timeout, stalled HTTP, ignored SIGTERM, inherited descendant
+pipes and interruption during startup/assertions. All packed security checks,
+the split deployment fixture and compatibility cells remain in the gate.
+
+Validation on 2026-10-25 ran the complete
+`yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-release-gate`
+with `NX_DAEMON=false`, `NX_ISOLATE_PLUGINS=false` and `NX_NO_CLOUD=true`:
+
+| Environment | Node | Result | Gate duration |
+| --- | --- | --- | --- |
+| macOS, local checkout | 24.22.1 | Exit 0 | 2m30s |
+| Ubuntu 22.04.3, isolated ARM64 Docker container with init | 24.21.0 | Exit 0 | 2m36s |
+
+Both runs completed all 12 lifecycle regression cases, the package
+build/typecheck/test/lint tasks, direct packed CJS/ESM consumers, the split
+Angular/Nest deployment fixture and all three compatibility cells. Each run
+passed six packed security-conformance checks. The Ubuntu process inventory
+after the gate contained no remaining fixture server or validation process.
+The changed runner files also passed ESLint, Prettier and whitespace checks.
+These are local macOS/container results, not hosted Ubuntu/macOS CI results;
+the existing CI jobs will run the same lifecycle dependency on the reviewed
+commit. No publication workflow was dispatched and no artifact was republished.
