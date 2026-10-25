@@ -74,7 +74,7 @@ export async function registerNestAngularSsrRoutes<TContext = unknown>(
     // prefix matches here, including API requests that fall through to 404.
     fastify.addHook('onRequest', (request, _reply, done) => {
       const pathname = getRequestPathname(request);
-      if (isApiRequest(pathname, effectiveApiPrefix)) {
+      if (pathname !== null && isApiRequest(pathname, effectiveApiPrefix)) {
         dispatch({
           type: 'ssr.api.bypass',
           request: { method: request.method, pathname, requestId: request.id },
@@ -89,6 +89,10 @@ export async function registerNestAngularSsrRoutes<TContext = unknown>(
     reply: FastifyStaticReply,
   ) => {
     const pathname = getRequestPathname(request);
+
+    if (pathname === null) {
+      return reply.callNotFound();
+    }
 
     if (isApiRequest(pathname, effectiveApiPrefix)) {
       return reply.callNotFound();
@@ -130,6 +134,9 @@ export async function registerNestAngularSsrRoutes<TContext = unknown>(
   await fastify.register(fastifyStatic, {
     root: browserAssetsRoot,
     serve: false,
+    // With serve:false, sendFile only verifies exact on-disk casing when an
+    // allowedPath callback is supplied. Keep that upstream security check on.
+    allowedPath: () => true,
   });
 
   fastify.route({
@@ -152,10 +159,7 @@ function isAllowedHost(
     return true;
   }
 
-  const rawHost =
-    getFirstHeaderValue(request.headers['x-forwarded-host']) ??
-    request.headers.host ??
-    request.hostname;
+  const rawHost = request.host ?? request.headers.host;
 
   if (!rawHost) {
     return false;
@@ -174,12 +178,6 @@ function isAllowedHost(
     const normalized = allowedHost.trim().toLowerCase();
     return normalized === '*' || normalized === host || normalized === hostname;
   });
-}
-
-function getFirstHeaderValue(
-  value: string | string[] | undefined,
-): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
 }
 
 function resolveApiPrefix(
@@ -212,23 +210,35 @@ function isApiRequest(pathname: string, apiPrefix: string): boolean {
   );
 }
 
-function getRequestPathname(request: FastifyRequest): string {
+function getRequestPathname(request: FastifyRequest): string | null {
   const rawUrl = request.raw.url ?? request.url ?? '/';
-
-  return new URL(rawUrl, 'http://localhost').pathname;
+  // Do not use URL here: it collapses dot segments before the router's guard
+  // boundary can be checked. Decode once, without creating new separators.
+  const pathname = rawUrl.split('?', 1)[0];
+  if (!pathname.startsWith('/') || /%2f|%5c/i.test(pathname)) {
+    return null;
+  }
+  const decoded = safelyDecodePathname(pathname);
+  if (
+    decoded === null ||
+    decoded.includes('\\') ||
+    [...decoded].some(
+      (character) =>
+        character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+    ) ||
+    decoded.includes('//') ||
+    decoded.split('/').some((segment) => segment === '.' || segment === '..')
+  ) {
+    return null;
+  }
+  return decoded;
 }
 
 async function resolveAssetRequest(
   browserAssetsRoot: string,
   pathname: string,
 ): Promise<AssetResolution> {
-  const decodedPathname = safelyDecodePathname(pathname);
-
-  if (decodedPathname === null) {
-    return { kind: 'outside-root' };
-  }
-
-  const resolvedPath = resolve(browserAssetsRoot, `.${decodedPathname}`);
+  const resolvedPath = resolve(browserAssetsRoot, `.${pathname}`);
   const assetRelativePath = relative(browserAssetsRoot, resolvedPath);
 
   if (
@@ -236,7 +246,7 @@ async function resolveAssetRequest(
     assetRelativePath.startsWith(`..${sep}`) ||
     assetRelativePath === ''
   ) {
-    return pathLooksLikeAsset(decodedPathname)
+    return pathLooksLikeAsset(pathname)
       ? { kind: 'missing-asset' }
       : { kind: 'not-asset' };
   }
@@ -253,13 +263,16 @@ async function resolveAssetRequest(
   const assetStat = await getFileStat(resolvedPath);
 
   if (assetStat?.isFile()) {
+    if (pathname.endsWith('/')) {
+      return { kind: 'missing-asset' };
+    }
     return {
       kind: 'existing-file',
       relativePath: assetRelativePath.split(sep).join('/'),
     };
   }
 
-  if (pathLooksLikeAsset(decodedPathname)) {
+  if (pathLooksLikeAsset(pathname)) {
     return { kind: 'missing-asset' };
   }
 

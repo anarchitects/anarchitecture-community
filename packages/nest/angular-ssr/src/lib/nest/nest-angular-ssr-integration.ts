@@ -111,15 +111,9 @@ function createWebRequestFromFastifyRequest(request: FastifyRequest): Request {
 }
 
 function createAbsoluteRequestUrl(request: FastifyRequest): URL {
-  const protocol =
-    getFirstHeaderValue(request.headers['x-forwarded-proto']) ??
-    request.protocol ??
-    'http';
-  const host =
-    getFirstHeaderValue(request.headers['x-forwarded-host']) ??
-    request.headers.host ??
-    request.hostname ??
-    'localhost';
+  // Fastify applies the host application's trustProxy policy to these getters.
+  const protocol = request.protocol ?? 'http';
+  const host = request.host ?? request.headers.host ?? 'localhost';
   const rawUrl = request.raw.url ?? request.url ?? '/';
 
   return new URL(rawUrl, `${protocol}://${host}`);
@@ -177,14 +171,4 @@ function writeResponseHeaders(reply: FastifyReply, headers: Headers): void {
   if (setCookies.length > 0) {
     reply.header('set-cookie', setCookies);
   }
-}
-
-function getFirstHeaderValue(
-  value: string | string[] | undefined,
-): string | undefined {
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-
-  return value;
 }

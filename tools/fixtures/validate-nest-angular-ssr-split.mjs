@@ -1,8 +1,10 @@
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
+import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertSsrSecurityConformance } from './nest-angular-ssr-security-conformance.mjs';
 
 const workspaceRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -40,6 +42,7 @@ try {
     ['nx', 'run', 'nest-angular-split-backend:fixture-build', '--skipNxCache'],
     tempRoot,
   );
+  await assertSsrSecurityConformance(join(tempRoot, 'apps/fixtures/nest-angular-split/backend'));
 
   const nestBundle = await readFile(
     join(tempRoot, 'apps/fixtures/nest-angular-split/backend/dist/main.js'),
@@ -70,9 +73,20 @@ try {
     await assertRedirect('/redirect', '/');
     await assertResponse('/favicon.ico', 200);
     await assertResponse('/api', 200, 'Hello API');
+    await assertResponse('/api/missing', 404);
+    await assertResponse('/missing.css', 404);
     await assertResponse('/', 400, 'not allowed', {
+      host: 'invalid.example',
+    });
+    await assertResponse('/', 200, 'Rendered by the Angular server bundle.', {
       'x-forwarded-host': 'invalid.example',
     });
+    for (const path of ['/', '/favicon.ico']) {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, { method: 'HEAD' });
+      if (response.status !== 200 || await response.text() !== '') {
+        throw new Error(`HEAD ${path} failed.`);
+      }
+    }
     console.log('Split Angular/Nest build-output fixture passed.');
   } finally {
     child.kill('SIGTERM');
@@ -117,6 +131,8 @@ async function prepareWorkspace(tarballPath) {
       {
         private: true,
         workspaces: ['apps/fixtures/nest-angular-split/backend'],
+        // FoF owns this independent server patch; prove coexistence with #584.
+        overrides: { fastify: '5.12.7' },
         devDependencies: {
           '@angular/build': '22.1.6',
           '@angular/common': '22.1.4',
@@ -193,11 +209,21 @@ async function waitForServer(child, output) {
 }
 
 async function assertResponse(path, status, includes, headers) {
-  const response = await fetch(`http://127.0.0.1:${port}${path}`, { headers });
-  const body = await response.text();
-  if (response.status !== status || (includes && !body.includes(includes))) {
+  // Send Host and path verbatim; fetch may override Host/normalize the URL.
+  const { statusCode, body } = await new Promise((resolvePromise, rejectPromise) => {
+    const outgoing = request({ hostname: '127.0.0.1', port, path, headers }, (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => (body += chunk));
+      response.on('end', () => resolvePromise({ statusCode: response.statusCode, body }));
+      response.on('error', rejectPromise);
+    });
+    outgoing.on('error', rejectPromise);
+    outgoing.end();
+  });
+  if (statusCode !== status || (includes && !body.includes(includes))) {
     throw new Error(
-      `${path} returned ${response.status}; expected ${status}. Body: ${body}`,
+      `${path} returned ${statusCode}; expected ${status}. Body: ${body}`,
     );
   }
 }

@@ -61,6 +61,24 @@ jobs:
       - run: yarn nx run better-auth-typeorm-adapter:test-postgres
       - run: yarn nx run better-auth-typeorm-adapter:test-better-auth
 
+  nest-angular-ssr-consumers:
+    name: nest-angular-ssr consumers (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'yarn'
+      - run: yarn install --immutable
+      # macOS exercises guard bypass on a case-insensitive filesystem.
+      - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-consumers
+
   nest-angular-ssr-compatibility:
     name: nest-angular-ssr (${{ matrix.cell }})
     runs-on: ubuntu-latest

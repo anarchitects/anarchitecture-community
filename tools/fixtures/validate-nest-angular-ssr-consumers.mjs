@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertSsrSecurityConformance } from './nest-angular-ssr-security-conformance.mjs';
 
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const packageRoot = join(workspaceRoot, 'packages/nest/angular-ssr');
@@ -104,6 +105,7 @@ async function validateFixture(name, fixture, tarballPath) {
     },
   );
   await runCommand('npm', ['run', 'build'], { cwd: fixture.appDir });
+  await assertSsrSecurityConformance(fixture.appDir, name === 'nest-esm-consumer' ? 'esm' : 'cjs');
 
   const attempts = [];
 
@@ -257,6 +259,12 @@ function renderResults(results) {
   return `# Nest Angular SSR Consumer Validation
 
 These fixture apps install the packed \`@anarchitects/nest-angular-ssr\` tarball and exercise it through \`NestAngularSsrModule.forRoot(...)\`.
+
+Each installed consumer also passes static-path/guard, GET/HEAD, API bypass,
+SSR fallback, redirect, cookie, host and proxy-trust conformance. Deployment
+fixtures use the host-owned Fastify 5.12.7 override; the separate compatibility
+matrix checks Nest 11.1.29 with its bundled Fastify. See
+[security validation](nest-angular-ssr-security.md) for scope and release gates.
 
 | Fixture | Classification | Mode | Summary |
 | --- | --- | --- | --- |

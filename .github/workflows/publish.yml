@@ -114,6 +114,10 @@ jobs:
         if: steps.tag.outputs.project == 'better-auth-typeorm-adapter'
         run: yarn nx run better-auth-typeorm-adapter:test-better-auth
 
+      - name: Validate packed Nest Angular SSR consumers
+        if: steps.tag.outputs.project == 'nest-angular-ssr'
+        run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-release-gate
+
       - name: Publish project
         run: yarn nx release publish --projects "${{ steps.tag.outputs.project }}" --yes
         env:
