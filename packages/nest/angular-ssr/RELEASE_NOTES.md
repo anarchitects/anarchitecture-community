@@ -1,3 +1,21 @@
+# Unreleased: Nest 11 static-file security maintenance
+
+- Require `@fastify/static ^10.1.7` and a Nest Fastify adapter of at least
+  11.1.29 within major 11. Angular 21/22, Node 24, Fastify 5 and the CJS/ESM
+  public entry points remain supported.
+- Reject non-canonical asset paths before normalization and enable the
+  upstream plugin's exact-case validation for manually served files.
+- Apply Fastify's host-owned `trustProxy` policy to SSR URLs and allowed-host
+  checks. Reverse-proxy deployments must configure trusted addresses explicitly;
+  untrusted forwarded headers no longer select the SSR origin.
+- Add packed security conformance to CJS/ESM, minimum-version and split-webpack
+  fixtures, Linux/macOS CI and the publication gate.
+
+This fix is not yet published. Nx assigns the reviewed release version; the
+local `0.3.1` manifest is the existing release baseline, not a new artifact to
+publish under that version. See the [security validation record](../../../docs/validation/nest-angular-ssr-security.md)
+for advisory versions, evidence and the independent host Fastify patch.
+
 # Unreleased: SSR observability
 
 Completes the observability work for epic #35, through #505–#508. These notes

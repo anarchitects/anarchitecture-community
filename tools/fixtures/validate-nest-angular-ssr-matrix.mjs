@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertSsrSecurityConformance } from './nest-angular-ssr-security-conformance.mjs';
 
 const workspaceRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -74,6 +75,13 @@ async function validateCell(name, versions, tarballPath, npmCache) {
       }
     }
     packageJson.dependencies['@anarchitects/nest-angular-ssr'] = tarballPath;
+    // Minimum compatibility coverage intentionally includes Nest's bundled
+    // Fastify; deployment/security coverage uses the patched host override.
+    delete packageJson.overrides;
+    // Prove the first Nest 11 adapter release that supports static 10.
+    for (const dependency of ['@nestjs/common', '@nestjs/core', '@nestjs/platform-fastify']) {
+      packageJson.dependencies[dependency] = '11.1.29';
+    }
     packageJson.devDependencies.nx = versions.nx;
     packageJson.devDependencies.typescript = versions.typescript;
     await writeFile(
@@ -120,6 +128,7 @@ async function validateCell(name, versions, tarballPath, npmCache) {
       ['-e', "require('@anarchitects/nest-angular-ssr')"],
       cellRoot,
     );
+    await assertSsrSecurityConformance(cellRoot);
     console.log(`Compatibility cell ${name} passed.`, versions);
   } finally {
     await rm(cellRoot, { recursive: true, force: true });

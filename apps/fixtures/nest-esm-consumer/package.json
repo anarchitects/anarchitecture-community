@@ -17,11 +17,14 @@
     "@angular/ssr": "^21.2.3",
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
-    "@nestjs/platform-fastify": "^11.1.6",
-    "fastify": "^5.6.0",
+    "@nestjs/platform-fastify": "^11.1.29",
+    "fastify": "5.12.7",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "tslib": "^2.3.0"
+  },
+  "overrides": {
+    "fastify": "$fastify"
   },
   "devDependencies": {
     "@types/node": "20.19.9",

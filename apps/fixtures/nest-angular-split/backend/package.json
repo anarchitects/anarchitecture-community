@@ -11,7 +11,7 @@
     "@angular/ssr": "^22.0.0",
     "@nestjs/common": "11.1.17",
     "@nestjs/core": "11.1.17",
-    "@nestjs/platform-fastify": "11.1.17",
+    "@nestjs/platform-fastify": "~11.1.29",
     "fastify": "^5.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0"
