@@ -5,8 +5,36 @@ This document covers repository checks and release preparation for Nx project
 `editorjs-core` (`@anarchitects/editorjs-core`).
 
 The [tool registry implementation contract](editorjs-tool-registry-design.md)
-defines the composition and lazy-resolution work for #70. #593 implements the
-composition subset; its resolver and Angular sections remain planned.
+defines the composition and lazy-resolution work for #70. #593 implements
+composition and #594 implements the core resolver; Angular sections remain planned.
+
+## Lazy resolution increment
+
+Before #594 implementation, the full ADR inventory was re-enumerated against
+Community `f28bd3c` and Meta `823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`.
+All eight local and eighteen Meta records read for the preceding slices remain
+unchanged, including proposals and historical records. The complete status table
+in the registry design still applies. The architecture and testing guides require
+explicit async ownership and package evidence; local ADR0004 requires public
+documentation and packed examples, local ADR0007 / Meta0013 govern release intent,
+and Meta0015 governs the existing Nx check contracts. There is no accepted-ADR
+conflict. No Angular, DOM, concrete-tool, HTTP or dependency change is needed.
+
+The resolver owns one selection, immutable reference context and one attempt/cache.
+Failure invalidates the entire attempt, explicit retry starts all selected lazy
+definitions again, and disposal promptly rejects waiters and clears owner state.
+Constructors are retained only after full success; every caller receives fresh
+map/settings containers using the same copying rules as eager materialization.
+The resolver rejects direct-class eager `then` registrations before invoking any
+loader, preventing Promise assimilation from invoking a tool. The design and
+consumer guide document the configured-registration alternative.
+
+Validation on Node 24.22.1 passes core build, typecheck, lint and all 216 tests,
+including 25 resolver cases and dependency-free packed imports/declarations and
+README examples. Downstream Angular build, typecheck and all 138 tests pass.
+Core lint retains only the pre-existing `_time` warning. Browser/network matrix
+validation remains #597. The package has no release tags and npm returns E404, so
+this unpublished increment uses `init(editorjs-core)` without a version bump.
 
 ## Registry composition increment
 
@@ -23,7 +51,8 @@ introduced. Existing Nx targets and cache contracts are reused under Meta 0015.
 Core now owns immutable composition/selection snapshots, explicit replacement,
 inert eager/lazy definitions, built-in metadata and reference validation.
 `createToolMap` is the documented design refinement for eager materialization;
-it rejects lazy definitions without calling them. Async loading remains #594.
+it rejects lazy definitions without calling them. Async loading is covered by the
+resolver increment above.
 Typed tuples retain final replacement types; dynamic lists retain conservative
 unions. Snapshot containers are frozen while opaque config/data identity remains
 host-owned. Unit tests cover ordering, conflicts, safe properties, profile/default

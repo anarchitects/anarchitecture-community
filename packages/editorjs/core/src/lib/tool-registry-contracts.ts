@@ -77,7 +77,10 @@ export type ToolRegistryErrorCode =
   | 'invalid-replacement'
   | 'invalid-selection'
   | 'invalid-reference'
-  | 'unresolved-tool';
+  | 'unresolved-tool'
+  | 'load-failed'
+  | 'invalid-loaded-constructor'
+  | 'disposed';
 
 /** Structured configuration diagnostic; never serializes caller configuration. */
 export class ToolRegistryError extends Error {
@@ -135,10 +138,18 @@ type Registration<D> = D extends { source: 'eager'; registration: infer R }
           : object)
     : ToolConfiguration;
 
-/** Typed output shared by eager materialization and future lazy resolution. */
+/** Typed output shared by eager materialization and lazy resolution. */
 export type ToolRegistryTools<Entries extends ToolRegistryEntries> = {
   [K in keyof Entries]: Registration<Entries[K]>;
 };
+
+/** One owner's loading/cache lifetime. Disposal is logical cancellation only. */
+export interface ToolResolver<
+  Entries extends ToolRegistryEntries = ToolRegistryEntries,
+> {
+  resolve(): Promise<ToolRegistryTools<Entries>>;
+  dispose(): void;
+}
 
 type IsUnion<T, Whole = T> = T extends unknown
   ? [Whole] extends [T]

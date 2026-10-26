@@ -113,7 +113,7 @@ describe('published package', () => {
           'EditorJsDocumentCoordinator',
           'EditorJsOperationError',
           'ToolRegistryError',
-          'composeToolRegistry', 'createToolMap',
+          'composeToolRegistry', 'createToolMap', 'createToolResolver',
           'normalizeOutputData', 'parseContentWithProvenance', 'parseOutputData', 'validateOutputData',
           'selectToolRegistry', 'validateToolReferences',
         ].sort());
@@ -130,6 +130,25 @@ describe('published package', () => {
         const selected = core.selectToolRegistry(registry, ['custom']);
         assert.equal(core.createToolMap(selected).custom, CustomTool);
         assert.throws(() => core.createToolMap(registry), error => error instanceof core.ToolRegistryError && error.code === 'unresolved-tool');
+        let loads = 0;
+        const resolver = core.createToolResolver(core.composeToolRegistry([[{
+          name: 'custom', kind: 'block', source: 'lazy',
+          load: async () => { loads++; return CustomTool; },
+        }]], { profile: core.EDITOR_JS_2_31_7_TOOL_PROFILE }));
+        assert.equal(loads, 0);
+        const [firstTools, secondTools] = await Promise.all([resolver.resolve(), resolver.resolve()]);
+        assert.equal(firstTools.custom.class, CustomTool);
+        assert.notEqual(firstTools.custom, secondTools.custom);
+        assert.equal((await resolver.resolve()).custom.class, CustomTool);
+        assert.equal(loads, 1);
+        resolver.dispose();
+        await assert.rejects(resolver.resolve(), error => error instanceof core.ToolRegistryError && error.code === 'disposed');
+        const pendingResolver = core.createToolResolver(core.composeToolRegistry([[{
+          name: 'pending', kind: 'block', source: 'lazy', load: () => new Promise(() => {}),
+        }]], { profile: core.EDITOR_JS_2_31_7_TOOL_PROFILE }));
+        const pendingResolution = assert.rejects(pendingResolver.resolve(), error => error.code === 'disposed');
+        pendingResolver.dispose();
+        await pendingResolution;
         assert.deepEqual(core.normalizeOutputData({ blocks: [], time: undefined }), { ok: true, data: { blocks: [] } });
         assert.deepEqual(core.validateOutputData({ blocks: [] }), { ok: true, data: { blocks: [] } });
         const rejected = core.validateOutputData({ blocks: [{ type: 'custom', data: {} }] }, {

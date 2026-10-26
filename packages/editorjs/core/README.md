@@ -2,7 +2,7 @@
 
 Framework-neutral document, tool configuration, and upload contracts for Editor.js,
 with parsing, normalization, pluggable validation, optional content provenance,
-and typed tool registry composition.
+and typed tool registry composition and lazy resolution.
 Use `import type` for contracts and regular imports for `parseOutputData`,
 `normalizeOutputData`, `validateOutputData`, and `parseContentWithProvenance`.
 
@@ -659,7 +659,7 @@ export function configureHeading<Tool extends ToolConstructor>(Heading: Tool) {
 
 `createToolMap(registry, context?)` checks references and creates fresh mutable
 map/settings shells. Selected lazy definitions throw `unresolved-tool` without
-invoking loaders: asynchronous resolution is not supplied by this API. Do not
+invoking loaders: use `createToolResolver` for asynchronous resolution. Do not
 pass lazy descriptors directly to Editor.js. `selectToolRegistry(registry, names)`
 selects custom definitions in requested order; omit names to retain the selection,
 or pass `[]` for no custom definitions. Unknown/repeated names fail. Selection
@@ -719,7 +719,8 @@ Catch `ToolRegistryError` and inspect `code`, optional `toolName` and readonly
 never serialize configuration. Codes are `invalid-definition`, `invalid-name`,
 `invalid-options`, `invalid-profile`, `invalid-registry`, `duplicate-name`,
 `invalid-replacement`, `invalid-selection`, `invalid-reference` and
-`unresolved-tool`. Resolve a duplicate with a unique name or deliberate
+`unresolved-tool`, `load-failed`, `invalid-loaded-constructor` and `disposed`.
+Resolve a duplicate with a unique name or deliberate
 replacement; select the correct tool kind for a missing reference; use eager
 registrations before calling `createToolMap`.
 
@@ -728,6 +729,100 @@ object construction. Registry validation checks envelopes and references, not
 static `isInline`/`isTune`, constructability, tool lifecycle, saved content, HTML
 safety, read-only behavior or tool-specific config schemas. No global registry,
 editor state or Angular provider is created.
+
+## Lazy tool resolution
+
+`createToolResolver(registry, context?)` creates a `ToolResolver` for one owner,
+such as an editor instance. Construction is inert. It checks the registry and
+snapshots the reference-context containers; `resolve()` validates the selected
+references before invoking any loader. Invalid registry/context structure can
+throw during construction; resolution failures always reject its returned promise.
+Core performs no browser detection: invoke `resolve()` only after the host's
+platform and lifetime checks.
+
+This helper accepts a host-owned loader. A loader returns a promise of the tool
+class itself; for a dynamic import, map the module's appropriate export to that
+class (for example, `() => import('your-tool-package').then(m => m.default)`).
+Do not return a module namespace, settings object or tool instance.
+
+A direct-class eager registration named `then` is rejected before loading with
+`invalid-definition`: JavaScript would treat the output map as a thenable and call
+that class. Use `{ class: Tool }` for this name, or a lazy definition (which resolves
+to a configured object). The synchronous `createToolMap` has no such restriction.
+
+```ts
+import {
+  composeToolRegistry,
+  createToolResolver,
+  EDITOR_JS_2_31_7_TOOL_PROFILE,
+} from '@anarchitects/editorjs-core';
+import type { ToolConstructor } from '@anarchitects/editorjs-core';
+
+export function createHeadingTools<Tool extends ToolConstructor>(
+  loadHeading: () => Promise<Tool>,
+) {
+  const registry = composeToolRegistry(
+    [
+      [
+        {
+          name: 'heading',
+          kind: 'block',
+          source: 'lazy',
+          load: loadHeading,
+          settings: {
+            config: { placeholder: 'Heading' },
+            inlineToolbar: ['bold', 'italic'],
+            toolbox: { title: 'Heading', data: { level: 2 } },
+          },
+        },
+      ],
+    ],
+    { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+  );
+  return createToolResolver(registry, { defaultBlock: 'paragraph' });
+}
+```
+
+Keep the returned resolver for that owner's lifetime. Await `resolver.resolve()`
+and pass the resulting map to Editor.js's `tools` option. Register
+`resolver.dispose()` with the owner's teardown immediately, so teardown can
+invalidate an in-progress load. Handle rejections, and re-check the host's own
+lifetime before creating an editor. Disposal cannot retract a map already
+delivered to the host or destroy an editor created from it.
+
+### Concurrency, caching and recovery
+
+- Only selected lazy definitions load, in selection order. Their asynchronous
+  work overlaps, but output keys follow selection order regardless of completion.
+  Eager definitions pass through without construction.
+- Concurrent `resolve()` calls join one attempt. Each successful call receives
+  fresh map/settings, toolbar/tune arrays and toolbox entry containers. Opaque
+  config/data and constructor references retain identity, as in eager maps.
+- Full success caches constructor references for this resolver only. Later calls
+  rebuild fresh output containers. There is no global or cross-editor cache.
+  Each definition loads once per attempt, even when two names share a loader.
+- A synchronous throw or rejection fails the entire attempt with `load-failed`;
+  a non-function result fails with `invalid-loaded-constructor`. Both errors
+  identify the tool and `['tools', name, 'load']` path. `cause` retains the original
+  thrown/rejected value or invalid result. Structural checks do not prove
+  constructability or a tool's runtime API and never instantiate a tool or inspect
+  static hooks.
+- The first observed failure wins. No partial map or partial success cache is
+  returned. A later explicit `resolve()` retries **all** selected lazy definitions;
+  there is no automatic retry. Old pending siblings can finish, but their results
+  are ignored and their rejections are observed. Use side-effect-free code loaders:
+  a retry can overlap a previous import and cannot reset the module loader's cache.
+- `dispose()` is idempotent. It clears retained owner/cache state, promptly rejects
+  joined pending calls with `disposed` even for never-settling loaders, and rejects
+  future calls. Create a new resolver for a new owner. Disposal is logical
+  invalidation: it does not cancel dynamic import, unload JavaScript, undo module
+  side effects or destroy an editor. A synchronous failure/disposal stops starting
+  further loaders in that attempt.
+
+Use `ToolRegistryError.code` to distinguish retryable loading failures from a
+disposed owner or configuration error. Correct invalid definitions/references by
+composing a new registry/resolver. Present recovery in the host UI; core supplies
+neither notifications nor an automatic retry policy.
 
 ## Package exports
 
@@ -748,11 +843,11 @@ editor state or Angular provider is created.
 | Provenance            | `ContentProvenance`, `ContentSchemaVersion`, `ContentProducer`, `ContentParseResult`                                                                                                                                   |
 
 Additional registry runtime exports are `composeToolRegistry`,
-`selectToolRegistry`, `validateToolReferences`, `createToolMap`,
+`selectToolRegistry`, `validateToolReferences`, `createToolMap`, `createToolResolver`,
 `EDITOR_JS_2_31_7_TOOL_PROFILE` and the `ToolRegistryError` class. Registry types
 are `ToolDefinition`, `ToolKind`, `BuiltInTool`, `BuiltInToolProfile`,
 `ToolReferenceContext`, `ToolRegistry`, `ToolRegistryEntries`,
-`ToolRegistryTools` and `ToolRegistryErrorCode`.
+`ToolRegistryTools`, `ToolResolver` and `ToolRegistryErrorCode`.
 
 The document functions, `EditorJsDocumentCoordinator` and `EditorJsOperationError`
 also have runtime exports; the remaining contracts are types.

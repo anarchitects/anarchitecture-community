@@ -17,6 +17,7 @@ import {
   profile,
   toolName,
 } from './tool-registry-validation.js';
+import type { ToolConstructor } from './tool-configuration.js';
 
 /** Metadata only: does not import or initialize any Editor.js tool. */
 export const EDITOR_JS_2_31_7_TOOL_PROFILE: BuiltInToolProfile = profile({
@@ -53,6 +54,13 @@ function snapshot(registry: unknown): RegistrySnapshot {
   if (!(registry instanceof RegistrySnapshot))
     fail('invalid-registry', ['registry']);
   return registry;
+}
+
+/** Internal access to the already validated, frozen definition containers. */
+export function getToolDefinitions(
+  registry: unknown,
+): readonly ToolDefinition[] {
+  return snapshot(registry).definitions;
 }
 
 function typed<Entries extends ToolRegistryEntries>(
@@ -161,25 +169,14 @@ export function validateToolReferences<Entries extends ToolRegistryEntries>(
   context: ToolReferenceContext = {},
 ): void {
   const source = snapshot(registry);
-  const config = fields(
-    context,
-    ['defaultBlock', 'initialBlock', 'inlineToolbar', 'tunes'],
-    'invalid-options',
-    ['context'],
-  );
+  const config = snapshotReferenceContext(context);
   const available = new Map<
     string,
     { readonly kind: ToolKind; readonly reserved?: true }
   >(source.profile.tools.map((tool) => [tool.name, tool]));
   for (const entry of source.definitions) available.set(entry.name, entry);
-  for (const field of ['defaultBlock', 'initialBlock']) {
-    if (config[field] !== undefined && typeof config[field] !== 'string')
-      fail('invalid-options', ['context', field]);
-  }
   const defaultBlock =
-    config['defaultBlock'] ||
-    config['initialBlock'] ||
-    source.profile.defaultBlock;
+    config.defaultBlock || config.initialBlock || source.profile.defaultBlock;
   const defaultName = toolName(defaultBlock, 'invalid-reference', [
     'context',
     'defaultBlock',
@@ -210,8 +207,8 @@ export function validateToolReferences<Entries extends ToolRegistryEntries>(
       seen.add(name);
     });
   };
-  check(config['inlineToolbar'], 'inline', ['context', 'inlineToolbar']);
-  check(config['tunes'], 'tune', ['context', 'tunes'], undefined, false);
+  check(config.inlineToolbar, 'inline', ['context', 'inlineToolbar']);
+  check(config.tunes, 'tune', ['context', 'tunes'], undefined, false);
   for (const entry of source.definitions) {
     if (entry.kind !== 'block') continue;
     const settings =
@@ -230,20 +227,59 @@ export function validateToolReferences<Entries extends ToolRegistryEntries>(
   }
 }
 
+/** Internal context snapshot; name resolution still happens at the load boundary. */
+export function snapshotReferenceContext(
+  context: ToolReferenceContext,
+): ToolReferenceContext {
+  const config = fields(
+    context,
+    ['defaultBlock', 'initialBlock', 'inlineToolbar', 'tunes'],
+    'invalid-options',
+    ['context'],
+  );
+  for (const field of ['defaultBlock', 'initialBlock']) {
+    if (config[field] !== undefined && typeof config[field] !== 'string')
+      fail('invalid-options', ['context', field]);
+  }
+  for (const field of ['inlineToolbar', 'tunes']) {
+    if (Array.isArray(config[field]))
+      config[field] = Object.freeze(
+        array(config[field], 'invalid-reference', ['context', field]),
+      );
+  }
+  return Object.freeze(config) as ToolReferenceContext;
+}
+
 /** Materialize an eager selection. Lazy definitions fail without invoking loaders. */
 export function createToolMap<Entries extends ToolRegistryEntries>(
   registry: ToolRegistry<Entries>,
   context: ToolReferenceContext = {},
 ): ToolRegistryTools<Entries> {
   validateToolReferences(registry, context);
+  return materializeToolMap(
+    snapshot(registry).definitions,
+  ) as ToolRegistryTools<Entries>;
+}
+
+/** Shared internal output builder; never retains caller-facing mutable shells. */
+export function materializeToolMap(
+  definitions: readonly ToolDefinition[],
+  constructors: ReadonlyMap<string, ToolConstructor> = new Map(),
+): Record<string, unknown> {
   const result: Record<string, unknown> = Object.create(null);
-  for (const entry of snapshot(registry).definitions) {
-    if (entry.source === 'lazy')
-      fail('unresolved-tool', ['tools', entry.name], entry.name);
-    result[entry.name] =
-      typeof entry.registration === 'function'
-        ? entry.registration
-        : copySettings(entry.registration);
+  for (const entry of definitions) {
+    if (entry.source === 'lazy') {
+      const tool = constructors.get(entry.name);
+      if (!tool) fail('unresolved-tool', ['tools', entry.name], entry.name);
+      result[entry.name] = {
+        ...copySettings(entry.settings ?? {}),
+        class: tool,
+      };
+    } else
+      result[entry.name] =
+        typeof entry.registration === 'function'
+          ? entry.registration
+          : copySettings(entry.registration);
   }
-  return result as ToolRegistryTools<Entries>;
+  return result;
 }

@@ -30,6 +30,7 @@ export {
   EDITOR_JS_2_31_7_TOOL_PROFILE,
 } from './lib/tool-registry.js';
 export { ToolRegistryError } from './lib/tool-registry-contracts.js';
+export { createToolResolver } from './lib/tool-resolver.js';
 export type {
   ToolDefinition,
   ToolKind,
@@ -40,6 +41,7 @@ export type {
   ToolRegistryEntries,
   ToolRegistryTools,
   ToolRegistryErrorCode,
+  ToolResolver,
 } from './lib/tool-registry-contracts.js';
 export {
   normalizeOutputData,

@@ -1,19 +1,28 @@
 # Editor.js tool registry implementation contract
 
-This contributor design addresses #592, the first slice of epic #70. It specifies
-the implementation and evidence required in #593–#598. The API names below are
-planned exports, not available package functionality. The current consumer
-contracts remain the [core README](../packages/editorjs/core/README.md) and
-[Angular README](../packages/editorjs/angular/README.md). This slice changes no
-runtime code, public exports, dependencies, versions or public support claims.
+This contributor design was established in #592, the first slice of epic #70. It
+specifies the implementation and evidence required in #593–#598. The increments
+below record implemented surfaces; remaining exports are planned. Current consumer
+contracts are the [core README](../packages/editorjs/core/README.md) and
+[Angular README](../packages/editorjs/angular/README.md).
 
 Implementation increment #593 adds core composition, selection, reference
 validation, the metadata profile and diagnostics. It also adds `createToolMap`
 for synchronous eager materialization: this additive refinement lets the
 composition slice supply usable Editor.js maps before #594's asynchronous
 resolver exists. Selected lazy definitions fail with `unresolved-tool` without
-invoking loaders. The resolver and Angular provider/lifecycle surfaces described
-below remain planned. Current implemented signatures are in the core README.
+invoking loaders. Increment #594 implements `createToolResolver(registry, context?)`
+and `ToolResolver`, with shared attempts, owner-local success caches, explicit
+whole-attempt retry and logical disposal. Context containers are snapshotted at
+construction; references are checked on resolution before loading. The diagnostic
+codes are `load-failed`, `invalid-loaded-constructor` and `disposed`. Angular
+provider/lifecycle surfaces remain planned. Current signatures are in the core README.
+
+#594 also makes the async map boundary explicit: an eager direct class at the key
+`then` is rejected by resolution before loading with `invalid-definition`, because
+Promise assimilation would invoke it. A configured `{ class: Tool }` registration
+or lazy definition with that name is safe. Eager synchronous materialization is
+unchanged; the resolver never silently changes a registration's output type.
 
 ## Architecture review and authority
 
