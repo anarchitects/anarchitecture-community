@@ -165,9 +165,51 @@ Local cache verification used the final failure-propagation design:
   returned exit status 1. This verifies local failed-task caching, not remote
   failure-artifact transfer.
 
+The prior successful main-branch [CI run 40326962009](https://github.com/anarchitects/anarchitecture-community/actions/runs/40326962009)
+at baseline commit `18211130b1ae653cdd8e76d5256deb90322c19c6` provides the hosted
+six-job baseline. Durations below are GitHub job/step timestamps, not local timings:
+
+| Consumer      | Whole job | Validation step |
+| ------------- | --------: | --------------: |
+| CSR minimum   |     543 s |            65 s |
+| CSR reference |     444 s |            68 s |
+| CSR current   |     268 s |            69 s |
+| SSR minimum   |     315 s |           244 s |
+| SSR reference |     276 s |           206 s |
+| SSR current   |     298 s |           216 s |
+
+The six packed jobs total **35.73 runner-minutes**, with a **543 s** longest job.
+Setup/cache-restore variance is substantial. These are resource-duration measures,
+not an invoiced cost; GitHub allowances and Nx Cloud worker pricing differ.
+Compare both coordinator and worker time, including snapshot transfer and startup,
+before choosing capacity or claiming savings. The supported reference CSR local
+aggregate also passed with fresh preparation in **83 s** after the final graph change.
+
 Before declaring hosted rollout complete, retain a cold distributed run and a
 same-attempt restoration run, verify actual worker assignment and artifact
 transfer, then compare end-to-end duration and compute cost against the previous
 six-job matrix. Account separately for npm resolution, snapshot transfer,
 browser/OS setup, builds, tests and collection. Run-level and per-command timings
 are retained to support this comparison.
+
+### Hosted rollout blocker (26 October 2026)
+
+Draft [PR #604](https://github.com/anarchitects/anarchitecture-community/pull/604),
+commit `d7188c60cf2f5c8df9cac1ad679bc553c4c7690e`, ran in
+[GitHub Actions 40350033641](https://github.com/anarchitects/anarchitecture-community/actions/runs/40350033641).
+Harness contracts, worker-template validation, all six fresh snapshots and their
+upload passed. The [distributed invocation](https://cloud.nx.app/runs/ju5Ve8MwWB)
+started at 15:34:51 UTC and terminated at 15:38:21 UTC with
+`One or more workflows failed`. No atom outputs reached the coordinator. The
+uncached completeness check failed all six cells for missing evidence; explicit
+worker completion and diagnostic artifact upload succeeded. Other GitHub jobs
+passed.
+
+The coordinator log does not identify the failing worker initialization step.
+The available Nx connector did not expose that log, and browser access did not
+provide readable worker diagnostics. Inspect the first failed initialization step
+in the [Nx worker workflow logs](https://cloud.nx.app/cipes/6adf72699756696159176efb)
+before changing the launch template or retrying. Hosted atom execution, remote
+artifact/failure restoration and DTE performance/cost remain **unverified**; this
+failed startup is not evidence of a speedup. Repository maintainers own resolution
+of this rollout blocker; keep the PR in draft until the hosted checks pass.
