@@ -5,8 +5,37 @@ This document covers repository checks and release preparation for Nx project
 `editorjs-core` (`@anarchitects/editorjs-core`).
 
 The [tool registry implementation contract](editorjs-tool-registry-design.md)
-defines the planned composition and lazy-resolution work for #70. It does not
-describe functionality already exported by core.
+defines the composition and lazy-resolution work for #70. #593 implements the
+composition subset; its resolver and Angular sections remain planned.
+
+## Registry composition increment
+
+#593 was reviewed against Community `f38aa16` and Meta
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5` on 2026-10-26. The eight local and
+eighteen Meta ADR records read for #70/#592 were re-enumerated; their contents are
+unchanged. The design's complete status inventory and applicable constraints
+remain authoritative. ADR0004 requires the consumer README and packed examples;
+Modern Angular's package boundaries keep this TypeScript implementation DOM-free.
+Governance/Nest decisions retain their own scope; proposals do not override
+accepted records. No conflict, framework dependency or compatibility widening was
+introduced. Existing Nx targets and cache contracts are reused under Meta 0015.
+
+Core now owns immutable composition/selection snapshots, explicit replacement,
+inert eager/lazy definitions, built-in metadata and reference validation.
+`createToolMap` is the documented design refinement for eager materialization;
+it rejects lazy definitions without calling them. Async loading remains #594.
+Typed tuples retain final replacement types; dynamic lists retain conservative
+unions. Snapshot containers are frozen while opaque config/data identity remains
+host-owned. Unit tests cover ordering, conflicts, safe properties, profile/default
+handling, selection, identity and non-evaluation. Packed tests exercise all new
+runtime exports and compile public types/README examples in dependency-free,
+ES2022-only NodeNext and Bundler consumers.
+
+Local validation on Node 24.22.1 passes core build, typecheck, lint and all 191
+tests (including 39 registry cases and the packed consumers), plus the downstream
+Angular build, typecheck and 138 tests. Lint retains the existing unused `_time`
+warning in the document coordinator; this increment introduces no lint warnings.
+This is package-level evidence, not the browser/network matrix assigned to #597.
 
 ## Architecture review
 

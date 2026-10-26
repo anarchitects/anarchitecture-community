@@ -109,13 +109,27 @@ describe('published package', () => {
         }
         const core = await import('@anarchitects/editorjs-core');
         assert.deepEqual(Object.keys(core).sort(), [
+          'EDITOR_JS_2_31_7_TOOL_PROFILE',
           'EditorJsDocumentCoordinator',
           'EditorJsOperationError',
+          'ToolRegistryError',
+          'composeToolRegistry', 'createToolMap',
           'normalizeOutputData', 'parseContentWithProvenance', 'parseOutputData', 'validateOutputData',
-        ]);
+          'selectToolRegistry', 'validateToolReferences',
+        ].sort());
         assert.ok(import.meta.resolve('@anarchitects/editorjs-core').endsWith('/dist/index.js'));
         assert.ok(import.meta.resolve('@anarchitects/editorjs-core/package.json').endsWith('/package.json'));
         assert.deepEqual(core.parseOutputData('{"blocks":[]}'), { ok: true, data: { blocks: [] } });
+        class CustomTool { constructor() { throw new Error('must not construct'); } }
+        const registry = core.composeToolRegistry([[{
+          name: 'custom', kind: 'block', source: 'eager', registration: CustomTool,
+        }, {
+          name: 'lazy', kind: 'block', source: 'lazy', load: () => { throw new Error('must not load'); },
+        }]], { profile: core.EDITOR_JS_2_31_7_TOOL_PROFILE });
+        core.validateToolReferences(registry);
+        const selected = core.selectToolRegistry(registry, ['custom']);
+        assert.equal(core.createToolMap(selected).custom, CustomTool);
+        assert.throws(() => core.createToolMap(registry), error => error instanceof core.ToolRegistryError && error.code === 'unresolved-tool');
         assert.deepEqual(core.normalizeOutputData({ blocks: [], time: undefined }), { ok: true, data: { blocks: [] } });
         assert.deepEqual(core.validateOutputData({ blocks: [] }), { ok: true, data: { blocks: [] } });
         const rejected = core.validateOutputData({ blocks: [{ type: 'custom', data: {} }] }, {
