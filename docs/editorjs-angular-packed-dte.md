@@ -205,11 +205,10 @@ uncached completeness check failed all six cells for missing evidence; explicit
 worker completion and diagnostic artifact upload succeeded. Other GitHub jobs
 passed.
 
-The coordinator log does not identify the failing worker initialization step.
-The available Nx connector did not expose that log, and browser access did not
-provide readable worker diagnostics. Inspect the first failed initialization step
-in the [Nx worker workflow logs](https://cloud.nx.app/cipes/6adf72699756696159176efb)
-before changing the launch template or retrying. Hosted atom execution, remote
-artifact/failure restoration and DTE performance/cost remain **unverified**; this
-failed startup is not evidence of a speedup. Repository maintainers own resolution
-of this rollout blocker; keep the PR in draft until the hosted checks pass.
+The worker log supplied by the maintainer identifies `spawn unzip ENOENT` during
+snapshot restoration. The base image lacks the ZIP utility used by the input
+downloader. The launch template now installs `unzip` explicitly before restoring
+the artifact. This is an initialization prerequisite; validation assertions and
+cache contracts are unchanged. Hosted atom execution, remote artifact/failure
+restoration and DTE performance/cost remain **unverified** until the corrected
+worker run succeeds. Keep the PR in draft until the hosted checks pass.
