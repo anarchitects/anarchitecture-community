@@ -6,7 +6,7 @@ const child = spawn(
   [join(process.env.EDITORJS_README_ROOT, 'dist/readme/server/server.mjs')],
   {
     cwd: process.env.EDITORJS_README_ROOT,
-    env: { ...process.env, PORT: '4335' },
+    env: { ...process.env, PORT: process.env.EDITORJS_README_PORT || '4335' },
     stdio: 'inherit',
   },
 );

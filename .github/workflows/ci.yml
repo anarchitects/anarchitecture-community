@@ -126,37 +126,6 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  editorjs-angular-packed-consumers:
-    name: editorjs-angular packed (${{ matrix.cell }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        cell:
-          - angular22-minimum
-          - angular22-reference
-          - angular22-current
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          filter: tree:0
-          fetch-depth: 0
-      - run: corepack enable
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'yarn'
-      - run: yarn install --immutable
-      - run: yarn nx run editorjs-angular-e2e:install-browsers:ci
-      - run: yarn nx run editorjs-angular-e2e:e2e-packed --cell=${{ matrix.cell }}
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: editorjs-angular-packed-${{ matrix.cell }}
-          path: apps/editorjs/angular-e2e/test-output/compatibility/${{ matrix.cell }}
-          retention-days: 7
-          if-no-files-found: ignore
-
   editorjs-angular-ssr:
     name: editorjs-angular SSR (Chromium)
     runs-on: ubuntu-latest
@@ -186,16 +155,15 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  editorjs-angular-packed-ssr:
-    name: editorjs-angular packed SSR (${{ matrix.cell }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        cell:
-          - angular22-minimum
-          - angular22-reference
-          - angular22-current
+  editorjs-angular-packed:
+    name: editorjs-angular packed (Nx DTE)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    env:
+      EDITORJS_PACKED_RUN_ID: gh-${{ github.run_id }}-${{ github.run_attempt }}
+      NX_CI_EXECUTION_ID: packed-${{ github.run_id }}-${{ github.run_attempt }}
+      NG_BUILD_MAX_WORKERS: '2'
+      NX_CACHE_FAILURES: 'true'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -204,16 +172,60 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: '24.22.1'
           cache: 'yarn'
       - run: yarn install --immutable
-      - run: yarn nx run editorjs-angular-e2e:install-browsers:ci
-      - run: yarn nx run editorjs-angular-e2e:e2e-packed-ssr --cell=${{ matrix.cell }}
+      # Fresh registry resolution stays outside DTE. The snapshots include the
+      # Forms-absent boundary proof and installed, version-matched dependencies.
+      - name: Verify packed harness contracts
+        run: yarn nx run editorjs-angular-e2e:test-packed-harness
+      - name: Validate packed worker template
+        run: yarn nx-cloud validate --workflow-file=./.nx/workflows/editorjs-packed.yaml
+      - name: Prepare fresh compatibility snapshots
+        env:
+          NX_CLOUD_DISTRIBUTED_EXECUTION: 'false'
+        run: >-
+          yarn nx run-many -p editorjs-angular-e2e
+          -t packed-csr-angular22-minimum-prepare,packed-csr-angular22-reference-prepare,packed-csr-angular22-current-prepare,packed-ssr-angular22-minimum-prepare,packed-ssr-angular22-reference-prepare,packed-ssr-angular22-current-prepare
+          --parallel=3 --runId="$EDITORJS_PACKED_RUN_ID"
+      - uses: actions/upload-artifact@v4
+        id: inputs
+        with:
+          name: editorjs-packed-inputs
+          path: dist/editorjs-packed-inputs
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error
+      - name: Start packed validation workers
+        id: workers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EDITORJS_PACKED_ARTIFACT_ID: ${{ steps.inputs.outputs.artifact-id }}
+          PACKED_DISTRIBUTION: ${{ vars.EDITORJS_PACKED_DISTRIBUTION || '3 editorjs-packed' }}
+        run: >-
+          yarn nx-cloud start-ci-run --distribute-on="$PACKED_DISTRIBUTION"
+          --require-explicit-completion --stop-workers-on-failure=false
+          --with-env-vars=EDITORJS_PACKED_RUN_ID,EDITORJS_PACKED_ARTIFACT_ID,GITHUB_REPOSITORY,GH_TOKEN,NG_BUILD_MAX_WORKERS,NX_CACHE_FAILURES
+      # Every atom is requested so Nx restores its outputs to the coordinator.
+      # Failed checks fail Nx; independent atoms finish to retain their evidence.
+      - name: Distribute packed build and file atoms
+        run: >-
+          yarn nx run-many -p editorjs-angular-e2e
+          -t "$(node apps/editorjs/angular-e2e/tools/packed-targets.mjs)"
+          --parallel=2 --runId="$EDITORJS_PACKED_RUN_ID"
+      - name: Enforce all packed validation outcomes
+        if: ${{ !cancelled() && steps.workers.outcome == 'success' }}
+        run: node apps/editorjs/angular-e2e/tools/packed-results.mjs "$EDITORJS_PACKED_RUN_ID"
+      - name: Complete packed DTE
+        if: ${{ always() && steps.workers.outcome == 'success' }}
+        run: yarn nx-cloud complete-ci-run
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: editorjs-angular-packed-ssr-${{ matrix.cell }}
-          path: apps/editorjs/angular-e2e/test-output/ssr-compatibility/${{ matrix.cell }}
+          name: editorjs-angular-packed-evidence
+          path: |
+            dist/editorjs-packed-results
+            dist/editorjs-packed-inputs/**/evidence
           retention-days: 7
           if-no-files-found: ignore
 

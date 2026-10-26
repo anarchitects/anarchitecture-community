@@ -42,25 +42,18 @@
     "e2e-packed": {
       "executor": "nx:run-commands",
       "cache": false,
-      "parallelism": false,
-      "dependsOn": ["^build"],
-      "outputs": ["{projectRoot}/test-output/compatibility"],
+      "parallelism": true,
+      "outputs": ["{workspaceRoot}/dist/editorjs-packed-results"],
       "options": {
-        "command": "node apps/editorjs/angular-e2e/tools/validate-packed.mjs {args.cell}",
-        "cell": "all"
+        "command": "node apps/editorjs/angular-e2e/tools/validate-packed.mjs {args.cell} csr {args.phaseParallel}",
+        "cell": "all",
+        "phaseParallel": "2"
       }
     },
     "e2e-packed-ssr": {
       "executor": "nx:run-commands",
       "cache": false,
-      "parallelism": false,
-      "dependsOn": [
-        {
-          "projects": ["editorjs-angular"],
-          "target": "build",
-          "params": "ignore"
-        }
-      ],
+      "parallelism": true,
       "inputs": [
         "default",
         "^production",
@@ -72,10 +65,11 @@
           "env": "CI"
         }
       ],
-      "outputs": ["{projectRoot}/test-output/ssr-compatibility"],
+      "outputs": ["{workspaceRoot}/dist/editorjs-packed-results"],
       "options": {
-        "command": "node apps/editorjs/angular-e2e/tools/validate-packed.mjs {args.cell} ssr",
-        "cell": "all"
+        "command": "node apps/editorjs/angular-e2e/tools/validate-packed.mjs {args.cell} ssr {args.phaseParallel}",
+        "cell": "all",
+        "phaseParallel": "2"
       }
     },
     "test-ssr": {
@@ -123,6 +117,25 @@
       "options": {
         "cwd": "apps/editorjs/angular-e2e",
         "command": "playwright test --config=playwright.isolation.config.mts"
+      }
+    },
+    "test-packed-harness": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/tools/**/*.mjs",
+        "{projectRoot}/tools/**/*.json",
+        "{projectRoot}/project.json",
+        {
+          "runtime": "node -p \"process.platform + process.arch\""
+        },
+        {
+          "runtime": "node --version"
+        }
+      ],
+      "outputs": [],
+      "options": {
+        "command": "node --test apps/editorjs/angular-e2e/tools/packed-harness.test.mjs"
       }
     }
   },

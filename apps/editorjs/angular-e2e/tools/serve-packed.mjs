@@ -34,6 +34,6 @@ const server = createServer(async (request, response) => {
     response.writeHead(404).end();
   }
 });
-server.listen(4318, '127.0.0.1');
+server.listen(Number(process.env.EDITORJS_PACKED_PORT || 4318), '127.0.0.1');
 process.once('SIGTERM', () => server.close());
 process.once('SIGINT', () => server.close());

@@ -105,13 +105,14 @@ small consumer-owned fixture; validation/submission example endpoints remain
 application responsibilities. The ordinary library package test additionally checks
 root imports and an empty-holder server render without Editor.js installed.
 
-Reports in `apps/editorjs/angular-e2e/test-output/compatibility/<cell>` include
-`root-only-package-lock.json`, the final `package-lock.json`, `versions.json`,
-`package-boundaries.json`, browser HTML reports and failure traces/screenshots.
-The boundary record certifies its listed stages only; later browser failures still
-fail the Nx target. Temporary applications are removed on success or failure.
-The target is deliberately networked and uncached; review retained locks when
-comparing runs. Packed servers use port 4318, workspace browser tests use 4317.
+Reports now live under
+`dist/editorjs-packed-results/<runId>/csr/<cell>/collect`, including both locks,
+versions, package boundaries, browser HTML reports and failure artifacts. Fresh
+preparation remains uncached. Build and browser atoms transport immutable,
+run-scoped evidence through Nx caching; the final uncached gate fails on any
+failed or missing outcome. Consumers and leased ports are cleaned up after each
+atom. See [packed validation and Nx DTE](editorjs-angular-packed-dte.md) for the
+graph, artifact/cache contract, CI lifecycle and measured limitations.
 
 ## Documentation review
 

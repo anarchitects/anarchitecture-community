@@ -10,4 +10,8 @@ export const packed = Boolean(process.env.EDITORJS_SSR_ROOT);
 export const buildDirectory = (suffix = '') =>
   join(fixtureRoot, `dist/apps/editorjs/angular-host-ssr${suffix}`);
 export const reportDirectory = (suite) => join(reportRoot, suite);
-export const fixturePort = (offset) => (packed ? 4330 : 4320) + offset;
+const ports = process.env.EDITORJS_SSR_PORTS
+  ? JSON.parse(process.env.EDITORJS_SSR_PORTS)
+  : undefined;
+export const fixturePort = (offset) =>
+  ports?.[offset] ?? (packed ? 4330 : 4320) + offset;

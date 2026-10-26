@@ -93,6 +93,9 @@
         "targetName": "e2e",
         "ciTargetName": ""
       }
+    },
+    {
+      "plugin": "./apps/editorjs/angular-e2e/tools/packed-plugin.mjs"
     }
   ],
   "generators": {
