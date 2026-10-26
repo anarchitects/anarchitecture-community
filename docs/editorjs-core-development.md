@@ -4,6 +4,10 @@ The consumer guide is the package [README](../packages/editorjs/core/README.md).
 This document covers repository checks and release preparation for Nx project
 `editorjs-core` (`@anarchitects/editorjs-core`).
 
+The [tool registry implementation contract](editorjs-tool-registry-design.md)
+defines the planned composition and lazy-resolution work for #70. It does not
+describe functionality already exported by core.
+
 ## Architecture review
 
 The complete local ADR inventory was reviewed for #524: Governance ADRs 0001–0003

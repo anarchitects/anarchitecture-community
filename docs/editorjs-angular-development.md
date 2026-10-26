@@ -4,6 +4,10 @@ Nx project: `editorjs-angular`. Package: `@anarchitects/editorjs-angular`.
 Consumer-facing behavior is documented in the
 [package README](../packages/editorjs/angular/README.md).
 
+The [tool registry implementation contract](editorjs-tool-registry-design.md)
+defines #70's planned core composition, optional Angular providers and browser
+resolution ownership. Its proposed APIs are not current package exports.
+
 The [SSR and hydration contract](editorjs-angular-ssr-design.md) defines #69's
 rendering modes and ownership. The [fixture evidence](editorjs-angular-ssr-fixture.md)
 and [consolidated release review](editorjs-angular-release-readiness.md) record the
