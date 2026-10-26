@@ -15,8 +15,16 @@ invoking loaders. Increment #594 implements `createToolResolver(registry, contex
 and `ToolResolver`, with shared attempts, owner-local success caches, explicit
 whole-attempt retry and logical disposal. Context containers are snapshotted at
 construction; references are checked on resolution before loading. The diagnostic
-codes are `load-failed`, `invalid-loaded-constructor` and `disposed`. Angular
-provider/lifecycle surfaces remain planned. Current signatures are in the core README.
+codes are `load-failed`, `invalid-loaded-constructor` and `disposed`. Current core
+signatures are in the core README.
+
+Increment #595 implements `provideEditorJsTools`, `EDITOR_JS_TOOL_REGISTRY`,
+`EditorJsToolContribution` and `EditorJsToolProviderOptions` at the Angular root.
+Local contributions and explicit parent lookup delegate composition/selection to
+core. An internal scope token shares the public snapshot and its actual owning
+environment's `DestroyRef`. Provider options are copied at helper construction;
+definitions are snapshotted at first token lookup. Component activation and
+resolver/editor lifetime wiring remain #596; providers alone do not activate tools.
 
 #594 also makes the async map boundary explicit: an eager direct class at the key
 `then` is rejected by resolution before loading with `invalid-definition`, because

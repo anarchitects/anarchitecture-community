@@ -1098,6 +1098,129 @@ Tool options may contain callbacks/services and are not persisted JSON. Generic
 block parameters describe data already validated by the application; they do not
 validate editor output at runtime. Use core parsers/validators for untrusted data.
 
+## Tool providers and injector ownership
+
+`provideEditorJsTools(contribution, options?)` and `EDITOR_JS_TOOL_REGISTRY` are
+optional environment APIs. They make a core tool registry available to an
+application, route or explicitly created child `EnvironmentInjector`. They do not
+belong in a component's `providers` array, and resolving the token never loads a
+tool or Editor.js. Forms is not required.
+
+The component currently consumes `config.tools` explicitly; installing providers
+alone does not activate tools or replace that map. For an eager registry, build
+the map from the injected snapshot and pass it through the existing config input:
+
+```ts
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  InjectionToken,
+  type ApplicationConfig,
+} from '@angular/core';
+import {
+  EditorJs,
+  EDITOR_JS_TOOL_REGISTRY,
+  provideEditorJsTools,
+  type EditorJsConfig,
+} from '@anarchitects/editorjs-angular';
+import { createToolMap } from '@anarchitects/editorjs-core';
+import { CalloutTool } from './callout-tool';
+
+const TOOL_LABEL = new InjectionToken<string>('tool-label');
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    { provide: TOOL_LABEL, useValue: 'Note' },
+    provideEditorJsTools({
+      factory: () => {
+        const label = inject(TOOL_LABEL);
+        return [
+          {
+            name: 'callout',
+            kind: 'block',
+            source: 'eager',
+            registration: { class: CalloutTool, config: { label } },
+          },
+        ];
+      },
+    }),
+  ],
+};
+
+@Component({
+  selector: 'app-provider-editor',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [EditorJs],
+  template: '<aa-editorjs [config]="config" />',
+})
+export class ProviderEditor {
+  readonly config: EditorJsConfig = {
+    tools: createToolMap(inject(EDITOR_JS_TOOL_REGISTRY)),
+  };
+}
+```
+
+Pass either a readonly definitions array or `{ factory: () => definitions }`.
+Factories run synchronously once per contribution when the owning environment's
+snapshot is first requested. They may use `inject()` to capture services and
+configuration, but must return inert definitions, not promises or loaded browser
+code. A bare function/class is not a contribution. Factories run in the provider
+owner's context even when a child requests the token; a child service override
+does not change an already-owned parent contribution. Capture dependencies before
+building a lazy `load` callback: loading does not establish an injection context,
+and `inject()` cannot be used after an `await`.
+
+Definition containers are snapshotted by core on first token lookup; treat them
+as immutable until then. Provider options and selection lists are copied when
+the helper is called. Opaque tool config/data and service identities follow core's
+ownership rules and remain host-owned. Use separate definitions for mutable
+per-editor or per-request configuration. Do not share such values across SSR
+requests merely because a provider declaration is reusable.
+
+`EditorJsToolProviderOptions` supports:
+
+- `inherit` defaults to `false`. A local helper isolates its environment from
+  ancestor registrations. `inherit: true` explicitly starts with the nearest
+  parent's **selected** snapshot; a missing parent is empty. Parent-excluded tools
+  cannot be recovered by child selection.
+- `select` defaults to all composed custom definitions. An explicit list controls
+  order, and `[]` selects none. Selection runs after inheritance and every local
+  contribution. Names supplied across independent providers are checked at runtime.
+
+Repeated helper calls in one environment concatenate definitions in provider
+order. Every call must have identical normalized options, including selection
+order; omitted `inherit` equals `false`, while omitted `select` differs from `[]`.
+Conflicting options fail instead of silently using the final call's settings.
+Core handles duplicate names, explicit same-kind `replace: true`, selection and
+built-in/default rules using `EDITOR_JS_2_31_7_TOOL_PROFILE`. Replacing a definition
+does not merge its config. Sibling snapshots remain independent. A child with no
+local helper sees the nearest parent's same snapshot and owner.
+
+Invalid provider wrappers/options can throw `ToolRegistryError` during helper
+construction. Composition and selection errors surface on token lookup. Scope
+option conflicts use `invalid-options` with a `providers` path; invalid factory
+results use `invalid-definition`. A throwing host factory propagates its error.
+Correct the provider configuration and create a new environment rather than
+retrying a failed DI factory. With no provider, optional token lookup returns
+`null`; direct `config.tools` usage needs no registry provider.
+
+Providers own immutable metadata, not resolvers, imported modules or editor
+instances. They install no initializer or reversible global registration. A host
+that creates a core `createToolResolver` owns its disposal and must check browser
+and owner lifetime before resolving. Register host cleanup with the correct
+`DestroyRef`, and remove callbacks when the consuming owner dies first. Angular
+calls injector-scoped cleanup when that environment is destroyed; route exit
+alone does not prove destruction, since an injector may be retained for reuse.
+Destroying a child does not destroy its parent or siblings. Core snapshots contain
+no Angular lifecycle references and remain inert values if a caller retains one.
+
+Static imports are eager even when used inside a provider declaration. For a tool
+whose module touches browser globals, declare `source: 'lazy'` and a host-owned
+dynamic loader; do not call it during a contribution factory or server rendering.
+See the [core registry and resolver guide](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/core#lazy-tool-resolution)
+for loading, retry, disposal and validation limits.
+
 ## Imperative controls
 
 Each `EditorJs` component exposes a stable, bound `api: EditorJsApi`. Readiness
@@ -1274,7 +1397,9 @@ Use the root entry point for standalone editing and `/forms` for Forms integrati
 Package metadata is available through the `package.json` subpath.
 
 - Root runtime exports: `EditorJs`, `EDITOR_JS_LOADER`, `provideEditorJsLoader`,
+  `EDITOR_JS_TOOL_REGISTRY`, `provideEditorJsTools`,
   `EditorJsOperationError` (re-exported from core).
+- Tool provider types: `EditorJsToolContribution`, `EditorJsToolProviderOptions`.
 - Configuration types: `EditorJsConfig`, `EditorJsTools`.
 - Event/control types (re-exported from core): `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`,
   `EditorJsErrorEvent`, `EditorJsOperation`.
@@ -1287,8 +1412,9 @@ inputs listed above, `touch`, `ready`, `change`, `error`, `focus()`, `reset()` a
 `save()`. It has no separate `data` input or imperative `api`. Import document, tool and upload types directly
 from `@anarchitects/editorjs-core`.
 Applications own persistence records, storage mappings, migrations, transports,
-tool selection and rendering safety. No tool registry, uploader or application model
-is supplied. Forms is optional and isolated to the `/forms` entry point. SSR and
+tool selection and rendering safety. The optional registry supplies metadata;
+concrete tools, an uploader and application models remain host-owned.
+Forms is optional and isolated to the `/forms` entry point. SSR and
 hydration require the host composition described above. Editor.js remains an
 application-owned peer dependency.
 
@@ -1303,7 +1429,7 @@ their own readiness, editor creation and destruction. See the
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Angular Forms                    | Opt-in value binding, touch, availability, focus, reset and snapshots via `/forms`; no package-owned CVA.     |
 | SSR/hydration                    | Supported profiles above; host owns providers, routes, initial data, native submission safety and deployment. |
-| Tool registry and concrete tools | Supply compatible tools and their schemas; no registry or tool bundle is included.                            |
+| Tool registry and concrete tools | Optional environment metadata; hosts supply tools/schemas and pass the composed map through `config.tools`.   |
 | Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads.           |
 | Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.              |
 

@@ -5,9 +5,39 @@ Consumer-facing behavior is documented in the
 [package README](../packages/editorjs/angular/README.md).
 
 The [tool registry implementation contract](editorjs-tool-registry-design.md)
-defines #70's core composition (#593) and lazy resolution (#594), plus planned
-optional Angular providers and browser ownership. Its proposed Angular APIs are
-not current package exports.
+defines #70's core composition (#593), lazy resolution (#594) and optional Angular
+providers (#595). Component activation and browser ownership wiring remain #596.
+
+## Tool provider increment
+
+#595 re-enumerated the eight local and eighteen Meta ADR records against Community
+`afe9451` and Meta `823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. All records read
+for the preceding slices, including proposals and historical records, are unchanged.
+The registry design's status inventory remains applicable. Modern Angular A01–A03,
+A09–A11 and the architecture, provider, SSR and testing guides require explicit
+environment ownership, public seams, inert server imports and packed evidence.
+Local ADR0004 requires the consumer guide in this PR; local ADR0007 / Meta0013
+govern unpublished-package release intent, and Meta0015 governs Nx checks.
+No accepted-ADR conflict was found. Generic root-singleton guidance does not
+override the accepted scope model. Installed Angular remains 22.1.4 and Editor.js
+2.31.7; compatibility ranges and the supported matrix remain unchanged.
+
+The provider helper composes self-scoped contributions through core and optionally
+seeds from the nearest parent's selected snapshot. The public snapshot token and
+internal scope binding share one DI factory and the actual owner's `DestroyRef`.
+There is no resolver, loading cache, initializer or mutable root registry here.
+Component activation and binding of component cleanup to provider destruction
+remain #596. Tests can register callbacks against the internal binding to prove
+its ownership without claiming component wiring is already implemented.
+
+On Node 24.22.1 / Angular 22.1.4, the Angular production build, typecheck, lint
+and all 157 tests pass, including 19 provider cases. Packed checks exercise provider
+creation/token lookup with guarded browser globals and no Forms or Editor.js
+installed, server rendering, root declarations without Forms, and compiled README
+examples. Lint retains 11 pre-existing warnings, with none introduced here.
+The browser/network and broader runtime matrix remain #597. Release-tag and npm
+checks show no published Angular package, so this uses `init(editorjs-angular)`
+without a version or dependency change.
 
 The [SSR and hydration contract](editorjs-angular-ssr-design.md) defines #69's
 rendering modes and ownership. The [fixture evidence](editorjs-angular-ssr-fixture.md)
