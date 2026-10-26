@@ -5,9 +5,9 @@ Consumer-facing behavior is documented in the
 [package README](../packages/editorjs/angular/README.md).
 
 The [tool registry implementation contract](editorjs-tool-registry-design.md)
-defines #70's core composition (implemented in #593), planned optional Angular
-providers and browser resolution ownership. Its proposed Angular APIs are not
-current package exports.
+defines #70's core composition (#593) and lazy resolution (#594), plus planned
+optional Angular providers and browser ownership. Its proposed Angular APIs are
+not current package exports.
 
 The [SSR and hydration contract](editorjs-angular-ssr-design.md) defines #69's
 rendering modes and ownership. The [fixture evidence](editorjs-angular-ssr-fixture.md)

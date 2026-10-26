@@ -53,6 +53,7 @@ import type {
   ToolRegistryTools,
   ToolRegistryErrorCode,
   ToolRegistryError,
+  ToolResolver,
 } from '@anarchitects/editorjs-core';
 
 // Keep every documented type reachable through the published root declarations.
@@ -92,6 +93,7 @@ export interface AdditionalPublicContracts {
   tools: ToolRegistryTools<ToolRegistryEntries>;
   registryCode: ToolRegistryErrorCode;
   registryError: ToolRegistryError;
+  resolver: ToolResolver;
 }
 
 interface ToolData {
