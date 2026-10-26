@@ -1,0 +1,26 @@
+launch-templates:
+  editorjs-packed:
+    resource-class: docker_linux_amd64/medium
+    image: ubuntu22.04-node20.11-v9
+    env:
+      CI: 'true'
+      NG_BUILD_MAX_WORKERS: '2'
+    init-steps:
+      - name: Checkout
+        uses: nrwl/nx-cloud-workflows/v5/workflow-steps/checkout/main.yaml
+      - name: Install Node
+        uses: nrwl/nx-cloud-workflows/v5/workflow-steps/install-node/main.yaml
+        inputs:
+          node_version: '24.22.1'
+      - name: Install workspace dependencies
+        script: |
+          corepack enable
+          yarn install --immutable
+      - name: Install Chromium and OS dependencies
+        script: yarn playwright install chromium --with-deps --only-shell
+      - name: Install snapshot archive utility
+        script: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y unzip
+      - name: Restore immutable packed consumer inputs
+        script: node apps/editorjs/angular-e2e/tools/download-packed-inputs.mjs

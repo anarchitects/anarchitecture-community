@@ -617,10 +617,9 @@ with replay and the deliberately eager negative control. The complete server sui
 118 hydration cases and ten route-isolation cases run without reducing the
 assertions for older minors. This exercises the installed default incremental
 behavior and the explicit full-hydration opt-out independently. The server suite
-allocates a port and proves clean process/socket teardown. Browser suites own ports
-4330–4334, separate from workspace SSR ports 4320–4324; packed CSR keeps 4318.
-They never reuse a developer server. Cells and builds run sequentially locally;
-CI matrix cells run in separate machines.
+allocates a port and proves clean process/socket teardown. Packed browser atoms lease independent ports; workspace SSR retains ports
+4320–4324. They never reuse a developer server. Nx schedules file/build atoms
+locally or across CI workers using explicit prerequisite and artifact contracts.
 
 Angular 22.0/22.1 emit a combined `stats.json`; the installed 22.2 builder emits
 `browser-stats.json` and `server-stats.json`. The harness retains both originals
@@ -629,16 +628,16 @@ unchanged output records. Duplicate output keys fail rather than silently hiding
 one graph. The same input provenance, eager-closure and server-import controls
 apply to both metadata layouts.
 
-The networked target is uncached and declares its dependencies, configuration,
-lock/runtime inputs and report outputs. Existing workspace build caching and the
-independent `e2e-packed` CSR target remain available. Do not run multiple packed
-matrix invocations concurrently on one machine: they share reserved ports and
-per-cell report directories. Each command has a fifteen-minute failure deadline,
-then a five-second termination grace period. Interruptions terminate the owned
-command process group; consumer directories and the task-owned npm cache are
-removed in finalization. No global package cache or developer process is removed.
+Fresh networked preparation remains uncached. The independent `e2e-packed`
+CSR target remains available. Packed build/file atoms are cacheable within an
+invocation and declare restorable outputs for Nx DTE; an uncached outcome gate
+remains authoritative. Unique run/atom directories and port leases support
+concurrency. Each command has a fifteen-minute failure deadline and five-second
+termination grace period. Owned consumers/processes are cleaned up on failure
+and interruption. See [packed Nx DTE](editorjs-angular-packed-dte.md) for the full
+freshness, failure-evidence and worker lifecycle contract.
 
-Evidence lives in `apps/editorjs/angular-e2e/test-output/ssr-compatibility/<cell>`:
+Evidence lives in `dist/editorjs-packed-results/<runId>/ssr/<cell>/collect`:
 both tarballs with SHA-256 identifiers, initial/final dependency locks and manifest,
 actual dependency versions/paths, exact application/TypeScript build configurations,
 command logs, all four emitted builds, server HTML/import-guard logs, hydration and

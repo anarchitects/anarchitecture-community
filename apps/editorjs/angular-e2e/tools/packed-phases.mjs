@@ -1,0 +1,48 @@
+/** File atoms share immutable consumer snapshots and separately cached builds. */
+export const packedPhases = {
+  interop: [],
+  'build-csr': [],
+  'csr-editor': ['build-csr'],
+  'csr-forms': ['build-csr'],
+  'build-ssr-production': [],
+  'build-ssr-diagnostic': [],
+  'build-ssr-full': [],
+  'build-ssr-eager-control': [],
+  ssr: ['build-ssr-production'],
+  'hydration-standalone': [
+    'build-ssr-production',
+    'build-ssr-diagnostic',
+    'build-ssr-full',
+  ],
+  'hydration-forms': [
+    'build-ssr-production',
+    'build-ssr-diagnostic',
+    'build-ssr-full',
+  ],
+  'hydration-deferred': [
+    'build-ssr-production',
+    'build-ssr-diagnostic',
+    'build-ssr-full',
+  ],
+  'hydration-forms-deferred': [
+    'build-ssr-production',
+    'build-ssr-diagnostic',
+    'build-ssr-full',
+  ],
+  isolation: ['build-ssr-production', 'build-ssr-eager-control'],
+  'readme-default': [],
+  'readme-full': [],
+};
+export const phasesFor = (mode) =>
+  Object.keys(packedPhases).filter(
+    (phase) =>
+      mode === 'ssr' ||
+      ['interop', 'build-csr', 'csr-editor', 'csr-forms'].includes(phase),
+  );
+export const targetFor = (mode, cell, phase) =>
+  `packed-${mode}-${cell}-${phase}`;
+export function parallelism(value = '2') {
+  if (!/^[1-9]\d*$/.test(value) || Number(value) > 8)
+    throw new Error('Packed phase parallelism must be an integer from 1 to 8');
+  return Number(value);
+}

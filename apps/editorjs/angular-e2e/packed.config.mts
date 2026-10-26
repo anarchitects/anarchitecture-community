@@ -4,6 +4,7 @@ import base from './playwright.config.mts';
 const root = process.env['EDITORJS_PACKED_ROOT'];
 const node = process.env['EDITORJS_PACKED_NODE'];
 const report = process.env['EDITORJS_PACKED_REPORT'];
+const port = process.env['EDITORJS_PACKED_PORT'] || '4318';
 if (!root || !node || !report)
   throw new Error(
     'Run the e2e-packed Nx target to prepare an isolated consumer.',
@@ -12,16 +13,17 @@ if (!root || !node || !report)
 // Spread first: defineConfig(base, overrides) would retain both web servers.
 export default defineConfig({
   ...base,
+  workers: 2,
   outputDir: `${report}/results`,
   reporter: [
     ['list'],
     ['html', { outputFolder: `${report}/report`, open: 'never' }],
   ],
-  use: { ...base.use, baseURL: 'http://127.0.0.1:4318' },
+  use: { ...base.use, baseURL: `http://127.0.0.1:${port}` },
   webServer: {
     command: '"$EDITORJS_PACKED_NODE" server.mjs',
     cwd: root,
-    url: 'http://127.0.0.1:4318',
+    url: `http://127.0.0.1:${port}`,
     reuseExistingServer: false,
     gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 },
   },
