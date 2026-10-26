@@ -23,6 +23,25 @@ export type {
   UrlUploader,
 } from './lib/uploader.js';
 export {
+  composeToolRegistry,
+  selectToolRegistry,
+  validateToolReferences,
+  createToolMap,
+  EDITOR_JS_2_31_7_TOOL_PROFILE,
+} from './lib/tool-registry.js';
+export { ToolRegistryError } from './lib/tool-registry-contracts.js';
+export type {
+  ToolDefinition,
+  ToolKind,
+  BuiltInTool,
+  BuiltInToolProfile,
+  ToolReferenceContext,
+  ToolRegistry,
+  ToolRegistryEntries,
+  ToolRegistryTools,
+  ToolRegistryErrorCode,
+} from './lib/tool-registry-contracts.js';
+export {
   normalizeOutputData,
   parseOutputData,
 } from './lib/parse-output-data.js';

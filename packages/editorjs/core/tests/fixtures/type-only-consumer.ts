@@ -43,6 +43,16 @@ import type {
   EditorJsOperationError,
   EditorJsDocumentDriver,
   EditorJsDocumentCoordinatorOptions,
+  ToolDefinition,
+  ToolKind,
+  BuiltInTool,
+  BuiltInToolProfile,
+  ToolReferenceContext,
+  ToolRegistry,
+  ToolRegistryEntries,
+  ToolRegistryTools,
+  ToolRegistryErrorCode,
+  ToolRegistryError,
 } from '@anarchitects/editorjs-core';
 
 // Keep every documented type reachable through the published root declarations.
@@ -72,6 +82,16 @@ export interface AdditionalPublicContracts {
   operationError: EditorJsOperationError;
   driver: EditorJsDocumentDriver;
   coordinatorOptions: EditorJsDocumentCoordinatorOptions;
+  definition: ToolDefinition;
+  kind: ToolKind;
+  builtIn: BuiltInTool;
+  profile: BuiltInToolProfile;
+  references: ToolReferenceContext;
+  registry: ToolRegistry;
+  entries: ToolRegistryEntries;
+  tools: ToolRegistryTools<ToolRegistryEntries>;
+  registryCode: ToolRegistryErrorCode;
+  registryError: ToolRegistryError;
 }
 
 interface ToolData {

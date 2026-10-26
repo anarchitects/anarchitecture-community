@@ -1,7 +1,8 @@
 # @anarchitects/editorjs-core
 
 Framework-neutral document, tool configuration, and upload contracts for Editor.js,
-with parsing, normalization, pluggable validation, and optional content provenance.
+with parsing, normalization, pluggable validation, optional content provenance,
+and typed tool registry composition.
 Use `import type` for contracts and regular imports for `parseOutputData`,
 `normalizeOutputData`, `validateOutputData`, and `parseContentWithProvenance`.
 
@@ -523,8 +524,9 @@ to retain that tool's constructor type.
 
 These are external-tool registration contracts. Core does not check that a class
 implements an editor's rendering API, infer its config from its constructor,
-register tools, or manage lifecycle. The host supplies compatible classes and
-validates configuration. Config can hold callbacks and services; do not serialize
+or manage lifecycle. Registry composition validates registration structure and
+references; the host supplies compatible classes and validates tool-specific
+configuration. Config can hold callbacks and services; do not serialize
 it as document data. Toolbox icon strings remain the host's responsibility.
 
 ```ts
@@ -606,6 +608,127 @@ reject the promise; rejection values are not typed by TypeScript. Hosts must
 catch them as unknown and either report them or map them to an explicit failure
 response. These interfaces do not perform I/O or handle exceptions automatically.
 
+## Tool registry composition
+
+`composeToolRegistry(groups, { profile, base? })` composes independent block,
+inline and tune definitions. Each definition has a `name`, `kind` (`block`,
+`inline`, `tune`) and explicit `source`. Eager definitions contain an existing
+typed `registration`; lazy definitions contain `load` and optional `settings`
+without `class`. Composition never invokes constructors, loaders or static hooks.
+
+This host helper accepts a compatible tool class and returns the map to pass as
+Editor.js's `tools` option. Composition needs neither Angular nor Editor.js
+installed; the browser host owns those dependencies and actual editor creation.
+
+```ts
+import {
+  composeToolRegistry,
+  createToolMap,
+  EDITOR_JS_2_31_7_TOOL_PROFILE,
+  selectToolRegistry,
+} from '@anarchitects/editorjs-core';
+import type {
+  ToolConfiguration,
+  ToolConstructor,
+} from '@anarchitects/editorjs-core';
+
+interface HeadingConfig {
+  placeholder: string;
+}
+interface HeadingData {
+  text: string;
+  level: number;
+}
+
+export function configureHeading<Tool extends ToolConstructor>(Heading: Tool) {
+  const registration: ToolConfiguration<Tool, HeadingConfig, HeadingData> = {
+    class: Heading,
+    config: { placeholder: 'Heading' },
+    inlineToolbar: ['bold', 'italic'],
+    toolbox: { title: 'Heading', data: { level: 2 } },
+  };
+  const registry = composeToolRegistry(
+    [[{ name: 'heading', kind: 'block', source: 'eager', registration }]],
+    { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+  );
+  return createToolMap(selectToolRegistry(registry, ['heading']), {
+    defaultBlock: 'paragraph',
+  });
+}
+```
+
+`createToolMap(registry, context?)` checks references and creates fresh mutable
+map/settings shells. Selected lazy definitions throw `unresolved-tool` without
+invoking loaders: asynchronous resolution is not supplied by this API. Do not
+pass lazy descriptors directly to Editor.js. `selectToolRegistry(registry, names)`
+selects custom definitions in requested order; omit names to retain the selection,
+or pass `[]` for no custom definitions. Unknown/repeated names fail. Selection
+does not disable upstream built-ins or automatically select dependencies.
+Literal groups/selection preserve keys and constructor/config/toolbox-data types;
+dynamic arrays retain broader unions and still require runtime validation.
+
+### Composition and ownership rules
+
+- Groups are processed in order in one namespace for all kinds. Duplicate names
+  fail even for the same class. Set `replace: true` on a later same-kind definition
+  to replace an existing custom or replaceable built-in tool. Missing targets,
+  kind changes and reserved replacements fail. Custom replacements retain their
+  original map position. Replacement replaces the **entire definition**, with no
+  recursive config merge, inherited options or array concatenation.
+- A `base` snapshot seeds composition without replaying its replacement commands;
+  its built-in profile must match by content. Parents/siblings remain unchanged.
+- Names are case-sensitive and never rewritten. Empty/whitespace-only names,
+  `__proto__`, `prototype`, `constructor` and canonical array-index names are
+  rejected. Namespaced names are allowed. Registry-owned records accept own data
+  properties, rejecting accessors, unknown fields and inherited registration
+  fields. Executable host code and Proxies are trusted inputs, not sandboxed.
+- Registry containers and profile/settings metadata are copied and frozen.
+  Output maps, toolbar/tune arrays and toolbox entry shells are fresh copies.
+  Opaque `config`, toolbox `data`, nested objects, callbacks, constructors and
+  service instances retain identity; they are not recursively cloned or frozen.
+  Treat them as immutable for the registry lifetime, and supply separate
+  definitions for per-editor/request mutable state.
+
+`EDITOR_JS_2_31_7_TOOL_PROFILE` is inert name/kind metadata for `paragraph`, `stub`,
+`bold`, `italic`, `link`, `convertTo`, `moveUp`, `delete` and `moveDown`, with
+`paragraph` as default. `stub` and `convertTo` are reserved helpers: they cannot
+be replaced or used as default blocks. Other built-in replacements require an
+explicit same-kind definition with a class. Classless internal-tool settings are
+not supported. Metadata is checked against Editor.js 2.31.7, not future versions.
+A custom `BuiltInToolProfile` supplies a `tools` array and optional `defaultBlock`.
+With an empty profile, pass an explicit available block as the default.
+
+`validateToolReferences(registry, context?)` checks references without producing
+a map. `ToolReferenceContext` accepts `defaultBlock`, deprecated `initialBlock`,
+`inlineToolbar` and `tunes`. The first truthy value of `defaultBlock`,
+`initialBlock`, then profile default must be an available non-reserved block.
+Explicit toolbar/tune lists need unique names of the correct kind, including
+built-ins. Selected blocks' references are checked even when another option
+disables their UI; excluded definitions impose no reference requirements.
+Global `tunes` is a list; per-block toolbar/tunes also accept booleans.
+
+Boolean/absent options and empty lists retain upstream meaning. `tunes: []` does
+not disable internal tunes; per-block `tunes: false` does. Core does not expand
+`true`, rewrite class defaults or promise final toolbar ordering. Upstream owns
+its internal-default and class-level toolbox merging.
+
+### Diagnostics and limits
+
+Catch `ToolRegistryError` and inspect `code`, optional `toolName` and readonly
+`path` (field names/indices). Structural checks fail in input order; diagnostics
+never serialize configuration. Codes are `invalid-definition`, `invalid-name`,
+`invalid-options`, `invalid-profile`, `invalid-registry`, `duplicate-name`,
+`invalid-replacement`, `invalid-selection`, `invalid-reference` and
+`unresolved-tool`. Resolve a duplicate with a unique name or deliberate
+replacement; select the correct tool kind for a missing reference; use eager
+registrations before calling `createToolMap`.
+
+Snapshots are opaque: create them through composition/selection, not JSON or
+object construction. Registry validation checks envelopes and references, not
+static `isInline`/`isTune`, constructability, tool lifecycle, saved content, HTML
+safety, read-only behavior or tool-specific config schemas. No global registry,
+editor state or Angular provider is created.
+
 ## Package exports
 
 `@anarchitects/editorjs-core` resolves to `dist/index.js`, with declarations at
@@ -624,8 +747,15 @@ response. These interfaces do not perform I/O or handle exceptions automatically
 | Validation            | `OutputDataValidationResult`, `OutputDataValidationOptions`, `OutputDataValidationError`, `OutputDataValidationErrorCode`, `ToolDataValidator`, `ToolValidationContext`, `ToolValidationIssue`, `ToolValidationResult` |
 | Provenance            | `ContentProvenance`, `ContentSchemaVersion`, `ContentProducer`, `ContentParseResult`                                                                                                                                   |
 
-The four functions, `EditorJsDocumentCoordinator` and `EditorJsOperationError` classes have runtime exports;
-the remaining contracts are types.
+Additional registry runtime exports are `composeToolRegistry`,
+`selectToolRegistry`, `validateToolReferences`, `createToolMap`,
+`EDITOR_JS_2_31_7_TOOL_PROFILE` and the `ToolRegistryError` class. Registry types
+are `ToolDefinition`, `ToolKind`, `BuiltInTool`, `BuiltInToolProfile`,
+`ToolReferenceContext`, `ToolRegistry`, `ToolRegistryEntries`,
+`ToolRegistryTools` and `ToolRegistryErrorCode`.
+
+The document functions, `EditorJsDocumentCoordinator` and `EditorJsOperationError`
+also have runtime exports; the remaining contracts are types.
 Import from the package root. Deep imports into `src`, `dist`, or helper modules
 are private and blocked by the export map. Use TypeScript's `NodeNext` resolution
 for Node ESM projects, or `Bundler` resolution for bundler-based projects. The

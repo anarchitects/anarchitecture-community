@@ -7,6 +7,14 @@ contracts remain the [core README](../packages/editorjs/core/README.md) and
 [Angular README](../packages/editorjs/angular/README.md). This slice changes no
 runtime code, public exports, dependencies, versions or public support claims.
 
+Implementation increment #593 adds core composition, selection, reference
+validation, the metadata profile and diagnostics. It also adds `createToolMap`
+for synchronous eager materialization: this additive refinement lets the
+composition slice supply usable Editor.js maps before #594's asynchronous
+resolver exists. Selected lazy definitions fail with `unresolved-tool` without
+invoking loaders. The resolver and Angular provider/lifecycle surfaces described
+below remain planned. Current implemented signatures are in the core README.
+
 ## Architecture review and authority
 
 Reviewed on 2026-10-26 against Community `a64a11f` and Meta
