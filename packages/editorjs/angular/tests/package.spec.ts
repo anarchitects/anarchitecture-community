@@ -170,7 +170,7 @@ describe('published Angular contracts', () => {
       import '@angular/compiler';
       // Angular itself probes optional DOM globals. Initialize peers in Node first,
       // then guard against any additional access introduced by this package.
-      import '@angular/core';
+      import { createEnvironmentInjector, Injector } from '@angular/core';
       import '@angular/common';
       assert.equal(typeof window, 'undefined');
       assert.equal(typeof document, 'undefined');
@@ -179,7 +179,23 @@ describe('published Angular contracts', () => {
       }
       assert.throws(() => import.meta.resolve('@angular/forms'), { code: 'ERR_MODULE_NOT_FOUND' });
       const wrapper = await import('@anarchitects/editorjs-angular');
-      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EditorJs', 'EditorJsOperationError', 'provideEditorJsLoader']);
+      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EDITOR_JS_TOOL_REGISTRY', 'EditorJs', 'EditorJsOperationError', 'provideEditorJsLoader', 'provideEditorJsTools']);
+      let factories = 0;
+      let loads = 0;
+      const providers = wrapper.provideEditorJsTools({ factory: () => {
+        factories++;
+        return [{ name: 'lazy', kind: 'block', source: 'lazy', load: () => { loads++; throw new Error('Do not load'); } }];
+      } });
+      const parent = createEnvironmentInjector([providers], Injector.NULL);
+      assert.equal(factories, 0);
+      const snapshot = parent.get(wrapper.EDITOR_JS_TOOL_REGISTRY);
+      assert.deepEqual(snapshot.names, ['lazy']);
+      assert.equal(parent.get(wrapper.EDITOR_JS_TOOL_REGISTRY), snapshot);
+      const child = createEnvironmentInjector([wrapper.provideEditorJsTools([], { inherit: true })], parent);
+      assert.deepEqual(child.get(wrapper.EDITOR_JS_TOOL_REGISTRY).names, ['lazy']);
+      assert.equal(factories, 1);
+      assert.equal(loads, 0);
+      child.destroy(); parent.destroy();
       assert.ok(import.meta.resolve('@anarchitects/editorjs-angular').includes('/fesm2022/'));
       assert.throws(() => import.meta.resolve('@editorjs/editorjs'), { code: 'ERR_MODULE_NOT_FOUND' });
       await assert.rejects(import('@anarchitects/editorjs-angular/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
@@ -206,10 +222,13 @@ describe('published Angular contracts', () => {
       import assert from 'node:assert/strict';
       import { bootstrapApplication } from '@angular/platform-browser';
       import { renderApplication } from '@angular/platform-server';
-      import { EditorJs, EDITOR_JS_LOADER } from '@anarchitects/editorjs-angular';
+      import { EditorJs, EDITOR_JS_LOADER, provideEditorJsTools } from '@anarchitects/editorjs-angular';
       let calls = 0;
       const html = await renderApplication((context) => bootstrapApplication(EditorJs, {
-        providers: [{ provide: EDITOR_JS_LOADER, useValue: () => { calls++; throw new Error('Server loader invoked'); } }],
+        providers: [
+          { provide: EDITOR_JS_LOADER, useValue: () => { calls++; throw new Error('Server loader invoked'); } },
+          provideEditorJsTools([{ name: 'lazy', kind: 'block', source: 'lazy', load: () => { calls++; throw new Error('Server tool invoked'); } }]),
+        ],
       }, context), { document: '<aa-editorjs></aa-editorjs>', url: 'http://localhost/', allowedHosts: ['localhost'] });
       assert.equal(calls, 0);
       assert.match(html, /<aa-editorjs/);

@@ -3,12 +3,18 @@ import {
   Component,
   inject,
   viewChild,
+  type EnvironmentProviders,
+  type Provider,
 } from '@angular/core';
 import {
   EDITOR_JS_LOADER,
   EditorJs,
   EditorJsOperationError,
   provideEditorJsLoader,
+  provideEditorJsTools,
+  EDITOR_JS_TOOL_REGISTRY,
+  type EditorJsToolContribution,
+  type EditorJsToolProviderOptions,
   type EditorJsApi,
   type EditorJsChangeEvent,
   type EditorJsConfig,
@@ -25,6 +31,7 @@ import type {
   OutputBlockDataFor,
   OutputData,
   ToolConfiguration,
+  ToolDefinition,
 } from '@anarchitects/editorjs-core';
 import type EditorJS from '@editorjs/editorjs';
 import type { EditorConfig } from '@editorjs/editorjs';
@@ -118,6 +125,45 @@ export function rejectUpstreamConfig(upstream: EditorConfig): EditorJsConfig {
 }
 export function replaceLoader(loader: EditorJsLoader) {
   return provideEditorJsLoader(loader);
+}
+
+const toolDefinition = {
+  name: 'callout',
+  kind: 'block',
+  source: 'eager',
+  registration: {
+    class: CalloutTool,
+    config: { label: 'Note', onSelect: (text: string) => text },
+  },
+} as const satisfies ToolDefinition<
+  typeof CalloutTool,
+  CalloutConfig,
+  CalloutData
+>;
+export const toolContribution: EditorJsToolContribution<
+  readonly [typeof toolDefinition]
+> = [toolDefinition];
+export const toolOptions: EditorJsToolProviderOptions = {
+  inherit: true,
+  select: ['callout'],
+};
+export const toolProviders: EnvironmentProviders = provideEditorJsTools(
+  toolContribution,
+  toolOptions,
+);
+export const toolFactoryProviders = provideEditorJsTools({
+  factory: () => toolContribution,
+});
+export function optionalRegistry() {
+  return inject(EDITOR_JS_TOOL_REGISTRY, { optional: true });
+}
+// @ts-expect-error Environment providers do not belong in an element injector.
+export const invalidElementProvider: Provider = toolProviders;
+export function invalidToolContributions() {
+  // @ts-expect-error Factories require an explicit wrapper.
+  provideEditorJsTools(() => [toolDefinition]);
+  // @ts-expect-error Contribution factories must return definitions synchronously.
+  provideEditorJsTools({ factory: async () => [toolDefinition] });
 }
 export async function controls(
   api: EditorJsApi<Blocks>,

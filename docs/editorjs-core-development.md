@@ -6,7 +6,8 @@ This document covers repository checks and release preparation for Nx project
 
 The [tool registry implementation contract](editorjs-tool-registry-design.md)
 defines the composition and lazy-resolution work for #70. #593 implements
-composition and #594 implements the core resolver; Angular sections remain planned.
+composition, #594 implements the core resolver and #595 adds Angular providers.
+Component activation/lifetime integration remains #596.
 
 ## Lazy resolution increment
 

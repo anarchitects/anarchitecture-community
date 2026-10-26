@@ -22,3 +22,11 @@ export {
 
 export { EditorJs } from './lib/editorjs.js';
 export { EditorJsOperationError } from '@anarchitects/editorjs-core';
+export {
+  EDITOR_JS_TOOL_REGISTRY,
+  provideEditorJsTools,
+} from './lib/editorjs-tool-providers.js';
+export type {
+  EditorJsToolContribution,
+  EditorJsToolProviderOptions,
+} from './lib/editorjs-tool-providers.js';
