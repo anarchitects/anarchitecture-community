@@ -73,6 +73,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@anarchitects/editorjs-tool-list@workspace:*, @anarchitects/editorjs-tool-list@workspace:packages/editorjs/tool-list":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/editorjs-tool-list@workspace:packages/editorjs/tool-list"
+  dependencies:
+    "@anarchitects/editorjs-core": "npm:^0.0.1"
+    "@editorjs/list": "npm:2.0.9"
+  peerDependencies:
+    "@editorjs/editorjs": 2.31.7
+  languageName: unknown
+  linkType: soft
+
 "@anarchitects/editorjs-tool-paragraph@workspace:*, @anarchitects/editorjs-tool-paragraph@workspace:packages/editorjs/tool-paragraph":
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-tool-paragraph@workspace:packages/editorjs/tool-paragraph"
@@ -181,6 +192,7 @@ __metadata:
     "@anarchitects/editorjs-angular": "link:../../../dist/packages/editorjs/angular"
     "@anarchitects/editorjs-core": "workspace:*"
     "@anarchitects/editorjs-tool-header": "workspace:*"
+    "@anarchitects/editorjs-tool-list": "workspace:*"
     "@anarchitects/editorjs-tool-paragraph": "workspace:*"
     "@editorjs/editorjs": "npm:2.31.7"
   languageName: unknown
@@ -2739,6 +2751,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@codexteam/icons@npm:^0.3.2":
+  version: 0.3.3
+  resolution: "@codexteam/icons@npm:0.3.3"
+  checksum: 10c0/336245f38a2b2a53626a552a5f0f32c822ee1265be6827670ba157c9fa101cb23e6c75e625aa067e4577c2d805e261f4ffcb61097ea94c034c0a3c0cae7d7271
+  languageName: node
+  linkType: hard
+
 "@cypress/request@npm:3.0.10":
   version: 3.0.10
   resolution: "@cypress/request@npm:3.0.10"
@@ -2817,6 +2836,15 @@ __metadata:
   dependencies:
     codex-tooltip: "npm:^1.0.6"
   checksum: 10c0/b76604a28a28ef520684222905517fa0456377feab82660e9b3b8937a760f7ca659dedc69cf2fc91137f6fccc7a4b185ad241230675d55fe62adf0ba288dbaf2
+  languageName: node
+  linkType: hard
+
+"@editorjs/list@npm:2.0.9":
+  version: 2.0.9
+  resolution: "@editorjs/list@npm:2.0.9"
+  dependencies:
+    "@codexteam/icons": "npm:^0.3.2"
+  checksum: 10c0/f627af2e1bbf403c3f7669bd2d23b917f1d55430d9faabd732cf5457635cd98432d0ff53722dc949597822408606288643af3d86d3ffe0b40e0cc4188916559e
   languageName: node
   linkType: hard
 
