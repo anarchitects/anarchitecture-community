@@ -37,7 +37,11 @@ export const createNodesV2 = [
           parallelism: true,
           dependsOn: [
             {
-              projects: ['editorjs-angular', 'editorjs-tool-paragraph'],
+              projects: [
+                'editorjs-angular',
+                'editorjs-tool-paragraph',
+                'editorjs-tool-header',
+              ],
               target: 'build',
               params: 'ignore',
             },

@@ -127,7 +127,8 @@
       "governance-host-dbt",
       "editorjs-core",
       "editorjs-angular",
-      "editorjs-tool-paragraph"
+      "editorjs-tool-paragraph",
+      "editorjs-tool-header"
     ],
     "version": {
       "preVersionCommand": "UV_CACHE_DIR=.cache/uv yarn nx run-many -t build",

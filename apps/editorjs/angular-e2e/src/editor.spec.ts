@@ -8,6 +8,41 @@ const saved = async (owner: Locator) =>
     await owner.getByLabel('Saved document', { exact: true }).innerText(),
   );
 
+test('activates packed header through the standalone provider and retains independent owners', async ({
+  page,
+}) => {
+  await page.goto('/?header');
+  const first = card(page, 'First');
+  const heading = first.locator('.ce-header');
+  await expect(first.getByRole('status')).toHaveText('Ready');
+  await expect(first.locator('h2.ce-header')).toHaveText('First initial');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-header-instances',
+    /[2-9]\d*|1\d+/,
+  );
+  await expect(heading).toHaveAttribute('data-placeholder', 'Section title');
+  await heading.fill('Packaged Angular heading');
+  await first.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(first.getByTestId('command-result')).toHaveText(
+    'save completed',
+  );
+  expect((await saved(first)).blocks).toMatchObject([
+    { type: 'header', data: { text: 'Packaged Angular heading', level: 2 } },
+  ]);
+  await first.getByRole('button', { name: 'Render', exact: true }).click();
+  await expect(first.locator('h2.ce-header')).toHaveText('First rendered');
+  await first.getByRole('button', { name: 'Read only' }).click();
+  await expect(heading).toHaveAttribute('contenteditable', 'false');
+  await first.getByRole('button', { name: 'Read only' }).click();
+  await first.getByRole('button', { name: 'Clear', exact: true }).click();
+  await expect(first.locator('h2.ce-header')).toBeEmpty();
+  await first.getByRole('button', { name: 'Unmount', exact: true }).click();
+  await expect(first.locator('.codex-editor')).toHaveCount(0);
+  await expect(card(page, 'Second').locator('h2.ce-header')).toHaveText(
+    'Second initial',
+  );
+});
+
 test('activates the packed paragraph through the standalone registry provider', async ({
   page,
 }) => {
