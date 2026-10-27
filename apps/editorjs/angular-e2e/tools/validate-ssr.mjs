@@ -43,8 +43,10 @@ const editorOutputs = Object.entries(stats.outputs)
   .filter(
     ([file, details]) =>
       file.endsWith('.mjs') &&
-      Object.keys(details.inputs).some((input) =>
-        input.includes('@editorjs/editorjs/'),
+      Object.keys(details.inputs).some(
+        (input) =>
+          input.includes('@editorjs/editorjs/') ||
+          input.includes('/registry/tools/'),
       ),
   )
   .map(([file]) => join(output, 'server', basename(file)));
@@ -165,6 +167,74 @@ try {
       'Applications must coexist, not just queued HTTP requests',
     );
   }
+  for (const route of ['registry', 'registry/forms']) {
+    for (const concurrent of [false, true]) {
+      const verify = async (marker) => {
+        const result = await request(
+          `/${route}?marker=${marker}`,
+          marker,
+          concurrent ? 200 : 0,
+        );
+        const dom = new JSDOM(result.html);
+        try {
+          const holders =
+            dom.window.document.querySelectorAll('aa-editorjs > div');
+          assert.equal(holders.length, route === 'registry' ? 2 : 1);
+          for (const holder of holders)
+            assert.equal(holder.childNodes.length, 0);
+          assert.equal(
+            dom.window.document.querySelector('[data-testid="marker"]')
+              .textContent,
+            marker,
+          );
+          assert.equal(
+            dom.window.document.querySelector(
+              '[data-testid="registry-config-label"]',
+            ).textContent,
+            marker,
+          );
+          assert(
+            !dom.window.document.querySelector(
+              '[contenteditable], .registry-card, [ngskiphydration]',
+            ),
+          );
+        } finally {
+          dom.window.close();
+        }
+        return result;
+      };
+      const prefix =
+        route.replace('/', '-') + (concurrent ? '-concurrent' : '-sequential');
+      const a = `${prefix}-alpha`,
+        b = `${prefix}-beta`;
+      const previous = lastCompleted;
+      const results = concurrent
+        ? await Promise.all([
+            verify(a),
+            (async () => {
+              await until(
+                () =>
+                  events().some((e) => e.event === 'owned' && e.id > previous),
+                'first overlapping registry owner',
+              );
+              return verify(b);
+            })(),
+          ])
+        : [await verify(a), await verify(b)];
+      assert(!results[0].html.includes(b));
+      assert(!results[1].html.includes(a));
+      if (concurrent) {
+        const log = events();
+        assert(
+          log.findIndex((e) => e.id === results[1].id && e.event === 'owned') <
+            log.findIndex(
+              (e) => e.id === results[0].id && e.event === 'finished',
+            ),
+          'Registry applications must coexist',
+        );
+      }
+    }
+  }
   for (const route of ['standalone', 'forms', 'public']) {
     const html = await readFile(
       join(output, `browser/sample/${route}/index.html`),
@@ -235,7 +305,10 @@ async function request(path, name, wait = 0) {
     () => events().some((e) => e.event === 'finished' && e.id === id),
     'response body completion',
   );
-  const authoring = path.startsWith('/standalone') || path.startsWith('/forms');
+  const authoring =
+    path.startsWith('/standalone') ||
+    path.startsWith('/forms') ||
+    path.startsWith('/registry');
   // Angular schedules platform destruction after rendering. Observe its actual
   // DestroyRef callbacks; do not force disposal or infer it from HTTP completion.
   if (authoring)
@@ -247,9 +320,8 @@ async function request(path, name, wait = 0) {
     (e) => e.event === (authoring ? 'disposed' : 'finished') && e.id === id,
   ).lifetime;
   assert.deepEqual(lifetime, {
-    owners: path.startsWith('/standalone') || path.startsWith('/forms') ? 1 : 0,
-    destroyed:
-      path.startsWith('/standalone') || path.startsWith('/forms') ? 1 : 0,
+    owners: authoring ? 1 : 0,
+    destroyed: authoring ? 1 : 0,
     loaders:
       path.startsWith('/standalone') || path.startsWith('/forms') ? 1 : 0,
     loadersDestroyed:

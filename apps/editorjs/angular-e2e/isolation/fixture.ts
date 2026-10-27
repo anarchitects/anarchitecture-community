@@ -42,7 +42,10 @@ export const test = lifetimeTest.extend<{
     const evaluated = new Set<string>();
     const runtime = (url: string) => {
       try {
-        return graph.runtime.includes(new URL(url).pathname.slice(1));
+        return [
+          ...graph.runtime,
+          ...Object.values(graph.tools).flat(),
+        ].includes(new URL(url).pathname.slice(1));
       } catch {
         return false;
       }

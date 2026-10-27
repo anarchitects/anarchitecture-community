@@ -11,6 +11,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
+import { preparePortable } from './portable-consumer.mjs';
 import { preparePackedSsr } from './packed-ssr.mjs';
 import { prepareReadmeSsr } from './readme-ssr.mjs';
 import { commandRunner } from './packed-process.mjs';
@@ -181,6 +182,7 @@ async function validate(name, versions, archives) {
       exclude: [
         'src/ssr/**/*.ts',
         'src/isolation/**/*.ts',
+        'src/registry/direct.ts',
         'src/main.server.ts',
         'src/server.ts',
       ],
@@ -223,11 +225,22 @@ async function validate(name, versions, archives) {
     await json(join(root, 'tsconfig.root.json'), {
       ...tsconfig,
       include: [],
-      files: ['examples/consumer.ts'],
+      files: ['examples/consumer.ts', 'src/registry/editor.ts'],
     });
     await assertBoundaries(root, node, false);
     await run(node, [compiler, '-p', 'tsconfig.root.json'], root);
     console.log(`Root declarations/imports without Forms passed: ${name}`);
+    if (mode === 'csr')
+      await preparePortable({
+        root: join(scratch, `${name}-portable`),
+        destination: join(root, 'portable.tar.gz'),
+        archive: archives['@anarchitects/editorjs-core'],
+        node,
+        versions,
+        workspace,
+        report,
+        run,
+      });
 
     await run(
       'npm',

@@ -62,7 +62,7 @@ test('distributed graphs contain only cacheable tasks with isolated outputs and 
       for (const phase of phasesFor(mode)) visit(targetFor(mode, cell, phase));
       assert.equal(targets[targetFor(mode, cell, 'prepare')].cache, false);
     }
-  assert.equal(visited.size, 60); // (4 CSR atoms + 16 SSR atoms) × 3
+  assert.equal(visited.size, 66); // (5 CSR atoms + 17 SSR atoms) × 3
   for (const value of ['0', '-1', '1.5', 'Infinity', '9', '2 --skip'])
     assert.throws(() => parallelism(value));
 });

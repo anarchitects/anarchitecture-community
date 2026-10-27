@@ -239,6 +239,9 @@ test.describe('deliberately eager production negative control', () => {
     expect(eager.runtimeEvaluated.length).toBeGreaterThan(0);
     expect(eager.sessions).toEqual([]);
     expect(
+      await page.evaluate(() => window.registryProbe?.evaluated),
+    ).toContain('card');
+    expect(
       await page.evaluate(
         () =>
           typeof (window as unknown as { isolationEagerEditor: unknown })
@@ -250,4 +253,56 @@ test.describe('deliberately eager production negative control', () => {
     );
     await expect(page.locator('aa-editorjs')).toHaveCount(0);
   });
+});
+
+test('registry authoring delivers selected tools only and leaves cached code after disposal', async ({
+  page,
+  graph,
+  delivery,
+}) => {
+  graph.assertIsolated();
+  await page.goto('/');
+  await idleWindow(page);
+  delivery.assertPublic(
+    await delivery.checkpoint('before registry activation'),
+  );
+  expect(
+    await page.evaluate(() => window.registryProbe?.evaluated ?? []),
+  ).toEqual([]);
+  await page.getByRole('link', { name: 'Registry', exact: true }).click();
+  await expect(page.getByTestId('registry-ready').first()).toHaveText('1');
+  await expect(page.getByTestId('registry-ready').last()).toHaveText('1');
+  const active = await delivery.checkpoint('registry activated');
+  for (const name of ['card', 'marker', 'flag']) {
+    expect(
+      active.runtimeResponses.some((url) =>
+        graph.tools[name].includes(new URL(url).pathname.slice(1)),
+      ),
+    ).toBe(true);
+    expect(
+      active.runtimeEvaluated.some((url) =>
+        graph.tools[name].includes(new URL(url).pathname.slice(1)),
+      ),
+    ).toBe(true);
+  }
+  expect(
+    active.runtimeRequests.some((url) =>
+      graph.tools['unselected'].includes(new URL(url).pathname.slice(1)),
+    ),
+  ).toBe(false);
+  expect(
+    await page.evaluate(() => window.registryProbe?.evaluated.sort()),
+  ).toEqual(['card', 'flag', 'marker']);
+  await page.getByRole('link', { name: 'Public', exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.registryProbe?.destroyed))
+    .toBe(2);
+  await page.getByRole('link', { name: 'Registry', exact: true }).click();
+  await expect(page.getByTestId('registry-ready').first()).toHaveText('1');
+  await expect(page.getByTestId('registry-ready').last()).toHaveText('1');
+  const remounted = await delivery.checkpoint(
+    'registry recreated with cached modules',
+  );
+  expect(remounted.runtimeRequests).toEqual(active.runtimeRequests);
+  expect(await page.evaluate(() => window.registryProbe?.created)).toBe(4);
 });
