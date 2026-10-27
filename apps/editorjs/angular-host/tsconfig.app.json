@@ -17,5 +17,10 @@
     "sync": {
       "ignoredDependencies": ["editorjs-core", "editorjs-angular"]
     }
-  }
+  },
+  "references": [
+    {
+      "path": "../../../packages/editorjs/tool-paragraph/tsconfig.lib.json"
+    }
+  ]
 }

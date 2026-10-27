@@ -55,6 +55,10 @@ try {
   const archives = {};
   for (const [name, directory] of [
     ['@anarchitects/editorjs-core', 'packages/editorjs/core'],
+    [
+      '@anarchitects/editorjs-tool-paragraph',
+      'packages/editorjs/tool-paragraph',
+    ],
     ['@anarchitects/editorjs-angular', 'dist/packages/editorjs/angular'],
   ]) {
     const output = await run(
@@ -225,7 +229,11 @@ async function validate(name, versions, archives) {
     await json(join(root, 'tsconfig.root.json'), {
       ...tsconfig,
       include: [],
-      files: ['examples/consumer.ts', 'src/registry/editor.ts'],
+      files: [
+        'examples/consumer.ts',
+        'src/registry/editor.ts',
+        'examples/paragraph-app.ts',
+      ],
     });
     await assertBoundaries(root, node, false);
     await run(node, [compiler, '-p', 'tsconfig.root.json'], root);
@@ -235,6 +243,7 @@ async function validate(name, versions, archives) {
         root: join(scratch, `${name}-portable`),
         destination: join(root, 'portable.tar.gz'),
         archive: archives['@anarchitects/editorjs-core'],
+        paragraphArchive: archives['@anarchitects/editorjs-tool-paragraph'],
         node,
         versions,
         workspace,
@@ -454,6 +463,25 @@ async function assertDocumentation(root) {
   assert(examples.length >= 4, 'Expected all documented TypeScript examples');
   const directory = join(root, 'examples');
   await mkdir(directory);
+  const paragraphReadme = await readFile(
+    join(root, 'node_modules/@anarchitects/editorjs-tool-paragraph/README.md'),
+    'utf8',
+  );
+  assert.equal(
+    paragraphReadme,
+    await readFile(
+      join(workspace, 'packages/editorjs/tool-paragraph/README.md'),
+      'utf8',
+    ),
+  );
+  const paragraphExamples = [
+    ...paragraphReadme.matchAll(
+      /<!-- paragraph-(?:angular-)?example-file: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g,
+    ),
+  ];
+  assert.equal(paragraphExamples.length, 4);
+  for (const [, file, code] of paragraphExamples)
+    await writeFile(join(directory, file), code);
   for (const [index, match] of examples.entries()) {
     // SSR recipes require host peers absent from the independent CSR consumer.
     if (match[1] && mode !== 'ssr') continue;

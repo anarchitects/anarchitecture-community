@@ -1,0 +1,191 @@
+{
+  "name": "@anarchitects/editorjs-tool-paragraph",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@anarchitecture-community/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./browser": {
+      "@anarchitecture-community/source": "./src/browser.ts",
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js",
+      "default": "./dist/browser.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "name": "editorjs-tool-paragraph",
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/editorjs/tool-paragraph"
+        },
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "paragraphTests",
+          "^default"
+        ]
+      },
+      "vite:test": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "paragraphTests",
+          "^default"
+        ]
+      },
+      "vitest:test": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "paragraphTests",
+          "^default"
+        ]
+      },
+      "test-ci--tests/package.spec.ts": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "paragraphTests",
+          "^default"
+        ]
+      },
+      "build": {
+        "inputs": [
+          "production",
+          "^production",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json"
+        ]
+      },
+      "typecheck": {
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json"
+        ]
+      },
+      "lint": {
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          "{workspaceRoot}/eslint.config.mjs",
+          "{workspaceRoot}/tools/eslint-rules/**/*"
+        ]
+      },
+      "test-ci--tests/browser.spec.ts": {
+        "inputs": [
+          "paragraphTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "test-ci--tests/paragraph.spec.ts": {
+        "inputs": [
+          "paragraphTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "test-ci": {
+        "inputs": [
+          "paragraphTests",
+          "^default"
+        ]
+      }
+    },
+    "namedInputs": {
+      "paragraphTests": [
+        "default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/tsconfig.json",
+        {
+          "env": "CI"
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "@anarchitects/editorjs-core": "^0.0.1",
+    "@editorjs/paragraph": "2.11.7"
+  },
+  "peerDependencies": {
+    "@editorjs/editorjs": "2.31.7"
+  },
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/editorjs/tool-paragraph"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Typed paragraph definitions and saved-data validation with an explicit Editor.js browser entry.",
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/tool-paragraph#readme",
+  "sideEffects": [
+    "./dist/browser.js",
+    "./src/browser.ts"
+  ]
+}
