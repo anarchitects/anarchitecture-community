@@ -8,6 +8,7 @@ export async function preparePortable({
   destination,
   archive,
   paragraphArchive,
+  headerArchive,
   node,
   versions,
   workspace,
@@ -17,6 +18,7 @@ export async function preparePortable({
   await mkdir(root);
   await cp(archive, join(root, basename(archive)));
   await cp(paragraphArchive, join(root, basename(paragraphArchive)));
+  await cp(headerArchive, join(root, basename(headerArchive)));
   await writeFile(
     join(root, 'package.json'),
     JSON.stringify({
@@ -25,6 +27,7 @@ export async function preparePortable({
       dependencies: {
         '@anarchitects/editorjs-core': `file:${basename(archive)}`,
         '@anarchitects/editorjs-tool-paragraph': `file:${basename(paragraphArchive)}`,
+        '@anarchitects/editorjs-tool-header': `file:${basename(headerArchive)}`,
         '@editorjs/editorjs': versions.editorjs,
       },
       devDependencies: { esbuild: '0.28.2', typescript: versions.typescript },
@@ -60,6 +63,23 @@ export async function preparePortable({
   await cp(
     join(workspace, 'apps/editorjs/angular-host/src/paragraph'),
     join(root, 'paragraph'),
+    { recursive: true },
+  );
+  const headerReadme = await readFile(
+    join(root, 'node_modules/@anarchitects/editorjs-tool-header/README.md'),
+    'utf8',
+  );
+  const headerExamples = [
+    ...headerReadme.matchAll(
+      /<!-- header-example-file: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g,
+    ),
+  ];
+  assert.equal(headerExamples.length, 3);
+  for (const [, file, code] of headerExamples)
+    await writeFile(join(root, 'readme', file), code);
+  await cp(
+    join(workspace, 'apps/editorjs/angular-host/src/header'),
+    join(root, 'header'),
     { recursive: true },
   );
   await writeFile(
@@ -110,6 +130,8 @@ export async function preparePortable({
         'registry/direct.ts',
         'readme/main.ts',
         'paragraph/direct.ts',
+        'header/direct.ts',
+        ...headerExamples.map(([, file]) => `readme/${file}`),
         ...paragraphExamples.map(([, file]) => `readme/${file}`),
       ],
     }),
@@ -155,7 +177,7 @@ export async function buildPortable({ root, node, report, run }) {
       `
     import { build } from 'esbuild';
     import { writeFile } from 'node:fs/promises';
-    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
+    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
     await writeFile('metadata.json', JSON.stringify(result.metafile));
   `,
     ],
@@ -236,9 +258,38 @@ export async function buildPortable({ root, node, report, run }) {
     join(root, 'dist/browser/paragraph-graph.json'),
     JSON.stringify({ chunks: paragraphChunks.map((file) => basename(file)) }),
   );
+  const headerChunks = Object.entries(metadata.outputs)
+    .filter(([, output]) =>
+      Object.entries(output.inputs).some(
+        ([input, value]) =>
+          input.includes('@editorjs/header/dist/') && value.bytesInOutput > 0,
+      ),
+    )
+    .map(([file]) => file);
+  assert(headerChunks.length > 0, 'Missing upstream header provenance');
+  assert(
+    Object.keys(metadata.inputs).some((path) =>
+      path.includes('@anarchitects/editorjs-tool-header/dist/browser.js'),
+    ),
+    'Missing packaged header browser entry',
+  );
+  initial.clear();
+  visit('dist/browser/header.js');
+  assert(
+    !headerChunks.some((file) => initial.has(file)),
+    'Header entered the initial closure',
+  );
+  await writeFile(
+    join(root, 'dist/browser/header-graph.json'),
+    JSON.stringify({ chunks: headerChunks.map((file) => basename(file)) }),
+  );
   await writeFile(
     join(root, 'dist/browser/paragraph.html'),
     `<!doctype html><html><head><link rel="icon" href="data:,"></head><body><h1>Packaged paragraph</h1><button id="mount">Mount</button><div id="editor"></div><button id="save">Save</button><button id="render">Render saved</button><button id="clear">Clear</button><button id="readonly">Read only</button><button id="remove">Remove</button><output></output><h2>Built-in control</h2><div id="builtin"></div><button id="save-builtin">Save builtin</button><pre id="builtin-output"></pre><script type="module" src="/paragraph.js"></script></body></html>`,
+  );
+  await writeFile(
+    join(root, 'dist/browser/header.html'),
+    `<!doctype html><html><head><link rel="icon" href="data:,"></head><body><h1>Packaged header</h1><button id="mount">Mount</button><div id="editor"></div><button id="save">Save</button><button id="render">Render saved</button><button id="clear">Clear</button><button id="readonly">Read only</button><button id="remove">Remove</button><output></output><h2>Singleton level</h2><div id="singleton"></div><button id="save-singleton">Save singleton</button><pre id="singleton-output"></pre><h2>Default config</h2><div id="defaults"></div><script type="module" src="/header.js"></script></body></html>`,
   );
   await writeFile(
     join(root, 'dist/browser/readme.html'),

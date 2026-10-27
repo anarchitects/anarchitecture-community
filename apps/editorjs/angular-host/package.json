@@ -6,6 +6,7 @@
   "dependencies": {
     "@anarchitects/editorjs-angular": "link:../../../dist/packages/editorjs/angular",
     "@anarchitects/editorjs-core": "workspace:*",
+    "@anarchitects/editorjs-tool-header": "workspace:*",
     "@anarchitects/editorjs-tool-paragraph": "workspace:*",
     "@editorjs/editorjs": "2.31.7"
   }

@@ -38,6 +38,9 @@
     },
     {
       "path": "./packages/editorjs/tool-paragraph"
+    },
+    {
+      "path": "./packages/editorjs/tool-header"
     }
   ],
   "compilerOptions": {
