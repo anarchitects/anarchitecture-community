@@ -1,5 +1,11 @@
 # Editor.js Angular release readiness
 
+For the registry introduced after this review, use the
+[registry documentation and release-readiness addendum](editorjs-tool-registry-release-readiness.md).
+It records the current registry surface, atomized packed validation, exact cells
+and release history reviewed for #598. This document retains #568's dated
+standalone/Forms/SSR evidence; its historical counts and paths are not a new run.
+
 This record consolidates the standalone, opt-in Forms and bounded SSR/hydration
 contract through #568. The [SSR fixture evidence](editorjs-angular-ssr-fixture.md)
 provides detailed server, browser, request-isolation and route-delivery results.

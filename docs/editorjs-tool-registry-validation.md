@@ -5,6 +5,10 @@ extends the existing private `editorjs-angular-host` and `editorjs-angular-e2e`
 fixtures. It exercises the public registry APIs implemented through #596. No
 publishable package API, dependency, peer range or release status changes.
 
+The subsequent [registry readiness review](editorjs-tool-registry-release-readiness.md)
+consolidates #598's public examples, archive checks, fresh matrix results and
+release-history decision. The local run record below remains #597's dated evidence.
+
 ## Architecture review
 
 Preflight enumerated and read all eight Community ADRs and all 18 Meta records at
@@ -100,4 +104,4 @@ and external prefetch/service-worker policies. An unselected tool may exist in
 the build output while remaining undelivered and unevaluated. Destruction releases
 editor ownership; it does not unload cached JavaScript modules. Local Nx execution
 does not establish new hosted DTE performance, restoration or cost evidence.
-Final release readiness remains the separate #598 review.
+The separate #598 readiness review retains the required release-commit CI gate.
