@@ -7,6 +7,10 @@ The increments below record the contract's evolution. Current consumer
 contracts are the [core README](../packages/editorjs/core/README.md) and
 [Angular README](../packages/editorjs/angular/README.md).
 
+The follow-on [common-tool package contract](editorjs-common-tools-design.md)
+defines epic #71's planned integrations over this registry and records their
+upstream evidence; it does not add APIs to the shipped registry.
+
 Implementation increment #593 adds core composition, selection, reference
 validation, the metadata profile and diagnostics. It also adds `createToolMap`
 for synchronous eager materialization: this additive refinement lets the
