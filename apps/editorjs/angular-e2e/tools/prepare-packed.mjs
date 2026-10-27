@@ -56,6 +56,7 @@ try {
   for (const [name, directory] of [
     ['@anarchitects/editorjs-core', 'packages/editorjs/core'],
     ['@anarchitects/editorjs-tool-header', 'packages/editorjs/tool-header'],
+    ['@anarchitects/editorjs-tool-list', 'packages/editorjs/tool-list'],
     [
       '@anarchitects/editorjs-tool-paragraph',
       'packages/editorjs/tool-paragraph',
@@ -235,6 +236,7 @@ async function validate(name, versions, archives) {
         'src/registry/editor.ts',
         'examples/paragraph-app.ts',
         'examples/header-app.ts',
+        'examples/list-app.ts',
       ],
     });
     await assertBoundaries(root, node, false);
@@ -247,6 +249,7 @@ async function validate(name, versions, archives) {
         archive: archives['@anarchitects/editorjs-core'],
         paragraphArchive: archives['@anarchitects/editorjs-tool-paragraph'],
         headerArchive: archives['@anarchitects/editorjs-tool-header'],
+        listArchive: archives['@anarchitects/editorjs-tool-list'],
         node,
         versions,
         workspace,
@@ -503,6 +506,25 @@ async function assertDocumentation(root) {
   ];
   assert.equal(headerExamples.length, 4);
   for (const [, file, code] of headerExamples)
+    await writeFile(join(directory, file), code);
+  const listReadme = await readFile(
+    join(root, 'node_modules/@anarchitects/editorjs-tool-list/README.md'),
+    'utf8',
+  );
+  assert.equal(
+    listReadme,
+    await readFile(
+      join(workspace, 'packages/editorjs/tool-list/README.md'),
+      'utf8',
+    ),
+  );
+  const listExamples = [
+    ...listReadme.matchAll(
+      /<!-- list-(?:angular-)?example-file: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g,
+    ),
+  ];
+  assert.equal(listExamples.length, 4);
+  for (const [, file, code] of listExamples)
     await writeFile(join(directory, file), code);
   for (const [index, match] of examples.entries()) {
     // SSR recipes require host peers absent from the independent CSR consumer.

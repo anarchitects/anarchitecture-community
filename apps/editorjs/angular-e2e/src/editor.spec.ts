@@ -8,6 +8,53 @@ const saved = async (owner: Locator) =>
     await owner.getByLabel('Saved document', { exact: true }).innerText(),
   );
 
+test('activates packed nested list in Angular with independent owners', async ({
+  page,
+}) => {
+  await page.goto('/?list');
+  const first = card(page, 'First');
+  const content = first.locator('.cdx-list__item-content');
+  await expect(first.getByRole('status')).toHaveText('Ready');
+  await expect(content).toHaveText('First initial');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-list-instances',
+    /[2-9]\d*|1\d+/,
+  );
+  await content.fill('Angular parent');
+  await content.press('End');
+  await content.press('Enter');
+  await content.nth(1).fill('Angular child');
+  await content.nth(1).press('Tab');
+  await expect(
+    first.locator('.cdx-list__item-children .cdx-list__item-content'),
+  ).toHaveText('Angular child');
+  await first.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(first.getByTestId('command-result')).toHaveText(
+    'save completed',
+  );
+  expect((await saved(first)).blocks).toMatchObject([
+    {
+      type: 'list',
+      data: {
+        style: 'unordered',
+        meta: {},
+        items: [
+          { content: 'Angular parent', items: [{ content: 'Angular child' }] },
+        ],
+      },
+    },
+  ]);
+  await first.getByRole('button', { name: 'Render', exact: true }).click();
+  await expect(content).toHaveText('First rendered');
+  await first.getByRole('button', { name: 'Read only' }).click();
+  await expect(content).toHaveAttribute('contenteditable', 'false');
+  await first.getByRole('button', { name: 'Unmount', exact: true }).click();
+  await expect(first.locator('.codex-editor')).toHaveCount(0);
+  await expect(
+    card(page, 'Second').locator('.cdx-list__item-content'),
+  ).toHaveText('Second initial');
+});
+
 test('activates packed header through the standalone provider and retains independent owners', async ({
   page,
 }) => {

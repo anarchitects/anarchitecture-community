@@ -51,7 +51,12 @@ Image needs a small browser adapter for the existing core upload result contract
 the other browser exports initially expose upstream behavior. The #610 paragraph
 implementation adds a constructor-only subclass supplying an empty config when
 absent: upstream requires config while Editor.js's public block constructor makes
-it optional. This preserves upstream rendering/saving without a cast or fork.
+it optional. This preserves upstream rendering/saving without a cast or fork. The #612 list
+integration adds a save-only subclass: upstream 2.0.9 emits own undefined optional
+ordered counters, rejected by core's JSON boundary. It omits only undefined root
+`meta.start`/`meta.counterType`, preserving explicit values and all other data.
+This is JSON-compatible output adaptation, not legacy input conversion or a
+relaxation of strict saved-data validation.
 
 | Planned npm package                     | Planned Nx name           | Location                           | Upstream candidate           | Slice |
 | --------------------------------------- | ------------------------- | ---------------------------------- | ---------------------------- | ----- |

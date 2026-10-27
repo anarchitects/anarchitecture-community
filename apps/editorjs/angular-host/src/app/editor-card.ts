@@ -17,11 +17,20 @@ import {
 import type { OutputData } from '@anarchitects/editorjs-core';
 import { Ownership } from './ownership';
 
-const document = (text: string, header = false): OutputData => ({
+const document = (text: string, header = false, list = false): OutputData => ({
   blocks: [
-    header
-      ? { type: 'header', data: { text, level: 2 } }
-      : { type: 'paragraph', data: { text } },
+    list
+      ? {
+          type: 'list',
+          data: {
+            style: 'unordered',
+            meta: {},
+            items: [{ content: text, meta: {}, items: [] }],
+          },
+        }
+      : header
+        ? { type: 'header', data: { text, level: 2 } }
+        : { type: 'paragraph', data: { text } },
   ],
 });
 
@@ -35,14 +44,16 @@ type Command = 'save' | 'render' | 'clear' | 'focus' | 'readOnly' | 'invalid';
 })
 export class EditorCard {
   readonly label = input.required<string>();
+  readonly listMode = new URLSearchParams(location.search).has('list');
   readonly headerMode = new URLSearchParams(location.search).has('header');
   readonly initial = computed(() =>
-    document(`${this.label()} initial`, this.headerMode),
+    document(`${this.label()} initial`, this.headerMode, this.listMode),
   );
   readonly replacement = signal<OutputData | undefined>(undefined);
   readonly config = {
     minHeight: 80,
     ...(this.headerMode ? { defaultBlock: 'header' } : {}),
+    ...(this.listMode ? { defaultBlock: 'list' } : {}),
   };
   readonly mounted = signal(true);
   readonly ready = signal(false);
@@ -84,7 +95,11 @@ export class EditorCard {
 
   replaceInput(): void {
     this.replacement.set(
-      document(`${this.label()} input replacement`, this.headerMode),
+      document(
+        `${this.label()} input replacement`,
+        this.headerMode,
+        this.listMode,
+      ),
     );
   }
 
@@ -100,7 +115,11 @@ export class EditorCard {
           break;
         case 'render':
           await api.render(
-            document(`${this.label()} rendered`, this.headerMode),
+            document(
+              `${this.label()} rendered`,
+              this.headerMode,
+              this.listMode,
+            ),
           );
           break;
         case 'clear':

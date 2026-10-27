@@ -41,6 +41,9 @@
     },
     {
       "path": "./packages/editorjs/tool-header"
+    },
+    {
+      "path": "./packages/editorjs/tool-list"
     }
   ],
   "compilerOptions": {
