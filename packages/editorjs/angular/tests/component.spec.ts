@@ -1,6 +1,15 @@
 // @vitest-environment jsdom
 import '@angular/compiler';
-import { ErrorHandler, PLATFORM_ID } from '@angular/core';
+import {
+  ApplicationRef,
+  createComponent,
+  createEnvironmentInjector,
+  DestroyRef,
+  EnvironmentInjector,
+  ErrorHandler,
+  PLATFORM_ID,
+  type EnvironmentProviders,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   BrowserTestingModule,
@@ -13,6 +22,8 @@ import type {
   EditorJsErrorEvent,
   EditorJsChangeEvent,
   OutputData,
+  ToolConstructor,
+  ToolDefinition,
 } from '@anarchitects/editorjs-core';
 import type {
   EditorJsCreateOptions,
@@ -26,9 +37,15 @@ const artifact = resolve(
   import.meta.dirname,
   '../../../../dist/packages/editorjs/angular/fesm2022/anarchitects-editorjs-angular.mjs',
 );
-const { EditorJs, EDITOR_JS_LOADER, EditorJsOperationError } = createRequire(
-  import.meta.url,
-)(artifact) as typeof import('../src/index.js');
+const {
+  EditorJs,
+  EDITOR_JS_LOADER,
+  EditorJsOperationError,
+  provideEditorJsTools,
+  provideEditorJsLoader,
+} = createRequire(import.meta.url)(
+  artifact,
+) as typeof import('../src/index.js');
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -52,7 +69,11 @@ function instance(isReady = Promise.resolve()): EditorJsInstance {
   };
 }
 
-function setup(loader: EditorJsLoader, platform = 'browser') {
+function setup(
+  loader: EditorJsLoader,
+  platform = 'browser',
+  providers: EnvironmentProviders[] = [],
+) {
   const handleError = vi.fn();
   TestBed.configureTestingModule({
     imports: [EditorJs],
@@ -60,6 +81,7 @@ function setup(loader: EditorJsLoader, platform = 'browser') {
       { provide: EDITOR_JS_LOADER, useValue: loader },
       { provide: PLATFORM_ID, useValue: platform },
       { provide: ErrorHandler, useValue: { handleError } },
+      ...providers,
     ],
   });
   return handleError;
@@ -734,4 +756,351 @@ describe('adapter reconciliation seam', () => {
     await fixture.componentInstance.api.focus();
     expect(editor.render).toHaveBeenCalledExactlyOnceWith(data);
   });
+});
+
+class HeadingTool {}
+const lazyHeading = (load: () => Promise<ToolConstructor>): ToolDefinition => ({
+  name: 'heading',
+  kind: 'block',
+  source: 'lazy',
+  load,
+});
+
+describe('provider-backed component tools', () => {
+  it.each([{}, { heading: HeadingTool }, null])(
+    'bypasses even invalid providers for explicit tools %j',
+    async (tools) => {
+      const contribution = vi.fn(() => {
+        throw new Error('Unused provider');
+      });
+      const create = vi.fn<EditorJsFactory>(() => instance());
+      setup(async () => create, 'browser', [
+        provideEditorJsTools({ factory: contribution }),
+      ]);
+      const owner = mount();
+      const config = { tools };
+      owner.fixture.componentRef.setInput('config', config);
+      await owner.fixture.whenStable();
+      expect(contribution).not.toHaveBeenCalled();
+      expect(create.mock.calls[0][0].config).toBe(config);
+      expect(owner.ready).toHaveBeenCalledOnce();
+      expect(owner.errors).toEqual([]);
+    },
+  );
+
+  it('resolves selected tools before a custom loader and keeps latest data with the original config', async () => {
+    const tool = deferred<ToolConstructor>();
+    const load = vi.fn(() => tool.promise);
+    const unused = vi.fn(async () => HeadingTool);
+    const raw = instance();
+    const create = vi.fn<EditorJsFactory>(() => raw);
+    const loader = vi.fn(async () => create);
+    setup(
+      async () => {
+        throw new Error('Overridden loader');
+      },
+      'browser',
+      [
+        provideEditorJsTools(
+          [lazyHeading(load), { ...lazyHeading(unused), name: 'unused' }],
+          { select: ['heading'] },
+        ),
+        provideEditorJsLoader(loader),
+      ],
+    );
+    const owner = mount();
+    const config = {
+      defaultBlock: 'heading',
+      placeholder: 'Original',
+      tools: undefined,
+    };
+    owner.fixture.componentRef.setInput('config', config);
+    await owner.fixture.whenStable();
+    expect(load).toHaveBeenCalledOnce();
+    expect(unused).not.toHaveBeenCalled();
+    expect(loader).not.toHaveBeenCalled();
+    owner.fixture.componentRef.setInput('config', { placeholder: 'Changed' });
+    const latest = { blocks: [{ type: 'heading', data: { text: 'Latest' } }] };
+    owner.fixture.componentRef.setInput('data', latest);
+    await owner.fixture.whenStable();
+    tool.resolve(HeadingTool);
+    await vi.waitFor(() => expect(owner.ready).toHaveBeenCalledOnce());
+    expect(loader).toHaveBeenCalledOnce();
+    expect(create).toHaveBeenCalledOnce();
+    expect(create.mock.calls[0][0].config).toEqual({
+      ...config,
+      tools: { heading: { class: HeadingTool } },
+    });
+    expect(create.mock.calls[0][0].config).not.toBe(config);
+    expect(create.mock.calls[0][0].data).toEqual(latest);
+    expect(config.tools).toBeUndefined();
+    expect(owner.errors).toMatchObject([
+      { operation: 'config', code: 'config-changed' },
+    ]);
+    expect(owner.changes).toEqual([]);
+  });
+
+  it.each(['composition', 'selection', 'references'] as const)(
+    'reports %s failures as config errors before any code loads',
+    async (failure) => {
+      const load = vi.fn(async () => HeadingTool);
+      const loader = vi.fn(async () => () => instance());
+      setup(loader, 'browser', [
+        provideEditorJsTools(
+          failure === 'composition'
+            ? [lazyHeading(load), lazyHeading(load)]
+            : [lazyHeading(load)],
+          failure === 'selection' ? { select: ['missing'] } : {},
+        ),
+      ]);
+      const owner = mount();
+      if (failure === 'references')
+        owner.fixture.componentRef.setInput('config', {
+          inlineToolbar: ['heading'],
+        });
+      await owner.fixture.whenStable();
+      expect(owner.errors).toMatchObject([
+        {
+          operation: 'config',
+          code: 'operation-failed',
+          cause: {
+            code:
+              failure === 'composition'
+                ? 'duplicate-name'
+                : failure === 'selection'
+                  ? 'invalid-selection'
+                  : 'invalid-reference',
+          },
+        },
+      ]);
+      expect(load).not.toHaveBeenCalled();
+      expect(loader).not.toHaveBeenCalled();
+      expect(owner.ready).not.toHaveBeenCalled();
+      expect(owner.changes).toEqual([]);
+    },
+  );
+
+  it.each(['reject', 'invalid'] as const)(
+    'reports tool %s once with its cause and permits recreation',
+    async (failure) => {
+      const cause = new Error('Tool failed');
+      const load = vi
+        .fn<() => Promise<ToolConstructor>>()
+        .mockImplementationOnce(() =>
+          failure === 'reject'
+            ? Promise.reject(cause)
+            : Promise.resolve(null as unknown as ToolConstructor),
+        )
+        .mockResolvedValue(HeadingTool);
+      const loader = vi.fn(async () => () => instance());
+      setup(loader, 'browser', [provideEditorJsTools([lazyHeading(load)])]);
+      const first = mount();
+      await first.fixture.whenStable();
+      expect(first.errors).toMatchObject([
+        {
+          operation: 'load',
+          code: 'operation-failed',
+          cause: {
+            code:
+              failure === 'reject'
+                ? 'load-failed'
+                : 'invalid-loaded-constructor',
+            toolName: 'heading',
+            cause: failure === 'reject' ? cause : null,
+          },
+        },
+      ]);
+      expect(loader).not.toHaveBeenCalled();
+      expect(first.ready).not.toHaveBeenCalled();
+      first.fixture.destroy();
+      const second = mount();
+      await second.fixture.whenStable();
+      expect(second.ready).toHaveBeenCalledOnce();
+      expect(second.errors).toEqual([]);
+      expect(load).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(['resolve', 'reject'] as const)(
+    'fences a late tool %s after component removal in a retained environment',
+    async (settlement) => {
+      const loading = deferred<ToolConstructor>();
+      const load = vi
+        .fn()
+        .mockReturnValueOnce(loading.promise)
+        .mockResolvedValue(HeadingTool);
+      const loader = vi.fn(async () => () => instance());
+      setup(loader, 'browser', [provideEditorJsTools([lazyHeading(load)])]);
+      const first = mount();
+      await first.fixture.whenStable();
+      first.fixture.destroy();
+      if (settlement === 'resolve') loading.resolve(HeadingTool);
+      else loading.reject(new Error('Late tool'));
+      const second = mount();
+      await second.fixture.whenStable();
+      expect(loader).toHaveBeenCalledOnce();
+      expect(second.ready).toHaveBeenCalledOnce();
+      expect(first.ready).not.toHaveBeenCalled();
+      expect(first.errors).toEqual([]);
+      expect(first.changes).toEqual([]);
+      expect(load).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('gives simultaneous editors independent resolutions and configuration shells', async () => {
+    const load = vi.fn(async () => HeadingTool);
+    const created: EditorJsInstance[] = [];
+    const create = vi.fn<EditorJsFactory>(() => {
+      const raw = instance();
+      created.push(raw);
+      return raw;
+    });
+    setup(async () => create, 'browser', [
+      provideEditorJsTools([lazyHeading(load)]),
+    ]);
+    const first = mount();
+    const second = mount();
+    first.fixture.componentRef.setInput('config', { placeholder: 'First' });
+    second.fixture.componentRef.setInput('config', { readOnly: true });
+    await first.fixture.whenStable();
+    await second.fixture.whenStable();
+    expect(load).toHaveBeenCalledTimes(2);
+    const [a, b] = create.mock.calls.map(([options]) => options);
+    expect(a.config?.placeholder).toBe('First');
+    expect(b.config?.readOnly).toBe(true);
+    expect(a.config?.tools).not.toBe(b.config?.tools);
+    expect(a.config?.tools?.['heading']).not.toBe(b.config?.tools?.['heading']);
+    first.fixture.destroy();
+    expect(created[0].destroy).toHaveBeenCalledOnce();
+    expect(created[1].destroy).not.toHaveBeenCalled();
+    expect(second.ready).toHaveBeenCalledOnce();
+  });
+
+  it('keeps provider factories and lazy loaders inert on the server', async () => {
+    const contribution = vi.fn(() => [lazyHeading(async () => HeadingTool)]);
+    const loader = vi.fn(async () => () => instance());
+    setup(loader, 'server', [provideEditorJsTools({ factory: contribution })]);
+    const owner = mount();
+    await owner.fixture.whenStable();
+    expect(contribution).not.toHaveBeenCalled();
+    expect(loader).not.toHaveBeenCalled();
+    expect(
+      owner.fixture.nativeElement.firstElementChild.childNodes,
+    ).toHaveLength(0);
+  });
+});
+
+// A child without a local registry must retain the actual parent provider owner.
+// TestBed fixtures alone cannot model independent environment destruction.
+describe('tool provider environment lifetime', () => {
+  it('unregisters a removed component and terminates both remaining consumers of a provider', async () => {
+    const editors: EditorJsInstance[] = [];
+    setup(async () => () => {
+      const editor = instance();
+      editors.push(editor);
+      return editor;
+    });
+    const parent = createEnvironmentInjector(
+      [provideEditorJsTools([lazyHeading(async () => HeadingTool)])],
+      TestBed.inject(EnvironmentInjector),
+    );
+    const child = createEnvironmentInjector([], parent);
+    const owner = parent.get(DestroyRef);
+    const register = owner.onDestroy.bind(owner);
+    const unregister = vi.fn();
+    vi.spyOn(owner, 'onDestroy').mockImplementation((callback) => {
+      const remove = register(callback);
+      return () => {
+        unregister();
+        remove();
+      };
+    });
+    const app = TestBed.inject(ApplicationRef);
+    const refs = Array.from({ length: 3 }, () =>
+      createComponent(EditorJs, { environmentInjector: child }),
+    );
+    try {
+      for (const ref of refs) app.attachView(ref.hostView);
+      await app.whenStable();
+      expect(editors).toHaveLength(3);
+      refs[0].destroy();
+      expect(unregister).toHaveBeenCalledOnce();
+      expect(parent.destroyed).toBe(false);
+      expect(child.destroyed).toBe(false);
+      expect(editors[1].destroy).not.toHaveBeenCalled();
+      parent.destroy();
+      for (const editor of editors)
+        expect(editor.destroy).toHaveBeenCalledOnce();
+      expect(unregister).toHaveBeenCalledTimes(3);
+    } finally {
+      for (const ref of refs) if (!ref.hostView.destroyed) ref.destroy();
+      child.destroy();
+      if (!parent.destroyed) parent.destroy();
+    }
+  });
+
+  it.each(['tools', 'loader', 'ready', 'active'] as const)(
+    'terminates the editor when its inherited provider owner dies during %s',
+    async (stage) => {
+      const tool = deferred<ToolConstructor>();
+      const factory = deferred<EditorJsFactory>();
+      const readiness = deferred<void>();
+      const raw = instance(readiness.promise);
+      const create = vi.fn<EditorJsFactory>(() => raw);
+      const loader = vi.fn(() => factory.promise);
+      const handleError = setup(loader);
+      const parent = createEnvironmentInjector(
+        [provideEditorJsTools([lazyHeading(() => tool.promise)])],
+        TestBed.inject(EnvironmentInjector),
+      );
+      const child = createEnvironmentInjector([], parent);
+      const app = TestBed.inject(ApplicationRef);
+      const ref = createComponent(EditorJs, { environmentInjector: child });
+      const ready = vi.fn();
+      const error = vi.fn();
+      const change = vi.fn();
+      ref.instance.ready.subscribe(ready);
+      ref.instance.error.subscribe(error);
+      ref.instance.change.subscribe(change);
+      app.attachView(ref.hostView);
+      try {
+        await app.whenStable();
+        if (stage !== 'tools') {
+          tool.resolve(HeadingTool);
+          await vi.waitFor(() => expect(loader).toHaveBeenCalledOnce());
+        }
+        if (stage === 'ready' || stage === 'active') {
+          factory.resolve(create);
+          await vi.waitFor(() => expect(create).toHaveBeenCalledOnce());
+        }
+        if (stage === 'active') {
+          readiness.resolve();
+          await vi.waitFor(() => expect(ready).toHaveBeenCalledOnce());
+          ready.mockClear();
+        }
+        parent.destroy();
+        tool.resolve(HeadingTool);
+        factory.resolve(create);
+        readiness.resolve();
+        await app.whenStable();
+        if (stage === 'ready' || stage === 'active') {
+          await vi.waitFor(() => expect(raw.destroy).toHaveBeenCalledOnce());
+          create.mock.calls[0][0].onChange();
+        } else expect(create).not.toHaveBeenCalled();
+        if (stage === 'tools') expect(loader).not.toHaveBeenCalled();
+        await expect(ref.instance.api.save()).rejects.toMatchObject({
+          code: 'destroyed',
+        });
+        expect(ready).not.toHaveBeenCalled();
+        expect(error).not.toHaveBeenCalled();
+        expect(change).not.toHaveBeenCalled();
+        expect(handleError).not.toHaveBeenCalled();
+        expect(child.destroyed).toBe(false);
+      } finally {
+        ref.destroy();
+        child.destroy();
+        if (!parent.destroyed) parent.destroy();
+      }
+    },
+  );
 });

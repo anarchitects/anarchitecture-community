@@ -5,6 +5,7 @@ import {
   Component,
   resource,
   signal,
+  type EnvironmentProviders,
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
@@ -43,7 +44,7 @@ const artifacts = resolve(
   import.meta.dirname,
   '../../../../dist/packages/editorjs/angular/fesm2022',
 );
-const { EDITOR_JS_LOADER } = require(
+const { EDITOR_JS_LOADER, provideEditorJsTools } = require(
   resolve(artifacts, 'anarchitects-editorjs-angular.mjs'),
 ) as typeof import('../src/index.js');
 const { EditorJsControl } = require(
@@ -155,7 +156,11 @@ class ModelHost {
   readonly errors: EditorJsErrorEvent[] = [];
 }
 
-function setup(loader?: EditorJsLoader, readiness?: Promise<void>) {
+function setup(
+  loader?: EditorJsLoader,
+  readiness?: Promise<void>,
+  providers: EnvironmentProviders[] = [],
+) {
   const created: ReturnType<typeof rawEditor>[] = [];
   const create: EditorJsFactory = (options) => {
     const raw = rawEditor(options, readiness);
@@ -166,6 +171,7 @@ function setup(loader?: EditorJsLoader, readiness?: Promise<void>) {
     imports: [FormsHost],
     providers: [
       { provide: EDITOR_JS_LOADER, useValue: loader ?? (async () => create) },
+      ...providers,
     ],
   });
   const fixture = TestBed.createComponent(FormsHost);
@@ -178,6 +184,37 @@ beforeAll(() =>
 afterEach(() => TestBed.resetTestingModule());
 
 describe('native Signal Forms value binding', () => {
+  it('uses the root tool resolver without manufacturing form interactions', async () => {
+    class HeadingTool {}
+    const loading = deferred<typeof HeadingTool>();
+    const load = vi.fn(() => loading.promise);
+    const { fixture, host, created } = setup(undefined, undefined, [
+      provideEditorJsTools([
+        { name: 'heading', kind: 'block', source: 'lazy', load },
+      ]),
+    ]);
+    await fixture.whenStable();
+    expect(load).toHaveBeenCalledOnce();
+    expect(created).toHaveLength(0);
+    host.model.set({ body: document('Latest during tool loading') });
+    await fixture.whenStable();
+    loading.resolve(HeadingTool);
+    await vi.waitFor(() => expect(host.ready).toHaveBeenCalledOnce());
+    expect(created).toHaveLength(1);
+    expect(created[0].options.config?.tools).toEqual({
+      heading: { class: HeadingTool },
+    });
+    expect(created[0].options.data).toEqual(
+      document('Latest during tool loading'),
+    );
+    expect(host.fields.body().dirty()).toBe(false);
+    expect(host.fields.body().touched()).toBe(false);
+    expect(host.changes).toEqual([]);
+    expect(host.errors).toEqual([]);
+    fixture.destroy();
+    expect(created[0].editor.destroy).toHaveBeenCalledOnce();
+  });
+
   it('initializes a detached document and publishes edits once without rendering the echo', async () => {
     const { fixture, host, created } = setup();
     const initial = host.model().body;

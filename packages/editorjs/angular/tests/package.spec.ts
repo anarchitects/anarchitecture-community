@@ -222,17 +222,33 @@ describe('published Angular contracts', () => {
       import assert from 'node:assert/strict';
       import { bootstrapApplication } from '@angular/platform-browser';
       import { renderApplication } from '@angular/platform-server';
-      import { EditorJs, EDITOR_JS_LOADER, provideEditorJsTools } from '@anarchitects/editorjs-angular';
+      import { inject, InjectionToken } from '@angular/core';
+      import { EditorJs, EDITOR_JS_LOADER, EDITOR_JS_TOOL_REGISTRY, provideEditorJsTools } from '@anarchitects/editorjs-angular';
+      const REQUEST_TOOL = new InjectionToken('request tool');
+      const snapshots = new Map();
       let calls = 0;
-      const html = await renderApplication((context) => bootstrapApplication(EditorJs, {
-        providers: [
-          { provide: EDITOR_JS_LOADER, useValue: () => { calls++; throw new Error('Server loader invoked'); } },
-          provideEditorJsTools([{ name: 'lazy', kind: 'block', source: 'lazy', load: () => { calls++; throw new Error('Server tool invoked'); } }]),
-        ],
-      }, context), { document: '<aa-editorjs></aa-editorjs>', url: 'http://localhost/', allowedHosts: ['localhost'] });
+      async function render(name) {
+        const html = await renderApplication(async (context) => {
+          const app = await bootstrapApplication(EditorJs, {
+            providers: [
+              { provide: REQUEST_TOOL, useValue: name },
+              { provide: EDITOR_JS_LOADER, useValue: () => { calls++; throw new Error('Server loader invoked'); } },
+              provideEditorJsTools({ factory: () => [{ name: inject(REQUEST_TOOL), kind: 'block', source: 'lazy', load: () => { calls++; throw new Error('Server tool invoked'); } }] }),
+            ],
+          }, context);
+          // Even an explicit server lookup remains inert and request-owned.
+          snapshots.set(name, app.injector.get(EDITOR_JS_TOOL_REGISTRY));
+          return app;
+        }, { document: '<aa-editorjs></aa-editorjs>', url: 'http://localhost/', allowedHosts: ['localhost'] });
+        assert.match(html, /<aa-editorjs[^>]*><div[^>]*><\\/div><\\/aa-editorjs>/);
+        assert.doesNotMatch(html, /codex-editor|contenteditable/);
+        assert.deepEqual(snapshots.get(name).names, [name]);
+      }
+      await render('first');
+      await render('second');
+      await Promise.all([render('concurrent-a'), render('concurrent-b')]);
+      assert.equal(new Set(snapshots.values()).size, 4);
       assert.equal(calls, 0);
-      assert.match(html, /<aa-editorjs/);
-      assert.doesNotMatch(html, /codex-editor/);
       assert.throws(() => import.meta.resolve('@editorjs/editorjs'), { code: 'ERR_MODULE_NOT_FOUND' });
       console.log('server render ok');
     `,

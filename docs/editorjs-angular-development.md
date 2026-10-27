@@ -6,7 +6,59 @@ Consumer-facing behavior is documented in the
 
 The [tool registry implementation contract](editorjs-tool-registry-design.md)
 defines #70's core composition (#593), lazy resolution (#594) and optional Angular
-providers (#595). Component activation and browser ownership wiring remain #596.
+providers (#595), followed by component activation and browser ownership (#596).
+
+## Tool lifecycle increment
+
+#596 re-enumerated and read all eight local and eighteen Meta ADRs, including
+proposed, historical and superseded records, against Community `8ed43ba` and Meta
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. Modern Angular A01–A03, A05–A07 and
+A09–A11 retain the existing activation boundary, one component-owned coordinator,
+explicit injector ownership, native Forms composition and SSR isolation. Local
+ADR0004 requires the packed consumer documentation; local ADR0007 / Meta0013
+require release-history-based commit intent; Meta0015 requires Nx-owned checks
+with accurate inputs and outputs. The relevant architecture, reactivity,
+providers/routing, Forms, rendering, SSR, testing, validation and API-ledger guides
+were reviewed. No accepted decision conflict or exception was identified. No
+compatibility range, dependency, HTTP adapter or supported rendering mode changes.
+
+At the existing browser `afterNextRender` boundary, an explicit `config.tools`
+(including `{}`) bypasses registry lookup completely. Otherwise the component
+requests the internal scope binding, validates only the global tool-reference
+options through core, and creates one resolver for that component. Resolution
+precedes the selected editor loader; the existing synchronous factory, readiness
+and document reconciliation path remains authoritative. The original config
+identity drives initialization-only diagnostics; the factory receives a fresh
+config shell/tool map and the latest data. No resolver/coordinator is added to
+`/forms`, which still delegates to the root component.
+
+The component binds cleanup to the registry's actual provider-owning environment,
+including inherited lookup. Component removal unregisters that callback; provider
+destruction is terminal for every consuming editor. Late loading/readiness work is
+observed and fenced, with raw destruction deferred until readiness settles where
+necessary. Failed initialization disposes resources without retrying. Recreate the
+component after correcting a load failure; recreate the environment too after a
+failed DI composition. Configuration failures use the existing `config` operation,
+tool failures use `load`, and structured causes remain intact. No new error union
+or recovery API is introduced.
+
+Deterministic component coverage includes precedence, selection/reference errors,
+loader ordering, latest data/config diagnostics, independent editor scopes,
+recreation and component/provider destruction at pending boundaries. Forms checks
+verify one root resolution and unchanged pristine/untouched state. Packed checks
+still run without Forms or Editor.js for root imports/rendering, and now exercise
+sequential and concurrent request-specific registry lookups with empty holders.
+Real tool browser behavior, delivery/chunk evidence and the full packed matrix
+remain #597; these tests do not expand hydration certification.
+
+On Node 24.22.1 / Angular 22.1.4, `yarn nx run-many -t test typecheck lint
+-p editorjs-angular` passes, including the dependent production builds and all
+176 tests. Lint retains the 11 pre-existing warnings. Packed checks compile the
+updated lazy-provider README example and verify root optional-peer isolation.
+Remote Nx Cloud caching was unavailable locally; Nx executed the checks with its
+local cache. Release checks found no `editorjs-angular@*` remote tags and npm
+returned E404 for the package, so this uses `init(editorjs-angular)` without a
+version bump or publication.
 
 ## Tool provider increment
 
@@ -26,9 +78,8 @@ The provider helper composes self-scoped contributions through core and optional
 seeds from the nearest parent's selected snapshot. The public snapshot token and
 internal scope binding share one DI factory and the actual owner's `DestroyRef`.
 There is no resolver, loading cache, initializer or mutable root registry here.
-Component activation and binding of component cleanup to provider destruction
-remain #596. Tests can register callbacks against the internal binding to prove
-its ownership without claiming component wiring is already implemented.
+At that slice, component activation and binding cleanup to provider destruction
+remained #596; the lifecycle increment above now supplies that wiring.
 
 On Node 24.22.1 / Angular 22.1.4, the Angular production build, typecheck, lint
 and all 157 tests pass, including 19 provider cases. Packed checks exercise provider
