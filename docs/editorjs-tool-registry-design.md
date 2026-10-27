@@ -1,8 +1,9 @@
 # Editor.js tool registry implementation contract
 
 This contributor design was established in #592, the first slice of epic #70. It
-specifies the implementation and evidence required in #593–#598. The increments
-below record implemented surfaces; remaining exports are planned. Current consumer
+specifies the implementation and evidence required in #593–#598. The registry is
+implemented through #597; #598 consolidates documentation and release evidence.
+The increments below record the contract's evolution. Current consumer
 contracts are the [core README](../packages/editorjs/core/README.md) and
 [Angular README](../packages/editorjs/angular/README.md).
 
@@ -418,21 +419,23 @@ Cache deterministic preparation only with complete toolchain/configuration input
 and restorable artifacts; isolate ports/output directories before distribution.
 Document any required serialization or uncached fresh external check under Meta 0015. This design introduces no new tasks or cache policy.
 
-## Review boundaries and remaining implementation proof
+## Review boundaries and implementation evidence
 
 This design chooses replacement, selection, provider inheritance and failure
-semantics; these are not deferred product decisions. Remaining work is proof:
-generic inference across heterogeneous definitions, pinned built-in behavior,
-provider hierarchy on every supported Angular cell, and real lazy delivery and
-cleanup. If evidence requires a contract change, amend this document explicitly in
+semantics; these are not deferred product decisions. The implementation slices
+now supply type, unit, provider, packed-browser and SSR evidence, consolidated in
+the [registry readiness record](editorjs-tool-registry-release-readiness.md).
+Evidence remains bounded to the documented versions and host policies; required
+CI must pass on the eventual release commit. If later evidence requires a
+contract change, amend this document explicitly in
 the affected PR before claiming compatibility. No undocumented fallback to weaker
 typing, silent overrides, global caches or broader SSR exceptions is authorized.
 
 Concrete tools (#71), uploads (#72), expanded custom-tool guidance (#73), persistence
 (#74), broader demos/testing (#75/#78), publication (#76), live tool replacement,
 server-side content rendering and application adoption remain outside this scope.
-Follow #70's sequential PR workflow; merging this design does not start #593
-without the maintainer's next instruction.
+Follow #70's sequential PR workflow; completion does not authorize starting a
+follow-on issue or publishing without the maintainer's instruction.
 
 ## Evidence references
 
@@ -451,6 +454,6 @@ without the maintainer's next instruction.
   must not assume an injection context survives an await. The local
   [API ledger](guides/modern-angular/api-ledger.md) supplies the version-bounded
   environment-provider and route-lifetime references.
-- This design is documentation evidence only. Runtime tests and packed/browser
-  certification for the new registry remain assigned to the implementation slices
-  above; existing test results do not establish the planned API.
+- The design itself is not executable evidence. The linked validation and
+  readiness records identify the actual tests, artifacts, versions and remaining
+  limits for the implemented API.

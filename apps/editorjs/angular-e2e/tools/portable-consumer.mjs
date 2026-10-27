@@ -28,6 +28,41 @@ export async function preparePortable({
     }),
   );
   await run('npm', ['install', '--no-audit', '--no-fund'], root);
+  const readme = await readFile(
+    join(root, 'node_modules/@anarchitects/editorjs-core/README.md'),
+    'utf8',
+  );
+  const browserExamples = [
+    ...readme.matchAll(
+      /<!-- browser-example-file: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g,
+    ),
+  ];
+  assert.deepEqual(
+    browserExamples.map((example) => example[1]),
+    ['browser-editor.ts'],
+  );
+  await mkdir(join(root, 'readme'));
+  await writeFile(
+    join(root, 'readme/browser-editor.ts'),
+    browserExamples[0][2],
+  );
+  await writeFile(
+    join(root, 'readme/main.ts'),
+    `
+    import { composeToolRegistry, EDITOR_JS_2_31_7_TOOL_PROFILE } from '@anarchitects/editorjs-core';
+    import { mountEditor } from './browser-editor';
+    const holder = document.querySelector<HTMLElement>('#editor')!;
+    const output = document.querySelector<HTMLOutputElement>('output')!;
+    const owner = mountEditor(holder, composeToolRegistry([], { profile: EDITOR_JS_2_31_7_TOOL_PROFILE }));
+    owner.ready.then(() => { holder.dataset.ready = 'true'; }).catch((error: unknown) => { output.textContent = String(error); });
+    document.querySelector('#save')!.addEventListener('click', () => {
+      owner.ready.then(editor => editor.save()).then(data => { output.textContent = JSON.stringify(data); }).catch((error: unknown) => { output.textContent = String(error); });
+    });
+    document.querySelector('#remove')!.addEventListener('click', () => {
+      owner.dispose().then(() => { holder.dataset.removed = 'true'; }).catch((error: unknown) => { output.textContent = String(error); });
+    });
+  `,
+  );
   await mkdir(join(root, 'registry'));
   for (const file of ['direct.ts', 'definitions.ts', 'probe.ts', 'tools'])
     await cp(
@@ -51,7 +86,7 @@ export async function preparePortable({
         strict: true,
         noEmit: true,
       },
-      files: ['registry/direct.ts'],
+      files: ['registry/direct.ts', 'readme/main.ts'],
     }),
   );
   await run(
@@ -95,7 +130,7 @@ export async function buildPortable({ root, node, report, run }) {
       `
     import { build } from 'esbuild';
     import { writeFile } from 'node:fs/promises';
-    const result = await build({ entryPoints: ['registry/direct.ts'], bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
+    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
     await writeFile('metadata.json', JSON.stringify(result.metafile));
   `,
     ],
@@ -150,6 +185,10 @@ export async function buildPortable({ root, node, report, run }) {
   await writeFile(join(root, 'dist/browser/registry-graph.json'), graph);
   await writeFile(join(report, 'portable-graph.json'), graph);
   await cp(join(root, 'metadata.json'), join(report, 'portable-build.json'));
+  await writeFile(
+    join(root, 'dist/browser/readme.html'),
+    `<!doctype html><html><head><link rel="icon" href="data:,"></head><body><h1>Core README</h1><div id="editor"></div><button id="save">Save</button><button id="remove">Remove</button><output></output><script type="module" src="/readme.js"></script></body></html>`,
+  );
   await writeFile(
     join(root, 'dist/browser/index.html'),
     `<!doctype html><html><head><link rel="icon" href="data:,"></head><body><h1>Portable registry</h1><button id="toggle">Toggle registry A</button><button id="fail">Fail next tool</button><button id="hold">Hold next tool</button><script type="module" src="/direct.js"></script></body></html>`,

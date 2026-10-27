@@ -1142,7 +1142,8 @@ export const appConfig: ApplicationConfig = {
             name: 'callout',
             kind: 'block',
             source: 'lazy',
-            load: () => import('./callout-tool').then((module) => module.CalloutTool),
+            load: () =>
+              import('./callout-tool').then((module) => module.CalloutTool),
             settings: { config: { label } },
           },
         ];
@@ -1247,6 +1248,70 @@ whose module touches browser globals, declare `source: 'lazy'` and a host-owned
 dynamic loader; do not call it during a contribution factory or server rendering.
 See the [core registry and resolver guide](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/core#lazy-tool-resolution)
 for loading, retry, disposal and validation limits.
+
+### Recovering from a failed tool load
+
+Use the provider configuration above with a host that removes a failed editor
+and lets the user mount a fresh one after the loading problem has been corrected:
+
+```ts
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import {
+  EditorJs,
+  type EditorJsErrorEvent,
+} from '@anarchitects/editorjs-angular';
+
+@Component({
+  selector: 'app-retry-editor',
+  imports: [EditorJs],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <h2 id="retry-editor-label">Article body</h2>
+    @if (message()) {
+      <p role="alert">{{ message() }}</p>
+    }
+    @if (mounted()) {
+      <aa-editorjs
+        role="group"
+        aria-labelledby="retry-editor-label"
+        (error)="onError($event)"
+      />
+    } @else {
+      <button type="button" (click)="retry()">Retry loading editor</button>
+    }
+  `,
+})
+export class RetryEditor {
+  readonly mounted = signal(true);
+  readonly message = signal('');
+  onError(event: EditorJsErrorEvent): void {
+    this.message.set(`Editor error: ${event.operation} (${event.code})`);
+    // Load failures happen before an editor is created; a new mount owns a new resolver.
+    if (event.operation === 'load') this.mounted.set(false);
+  }
+  retry(): void {
+    this.message.set('');
+    this.mounted.set(true);
+  }
+}
+```
+
+This retries initialization, not an operation on the failed component. The user
+action occurs after Angular has removed the old view. A malformed definition or
+invalid constructor needs a code/configuration fix; remounting does not repair it.
+DI composition failures require a corrected, fresh environment as well. For an
+editor that previously accepted edits, keep the last accepted saved document in
+the host and pass it as `[data]` to a new owner; do not assume removal saves edits.
+Use unique accessible label IDs when hosting more than one instance.
+
+Block, inline and tune definitions use the same public core shapes shown in the
+[three-kind registry example](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/core#block-inline-and-tune-definitions).
+Pass definitions to `provideEditorJsTools`, not an already composed registry.
+With `{ select: ['callout', 'marker', 'flag'] }`, keep every custom name referenced
+by a selected block's `inlineToolbar` or `tunes`. Built-in `bold` and `paragraph`
+need no custom registration. To specialize an inherited block, use
+`{ inherit: true }` and an explicit same-kind `replace: true` definition with all
+required settings; inheritance does not merge its opaque config object.
 
 ## Imperative controls
 
@@ -1403,13 +1468,28 @@ Replace loading in an application or route environment with a typed provider:
 
 ```ts
 import type { ApplicationConfig } from '@angular/core';
-import { provideEditorJsLoader } from '@anarchitects/editorjs-angular';
+import {
+  provideEditorJsLoader,
+  provideEditorJsTools,
+} from '@anarchitects/editorjs-angular';
 import type { EditorJsLoader } from '@anarchitects/editorjs-angular';
+import type { ToolDefinition } from '@anarchitects/editorjs-core';
 
-export function configureEditor(loader: EditorJsLoader): ApplicationConfig {
-  return { providers: [provideEditorJsLoader(loader)] };
+export function configureEditor(
+  loader: EditorJsLoader,
+  tools: readonly ToolDefinition[],
+): ApplicationConfig {
+  return {
+    providers: [provideEditorJsLoader(loader), provideEditorJsTools(tools)],
+  };
 }
 ```
+
+A component that omits `config.tools` resolves this registry before calling the
+custom loader. Its factory receives `options.config.tools` as a fresh, resolved
+map; preserve it when constructing Editor.js. An explicit `config.tools` map
+replaces the provider registry in full even with a custom loader. The loader
+chooses editor construction; it does not own or extend the registry lifecycle.
 
 A replacement loader may cache code, but must not cache instances, holders or
 documents. Each factory call must create a distinct instance. It must reuse core normalization for detached initial data, preserve
@@ -1456,7 +1536,7 @@ their own readiness, editor creation and destruction. See the
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Angular Forms                    | Opt-in value binding, touch, availability, focus, reset and snapshots via `/forms`; no package-owned CVA.     |
 | SSR/hydration                    | Supported profiles above; host owns providers, routes, initial data, native submission safety and deployment. |
-| Tool registry and concrete tools | Optional browser-resolved providers or explicit `config.tools`; hosts supply concrete tools and schemas.   |
+| Tool registry and concrete tools | Optional browser-resolved providers or explicit `config.tools`; hosts supply concrete tools and schemas.      |
 | Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads.           |
 | Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.              |
 
