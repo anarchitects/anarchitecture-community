@@ -436,6 +436,10 @@ without the maintainer's next instruction.
 
 ## Evidence references
 
+- [Portable registry validation](editorjs-tool-registry-validation.md) records
+  #597's shared browser tools, clean packed consumer, SSR/hydration, lazy delivery
+  and Nx evidence boundaries.
+
 - The installed 2.31.7 declarations and distribution were inspected without
   evaluating the browser module. Upstream pinned sources:
   [tool settings](https://github.com/codex-team/editor.js/blob/v2.31.7/types/tools/tool-settings.d.ts),

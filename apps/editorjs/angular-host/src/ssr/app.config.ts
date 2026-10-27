@@ -7,6 +7,10 @@ import { provideRouter, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
+    path: 'registry',
+    loadChildren: () => import('./registry-routes').then((m) => m.routes),
+  },
+  {
     path: 'forms-deferred',
     loadComponent: () =>
       import('./deferred-forms-page').then((m) => m.DeferredFormsPage),

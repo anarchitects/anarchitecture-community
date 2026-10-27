@@ -1,5 +1,6 @@
 /** File atoms share immutable consumer snapshots and separately cached builds. */
 export const packedPhases = {
+  portable: [],
   interop: [],
   'build-csr': [],
   'csr-editor': ['build-csr'],
@@ -9,6 +10,11 @@ export const packedPhases = {
   'build-ssr-full': [],
   'build-ssr-eager-control': [],
   ssr: ['build-ssr-production'],
+  'hydration-registry': [
+    'build-ssr-production',
+    'build-ssr-diagnostic',
+    'build-ssr-full',
+  ],
   'hydration-standalone': [
     'build-ssr-production',
     'build-ssr-diagnostic',
@@ -36,8 +42,11 @@ export const packedPhases = {
 export const phasesFor = (mode) =>
   Object.keys(packedPhases).filter(
     (phase) =>
-      mode === 'ssr' ||
-      ['interop', 'build-csr', 'csr-editor', 'csr-forms'].includes(phase),
+      (mode === 'ssr' && phase !== 'portable') ||
+      (['portable', 'interop', 'build-csr', 'csr-editor', 'csr-forms'].includes(
+        phase,
+      ) &&
+        mode === 'csr'),
   );
 export const targetFor = (mode, cell, phase) =>
   `packed-${mode}-${cell}-${phase}`;

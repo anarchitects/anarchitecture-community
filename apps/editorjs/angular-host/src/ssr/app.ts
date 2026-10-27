@@ -14,6 +14,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
     <nav aria-label="Fixture routes">
       <a routerLink="/">Public</a>
       <a routerLink="/sample/public">Public sample</a>
+      <a routerLink="/registry">Registry</a>
       <a routerLink="/standalone">Standalone</a>
       <a routerLink="/deferred">Deferred</a>
       <a routerLink="/incremental">Incremental</a>

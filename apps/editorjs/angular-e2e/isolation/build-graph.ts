@@ -72,6 +72,22 @@ export async function buildGraph(eager = false) {
     roots.forEach(visit);
     return [...seen].sort();
   }
+  const tools = Object.fromEntries(
+    ['card', 'marker', 'flag', 'unselected'].map((tool) => [
+      tool,
+      Object.entries(outputs)
+        .filter(([, output]) =>
+          Object.entries(output.inputs).some(
+            ([input, value]) =>
+              input.endsWith(`/registry/tools/${tool}.ts`) &&
+              value.bytesInOutput > 0,
+          ),
+        )
+        .map(([name]) => name),
+    ]),
+  );
+  for (const [tool, files] of Object.entries(tools))
+    assert(files.length > 0, `Missing tool output: ${tool}`);
   const initial = closure(main);
   const publicClosure = closure([...main, ...publicPage]);
   const all = closure(main, true);
@@ -82,13 +98,16 @@ export async function buildGraph(eager = false) {
     main,
     publicPage,
     runtime,
+    tools,
     initial,
     publicClosure,
     outputs,
   };
   function assertIsolated(extraRoots: string[] = []) {
     const reached = closure([...main, ...publicPage, ...extraRoots]);
-    const leaks = runtime.filter((asset) => reached.includes(asset));
+    const leaks = [...runtime, ...Object.values(tools).flat()].filter((asset) =>
+      reached.includes(asset),
+    );
     assert.deepEqual(
       leaks,
       [],

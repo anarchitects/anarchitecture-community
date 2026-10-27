@@ -9,6 +9,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { buildPortable } from './portable-consumer.mjs';
 import { commandRunner } from './packed-process.mjs';
 import { buildPackedSsr, ssrProfiles } from './packed-ssr.mjs';
 import { validateReadmeSsr } from './readme-ssr.mjs';
@@ -31,6 +32,7 @@ await mkdir(join(report, '..'), { recursive: true });
 const lock = `${report}.lock`;
 await mkdir(lock); // Prevent concurrent writers for the same run and atom.
 let root;
+let portableRoot;
 let lease;
 let runner;
 const started = Date.now();
@@ -104,6 +106,7 @@ try {
       );
     const ssrRoot = join(root, 'ssr');
     const browser =
+      phase === 'portable' ||
       phase.startsWith('csr-') ||
       phase.startsWith('hydration-') ||
       phase === 'isolation' ||
@@ -134,7 +137,23 @@ try {
         env,
       );
     let buildPath;
-    if (phase === 'interop') {
+    if (phase === 'portable') {
+      portableRoot = await realpath(
+        await mkdtemp(join(tmpdir(), 'editorjs-portable-atom-')),
+      );
+      await run(
+        'tar',
+        ['-xzf', join(root, 'portable.tar.gz'), '-C', portableRoot],
+        workspace,
+      );
+      await buildPortable({ root: portableRoot, node, report, run });
+      await playwright('playwright.portable.config.mts', {
+        EDITORJS_PACKED_ROOT: portableRoot,
+        EDITORJS_PACKED_NODE: node,
+        EDITORJS_PACKED_REPORT: report,
+        EDITORJS_PACKED_PORT: String(ports[0]),
+      });
+    } else if (phase === 'interop') {
       await run(node, ['node_modules/vitest/vitest.mjs', 'run'], root, false, {
         EDITORJS_INTEROP_PACKED: 'true',
       });
@@ -202,6 +221,7 @@ try {
   console.error(`Packed validation failed (${phase}): ${failure}`);
 } finally {
   await lease?.release();
+  if (portableRoot) await rm(portableRoot, { recursive: true, force: true });
   if (root) await rm(root, { recursive: true, force: true });
   await writeFile(
     join(report, 'result.json'),
