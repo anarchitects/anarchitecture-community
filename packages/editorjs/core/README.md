@@ -11,6 +11,11 @@ shared document contract. The core defines the portable API; consumers adapt the
 domain models to it and own persistence, rendering, and migrations. It does not
 create an editor, install tools, perform uploads, or prescribe a storage envelope.
 
+For authoring, start with [registry composition](#tool-registry-composition), then
+[direct browser integration](#direct-browser-integration). Angular hosts can use
+the [optional Angular providers](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/angular#tool-providers-and-injector-ownership)
+over the same definitions; Angular is never required by core.
+
 ## Installation
 
 Install a published release with your package manager:
@@ -667,6 +672,82 @@ does not disable upstream built-ins or automatically select dependencies.
 Literal groups/selection preserve keys and constructor/config/toolbox-data types;
 dynamic arrays retain broader unions and still require runtime validation.
 
+### Block, inline and tune definitions
+
+The same definitions can be passed to `composeToolRegistry` or Angular's
+`provideEditorJsTools`. Supply compatible classes from your own tools or installed
+tool packages. `kind` describes registry references; it does not implement the
+upstream `isInline`, `isTune`, rendering, saving or cleanup contract for a class.
+
+```ts
+import {
+  composeToolRegistry,
+  selectToolRegistry,
+  EDITOR_JS_2_31_7_TOOL_PROFILE,
+  type ToolConstructor,
+} from '@anarchitects/editorjs-core';
+
+export function articleRegistry(loaders: {
+  callout: () => Promise<ToolConstructor>;
+  marker: () => Promise<ToolConstructor>;
+  flag: () => Promise<ToolConstructor>;
+}) {
+  const registry = composeToolRegistry(
+    [
+      [
+        {
+          name: 'callout',
+          kind: 'block',
+          source: 'lazy',
+          load: loaders.callout,
+          settings: {
+            config: { label: 'Note' },
+            inlineToolbar: ['marker', 'bold'],
+            tunes: ['flag'],
+          },
+        },
+        {
+          name: 'marker',
+          kind: 'inline',
+          source: 'lazy',
+          load: loaders.marker,
+        },
+        {
+          name: 'flag',
+          kind: 'tune',
+          source: 'lazy',
+          load: loaders.flag,
+          settings: { config: { label: 'Flag' } },
+        },
+      ],
+      // Explicit whole-definition replacement; repeat every option you still need.
+      [
+        {
+          name: 'callout',
+          kind: 'block',
+          source: 'lazy',
+          replace: true,
+          load: loaders.callout,
+          settings: {
+            config: { label: 'Editorial note' },
+            inlineToolbar: ['marker', 'bold'],
+            tunes: ['flag'],
+          },
+        },
+      ],
+    ],
+    { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+  );
+  return selectToolRegistry(registry, ['callout', 'marker', 'flag']);
+}
+```
+
+A block referencing `marker` or `flag` needs those definitions selected too.
+Select `[]` when only upstream built-ins are wanted. To omit a custom inline tool
+or tune, also remove the references to it from selected blocks; selection never
+silently repairs options. The example's config keys belong to the supplied tools,
+not to a core-owned tool schema.
+
 ### Composition and ownership rules
 
 - Groups are processed in order in one namespace for all kinds. Duplicate names
@@ -824,6 +905,95 @@ disposed owner or configuration error. Correct invalid definitions/references by
 composing a new registry/resolver. Present recovery in the host UI; core supplies
 neither notifications nor an automatic retry policy.
 
+## Direct browser integration
+
+Install Editor.js separately (`npm install @editorjs/editorjs@2.31.7`) and use a
+browser bundler with TypeScript's DOM library. Save the following as
+`browser-editor.ts`. It accepts any selected registry, including the result of
+`articleRegistry` above. The core package itself still needs no DOM declarations.
+
+<!-- browser-example-file: browser-editor.ts -->
+
+```ts
+import {
+  createToolResolver,
+  type OutputData,
+  type ToolRegistry,
+} from '@anarchitects/editorjs-core';
+import type EditorJS from '@editorjs/editorjs';
+import type { EditorConfig } from '@editorjs/editorjs';
+
+export function mountEditor(
+  holder: HTMLElement,
+  registry: ToolRegistry,
+  data: OutputData = { blocks: [] },
+) {
+  const resolver = createToolResolver(registry, { defaultBlock: 'paragraph' });
+  let removed = false;
+  let editor: EditorJS | undefined;
+  let cleanup: Promise<void> | undefined;
+  const assertLive = () => {
+    if (removed) throw new Error('Editor owner removed');
+  };
+  const dispose = (): Promise<void> => {
+    removed = true;
+    resolver.dispose();
+    return (cleanup ??= (async () => {
+      const owned = editor;
+      if (!owned) return;
+      // Upstream installs its cleanup API during initialization.
+      await owned.isReady.catch(() => undefined);
+      if (typeof owned.destroy === 'function') owned.destroy();
+    })());
+  };
+  const ready = (async () => {
+    const tools = await resolver.resolve();
+    assertLive();
+    const { default: Editor } = await import('@editorjs/editorjs');
+    assertLive();
+    editor = new Editor({
+      holder,
+      data,
+      tools: tools as EditorConfig['tools'],
+    });
+    await editor.isReady;
+    assertLive();
+    return editor;
+  })();
+  return { ready, dispose };
+}
+```
+
+Call `mountEditor` only in a live browser view after its holder exists. Retain the
+returned owner immediately, handle `owner.ready` rejection, and register
+`owner.dispose()` with your view's teardown before awaiting readiness. Await/catch
+that cleanup promise too. Once ready, use the returned Editor.js instance's
+`save()` and validate its output before persistence. The type assertion bridges
+core's opaque constructors to upstream's browser interfaces; it does not certify
+a tool implementation.
+
+For a first run, pass `composeToolRegistry([], { profile:
+EDITOR_JS_2_31_7_TOOL_PROFILE })`: Editor.js displays its built-in paragraph.
+For custom tools, pass the selected `articleRegistry` and host-owned loaders such
+as `() => import('your-tool-package').then(m => m.default)`. Keep browser classes
+out of server entry points and call neither the resolver nor this helper on the
+server. Each mount gets its own resolver and editor.
+
+If initialization fails, display the error, dispose that owner, fix the cause and
+mount again on an empty holder. A host that has not created an editor may instead
+explicitly call the same live resolver's `resolve()` again after a `load-failed`
+error; all selected lazy definitions retry. Never retry a disposed resolver or
+silently loop on invalid configuration. This helper exposes raw Editor.js, not
+the coordinated `EditorJsApi` facade; hosts needing serialized document controls
+can use `EditorJsDocumentCoordinator` with their own driver.
+
+Removal fences construction after each load. Cleanup of an already-created
+editor waits for upstream readiness, which may never settle; no wrapper can
+forcibly cancel that promise. Disposal does not unload imported modules. Lazy
+loaders only defer their own imports: eager imports elsewhere, router preloading,
+modulepreload links, service workers or host prefetch can still deliver the code.
+Inspect the consuming build and cold requests before promising route isolation.
+
 ## Package exports
 
 `@anarchitects/editorjs-core` resolves to `dist/index.js`, with declarations at
@@ -921,15 +1091,19 @@ tool update does not automatically change this package's support guarantees.
 
 ## Troubleshooting
 
-| Symptom                                               | Action                                                                                                       |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| A type is missing at runtime                          | Use `import type`; interfaces and type aliases are erased.                                                   |
-| A package subpath is not exported                     | Import from `@anarchitects/editorjs-core`, not `src` or `dist`.                                              |
-| An installed package resolves to missing source files | Remove the repository-only `@anarchitecture-community/source` custom condition from the consumer's resolver. |
-| Parsing reports `non_json_value`                      | Pass plain JSON data; omit undefined fields, and convert class instances before parsing.                     |
-| Unknown tools pass validation                         | The default is `unknownTools: 'allow'`; register validators and use `'reject'` for an allowlist.             |
-| Content parses but a tool cannot render it            | Check the host's schema/tool version policy and migrate explicitly; parsing certifies structure only.        |
-| A custom validator returns a promise                  | Validators are synchronous; perform remote checks separately in the host.                                    |
+| Symptom                                               | Action                                                                                                                    |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Registry composition reports `duplicate-name`         | Rename the tool or use deliberate same-kind `replace: true`; settings are replaced in full.                               |
+| Resolution reports `invalid-reference`                | Select referenced inline/tune definitions and an available default block, or remove the references.                       |
+| A tool loader returns a module object                 | Return its constructor export, for example `import(...).then(m => m.default)`.                                            |
+| A failed lazy load remains unavailable                | Explicitly retry the live resolver or recreate its owner; browser module/cache/network policy may still require a reload. |
+| A type is missing at runtime                          | Use `import type`; interfaces and type aliases are erased.                                                                |
+| A package subpath is not exported                     | Import from `@anarchitects/editorjs-core`, not `src` or `dist`.                                                           |
+| An installed package resolves to missing source files | Remove the repository-only `@anarchitecture-community/source` custom condition from the consumer's resolver.              |
+| Parsing reports `non_json_value`                      | Pass plain JSON data; omit undefined fields, and convert class instances before parsing.                                  |
+| Unknown tools pass validation                         | The default is `unknownTools: 'allow'`; register validators and use `'reject'` for an allowlist.                          |
+| Content parses but a tool cannot render it            | Check the host's schema/tool version policy and migrate explicitly; parsing certifies structure only.                     |
+| A custom validator returns a promise                  | Validators are synchronous; perform remote checks separately in the host.                                                 |
 
 Report reproducible package problems through the
 [issue tracker](https://github.com/anarchitects/anarchitecture-community/issues),

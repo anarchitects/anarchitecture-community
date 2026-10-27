@@ -201,11 +201,20 @@ describe('published package', () => {
       );
       // Compile the actual published examples, not copies that can drift from docs.
       const readme = readFileSync(join(packageDirectory, 'README.md'), 'utf8');
-      const examples = [...readme.matchAll(/```ts\n([\s\S]*?)```/g)];
+      const blocks = [
+        ...readme.matchAll(
+          /(?:<!-- browser-example-file: ([\w.-]+) -->\s*)?```ts\n([\s\S]*?)```/g,
+        ),
+      ];
+      // The marked DOM recipe runs in the separate, Angular-free packed host.
+      expect(
+        blocks.filter((block) => block[1]).map((block) => block[1]),
+      ).toEqual(['browser-editor.ts']);
+      const examples = blocks.filter((block) => !block[1]);
       expect(examples.length).toBeGreaterThan(0);
       const exampleFiles = examples.map((example, index) => {
         const filename = `readme-${index}.mts`;
-        writeFileSync(join(temporaryDirectory, filename), example[1]);
+        writeFileSync(join(temporaryDirectory, filename), example[2]);
         return filename;
       });
       writeFileSync(
