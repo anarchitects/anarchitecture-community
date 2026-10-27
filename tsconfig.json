@@ -35,6 +35,9 @@
     },
     {
       "path": "./packages/editorjs/core"
+    },
+    {
+      "path": "./packages/editorjs/tool-paragraph"
     }
   ],
   "compilerOptions": {

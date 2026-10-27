@@ -48,7 +48,10 @@ Do not fork their editors, copy their rendering implementations, introduce a
 second registry, or add a common-tools runtime aggregate. The package value is
 typed, validated composition and saved-data contracts over those implementations.
 Image needs a small browser adapter for the existing core upload result contract;
-the other browser exports initially expose the upstream constructors unchanged.
+the other browser exports initially expose upstream behavior. The #610 paragraph
+implementation adds a constructor-only subclass supplying an empty config when
+absent: upstream requires config while Editor.js's public block constructor makes
+it optional. This preserves upstream rendering/saving without a cast or fork.
 
 | Planned npm package                     | Planned Nx name           | Location                           | Upstream candidate           | Slice |
 | --------------------------------------- | ------------------------- | ---------------------------------- | ---------------------------- | ----- |

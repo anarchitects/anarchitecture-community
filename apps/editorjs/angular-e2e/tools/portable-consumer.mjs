@@ -7,6 +7,7 @@ export async function preparePortable({
   root,
   destination,
   archive,
+  paragraphArchive,
   node,
   versions,
   workspace,
@@ -15,6 +16,7 @@ export async function preparePortable({
 }) {
   await mkdir(root);
   await cp(archive, join(root, basename(archive)));
+  await cp(paragraphArchive, join(root, basename(paragraphArchive)));
   await writeFile(
     join(root, 'package.json'),
     JSON.stringify({
@@ -22,6 +24,7 @@ export async function preparePortable({
       type: 'module',
       dependencies: {
         '@anarchitects/editorjs-core': `file:${basename(archive)}`,
+        '@anarchitects/editorjs-tool-paragraph': `file:${basename(paragraphArchive)}`,
         '@editorjs/editorjs': versions.editorjs,
       },
       devDependencies: { esbuild: '0.28.2', typescript: versions.typescript },
@@ -42,6 +45,23 @@ export async function preparePortable({
     ['browser-editor.ts'],
   );
   await mkdir(join(root, 'readme'));
+  const paragraphReadme = await readFile(
+    join(root, 'node_modules/@anarchitects/editorjs-tool-paragraph/README.md'),
+    'utf8',
+  );
+  const paragraphExamples = [
+    ...paragraphReadme.matchAll(
+      /<!-- paragraph-example-file: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g,
+    ),
+  ];
+  assert.equal(paragraphExamples.length, 3);
+  for (const [, file, code] of paragraphExamples)
+    await writeFile(join(root, 'readme', file), code);
+  await cp(
+    join(workspace, 'apps/editorjs/angular-host/src/paragraph'),
+    join(root, 'paragraph'),
+    { recursive: true },
+  );
   await writeFile(
     join(root, 'readme/browser-editor.ts'),
     browserExamples[0][2],
@@ -86,7 +106,12 @@ export async function preparePortable({
         strict: true,
         noEmit: true,
       },
-      files: ['registry/direct.ts', 'readme/main.ts'],
+      files: [
+        'registry/direct.ts',
+        'readme/main.ts',
+        'paragraph/direct.ts',
+        ...paragraphExamples.map(([, file]) => `readme/${file}`),
+      ],
     }),
   );
   await run(
@@ -130,7 +155,7 @@ export async function buildPortable({ root, node, report, run }) {
       `
     import { build } from 'esbuild';
     import { writeFile } from 'node:fs/promises';
-    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
+    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
     await writeFile('metadata.json', JSON.stringify(result.metafile));
   `,
     ],
@@ -185,6 +210,36 @@ export async function buildPortable({ root, node, report, run }) {
   await writeFile(join(root, 'dist/browser/registry-graph.json'), graph);
   await writeFile(join(report, 'portable-graph.json'), graph);
   await cp(join(root, 'metadata.json'), join(report, 'portable-build.json'));
+  const paragraphChunks = Object.entries(metadata.outputs)
+    .filter(([, output]) =>
+      Object.entries(output.inputs).some(
+        ([input, value]) =>
+          input.includes('@editorjs/paragraph/dist/') &&
+          value.bytesInOutput > 0,
+      ),
+    )
+    .map(([file]) => file);
+  assert(paragraphChunks.length > 0, 'Missing upstream paragraph provenance');
+  assert(
+    Object.keys(metadata.inputs).some((path) =>
+      path.includes('@anarchitects/editorjs-tool-paragraph/dist/browser.js'),
+    ),
+    'Missing packaged paragraph browser entry',
+  );
+  initial.clear();
+  visit('dist/browser/paragraph.js');
+  assert(
+    !paragraphChunks.some((file) => initial.has(file)),
+    'Paragraph entered the initial closure',
+  );
+  await writeFile(
+    join(root, 'dist/browser/paragraph-graph.json'),
+    JSON.stringify({ chunks: paragraphChunks.map((file) => basename(file)) }),
+  );
+  await writeFile(
+    join(root, 'dist/browser/paragraph.html'),
+    `<!doctype html><html><head><link rel="icon" href="data:,"></head><body><h1>Packaged paragraph</h1><button id="mount">Mount</button><div id="editor"></div><button id="save">Save</button><button id="render">Render saved</button><button id="clear">Clear</button><button id="readonly">Read only</button><button id="remove">Remove</button><output></output><h2>Built-in control</h2><div id="builtin"></div><button id="save-builtin">Save builtin</button><pre id="builtin-output"></pre><script type="module" src="/paragraph.js"></script></body></html>`,
+  );
   await writeFile(
     join(root, 'dist/browser/readme.html'),
     `<!doctype html><html><head><link rel="icon" href="data:,"></head><body><h1>Core README</h1><div id="editor"></div><button id="save">Save</button><button id="remove">Remove</button><output></output><script type="module" src="/readme.js"></script></body></html>`,

@@ -8,6 +8,46 @@ const saved = async (owner: Locator) =>
     await owner.getByLabel('Saved document', { exact: true }).innerText(),
   );
 
+test('activates the packed paragraph through the standalone registry provider', async ({
+  page,
+}) => {
+  await page.goto('/?paragraph');
+  const first = card(page, 'First');
+  await expect(first.getByRole('status')).toHaveText('Ready');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-paragraph-instances',
+    /[2-9]\d*|1\d+/,
+  );
+  await expect(paragraph(first)).toHaveAttribute(
+    'data-placeholder-active',
+    'Packaged paragraph',
+  );
+  await paragraph(first).fill('Packaged Angular paragraph');
+  await first.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(first.getByTestId('command-result')).toHaveText(
+    'save completed',
+  );
+  await expect
+    .poll(async () => (await saved(first)).blocks)
+    .toMatchObject([
+      { type: 'paragraph', data: { text: 'Packaged Angular paragraph' } },
+    ]);
+  await first.getByRole('button', { name: 'Render', exact: true }).click();
+  await expect(paragraph(first)).toHaveText('First rendered');
+  await first.getByRole('button', { name: 'Read only' }).click();
+  await expect(paragraph(first)).toHaveAttribute('contenteditable', 'false');
+  await first.getByRole('button', { name: 'Read only' }).click();
+  await first.getByRole('button', { name: 'Clear', exact: true }).click();
+  await expect(paragraph(first)).toBeEmpty();
+  await first.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect
+    .poll(async () => (await saved(first)).blocks)
+    .toMatchObject([{ type: 'paragraph', data: { text: '' } }]);
+  await first.getByRole('button', { name: 'Unmount', exact: true }).click();
+  await expect(first.locator('.codex-editor')).toHaveCount(0);
+  await expect(paragraph(card(page, 'Second'))).toHaveText('Second initial');
+});
+
 // Editor.js batches MutationObserver notifications for 400ms. Negative assertions
 // deliberately observe beyond that window, after positive readiness/completion checks.
 async function settleNotifications(page: Page): Promise<void> {
