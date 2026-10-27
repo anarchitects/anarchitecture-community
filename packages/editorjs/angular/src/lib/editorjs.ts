@@ -8,6 +8,7 @@ import {
   ElementRef,
   ErrorHandler,
   inject,
+  Injector,
   input,
   output,
   PLATFORM_ID,
@@ -17,15 +18,19 @@ import {
 } from '@angular/core';
 import {
   normalizeOutputData,
+  createToolResolver,
+  validateToolReferences,
   EditorJsDocumentCoordinator,
   type EditorJsChangeEvent,
   type EditorJsErrorEvent,
   type EditorJsOperation,
   type EditorJsReadyEvent,
   type OutputData,
+  type ToolResolver,
 } from '@anarchitects/editorjs-core';
 import type { EditorJsConfig } from './editorjs-contracts.js';
 import { EDITOR_JS_LOADER, type EditorJsInstance } from './editorjs-loader.js';
+import { EDITOR_JS_TOOL_SCOPE } from './editorjs-tool-providers.js';
 
 @Component({
   selector: 'aa-editorjs',
@@ -49,7 +54,10 @@ export class EditorJs {
   private readonly holder =
     viewChild.required<ElementRef<HTMLElement>>('holder');
   readonly #loader = inject(EDITOR_JS_LOADER);
+  readonly #injector = inject(Injector);
   readonly #errorHandler = inject(ErrorHandler);
+  #tools: ToolResolver | undefined;
+  #unregisterToolOwner: (() => void) | undefined;
   #instance: EditorJsInstance | undefined;
   #destroyed = false;
   #readinessSettled = false;
@@ -76,13 +84,7 @@ export class EditorJs {
   readonly api = this.#documents.api;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => {
-      this.#destroyed = true;
-      this.#documents.dispose();
-      // Editor.js installs its public destroy method during readiness. A pending
-      // instance is disposed by the initialization continuation once it settles.
-      if (this.#readinessSettled) this.#dispose();
-    });
+    inject(DestroyRef).onDestroy(() => this.#terminate());
     const browser = isPlatformBrowser(inject(PLATFORM_ID));
     afterNextRender(() => {
       if (browser && !this.#destroyed) void this.#initialize();
@@ -139,6 +141,33 @@ export class EditorJs {
       const config = this.config();
       this.#observedConfig = config;
       this.#started = true;
+      let resolvedConfig = config;
+      // Explicit maps (including {}) own the whole tool configuration. Defer DI
+      // lookup so unused providers cannot load, validate or fail direct editors.
+      if (config?.tools === undefined) {
+        operation = 'config';
+        const scope = this.#injector.get(EDITOR_JS_TOOL_SCOPE, null);
+        if (scope) {
+          if (scope.destroyRef.destroyed) this.#terminate();
+          if (this.#destroyed) return;
+          this.#unregisterToolOwner = scope.destroyRef.onDestroy(() =>
+            this.#terminate(),
+          );
+          const context = {
+            defaultBlock: config?.defaultBlock,
+            initialBlock: config?.initialBlock,
+            inlineToolbar: config?.inlineToolbar,
+            tunes: config?.tunes,
+          };
+          validateToolReferences(scope.registry, context);
+          this.#tools = createToolResolver(scope.registry, context);
+          operation = 'load';
+          const tools = await this.#tools.resolve();
+          if (this.#destroyed) return;
+          resolvedConfig = { ...config, tools };
+        }
+      }
+      operation = 'load';
       const factory = await this.#loader();
       if (this.#destroyed) return;
 
@@ -160,7 +189,7 @@ export class EditorJs {
       operation = 'create';
       this.#instance = factory({
         holder: this.holder().nativeElement,
-        config,
+        config: resolvedConfig,
         data: normalized.data,
         onChange: () => this.#documents.notifyChange(),
       });
@@ -186,7 +215,24 @@ export class EditorJs {
     if (!this.#destroyed) this.error.emit(error);
   }
 
+  #releaseTools(): void {
+    this.#tools?.dispose();
+    this.#tools = undefined;
+    this.#unregisterToolOwner?.();
+    this.#unregisterToolOwner = undefined;
+  }
+
+  #terminate(): void {
+    this.#destroyed = true;
+    this.#documents.dispose();
+    this.#releaseTools();
+    // Editor.js installs destroy during readiness. Fence pending work now and
+    // let the existing readiness continuation perform physical cleanup.
+    if (this.#readinessSettled) this.#dispose();
+  }
+
   #dispose(): void {
+    this.#releaseTools();
     this.#documents.dispose();
     const instance = this.#instance;
     this.#instance = undefined;

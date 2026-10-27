@@ -1106,9 +1106,14 @@ application, route or explicitly created child `EnvironmentInjector`. They do no
 belong in a component's `providers` array, and resolving the token never loads a
 tool or Editor.js. Forms is not required.
 
-The component currently consumes `config.tools` explicitly; installing providers
-alone does not activate tools or replace that map. For an eager registry, build
-the map from the injected snapshot and pass it through the existing config input:
+When `config.tools` is omitted or `undefined`, the component resolves the nearest
+provider registry at its browser activation boundary. An explicit map, including
+`{}`, wins in full: the component does not look up, validate or load provider
+tools. With no registry, Editor.js retains its normal built-ins. This rule also
+applies to `EditorJsControl` through its root editor component.
+
+Declare lazy tools in the application or route environment, then omit `tools`
+from the editor config:
 
 ```ts
 import {
@@ -1120,12 +1125,9 @@ import {
 } from '@angular/core';
 import {
   EditorJs,
-  EDITOR_JS_TOOL_REGISTRY,
   provideEditorJsTools,
   type EditorJsConfig,
 } from '@anarchitects/editorjs-angular';
-import { createToolMap } from '@anarchitects/editorjs-core';
-import { CalloutTool } from './callout-tool';
 
 const TOOL_LABEL = new InjectionToken<string>('tool-label');
 
@@ -1139,8 +1141,9 @@ export const appConfig: ApplicationConfig = {
           {
             name: 'callout',
             kind: 'block',
-            source: 'eager',
-            registration: { class: CalloutTool, config: { label } },
+            source: 'lazy',
+            load: () => import('./callout-tool').then((module) => module.CalloutTool),
+            settings: { config: { label } },
           },
         ];
       },
@@ -1156,7 +1159,7 @@ export const appConfig: ApplicationConfig = {
 })
 export class ProviderEditor {
   readonly config: EditorJsConfig = {
-    tools: createToolMap(inject(EDITOR_JS_TOOL_REGISTRY)),
+    placeholder: 'Write an article',
   };
 }
 ```
@@ -1205,15 +1208,39 @@ Correct the provider configuration and create a new environment rather than
 retrying a failed DI factory. With no provider, optional token lookup returns
 `null`; direct `config.tools` usage needs no registry provider.
 
-Providers own immutable metadata, not resolvers, imported modules or editor
-instances. They install no initializer or reversible global registration. A host
-that creates a core `createToolResolver` owns its disposal and must check browser
-and owner lifetime before resolving. Register host cleanup with the correct
-`DestroyRef`, and remove callbacks when the consuming owner dies first. Angular
-calls injector-scoped cleanup when that environment is destroyed; route exit
-alone does not prove destruction, since an injector may be retained for reuse.
-Destroying a child does not destroy its parent or siblings. Core snapshots contain
-no Angular lifecycle references and remain inert values if a caller retains one.
+Providers own immutable metadata, not resolvers or editor instances. Each editor
+owns one core resolver and waits for its selected tools before invoking the
+configured `provideEditorJsLoader` loader. The synchronous factory receives a
+fresh config shell and tool map, followed by the existing readiness and document
+reconciliation flow. Data changed during loading is read at creation; config
+remains initialization-only. A config identity change reports `config-changed`
+and does not reload tools. Shared module code is allowed; raw editors and tool
+instances must not be shared between owners.
+
+The component disposes its resolver on removal and unregisters its environment
+cleanup callback. Destruction of the actual provider-owning environment also
+terminates the editor, including when the registry is inherited by a child.
+Pending loads cannot create a stale editor or emit outputs. An already-created
+editor awaiting readiness is fenced immediately and destroyed when readiness
+settles; a never-settling upstream readiness promise can delay physical cleanup.
+Route exit alone does not prove environment destruction, since an injector may be
+retained for reuse. Destroying a child does not destroy its parent or siblings.
+
+During component initialization, composition, selection and reference errors emit
+`operation: 'config'`, `code: 'operation-failed'`. Rejected tool loads or invalid
+constructors emit `operation: 'load'` with the same code. Their `ToolRegistryError`
+cause identifies the tool/path and retains the underlying load cause. The editor
+loader, factory and readiness retain their existing `load`, `create` and `ready`
+error stages. A failed initialization emits no ready event and does not retry.
+Fix the cause and recreate the component; if DI composition failed, correct the
+providers and create a fresh environment too. Cleanup errors after owner
+termination go to Angular's `ErrorHandler`, because outputs are no longer usable.
+
+Server imports, provider setup, token lookup and rendering never invoke these
+loaders. SSR still renders an empty holder; keep host-owned hydration providers,
+initial data and request isolation as described above. Provider-backed tools do
+not change the supported hydration modes. Lazy tool delivery in a particular
+application still depends on its imports, preloading and activation policy.
 
 Static imports are eager even when used inside a provider declaration. For a tool
 whose module touches browser globals, declare `source: 'lazy'` and a host-owned
@@ -1429,7 +1456,7 @@ their own readiness, editor creation and destruction. See the
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Angular Forms                    | Opt-in value binding, touch, availability, focus, reset and snapshots via `/forms`; no package-owned CVA.     |
 | SSR/hydration                    | Supported profiles above; host owns providers, routes, initial data, native submission safety and deployment. |
-| Tool registry and concrete tools | Optional environment metadata; hosts supply tools/schemas and pass the composed map through `config.tools`.   |
+| Tool registry and concrete tools | Optional browser-resolved providers or explicit `config.tools`; hosts supply concrete tools and schemas.   |
 | Uploads                          | Supply transport, credentials and application policy; core upload contracts do not perform uploads.           |
 | Persistence                      | Decide storage records, validation, migrations and save policy; `change` is not durable storage.              |
 
