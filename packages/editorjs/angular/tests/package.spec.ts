@@ -66,6 +66,10 @@ describe('published Angular contracts', () => {
       resolve(workspaceRoot, 'packages/editorjs/core'),
       '@anarchitects/editorjs-core',
     );
+    unpackPackage(
+      resolve(workspaceRoot, 'packages/editorjs/tool-image'),
+      '@anarchitects/editorjs-tool-image',
+    );
     packageDirectory = join(
       temporaryDirectory,
       'node_modules/@anarchitects/editorjs-angular',
@@ -170,7 +174,7 @@ describe('published Angular contracts', () => {
       import '@angular/compiler';
       // Angular itself probes optional DOM globals. Initialize peers in Node first,
       // then guard against any additional access introduced by this package.
-      import { createEnvironmentInjector, Injector } from '@angular/core';
+      import { createEnvironmentInjector, DestroyRef, Injector } from '@angular/core';
       import '@angular/common';
       assert.equal(typeof window, 'undefined');
       assert.equal(typeof document, 'undefined');
@@ -179,7 +183,7 @@ describe('published Angular contracts', () => {
       }
       assert.throws(() => import.meta.resolve('@angular/forms'), { code: 'ERR_MODULE_NOT_FOUND' });
       const wrapper = await import('@anarchitects/editorjs-angular');
-      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EDITOR_JS_TOOL_REGISTRY', 'EditorJs', 'EditorJsOperationError', 'provideEditorJsLoader', 'provideEditorJsTools']);
+      assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EDITOR_JS_TOOL_REGISTRY', 'EditorJs', 'EditorJsOperationError', 'createEditorJsUploadOwner', 'provideEditorJsLoader', 'provideEditorJsTools']);
       let factories = 0;
       let loads = 0;
       const providers = wrapper.provideEditorJsTools({ factory: () => {
@@ -195,7 +199,13 @@ describe('published Angular contracts', () => {
       assert.deepEqual(child.get(wrapper.EDITOR_JS_TOOL_REGISTRY).names, ['lazy']);
       assert.equal(factories, 1);
       assert.equal(loads, 0);
-      child.destroy(); parent.destroy();
+      const uploads = wrapper.createEditorJsUploadOwner({ uploadByUrl: async () => ({success: 0}) }, { destroyRef: child.get(DestroyRef) });
+      assert.equal((await uploads.uploader.uploadByUrl('private')).success, 0);
+      assert.equal(uploads.hasErrors(), true);
+      child.destroy();
+      assert.equal(uploads.disposed(), true);
+      assert.equal(uploads.hasErrors(), false);
+      parent.destroy();
       assert.ok(import.meta.resolve('@anarchitects/editorjs-angular').includes('/fesm2022/'));
       assert.throws(() => import.meta.resolve('@editorjs/editorjs'), { code: 'ERR_MODULE_NOT_FOUND' });
       await assert.rejects(import('@anarchitects/editorjs-angular/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
@@ -334,7 +344,21 @@ describe('published Angular contracts', () => {
     expect(
       existsSync(join(temporaryDirectory, 'node_modules/@angular/forms')),
     ).toBe(false);
-    compile(['consumer.ts']);
+    symlinkSync(
+      resolve(workspaceRoot, 'node_modules/@editorjs/image'),
+      join(temporaryDirectory, 'node_modules/@editorjs/image'),
+      'dir',
+    );
+    const uploadExample = readFileSync(
+      join(packageDirectory, 'README.md'),
+      'utf8',
+    ).match(/<!-- example-file: upload-editor.ts -->\s*```ts\n([\s\S]*?)```/);
+    expect(uploadExample).not.toBeNull();
+    writeFileSync(
+      join(consumerDirectory, 'upload-editor.ts'),
+      uploadExample![1],
+    );
+    compile(['consumer.ts', 'upload-editor.ts']);
     expect(
       readFileSync(join(consumerDirectory, 'compiled/consumer.js'), 'utf8'),
     ).toContain('ɵɵdefineComponent');

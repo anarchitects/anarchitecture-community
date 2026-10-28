@@ -21,6 +21,14 @@ export {
 } from './lib/editorjs-loader.js';
 
 export { EditorJs } from './lib/editorjs.js';
+export { createEditorJsUploadOwner } from './lib/editorjs-upload-owner.js';
+export type {
+  EditorJsUploadId,
+  EditorJsUploadRecord,
+  EditorJsUploadOverflow,
+  EditorJsUploadOwner,
+  EditorJsUploadOwnerOptions,
+} from './lib/editorjs-upload-owner.js';
 export { EditorJsOperationError } from '@anarchitects/editorjs-core';
 export {
   EDITOR_JS_TOOL_REGISTRY,

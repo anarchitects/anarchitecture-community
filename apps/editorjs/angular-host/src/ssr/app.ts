@@ -16,6 +16,7 @@ import { RouterLink, RouterOutlet } from '@angular/router';
       <a routerLink="/sample/public">Public sample</a>
       <a routerLink="/registry">Registry</a>
       <a routerLink="/tools">Packaged tools</a>
+      <a routerLink="/upload">Uploads</a>
       <a routerLink="/standalone">Standalone</a>
       <a routerLink="/deferred">Deferred</a>
       <a routerLink="/incremental">Incremental</a>

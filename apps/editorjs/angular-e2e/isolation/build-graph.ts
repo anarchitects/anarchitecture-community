@@ -110,6 +110,14 @@ export async function buildGraph(eager = false) {
       'Missing browser entry provenance: ' + tool,
     );
   }
+  tools['upload-backend'] = Object.entries(outputs)
+    .filter(([, output]) =>
+      Object.entries(output.inputs).some(
+        ([input, value]) =>
+          input.endsWith('/upload/backend.ts') && value.bytesInOutput > 0,
+      ),
+    )
+    .map(([file]) => file);
   for (const [tool, files] of Object.entries(tools))
     assert(files.length > 0, `Missing tool output: ${tool}`);
   const initial = closure(main);

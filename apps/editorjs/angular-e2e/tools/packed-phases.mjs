@@ -5,6 +5,7 @@ export const packedPhases = {
   'build-csr': [],
   'csr-editor': ['build-csr'],
   'csr-forms': ['build-csr'],
+  'csr-upload': ['build-csr'],
   'build-ssr-production': [],
   'build-ssr-diagnostic': [],
   'build-ssr-full': [],
@@ -30,6 +31,11 @@ export const packedPhases = {
     'build-ssr-diagnostic',
     'build-ssr-full',
   ],
+  'hydration-upload': [
+    'build-ssr-production',
+    'build-ssr-diagnostic',
+    'build-ssr-full',
+  ],
   'hydration-deferred': [
     'build-ssr-production',
     'build-ssr-diagnostic',
@@ -48,9 +54,14 @@ export const phasesFor = (mode) =>
   Object.keys(packedPhases).filter(
     (phase) =>
       (mode === 'ssr' && phase !== 'portable') ||
-      (['portable', 'interop', 'build-csr', 'csr-editor', 'csr-forms'].includes(
-        phase,
-      ) &&
+      ([
+        'portable',
+        'interop',
+        'build-csr',
+        'csr-editor',
+        'csr-forms',
+        'csr-upload',
+      ].includes(phase) &&
         mode === 'csr'),
   );
 export const targetFor = (mode, cell, phase) =>

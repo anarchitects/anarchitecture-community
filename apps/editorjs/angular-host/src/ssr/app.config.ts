@@ -4,8 +4,28 @@ import {
 } from '@angular/core';
 import { hydration } from './hydration';
 import { provideRouter, Routes } from '@angular/router';
+import { provideEditorJsTools } from '@anarchitects/editorjs-angular';
 
 const routes: Routes = [
+  {
+    path: 'upload',
+    providers: [
+      provideEditorJsTools([
+        {
+          name: 'image',
+          kind: 'block',
+          source: 'lazy',
+          load: async () => {
+            throw new Error(
+              'Explicit tools must override this shared definition',
+            );
+          },
+        },
+      ]),
+    ],
+    loadComponent: () =>
+      import('../upload/upload-page').then((m) => m.UploadPage),
+  },
   {
     path: 'tools',
     loadChildren: () => import('./registry-routes').then((m) => m.routes),

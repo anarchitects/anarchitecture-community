@@ -242,6 +242,8 @@ async function validate(name, versions, archives) {
         'examples/list-app.ts',
         'examples/quote-app.ts',
         'examples/image-app.ts',
+        'examples/upload-editor.ts',
+        'src/upload/upload-editor.ts',
       ],
     });
     await assertBoundaries(root, node, false);
@@ -443,7 +445,7 @@ async function assertBoundaries(root, node, withForms) {
     const core = await import('@anarchitects/editorjs-core');
     const wrapper = await import('@anarchitects/editorjs-angular');
     assert.equal(wrapper.EditorJsOperationError, core.EditorJsOperationError);
-    assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EDITOR_JS_TOOL_REGISTRY', 'EditorJs', 'EditorJsOperationError', 'provideEditorJsLoader', 'provideEditorJsTools']);
+    assert.deepEqual(Object.keys(wrapper).sort(), ['EDITOR_JS_LOADER', 'EDITOR_JS_TOOL_REGISTRY', 'EditorJs', 'EditorJsOperationError', 'createEditorJsUploadOwner', 'provideEditorJsLoader', 'provideEditorJsTools']);
     assert.ok(import.meta.resolve('@anarchitects/editorjs-angular').includes('/fesm2022/'));
     assert.ok(import.meta.resolve('@anarchitects/editorjs-core').includes('/dist/'));
     await assert.rejects(import('@anarchitects/editorjs-angular/src/index.ts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
