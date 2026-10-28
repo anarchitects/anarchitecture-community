@@ -1,5 +1,6 @@
 import {
   ChangeDetectionStrategy,
+  type DestroyRef,
   Component,
   inject,
   viewChild,
@@ -7,6 +8,7 @@ import {
   type Provider,
 } from '@angular/core';
 import {
+  createEditorJsUploadOwner,
   EDITOR_JS_LOADER,
   EditorJs,
   EditorJsOperationError,
@@ -218,4 +220,48 @@ export class PackageConsumer {
 export function reconcileBoundData(editor: EditorJs): void {
   editor.invalidate();
   editor.reconcile();
+}
+
+// Public capability inference and generic metadata are checked without Forms.
+export function uploadContracts(destroyRef: DestroyRef) {
+  const files = createEditorJsUploadOwner(
+    {
+      async uploadByFile(input: Uint8Array) {
+        return {
+          success: 1 as const,
+          file: { url: '/image', bytes: input.length },
+        };
+      },
+    },
+    { destroyRef },
+  );
+  const urls = createEditorJsUploadOwner(
+    {
+      async uploadByUrl(url: string) {
+        return { success: 0 as const, error: { denied: url.length > 0 } };
+      },
+    },
+    {
+      destroyRef,
+      mapError: (outcome) =>
+        outcome.kind === 'failure' && outcome.response.error?.denied
+          ? 'Denied'
+          : 'Failed',
+    },
+  );
+  void files.uploader.uploadByFile(new Uint8Array()).then((result) => {
+    if (result.success) {
+      const bytes: number = result.file.bytes;
+      void bytes;
+    }
+  });
+  // @ts-expect-error File-only owners do not fabricate URL support.
+  void files.uploader.uploadByUrl;
+  // @ts-expect-error URL-only owners do not fabricate file support.
+  void urls.uploader.uploadByFile;
+  // @ts-expect-error Presentation signals are readonly.
+  files.activeCount.set(2);
+  // @ts-expect-error An owner needs at least one existing upload capability.
+  createEditorJsUploadOwner({}, { destroyRef });
+  return { files, urls };
 }

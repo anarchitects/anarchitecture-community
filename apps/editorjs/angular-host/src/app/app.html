@@ -11,7 +11,9 @@
     >
     Outputs: <span data-testid="outputs">{{ ownership.outputs() }}</span>
   </aside>
-  @if (formsMode) {
+  @if (uploadMode) {
+  <aa-upload-page />
+  } @else if (formsMode) {
   <aa-forms-card label="First" />
   <aa-forms-card label="Second" />
   <aa-forms-card label="Legacy" [legacy]="true" />

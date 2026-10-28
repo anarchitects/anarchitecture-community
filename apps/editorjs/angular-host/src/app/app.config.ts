@@ -14,6 +14,23 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideEditorJsTools({
       factory: () =>
+        new URLSearchParams(location.search).has('upload')
+          ? [
+              {
+                name: 'image',
+                kind: 'block',
+                source: 'lazy',
+                load: async () => {
+                  throw new Error(
+                    'Explicit tools must override this shared definition',
+                  );
+                },
+              },
+            ]
+          : [],
+    }),
+    provideEditorJsTools({
+      factory: () =>
         new URLSearchParams(location.search).has('image')
           ? [imageDefinition]
           : [],

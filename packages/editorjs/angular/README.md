@@ -1313,6 +1313,199 @@ need no custom registration. To specialize an inherited block, use
 `{ inherit: true }` and an explicit same-kind `replace: true` definition with all
 required settings; inheritance does not merge its opaque config object.
 
+## Optional upload ownership
+
+`createEditorJsUploadOwner` adds per-editor signals and lifetime handling to an
+existing core `FileUploader`, `UrlUploader` or `ImageUploader`. It is available
+from the root without Angular Forms. It creates only the supplied methods and
+uses core's operation runner; it installs no HTTP client, interceptors, Fetch
+adapter or global upload registry. Share a stateless backend through DI, then
+create a separate owner for every editor instance.
+
+Install `@anarchitects/editorjs-tool-image` and its `@editorjs/image` peer to use
+this example. Supply your existing `ImageUploader<Blob>` to `startUploadEditor`;
+compose separate capabilities with core's `composeImageUploader` if needed.
+The browser document must contain `<app-upload-editor></app-upload-editor>`.
+The optional `@anarchitects/editorjs-upload-fetch/browser` adapter can implement
+that port, or your host may capture its already configured HTTP client in a
+provider factory. Resolve injected dependencies synchronously: request callbacks
+run later, outside the injection context.
+
+<!-- example-file: upload-editor.ts -->
+
+```ts
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  InjectionToken,
+  signal,
+} from '@angular/core';
+import { bootstrapApplication } from '@angular/platform-browser';
+import {
+  createEditorJsUploadOwner,
+  EditorJs,
+  type EditorJsConfig,
+  type EditorJsUploadOwner,
+} from '@anarchitects/editorjs-angular';
+import {
+  composeToolRegistry,
+  createToolResolver,
+  EDITOR_JS_2_31_7_TOOL_PROFILE,
+  type ImageUploader,
+} from '@anarchitects/editorjs-core';
+import { defineImageTool } from '@anarchitects/editorjs-tool-image';
+
+const UPLOAD_BACKEND = new InjectionToken<ImageUploader<Blob>>(
+  'upload backend',
+);
+const UPLOAD_OWNER = new InjectionToken<
+  EditorJsUploadOwner<ImageUploader<Blob>>
+>('editor upload owner');
+
+@Component({
+  selector: 'app-upload-editor',
+  imports: [EditorJs],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [
+    {
+      provide: UPLOAD_OWNER,
+      useFactory: () =>
+        createEditorJsUploadOwner(inject(UPLOAD_BACKEND), {
+          destroyRef: inject(DestroyRef),
+          // Return only safe UI text. Never copy a raw server message or cause.
+          mapError: () => 'The image could not be uploaded. Please try again.',
+        }),
+    },
+  ],
+  template: `
+    <section aria-label="Article editor" [attr.aria-busy]="uploads.busy()">
+      <p role="status">{{ uploads.activeCount() }} uploads in progress</p>
+      @if (config(); as configured) {
+        <aa-editorjs [config]="configured" />
+      }
+      @if (loadingError()) {
+        <p role="alert">The editor tools could not load.</p>
+      }
+      @for (operation of uploads.operations(); track operation.id) {
+        @if (operation.status !== 'active') {
+          <p role="alert">{{ operation.message }}</p>
+          <button type="button" (click)="uploads.acknowledge(operation.id)">
+            Dismiss upload error
+          </button>
+        }
+      }
+      @if (uploads.overflow(); as summary) {
+        <p role="alert">{{ summary.count }} additional uploads failed.</p>
+        <button type="button" (click)="uploads.acknowledge(summary.id)">
+          Dismiss older upload errors
+        </button>
+      }
+    </section>
+  `,
+})
+export class UploadEditor {
+  readonly uploads = inject(UPLOAD_OWNER);
+  readonly config = signal<EditorJsConfig | undefined>(undefined);
+  readonly loadingError = signal(false);
+
+  constructor() {
+    const lifetime = inject(DestroyRef);
+    const registry = composeToolRegistry(
+      [
+        [
+          defineImageTool({
+            source: 'lazy',
+            load: () =>
+              import('@anarchitects/editorjs-tool-image/browser').then(
+                (m) => m.ImageTool,
+              ),
+            settings: { config: { uploader: this.uploads.uploader } },
+          }),
+        ],
+      ],
+      { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+    );
+    const resolver = createToolResolver(registry);
+    lifetime.onDestroy(() => resolver.dispose());
+    afterNextRender(() => {
+      void resolver
+        .resolve()
+        .then((tools) => {
+          if (!lifetime.destroyed) this.config.set({ tools });
+        })
+        .catch(() => {
+          if (!lifetime.destroyed) this.loadingError.set(true);
+        });
+    });
+  }
+}
+
+export function startUploadEditor(backend: ImageUploader<Blob>) {
+  return bootstrapApplication(UploadEditor, {
+    providers: [{ provide: UPLOAD_BACKEND, useValue: backend }],
+  });
+}
+```
+
+`DestroyRef` must belong to the intended editor host. A root or route provider
+can live longer than a visible editor; navigating away does not guarantee route
+injector destruction. The example's component provider creates one owner per
+component. `provideEditorJsTools` still creates an immutable environment snapshot,
+not a per-editor factory: never place a mutable owner in a shared definition.
+The example materializes its own registry and passes a complete `config.tools`
+map, preserving its precedence over all environment tool providers. An isolated
+environment with a deliberately matching editor lifetime is also supported.
+
+`operations()` contains frozen records with a unique opaque symbol `id`, numeric
+`generation`, `kind` (`file` or `url`), `attempts`, and `status` (`active`, `failure`
+or `exception`). Only failed records have presentation text. IDs are local runtime
+identities, not serializable storage keys. No input Blob, URL, raw error, response
+body or credentials are copied into these records. The host mapper is responsible
+for redaction; omitted, throwing, asynchronous or invalid mappers fall back to a
+generic message and never replace the port's original outcome.
+
+`busy()` and `activeCount()` cover logical operations, including retry delays.
+Successful records disappear; failures remain until `acknowledge(id)` or reset.
+Acknowledging an active operation does nothing. Success or a new manual retry
+never clears an earlier failure. At most 100 detailed failures remain; older
+failures increment `overflow().count`, which keeps `hasErrors()` true until the
+summary is explicitly acknowledged or reset. Active work is never evicted.
+
+Retries are off by default. The optional `retry` uses core's bounded
+`UploadRetryPolicy`, including an explicit replay-safety guarantee, classifier and
+host scheduler. Invalid policy rejects an invocation before transport starts.
+The attempt count measures only calls made by core; retries inside a host backend
+are opaque. Owner-level retry cannot add an idempotency key through the unchanged
+port signature: enable it only when repeating that port call is already safe.
+See the [core retry contract](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/core#upload-boundaries).
+
+Expected failures still resolve with the original `success: 0` response; throws
+and rejections preserve their original cause. The ImageTool bridge owns its
+notification. Owner state provides a separate host UI and must not be forwarded
+to the editor's initialization-error output or another ImageTool notifier.
+Upload completion does not imply persistence of the editor document, and
+`save()` does not wait for uploads. Choose an explicit host save/submit policy.
+
+`reset()` advances the generation, stops local operation handles, clears activity
+and errors, and permits new work. `dispose()` also permanently rejects future
+calls with core's `UploadStoppedError`; it unregisters its destruction callback.
+Both fence late completions. Neither aborts a host transport nor rolls back a
+backend mutation. The host may independently wire a transport abort signal.
+A broken retry scheduler cancellation can throw an `AggregateError` after all
+handles have been stopped and state cleared; schedulers must return nonthrowing
+cleanup callbacks.
+
+**For document replacement, including a same-value reset, destroy the old
+editor/tool generation and dispose its owner, then mount a fresh component with
+fresh owner/configuration.** A keyed `@for` or removing/recreating the host view
+provides this lifetime boundary. Resetting owner signals alone cannot invalidate
+an ImageTool callback already running against the old document. Do not reuse an
+old owner in a replacement editor. SSR creates inert state; browser tool imports
+and requests begin only after client activation and user action.
+
 ## Imperative controls
 
 Each `EditorJs` component exposes a stable, bound `api: EditorJsApi`. Readiness
@@ -1505,7 +1698,9 @@ Package metadata is available through the `package.json` subpath.
 
 - Root runtime exports: `EditorJs`, `EDITOR_JS_LOADER`, `provideEditorJsLoader`,
   `EDITOR_JS_TOOL_REGISTRY`, `provideEditorJsTools`,
-  `EditorJsOperationError` (re-exported from core).
+  `EditorJsOperationError` (re-exported from core), `createEditorJsUploadOwner`.
+- Upload types: `EditorJsUploadOwner`, `EditorJsUploadOwnerOptions`,
+  `EditorJsUploadRecord`, `EditorJsUploadId`, `EditorJsUploadOverflow`.
 - Tool provider types: `EditorJsToolContribution`, `EditorJsToolProviderOptions`.
 - Configuration types: `EditorJsConfig`, `EditorJsTools`.
 - Event/control types (re-exported from core): `EditorJsApi`, `EditorJsReadyEvent`, `EditorJsChangeEvent`,

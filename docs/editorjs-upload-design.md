@@ -126,6 +126,92 @@ build prerequisites. The `test-ci` coordinator requires Nx Cloud, so local atom
 checks invoked its two resolved file targets directly. Hosted CI and remote/DTE
 reuse remain separate evidence; no publication or downstream slice is included.
 
+## Angular implementation increment #629
+
+`createEditorJsUploadOwner` now lives in the existing Angular root, with its
+owner/options/record/identity/overflow types. It wraps only supplied core port
+capabilities and delegates each invocation to `createUploadOperation`. Host DI
+factory composition, per-editor registry materialization and full `config.tools`
+precedence are documented in the public README. No transport dependency, HTTP
+configuration, global state, upload registry or Forms facade is introduced.
+
+The preflight reread all eight local ADRs at `af4434a` and all eighteen Meta ADRs
+from the clean adjacent checkout at `823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`;
+every Meta blob matches the fresh remote inventory. This includes proposals and
+historical content. The Modern Angular index, repository application,
+architecture, providers/routing/HTTP, reactivity, rendering, SSR/builds,
+testing/migration, validation and API ledger were reviewed, alongside the Angular
+MCP best practices and relevant signal/DI/testing references. Local0004 requires
+packed consumer documentation; accepted Modern Angular decisions require explicit
+ownership, readonly signals and browser-only activation. Local0007/Meta0013
+require exact release intent; Meta0015 governs the extended cached task graph.
+Governance proposals remain proposed. HTTP/Nest/auth/contract records authorize
+no backend migration or canonical wire contract in this Angular slice. No
+accepted-ADR conflict or exception was identified; native Forms composition stays
+in #630.
+
+State uses immutable records and owner-unique symbol identities. Successful
+records are removed; failures retain only safe mapped text, never input or raw
+transport data. The 100-record failure cap has an independently acknowledged
+overflow summary; `hasErrors` cannot silently become false through eviction.
+Reset advances the generation; disposal also unregisters its DestroyRef callback
+and releases backend/policy references. Both stop all local handles, even when a
+broken scheduler cleanup throws. Invalid retry policy rejects before activity or
+transport starts. Presentation mapper failure falls back to safe text while
+preserving the original port result/cause. Manual retries remain distinct work.
+
+The real browser fixture shares one explicitly provided backend between two
+standalone editor owners. Its controlled backend has no external mutation; only
+its explicit retryable outcome is replayed. Tests cover simultaneous work,
+file/URL uploads, attempts, expected failure versus exception, acknowledgement,
+recovery, caption/metadata/all alt states, same-value replacement and destruction/
+remount with held success/failure/rejection. Fresh editor generations preserve the
+existing ImageTool disposal guard. A deliberately unusable environment tool
+proves that explicit per-owner maps retain full precedence. The component was
+created through the inspected and dry-run Nx Angular generator; incidental
+workspace generator defaults were removed.
+
+Fresh distribution checks found npm 404 for `@anarchitects/editorjs-angular`,
+117 GitHub tag refs and 102 releases with no Editor.js distribution. Keep version
+0.0.1 and use `init(editorjs-angular)`. No version bump, publication, automatic
+merge or downstream slice is included.
+
+Local validation passed all 196 Angular unit/archive tests (20 new owner cases),
+the public README and root type contracts with Forms absent, and build/typecheck/
+lint for the package and fixture projects. The workspace Chromium fixture passed
+all nine upload cases. Packed CSR validation passed all six atoms on each of
+Angular 22.0.0/Node 22.22.3, 22.1.4/24.15.0 and 22.2.2/26.0.0, including nine upload
+cases per cell and the existing Angular-free portable consumers. Run ID:
+`0854acab-8acd-4b52-91dc-6d7c18d68db1`. Reference packed SSR validation passed all
+20 atoms, including 30 upload checks across production, diagnostic and full
+hydration profiles, public-route delivery isolation, actual server import guards,
+Forms regression coverage and compiled/executed README profiles. Run ID:
+`f16d5ad0-07ff-4049-89f8-988d1ecd69fc`. These runs took 6m03s and 5m54s locally;
+they are not hosted DTE timings or a full new-upload SSR proof on every cell.
+
+The existing harness now infers 78 cacheable packed atoms: six CSR and twenty SSR
+per cell, with six uncached fresh-install preparations and independent collection
+gates. Seven harness tests pass, including graph completeness, output isolation
+and failure collection. The new CSR and hydration upload atoms consume the same
+immutable prepared snapshots and have no uncached preparation dependency. Their
+source/config/archive/runtime/environment inputs and prerequisite build outputs
+follow the established graph. The isolated upload backend is included in the
+browser provenance/delivery assertion, so it cannot enter public eager bundles.
+
+An identical local six-task upload/build invocation went from a cold 1m35s run
+to 6/6 cache hits in 133ms. Deleting only its two upload report directories and
+replaying restored all 26 files byte-for-byte. The new Vitest atom has explicit
+source/config/lock/runtime/environment inputs and a core build prerequisite:
+Vite resolves core's built public entry, so a clean worker must restore/build it.
+Nx rejected an undefined inferred executor `env` option before Vitest started
+on both the new unit atom and the package archive atom. The affected run-command
+targets now supply the schema's empty object default.
+The corrected atom passed all 20 tests, reused its cache and invalidated when
+`NODE_OPTIONS` changed. These final unit-runner configuration adjustments came
+after the packed runs; no runtime/fixture/README code changed afterward. The
+corrected unit graph and package/fixture type/lint checks were rerun. Remote reuse,
+hosted DTE timing and the remaining full SSR matrix remain #632 evidence gates.
+
 ## Architecture review and baseline
 
 Reviewed on 28 October 2026 against Community `3cf0ac8` (merged #625) and Meta

@@ -57,29 +57,98 @@
     "test": {
       "executor": "@nx/vitest:test",
       "inputs": ["default", "^production", "{workspaceRoot}/LICENSE"],
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build",
+        {
+          "projects": ["editorjs-tool-image"],
+          "target": "build",
+          "params": "ignore"
+        }
+      ],
       "outputs": ["{options.reportsDirectory}"],
       "options": {
         "reportsDirectory": "coverage/packages/editorjs/angular"
       }
     },
     "test-ci--tests/package.spec.ts": {
-      "dependsOn": ["build"]
+      "dependsOn": [
+        "build",
+        {
+          "projects": ["editorjs-tool-image"],
+          "target": "build",
+          "params": "ignore"
+        }
+      ],
+      "options": {
+        "env": {}
+      }
     },
     "test-ci--tests/component.spec.ts": {
       "dependsOn": ["build"]
     },
     "vite:test": {
-      "dependsOn": ["build"]
+      "dependsOn": [
+        "build",
+        {
+          "projects": ["editorjs-tool-image"],
+          "target": "build",
+          "params": "ignore"
+        }
+      ],
+      "options": {
+        "env": {}
+      }
     },
     "vitest:test": {
-      "dependsOn": ["build"]
+      "dependsOn": [
+        "build",
+        {
+          "projects": ["editorjs-tool-image"],
+          "target": "build",
+          "params": "ignore"
+        }
+      ],
+      "options": {
+        "env": {}
+      }
     },
     "test-ci--tests/forms.spec.ts": {
       "dependsOn": ["build"]
     },
     "test-ci--tests/forms-interop.spec.ts": {
       "dependsOn": ["build"]
+    },
+    "test-ci--tests/upload-owner.spec.ts": {
+      "inputs": [
+        "default",
+        "^production",
+        "{workspaceRoot}/yarn.lock",
+        "{workspaceRoot}/nx.json",
+        {
+          "runtime": "node --version"
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        {
+          "env": "CI"
+        },
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/tsconfig.json",
+        {
+          "runtime": "node -p \"process.platform + process.arch\""
+        }
+      ],
+      "dependsOn": [
+        {
+          "projects": ["editorjs-core"],
+          "target": "build",
+          "params": "ignore"
+        }
+      ],
+      "options": {
+        "env": {}
+      }
     }
   }
 }
