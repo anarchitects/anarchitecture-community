@@ -15,6 +15,7 @@ import {
 } from '@anarchitects/editorjs-angular';
 import type { OutputData } from '@anarchitects/editorjs-core';
 import { editorOptions, initialDocument } from './definitions';
+import * as common from '../common/definitions';
 import { probe } from './probe';
 
 export function registryLoader() {
@@ -48,6 +49,7 @@ export function registryLoader() {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <aa-editorjs
+      aria-label="Document editor"
       [config]="config"
       [data]="data()"
       (ready)="ready.update(increment)"
@@ -58,12 +60,31 @@ export function registryLoader() {
     <button type="button" (click)="save()" [disabled]="!ready()">
       Save registry
     </button>
+    @if (common()) {
+      <button type="button" (click)="render()" [disabled]="!saved()">
+        Render saved
+      </button>
+      <button type="button" (click)="toggleReadOnly()">Read only</button>
+      @if (projection(); as image) {
+        <img
+          data-testid="rendered-image"
+          [src]="image.url"
+          [attr.alt]="image.alt"
+        />
+      }
+    }
     <pre data-testid="registry-saved">{{ saved() | json }}</pre>
   `,
 })
 export class RegistryEditor {
   readonly label = input.required<string>();
-  readonly data = computed(() => initialDocument(this.label()));
+  readonly common = input(false);
+  readonly data = computed(() =>
+    this.common()
+      ? common.initialDocument(this.label())
+      : initialDocument(this.label()),
+  );
+  readonly projection = computed(() => common.imageProjection(this.saved()));
   readonly config = editorOptions;
   readonly ready = signal(0);
   readonly error = signal('');
@@ -73,7 +94,17 @@ export class RegistryEditor {
   onError(event: EditorJsErrorEvent) {
     this.error.set(`${event.operation}:${event.code}:${String(event.cause)}`);
   }
+  private readOnly = false;
+  async toggleReadOnly() {
+    this.readOnly = await this.editor().api.setReadOnly(!this.readOnly);
+  }
+  async render() {
+    const data = this.saved();
+    if (data) await this.editor().api.render(data);
+  }
   async save() {
-    this.saved.set(await this.editor().api.save());
+    const saved = await this.editor().api.save();
+    if (this.common()) common.validate(saved);
+    this.saved.set(saved);
   }
 }

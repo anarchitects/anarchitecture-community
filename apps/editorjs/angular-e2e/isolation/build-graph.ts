@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { join, posix } from 'node:path';
-import { buildDirectory } from '../tools/ssr-environment.mjs';
+import { buildDirectory, packed } from '../tools/ssr-environment.mjs';
 
 interface Output {
   entryPoint?: string;
@@ -86,6 +86,30 @@ export async function buildGraph(eager = false) {
         .map(([name]) => name),
     ]),
   );
+  for (const tool of ['paragraph', 'header', 'list', 'quote', 'image']) {
+    tools['common-' + tool] = Object.entries(outputs)
+      .filter(([, output]) =>
+        Object.entries(output.inputs).some(
+          ([input, value]) =>
+            input.includes('@editorjs/' + tool + '/dist/') &&
+            value.bytesInOutput > 0,
+        ),
+      )
+      .map(([file]) => file);
+    assert(
+      Object.values(outputs).some((output) =>
+        Object.entries(output.inputs).some(
+          ([input, value]) =>
+            input.includes(
+              packed
+                ? '@anarchitects/editorjs-tool-' + tool + '/dist/browser.js'
+                : 'packages/editorjs/tool-' + tool + '/dist/browser.js',
+            ) && value.bytesInOutput > 0,
+        ),
+      ),
+      'Missing browser entry provenance: ' + tool,
+    );
+  }
   for (const [tool, files] of Object.entries(tools))
     assert(files.length > 0, `Missing tool output: ${tool}`);
   const initial = closure(main);

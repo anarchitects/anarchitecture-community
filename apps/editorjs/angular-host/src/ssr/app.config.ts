@@ -7,6 +7,10 @@ import { provideRouter, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
+    path: 'tools',
+    loadChildren: () => import('./registry-routes').then((m) => m.routes),
+  },
+  {
     path: 'registry',
     loadChildren: () => import('./registry-routes').then((m) => m.routes),
   },

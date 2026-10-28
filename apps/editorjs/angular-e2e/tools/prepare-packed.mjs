@@ -11,6 +11,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
+import { prepareIndependentTools } from './independent-tools.mjs';
 import { preparePortable } from './portable-consumer.mjs';
 import { preparePackedSsr } from './packed-ssr.mjs';
 import { prepareReadmeSsr } from './readme-ssr.mjs';
@@ -246,7 +247,15 @@ async function validate(name, versions, archives) {
     await assertBoundaries(root, node, false);
     await run(node, [compiler, '-p', 'tsconfig.root.json'], root);
     console.log(`Root declarations/imports without Forms passed: ${name}`);
-    if (mode === 'csr')
+    if (mode === 'csr') {
+      await prepareIndependentTools({
+        parent: join(scratch, `${name}-independent`),
+        archives,
+        versions,
+        node,
+        report,
+        run,
+      });
       await preparePortable({
         root: join(scratch, `${name}-portable`),
         destination: join(root, 'portable.tar.gz'),
@@ -262,7 +271,7 @@ async function validate(name, versions, archives) {
         report,
         run,
       });
-
+    }
     await run(
       'npm',
       [

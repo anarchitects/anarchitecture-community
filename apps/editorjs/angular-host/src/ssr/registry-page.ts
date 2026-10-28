@@ -7,7 +7,7 @@ import {
 import { EDITOR_JS_TOOL_REGISTRY } from '@anarchitects/editorjs-angular';
 import { RegistryEditor } from '../registry/editor';
 import { probe } from '../registry/probe';
-import { REGISTRY_FACTORY_LABEL } from '../registry/context';
+import { REGISTRY_FACTORY_LABEL, COMMON_TOOLS } from '../registry/context';
 import { RequestState } from './request-state';
 
 @Component({
@@ -28,16 +28,19 @@ import { RequestState } from './request-state';
     @if (mounted()) {
       <aa-registry-editor
         data-registry-owner="A"
+        [common]="common"
         [label]="state.initial.marker + '-A'"
       />
     }
     <aa-registry-editor
       data-registry-owner="B"
+      [common]="common"
       [label]="state.initial.marker + '-B'"
     />
   `,
 })
 export class RegistryPage {
+  readonly common = inject(COMMON_TOOLS);
   readonly registry = inject(EDITOR_JS_TOOL_REGISTRY);
   readonly configLabel = inject(REGISTRY_FACTORY_LABEL).value;
   readonly state = inject(RequestState);

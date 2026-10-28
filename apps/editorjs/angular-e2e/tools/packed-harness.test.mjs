@@ -13,6 +13,7 @@ import { createNodesV2 } from './packed-plugin.mjs';
 import {
   pathsFor,
   platformIdentity,
+  sourceFingerprint,
   readSnapshot,
   sha256,
 } from './packed-artifacts.mjs';
@@ -62,7 +63,7 @@ test('distributed graphs contain only cacheable tasks with isolated outputs and 
       for (const phase of phasesFor(mode)) visit(targetFor(mode, cell, phase));
       assert.equal(targets[targetFor(mode, cell, 'prepare')].cache, false);
     }
-  assert.equal(visited.size, 66); // (5 CSR atoms + 17 SSR atoms) × 3
+  assert.equal(visited.size, 69); // (5 CSR atoms + 18 SSR atoms) × 3
   for (const value of ['0', '-1', '1.5', 'Infinity', '9', '2 --skip'])
     assert.throws(() => parallelism(value));
 });
@@ -147,6 +148,7 @@ test('failed validation evidence survives collection and fails the uncached gate
     cell,
     platform: platformIdentity(),
     sha256: digest,
+    sources: await sourceFingerprint(workspace),
   };
   await writeFile(join(input, 'snapshot.json'), JSON.stringify(snapshot));
   await readSnapshot(input, runId, mode, cell);
@@ -198,6 +200,33 @@ test('failed validation evidence survives collection and fails the uncached gate
       ),
     ).status,
     'failed',
+  );
+  // Runtime input hashing must not be the only stale-snapshot guard.
+  snapshot.sources = 'stale-source-fingerprint';
+  await writeFile(join(input, 'snapshot.json'), JSON.stringify(snapshot));
+  assert.equal(
+    await invoke('packed-phase.mjs', [mode, cell, 'csr-editor', runId]),
+    1,
+  );
+  const stale = JSON.parse(
+    await readFile(join(output, 'csr-editor/result.json'), 'utf8'),
+  );
+  assert.match(stale.error, /Prepare a new snapshot/);
+  // Independently test collection, even when every retained phase claims success.
+  for (const phase of phasesFor(mode)) {
+    const file = join(output, phase, 'result.json');
+    const result = JSON.parse(await readFile(file, 'utf8'));
+    await writeFile(
+      file,
+      JSON.stringify({ ...result, status: 'passed', error: undefined }),
+    );
+  }
+  assert.equal(await invoke('packed-results.mjs', [runId, mode, cell]), 1);
+  const collected = JSON.parse(
+    await readFile(join(output, 'collect/result.json'), 'utf8'),
+  );
+  assert(
+    collected.errors.some((error) => error.includes('Prepare a new snapshot')),
   );
   await writeFile(join(input, 'consumer.tar.gz'), 'changed');
   await assert.rejects(readSnapshot(input, runId, mode, cell), /modified/);

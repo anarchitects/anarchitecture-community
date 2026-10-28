@@ -10,6 +10,11 @@ export const packedPhases = {
   'build-ssr-full': [],
   'build-ssr-eager-control': [],
   ssr: ['build-ssr-production'],
+  'hydration-common': [
+    'build-ssr-production',
+    'build-ssr-diagnostic',
+    'build-ssr-full',
+  ],
   'hydration-registry': [
     'build-ssr-production',
     'build-ssr-diagnostic',

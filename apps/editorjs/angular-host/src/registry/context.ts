@@ -6,3 +6,8 @@ export const REGISTRY_LABEL = new InjectionToken<string>(
 export const REGISTRY_FACTORY_LABEL = new InjectionToken<{
   value: string | undefined;
 }>('fixture registry factory observation');
+
+export const COMMON_TOOLS = new InjectionToken<boolean>(
+  'fixture common tools',
+  { providedIn: 'root', factory: () => false },
+);

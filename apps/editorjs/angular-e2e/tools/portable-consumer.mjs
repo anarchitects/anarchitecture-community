@@ -163,6 +163,11 @@ export async function preparePortable({
     });
   `,
   );
+  await cp(
+    join(workspace, 'apps/editorjs/angular-host/src/common'),
+    join(root, 'common'),
+    { recursive: true },
+  );
   await mkdir(join(root, 'registry'));
   for (const file of ['direct.ts', 'definitions.ts', 'probe.ts', 'tools'])
     await cp(
@@ -294,7 +299,36 @@ export async function buildPortable({ root, node, report, run }) {
       .some((file) => initial.has(`dist/browser/${file}`)),
     'Tool code entered the portable eager closure',
   );
-  const graph = JSON.stringify({ tools, initial: [...initial] });
+  const commonTools = Object.fromEntries(
+    ['paragraph', 'header', 'list', 'quote', 'image'].map((name) => [
+      name,
+      Object.entries(metadata.outputs)
+        .filter(([, output]) =>
+          Object.entries(output.inputs).some(
+            ([input, value]) =>
+              input.includes('@editorjs/' + name + '/dist/') &&
+              value.bytesInOutput > 0,
+          ),
+        )
+        .map(([file]) => basename(file)),
+    ]),
+  );
+  for (const [name, chunks] of Object.entries(commonTools)) {
+    assert(chunks.length > 0, 'Missing upstream provenance: ' + name);
+    assert(
+      Object.keys(metadata.inputs).some((path) =>
+        path.includes(
+          '@anarchitects/editorjs-tool-' + name + '/dist/browser.js',
+        ),
+      ),
+      'Missing packed browser entry: ' + name,
+    );
+    assert(
+      !chunks.some((file) => initial.has('dist/browser/' + file)),
+      'Eager tool: ' + name,
+    );
+  }
+  const graph = JSON.stringify({ tools, commonTools, initial: [...initial] });
   await writeFile(join(root, 'dist/browser/registry-graph.json'), graph);
   await writeFile(join(report, 'portable-graph.json'), graph);
   await cp(join(root, 'metadata.json'), join(report, 'portable-build.json'));
