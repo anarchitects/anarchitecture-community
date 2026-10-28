@@ -20,6 +20,9 @@
   },
   "references": [
     {
+      "path": "../../../packages/editorjs/tool-quote/tsconfig.lib.json"
+    },
+    {
       "path": "../../../packages/editorjs/tool-paragraph/tsconfig.lib.json"
     },
     {

@@ -95,6 +95,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@anarchitects/editorjs-tool-quote@workspace:*, @anarchitects/editorjs-tool-quote@workspace:packages/editorjs/tool-quote":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/editorjs-tool-quote@workspace:packages/editorjs/tool-quote"
+  dependencies:
+    "@anarchitects/editorjs-core": "npm:^0.0.1"
+    "@editorjs/quote": "npm:2.7.6"
+  peerDependencies:
+    "@editorjs/editorjs": 2.31.7
+  languageName: unknown
+  linkType: soft
+
 "@anarchitects/governance-adapter-dbt@npm:^0.1.10, @anarchitects/governance-adapter-dbt@workspace:packages/governance/adapter-dbt":
   version: 0.0.0-use.local
   resolution: "@anarchitects/governance-adapter-dbt@workspace:packages/governance/adapter-dbt"
@@ -194,6 +205,7 @@ __metadata:
     "@anarchitects/editorjs-tool-header": "workspace:*"
     "@anarchitects/editorjs-tool-list": "workspace:*"
     "@anarchitects/editorjs-tool-paragraph": "workspace:*"
+    "@anarchitects/editorjs-tool-quote": "workspace:*"
     "@editorjs/editorjs": "npm:2.31.7"
   languageName: unknown
   linkType: soft
@@ -2800,6 +2812,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@editorjs/dom@npm:^0.0.5":
+  version: 0.0.5
+  resolution: "@editorjs/dom@npm:0.0.5"
+  dependencies:
+    "@editorjs/helpers": "npm:^0.0.4"
+  checksum: 10c0/3618980264104d41fc1ad5472ec00cbb09c9294bd0b0632599fc3547951336c1b012128f0c7525d35599c6627d6963e67abf730d0819ae1502cd5d5800bd4afc
+  languageName: node
+  linkType: hard
+
 "@editorjs/dom@npm:^1.1.0":
   version: 1.2.0
   resolution: "@editorjs/dom@npm:1.2.0"
@@ -2830,6 +2851,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@editorjs/helpers@npm:^0.0.4":
+  version: 0.0.4
+  resolution: "@editorjs/helpers@npm:0.0.4"
+  checksum: 10c0/fe6993119313166a9d5e91ea399f3ae3551db049026b218ab177d39154d64ea8d6f6e95fa29ae64756e2b74208e74dd0d89197610143be48aed3aa60465177cf
+  languageName: node
+  linkType: hard
+
 "@editorjs/helpers@npm:^1.2.2":
   version: 1.2.2
   resolution: "@editorjs/helpers@npm:1.2.2"
@@ -2854,6 +2882,16 @@ __metadata:
   dependencies:
     "@codexteam/icons": "npm:^0.0.4"
   checksum: 10c0/0a81d900196378fb8603a5a8bbc91a65aa3eae78612dddf4fdb1f039eaafca4a9b2e13bf9607faed413cbd7f42bb7d287cdafdd9e08117c825808df907de17f3
+  languageName: node
+  linkType: hard
+
+"@editorjs/quote@npm:2.7.6":
+  version: 2.7.6
+  resolution: "@editorjs/quote@npm:2.7.6"
+  dependencies:
+    "@codexteam/icons": "npm:^0.3.2"
+    "@editorjs/dom": "npm:^0.0.5"
+  checksum: 10c0/7e47c32589fe5bfbf4808ed5153d465d01c35428f5aa549267cad86f8710365167a3c113f0dcbf954629b31436d453832e5ff88e30ed5643faae64c5e34b5d73
   languageName: node
   linkType: hard
 

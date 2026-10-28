@@ -1,0 +1,191 @@
+{
+  "name": "@anarchitects/editorjs-tool-quote",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@anarchitecture-community/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./browser": {
+      "@anarchitecture-community/source": "./src/browser.ts",
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js",
+      "default": "./dist/browser.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "name": "editorjs-tool-quote",
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/editorjs/tool-quote"
+        },
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "quoteTests",
+          "^default"
+        ]
+      },
+      "vite:test": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "quoteTests",
+          "^default"
+        ]
+      },
+      "vitest:test": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "quoteTests",
+          "^default"
+        ]
+      },
+      "test-ci--tests/package.spec.ts": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "quoteTests",
+          "^default"
+        ]
+      },
+      "build": {
+        "inputs": [
+          "production",
+          "^production",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json"
+        ]
+      },
+      "typecheck": {
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json"
+        ]
+      },
+      "lint": {
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          "{workspaceRoot}/eslint.config.mjs",
+          "{workspaceRoot}/tools/eslint-rules/**/*"
+        ]
+      },
+      "test-ci--tests/browser.spec.ts": {
+        "inputs": [
+          "quoteTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "test-ci--tests/quote.spec.ts": {
+        "inputs": [
+          "quoteTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "test-ci": {
+        "inputs": [
+          "quoteTests",
+          "^default"
+        ]
+      }
+    },
+    "namedInputs": {
+      "quoteTests": [
+        "default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/tsconfig.json",
+        {
+          "env": "CI"
+        }
+      ]
+    }
+  },
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/editorjs/tool-quote"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Typed quote definitions and saved-data validation with an explicit Editor.js browser entry.",
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/tool-quote#readme",
+  "sideEffects": [
+    "./dist/browser.js",
+    "./src/browser.ts"
+  ],
+  "dependencies": {
+    "@anarchitects/editorjs-core": "^0.0.1",
+    "@editorjs/quote": "2.7.6"
+  },
+  "peerDependencies": {
+    "@editorjs/editorjs": "2.31.7"
+  }
+}

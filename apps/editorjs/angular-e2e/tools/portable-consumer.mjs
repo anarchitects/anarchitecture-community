@@ -10,6 +10,7 @@ export async function preparePortable({
   paragraphArchive,
   headerArchive,
   listArchive,
+  quoteArchive,
   node,
   versions,
   workspace,
@@ -21,6 +22,7 @@ export async function preparePortable({
   await cp(paragraphArchive, join(root, basename(paragraphArchive)));
   await cp(headerArchive, join(root, basename(headerArchive)));
   await cp(listArchive, join(root, basename(listArchive)));
+  await cp(quoteArchive, join(root, basename(quoteArchive)));
   await writeFile(
     join(root, 'package.json'),
     JSON.stringify({
@@ -31,6 +33,7 @@ export async function preparePortable({
         '@anarchitects/editorjs-tool-paragraph': `file:${basename(paragraphArchive)}`,
         '@anarchitects/editorjs-tool-header': `file:${basename(headerArchive)}`,
         '@anarchitects/editorjs-tool-list': `file:${basename(listArchive)}`,
+        '@anarchitects/editorjs-tool-quote': `file:${basename(quoteArchive)}`,
         '@editorjs/editorjs': versions.editorjs,
       },
       devDependencies: { esbuild: '0.28.2', typescript: versions.typescript },
@@ -102,6 +105,23 @@ export async function preparePortable({
     join(root, 'list'),
     { recursive: true },
   );
+  const quoteReadme = await readFile(
+    join(root, 'node_modules/@anarchitects/editorjs-tool-quote/README.md'),
+    'utf8',
+  );
+  const quoteExamples = [
+    ...quoteReadme.matchAll(
+      /<!-- quote-example-file: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g,
+    ),
+  ];
+  assert.equal(quoteExamples.length, 3);
+  for (const [, file, code] of quoteExamples)
+    await writeFile(join(root, 'readme', file), code);
+  await cp(
+    join(workspace, 'apps/editorjs/angular-host/src/quote'),
+    join(root, 'quote'),
+    { recursive: true },
+  );
   await writeFile(
     join(root, 'readme/browser-editor.ts'),
     browserExamples[0][2],
@@ -152,6 +172,8 @@ export async function preparePortable({
         'paragraph/direct.ts',
         'header/direct.ts',
         'list/direct.ts',
+        'quote/direct.ts',
+        ...quoteExamples.map(([, file]) => `readme/${file}`),
         ...listExamples.map(([, file]) => `readme/${file}`),
         ...headerExamples.map(([, file]) => `readme/${file}`),
         ...paragraphExamples.map(([, file]) => `readme/${file}`),
@@ -199,7 +221,7 @@ export async function buildPortable({ root, node, report, run }) {
       `
     import { build } from 'esbuild';
     import { writeFile } from 'node:fs/promises';
-    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
+    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts', quote: 'quote/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
     await writeFile('metadata.json', JSON.stringify(result.metafile));
   `,
     ],
@@ -330,6 +352,31 @@ export async function buildPortable({ root, node, report, run }) {
     join(root, 'dist/browser/list-graph.json'),
     JSON.stringify({ chunks: listChunks.map((file) => basename(file)) }),
   );
+  const quoteChunks = Object.entries(metadata.outputs)
+    .filter(([, output]) =>
+      Object.entries(output.inputs).some(
+        ([input, value]) =>
+          input.includes('@editorjs/quote/dist/') && value.bytesInOutput > 0,
+      ),
+    )
+    .map(([file]) => file);
+  assert(quoteChunks.length > 0, 'Missing upstream quote provenance');
+  assert(
+    Object.keys(metadata.inputs).some((path) =>
+      path.includes('@anarchitects/editorjs-tool-quote/dist/browser.js'),
+    ),
+    'Missing packaged quote browser entry',
+  );
+  initial.clear();
+  visit('dist/browser/quote.js');
+  assert(
+    !quoteChunks.some((file) => initial.has(file)),
+    'List entered the initial closure',
+  );
+  await writeFile(
+    join(root, 'dist/browser/quote-graph.json'),
+    JSON.stringify({ chunks: quoteChunks.map((file) => basename(file)) }),
+  );
   await writeFile(
     join(root, 'dist/browser/paragraph.html'),
     `<!doctype html><html><head><link rel="icon" href="data:,"></head><body><h1>Packaged paragraph</h1><button id="mount">Mount</button><div id="editor"></div><button id="save">Save</button><button id="render">Render saved</button><button id="clear">Clear</button><button id="readonly">Read only</button><button id="remove">Remove</button><output></output><h2>Built-in control</h2><div id="builtin"></div><button id="save-builtin">Save builtin</button><pre id="builtin-output"></pre><script type="module" src="/paragraph.js"></script></body></html>`,
@@ -341,6 +388,10 @@ export async function buildPortable({ root, node, report, run }) {
   await writeFile(
     join(root, 'dist/browser/list.html'),
     `<!doctype html><html><head><link rel="icon" href="data:,"><style>#editor{min-height:500px}output{display:block;white-space:pre-wrap}</style></head><body><h1>Packaged list</h1><button id="mount">Mount</button><div id="editor"></div><button id="save">Save</button><button id="render">Render saved</button><button id="clear">Clear</button><button id="readonly">Read only</button><button id="remove-main">Remove main</button><button id="remove">Remove</button><output></output><h2>Flat list</h2><div id="flat"></div><button id="save-flat">Save flat</button><pre id="flat-output"></pre><h2>Default config</h2><div id="defaults"></div><script type="module" src="/list.js"></script></body></html>`,
+  );
+  await writeFile(
+    join(root, 'dist/browser/quote.html'),
+    `<!doctype html><html><head><link rel="icon" href="data:,"><style>#editor{min-height:500px}output{display:block;white-space:pre-wrap}</style></head><body><h1>Packaged quote</h1><button id="mount">Mount</button><div id="editor"></div><button id="save">Save</button><button id="render">Render saved</button><button id="clear">Clear</button><button id="readonly">Read only</button><button id="remove-main">Remove main</button><button id="remove">Remove</button><output></output><h2>Independent quote</h2><div id="second"></div><button id="save-second">Save second</button><pre id="second-output"></pre><h2>Default config</h2><div id="defaults"></div><button id="save-defaults">Save defaults</button><pre id="defaults-output"></pre><script type="module" src="/quote.js"></script></body></html>`,
   );
   await writeFile(
     join(root, 'dist/browser/readme.html'),
