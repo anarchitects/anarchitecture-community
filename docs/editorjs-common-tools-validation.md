@@ -127,6 +127,11 @@ that stale snapshots fail collection even when every retained atom claims succes
 
 ### Hosted evidence and limits
 
+The subsequent [#616 readiness review](editorjs-common-tools-release-readiness.md#hosted-dte-evidence)
+records the completed #615 hosted run: all 69 atoms succeeded on three workers,
+with zero cache hits and all six coordinator collection gates passing. It also
+keeps the remaining remote-replay and performance-measurement limits explicit.
+
 These measurements are local macOS arm64 observations. The #615 pull request's
 CI checks and description retain the hosted Ubuntu/Nx Cloud run links and observed
 worker/output-restoration outcomes. The existing workflow requests all 69 atoms,

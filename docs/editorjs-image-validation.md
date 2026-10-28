@@ -134,6 +134,11 @@ restoration/invalidation evidence, not remote reuse or hosted DTE certification.
 The full matrix and combined accessibility/SSR/distributed-worker evidence remain
 #615/#616 and hosted CI gates.
 
+Those follow-on results are now recorded in the
+[combined validation](editorjs-common-tools-validation.md) and
+[release-readiness review](editorjs-common-tools-release-readiness.md), including
+the successful hosted DTE run and the remaining adopting-blog responsibilities.
+
 The npm name returned 404; matching remote tags were absent; none of the 102
 GitHub releases matched this package. Initial manifest is 0.0.1 and the commit
 scope/type is `init(editorjs-tool-image)`. This slice does not merge, bump existing
