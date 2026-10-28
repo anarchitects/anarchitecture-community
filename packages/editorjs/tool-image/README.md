@@ -23,6 +23,25 @@ code and imports no DOM, upstream tool or Angular declarations. `/browser`
 exports `ImageTool`. Loading it evaluates upstream `window` access and installs
 global styles; import it only in the browser. No stylesheet import is required.
 
+## Verified consumer combinations
+
+The same package is exercised independently and alongside the other common tools
+with Editor.js **2.31.7** and TypeScript **6.0.3**. Angular consumers cover:
+
+| Angular | Consumer Node |
+| ------- | ------------- |
+| 22.0.0  | 22.22.3       |
+| 22.1.4  | 24.15.0       |
+| 22.2.2  | 26.0.0        |
+
+These exact combinations cover standalone Angular, optional native Signal Forms,
+SSR/hydration and lazy authoring-route delivery in Chromium. They do not certify
+every version allowed by an engine or peer range. Install only the tools your
+application needs; each tool works with core and Editor.js without the other four
+packages or Angular. Browser entries install global styles that can remain after
+an editor is removed. Keep browser imports behind the authoring boundary, including
+when preloading routes; a lazy definition alone cannot prevent eager host imports.
+
 ## Upload and configuration contract
 
 `ImageConfig<Input, FileData>` uses core's `ImageUploader<Input, FileData>`, which
@@ -58,7 +77,9 @@ not make HTML or URLs safe. This slice supports images; upstream's incidental
 Each image has labelled native controls: **Image purpose** and **Alternative
 text**, grouped under **Image alternative text**. Labels use Editor.js i18n.
 Select Describe image and enter a description, or explicitly choose Decorative.
-Caption remains independent; filenames, captions and uploaded metadata never
+A caption is visible supporting text or attribution; alternative text describes
+the image’s purpose for readers who cannot see it. Caption remains independent;
+filenames, captions and uploaded metadata never
 supply alternative text automatically.
 
 - Missing `alt`: unset, including legacy upstream data. Editing preserves unset
@@ -149,6 +170,10 @@ export async function mountImageEditor(
 }
 ```
 
+Call `mountImageEditor(holder, uploader)` with an attached holder and your
+implementation of both upload methods. On success, `await owner.editor.save()`
+returns Editor.js JSON; validate it before storage or rendering, and call
+`owner.destroy()` when finished. Catch both mount and save rejections in your UI.
 Call after the holder exists in the browser, catch initialization errors, and
 coordinate an in-flight mount with your host's lifetime. Each owner needs its own
 resolver. To use eager loading, statically import `ImageTool` from `/browser` and
@@ -209,6 +234,11 @@ export function startImageApp(uploader: ImageUploader<Blob>) {
 }
 ```
 
+The host HTML needs `<app-root></app-root>`. Call
+`startImageApp(uploader).catch(...)` from the browser application entry and report
+bootstrap errors to the user. Install the Angular wrapper with its required
+Angular 22 peers; Forms is needed only when using the optional `/forms` entry.
+
 Omit `config.tools` to use providers; an explicit map, including `{}`, has full-map
 precedence. Provider factories can capture injected uploader services before
 creating definitions. SSR imports only neutral roots and inert definitions;
@@ -216,6 +246,18 @@ never resolve the browser loader on the server. Hosts own hydration and authorin
 route delivery. Remount to change tool configuration. Optional native Forms uses
 the existing Angular `/forms` API; upload failure is a notifier event, not an
 initialization error or automatic form validity/pending state.
+
+## Failure recovery
+
+Invalid config throws `TypeError` before activation. A failed lazy tool import
+rejects the direct resolver with core's `load-failed`; an explicit subsequent
+`resolve()` retries while that resolver is alive. The mount recipe above disposes
+its resolver on failure: retry by calling `mountImageEditor` for a new owner.
+For Angular initialization failure, show the wrapper error and explicitly recreate
+the editor owner. Changing the provider or config on an existing owner is not a
+retry mechanism. Upload failures use upstream's notifier and leave the selection
+UI available for another author action; retries and upload-state UI belong to the
+host. Disposing an owner prevents stale activation but does not cancel host work.
 
 ## Removal and resource lifetime
 

@@ -21,6 +21,25 @@ path. The verified compiler is TypeScript 6.0.3, minimum Node runtime is 22.12.0
 and browser behavior is covered in Chromium. Other versions and browsers need
 independent verification.
 
+## Verified consumer combinations
+
+The same package is exercised independently and alongside the other common tools
+with Editor.js **2.31.7** and TypeScript **6.0.3**. Angular consumers cover:
+
+| Angular | Consumer Node |
+| ------- | ------------- |
+| 22.0.0  | 22.22.3       |
+| 22.1.4  | 24.15.0       |
+| 22.2.2  | 26.0.0        |
+
+These exact combinations cover standalone Angular, optional native Signal Forms,
+SSR/hydration and lazy authoring-route delivery in Chromium. They do not certify
+every version allowed by an engine or peer range. Install only the tools your
+application needs; each tool works with core and Editor.js without the other four
+packages or Angular. Browser entries install global styles that can remain after
+an editor is removed. Keep browser imports behind the authoring boundary, including
+when preloading routes; a lazy definition alone cannot prevent eager host imports.
+
 ## Direct browser quick start
 
 Create an attached `<div id="editor"></div>` and load this module with a browser
@@ -184,6 +203,12 @@ export function validateArticle(input: unknown) {
   });
 }
 ```
+
+This example accepts documents containing only the named tool. For a mixed
+document, supply a validator for every permitted saved block name, including
+Editor.js's built-in paragraph if it remains available. Registering a tool does
+not automatically register its validator. Unknown tools are rejected deliberately;
+installing all common-tool packages is not required.
 
 Use the configured alias as the validator key. Definitions do not register validators
 automatically. `validateHeaderData(unknown)` also works alone, returning core's
