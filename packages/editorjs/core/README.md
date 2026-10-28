@@ -2,14 +2,15 @@
 
 Framework-neutral document, tool configuration, and upload contracts for Editor.js,
 with parsing, normalization, pluggable validation, optional content provenance,
-and typed tool registry composition and lazy resolution.
+typed tool registry composition and lazy resolution, and uploader composition
+with optional bounded retry.
 Use `import type` for contracts and regular imports for `parseOutputData`,
 `normalizeOutputData`, `validateOutputData`, and `parseContentWithProvenance`.
 
 Use this package in editors, services, importers, and storage adapters that need a
 shared document contract. The core defines the portable API; consumers adapt their
 domain models to it and own persistence, rendering, and migrations. It does not
-create an editor, install tools, perform uploads, or prescribe a storage envelope.
+create an editor, install tools, implement an upload transport, or prescribe a storage envelope.
 
 For authoring, start with [registry composition](#tool-registry-composition), then
 [direct browser integration](#direct-browser-integration). Angular hosts can use
@@ -613,6 +614,164 @@ reject the promise; rejection values are not typed by TypeScript. Hosts must
 catch them as unknown and either report them or map them to an explicit failure
 response. These interfaces do not perform I/O or handle exceptions automatically.
 
+### Compose file and URL capabilities
+
+`composeImageUploader(files, urls)` combines two existing ports. It captures their
+methods, preserves each service receiver, and returns an `ImageUploader` with
+the original input type and unions of the two metadata/error types. Missing
+methods throw `TypeError` at construction; there is no fallback endpoint.
+Each method returns a promise: a synchronous host throw becomes a rejection with
+the same cause. Results and metadata keep their identity. Use an explicit host
+mapping when the consuming tool requires a narrower metadata/error contract.
+
+```ts
+import {
+  composeImageUploader,
+  type FileUploader,
+  type UrlUploader,
+  type UploadedFile,
+} from '@anarchitects/editorjs-core';
+
+interface Asset extends UploadedFile {
+  assetId: string;
+}
+interface HostFailure {
+  code: 'denied' | 'unavailable';
+}
+
+export function composeUploads(
+  files: FileUploader<Uint8Array, Asset, HostFailure>,
+  urls: UrlUploader<Asset, HostFailure>,
+) {
+  return composeImageUploader(files, urls);
+}
+```
+
+A file-only uploader remains file-only. An image tool requiring both capabilities
+still needs an explicit URL method, even in readonly configuration; that method
+can return a host-defined denied failure if URL ingestion is unsupported. The
+browser image integration uses `Blob`, including `File`, without requiring a
+filename. Composition does not download URLs or normalize saved file metadata.
+
+### One operation and opt-in retry
+
+`createUploadOperation(callback, options?)` starts a logical invocation in the
+next microtask and returns `{ result, stop }`. The callback receives a one-based
+attempt number and returns a promise of the existing `UploadResponse`. Without
+`options.retry`, it runs exactly once unless stopped before starting. Successful
+responses and expected failures resolve unchanged; thrown/rejected causes stay
+unknown and reject unchanged. Handle both outcomes:
+
+```ts
+import {
+  createUploadOperation,
+  UploadStoppedError,
+  type FileUploader,
+} from '@anarchitects/editorjs-core';
+
+export async function uploadOnce(
+  uploader: FileUploader<Uint8Array>,
+  bytes: Uint8Array,
+) {
+  const operation = createUploadOperation(() => uploader.uploadByFile(bytes));
+  try {
+    const response = await operation.result;
+    return response.success === 1 ? response.file : undefined;
+  } catch (cause: unknown) {
+    if (cause instanceof UploadStoppedError) return undefined;
+    throw cause;
+  }
+}
+```
+
+Retry is never inferred from a status code, timeout, rejected promise or
+`success: 0`. Supply an explicit `UploadRetryPolicy` only when replay is safe:
+
+| Option                          | Contract                                                                                                                                                                                 |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maxAttempts`                   | Required integer 1–10, including the first attempt.                                                                                                                                      |
+| `replaySafe`                    | Required literal `true`: the host guarantees safe replay, including a lost response after successful storage.                                                                            |
+| `shouldRetry(outcome, attempt)` | Required synchronous classifier. `outcome.kind` is `failure` with the original `response`, or `exception` with unknown `error`. Return a boolean.                                        |
+| `delayMs`                       | Required number or synchronous `(outcome, attempt) => number`. Finite 0–30,000 milliseconds per delay; total scheduled delay is capped at 120,000 ms.                                    |
+| `schedule(resume, delayMs)`     | Required `UploadScheduler`. Schedule once after the delay and return a synchronous, nonthrowing cancellation function. The host supplies its clock; core imports no timer/DOM/Node APIs. |
+
+In a browser or Node host, the scheduler can use `setTimeout(resume, delayMs)`
+and return a closure calling `clearTimeout` with that timer handle. Tests can
+supply a controlled scheduler. A scheduler that never resumes leaves the
+operation pending until stopped; core cannot verify an external clock's timing.
+There are no global retry counters, hidden retries, or default timer dependency.
+
+The following recipe requires an already verified idempotent backend. The same
+operation ID and bytes go to every attempt; a new logical upload needs a new ID.
+The backend must bind the ID to the principal and payload, deduplicate concurrent
+requests atomically, reject conflicting payload reuse and retain the outcome.
+Setting a header alone does not establish that contract.
+
+```ts
+import {
+  createUploadOperation,
+  type FileUploader,
+  type UploadedFile,
+  type UploadScheduler,
+} from '@anarchitects/editorjs-core';
+
+interface UploadInput {
+  operationId: string;
+  bytes: Uint8Array;
+}
+interface HostFailure {
+  retryable: boolean;
+}
+
+export function startReplaySafeUpload(
+  uploader: FileUploader<UploadInput, UploadedFile, HostFailure>,
+  input: UploadInput,
+  schedule: UploadScheduler,
+) {
+  return createUploadOperation(() => uploader.uploadByFile(input), {
+    retry: {
+      maxAttempts: 3,
+      replaySafe: true,
+      shouldRetry: (outcome) =>
+        outcome.kind === 'failure' &&
+        outcome.response.error?.retryable === true,
+      delayMs: (_outcome, attempt) => 100 * attempt,
+      schedule,
+    },
+  });
+}
+```
+
+The unchanged `Blob` image port has no operation-ID argument. A host using that
+port must arrange replay safety inside its own logical-operation closure or
+backend contract; do not assume a fresh key on every request makes retry safe.
+Never change inputs during an operation or share one permanent key across uploads.
+
+Options are snapshotted and validated before any attempt; invalid configuration
+throws `TypeError` synchronously. Policy callbacks must be synchronous. A callback
+throw rejects with its cause; an async callback is rejected as a configuration
+error and its eventual rejection is observed. A dynamic out-of-range delay or
+exceeded cumulative budget rejects with `RangeError`. Exhaustion or a classifier
+returning false preserves the final failure response or exception without wrapping.
+
+`onAttempt(attempt)` is an optional synchronous observer called immediately before
+the callback. Its throw terminates the operation without starting that attempt.
+Count only attempts made by this runner; retries inside a supplied service remain
+opaque. The runner checks the response discriminant and file/error envelope,
+rejecting malformed envelopes with `TypeError` without retry classification. It
+does not validate URLs, JSON-copy errors or validate/normalize file metadata;
+transport and saved-data boundaries retain those responsibilities.
+
+`stop()` is idempotent. While pending it rejects `result` with `UploadStoppedError`
+(`code: 'stopped'`), cancels a scheduled delay and prevents new attempts. Late host
+settlement is observed without replacing that result. It has no effect after
+settlement. A broken scheduler cancellation function may throw from `stop()`, but
+the result is already stopped. Await/catch `result` even when stopping it.
+Stopping does not abort the transport, delete a stored file or undo a mutation.
+No operation timeout is imposed; a running host promise can remain pending until
+it settles or the owner stops the operation. Separate concurrent handles remain
+independent.
+
 ## Tool registry composition
 
 `composeToolRegistry(groups, { profile, base? })` composes independent block,
@@ -1020,7 +1179,10 @@ are `ToolDefinition`, `ToolKind`, `BuiltInTool`, `BuiltInToolProfile`,
 `ToolRegistryTools`, `ToolResolver` and `ToolRegistryErrorCode`.
 
 The document functions, `EditorJsDocumentCoordinator` and `EditorJsOperationError`
-also have runtime exports; the remaining contracts are types.
+also have runtime exports. Upload runtime exports are `composeImageUploader`,
+`createUploadOperation` and `UploadStoppedError`; their public types are
+`UploadOperation`, `UploadOperationOptions`, `UploadRetryOutcome`,
+`UploadRetryPolicy` and `UploadScheduler`. The remaining contracts are types.
 Import from the package root. Deep imports into `src`, `dist`, or helper modules
 are private and blocked by the export map. Use TypeScript's `NodeNext` resolution
 for Node ESM projects, or `Bundler` resolution for bundler-based projects. The
