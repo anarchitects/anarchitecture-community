@@ -9,6 +9,7 @@
     "@anarchitects/editorjs-tool-header": "workspace:*",
     "@anarchitects/editorjs-tool-list": "workspace:*",
     "@anarchitects/editorjs-tool-paragraph": "workspace:*",
+    "@anarchitects/editorjs-tool-quote": "workspace:*",
     "@editorjs/editorjs": "2.31.7"
   }
 }

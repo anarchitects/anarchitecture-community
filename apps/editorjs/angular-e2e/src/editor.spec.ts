@@ -8,6 +8,59 @@ const saved = async (owner: Locator) =>
     await owner.getByLabel('Saved document', { exact: true }).innerText(),
   );
 
+test('activates packed quote in Angular with independent owners', async ({
+  page,
+}) => {
+  await page.goto('/?quote');
+  const first = card(page, 'First');
+  const text = first.locator('.cdx-quote__text');
+  const caption = first.locator('.cdx-quote__caption');
+  await expect(first.getByRole('status')).toHaveText('Ready');
+  await expect(text).toHaveText('First initial');
+  await expect(caption).toHaveText('Attribution');
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-quote-instances',
+    /[2-9]\d*|1\d+/,
+  );
+  await first.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(first.getByTestId('command-result')).toHaveText(
+    'save completed',
+  );
+  expect((await saved(first)).blocks[0].data.alignment).toBe('left');
+  await text.fill('Angular quotation');
+  await caption.fill('Angular author');
+  await text.click();
+  await first.locator('.ce-toolbar__settings-btn').click();
+  await first.getByText('Align Center', { exact: true }).click();
+  await first.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(first.getByTestId('command-result')).toHaveText(
+    'save completed',
+  );
+  await expect
+    .poll(async () => (await saved(first)).blocks)
+    .toMatchObject([
+      {
+        type: 'quote',
+        data: {
+          text: 'Angular quotation',
+          caption: 'Angular author',
+          alignment: 'center',
+        },
+      },
+    ]);
+  await first.getByRole('button', { name: 'Render', exact: true }).click();
+  await expect(text).toHaveText('First rendered');
+  await expect(caption).toHaveText('Attribution');
+  await first.getByRole('button', { name: 'Read only' }).click();
+  await expect(text).toHaveAttribute('contenteditable', 'false');
+  await expect(caption).toHaveAttribute('contenteditable', 'false');
+  await first.getByRole('button', { name: 'Unmount', exact: true }).click();
+  await expect(first.locator('.codex-editor')).toHaveCount(0);
+  await expect(card(page, 'Second').locator('.cdx-quote__text')).toHaveText(
+    'Second initial',
+  );
+});
+
 test('activates packed nested list in Angular with independent owners', async ({
   page,
 }) => {

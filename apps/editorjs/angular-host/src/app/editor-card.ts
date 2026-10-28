@@ -17,20 +17,30 @@ import {
 import type { OutputData } from '@anarchitects/editorjs-core';
 import { Ownership } from './ownership';
 
-const document = (text: string, header = false, list = false): OutputData => ({
+const document = (
+  text: string,
+  header = false,
+  list = false,
+  quote = false,
+): OutputData => ({
   blocks: [
-    list
+    quote
       ? {
-          type: 'list',
-          data: {
-            style: 'unordered',
-            meta: {},
-            items: [{ content: text, meta: {}, items: [] }],
-          },
+          type: 'quote',
+          data: { text, caption: 'Attribution', alignment: 'left' },
         }
-      : header
-        ? { type: 'header', data: { text, level: 2 } }
-        : { type: 'paragraph', data: { text } },
+      : list
+        ? {
+            type: 'list',
+            data: {
+              style: 'unordered',
+              meta: {},
+              items: [{ content: text, meta: {}, items: [] }],
+            },
+          }
+        : header
+          ? { type: 'header', data: { text, level: 2 } }
+          : { type: 'paragraph', data: { text } },
   ],
 });
 
@@ -44,16 +54,23 @@ type Command = 'save' | 'render' | 'clear' | 'focus' | 'readOnly' | 'invalid';
 })
 export class EditorCard {
   readonly label = input.required<string>();
+  readonly quoteMode = new URLSearchParams(location.search).has('quote');
   readonly listMode = new URLSearchParams(location.search).has('list');
   readonly headerMode = new URLSearchParams(location.search).has('header');
   readonly initial = computed(() =>
-    document(`${this.label()} initial`, this.headerMode, this.listMode),
+    document(
+      `${this.label()} initial`,
+      this.headerMode,
+      this.listMode,
+      this.quoteMode,
+    ),
   );
   readonly replacement = signal<OutputData | undefined>(undefined);
   readonly config = {
     minHeight: 80,
     ...(this.headerMode ? { defaultBlock: 'header' } : {}),
     ...(this.listMode ? { defaultBlock: 'list' } : {}),
+    ...(this.quoteMode ? { defaultBlock: 'quote' } : {}),
   };
   readonly mounted = signal(true);
   readonly ready = signal(false);
@@ -99,6 +116,7 @@ export class EditorCard {
         `${this.label()} input replacement`,
         this.headerMode,
         this.listMode,
+        this.quoteMode,
       ),
     );
   }
@@ -119,6 +137,7 @@ export class EditorCard {
               `${this.label()} rendered`,
               this.headerMode,
               this.listMode,
+              this.quoteMode,
             ),
           );
           break;
