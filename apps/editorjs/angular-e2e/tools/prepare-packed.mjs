@@ -58,6 +58,7 @@ try {
     ['@anarchitects/editorjs-tool-header', 'packages/editorjs/tool-header'],
     ['@anarchitects/editorjs-tool-list', 'packages/editorjs/tool-list'],
     ['@anarchitects/editorjs-tool-quote', 'packages/editorjs/tool-quote'],
+    ['@anarchitects/editorjs-tool-image', 'packages/editorjs/tool-image'],
     [
       '@anarchitects/editorjs-tool-paragraph',
       'packages/editorjs/tool-paragraph',
@@ -239,6 +240,7 @@ async function validate(name, versions, archives) {
         'examples/header-app.ts',
         'examples/list-app.ts',
         'examples/quote-app.ts',
+        'examples/image-app.ts',
       ],
     });
     await assertBoundaries(root, node, false);
@@ -253,6 +255,7 @@ async function validate(name, versions, archives) {
         headerArchive: archives['@anarchitects/editorjs-tool-header'],
         listArchive: archives['@anarchitects/editorjs-tool-list'],
         quoteArchive: archives['@anarchitects/editorjs-tool-quote'],
+        imageArchive: archives['@anarchitects/editorjs-tool-image'],
         node,
         versions,
         workspace,
@@ -547,6 +550,25 @@ async function assertDocumentation(root) {
   ];
   assert.equal(quoteExamples.length, 4);
   for (const [, file, code] of quoteExamples)
+    await writeFile(join(directory, file), code);
+  const imageReadme = await readFile(
+    join(root, 'node_modules/@anarchitects/editorjs-tool-image/README.md'),
+    'utf8',
+  );
+  assert.equal(
+    imageReadme,
+    await readFile(
+      join(workspace, 'packages/editorjs/tool-image/README.md'),
+      'utf8',
+    ),
+  );
+  const imageExamples = [
+    ...imageReadme.matchAll(
+      /<!-- image-(?:angular-)?example-file: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g,
+    ),
+  ];
+  assert.equal(imageExamples.length, 4);
+  for (const [, file, code] of imageExamples)
     await writeFile(join(directory, file), code);
   for (const [index, match] of examples.entries()) {
     // SSR recipes require host peers absent from the independent CSR consumer.

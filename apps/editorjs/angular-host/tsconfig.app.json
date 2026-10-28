@@ -29,6 +29,9 @@
       "path": "../../../packages/editorjs/tool-list/tsconfig.lib.json"
     },
     {
+      "path": "../../../packages/editorjs/tool-image/tsconfig.lib.json"
+    },
+    {
       "path": "../../../packages/editorjs/tool-header/tsconfig.lib.json"
     }
   ]

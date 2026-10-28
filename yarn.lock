@@ -73,6 +73,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@anarchitects/editorjs-tool-image@workspace:*, @anarchitects/editorjs-tool-image@workspace:packages/editorjs/tool-image":
+  version: 0.0.0-use.local
+  resolution: "@anarchitects/editorjs-tool-image@workspace:packages/editorjs/tool-image"
+  dependencies:
+    "@anarchitects/editorjs-core": "npm:^0.0.1"
+    "@editorjs/image": "npm:2.10.3"
+  peerDependencies:
+    "@editorjs/editorjs": 2.31.7
+  languageName: unknown
+  linkType: soft
+
 "@anarchitects/editorjs-tool-list@workspace:*, @anarchitects/editorjs-tool-list@workspace:packages/editorjs/tool-list":
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-tool-list@workspace:packages/editorjs/tool-list"
@@ -203,6 +214,7 @@ __metadata:
     "@anarchitects/editorjs-angular": "link:../../../dist/packages/editorjs/angular"
     "@anarchitects/editorjs-core": "workspace:*"
     "@anarchitects/editorjs-tool-header": "workspace:*"
+    "@anarchitects/editorjs-tool-image": "workspace:*"
     "@anarchitects/editorjs-tool-list": "workspace:*"
     "@anarchitects/editorjs-tool-paragraph": "workspace:*"
     "@anarchitects/editorjs-tool-quote": "workspace:*"
@@ -2763,7 +2775,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codexteam/icons@npm:^0.3.2":
+"@codexteam/icons@npm:^0.3.0, @codexteam/icons@npm:^0.3.2":
   version: 0.3.3
   resolution: "@codexteam/icons@npm:0.3.3"
   checksum: 10c0/336245f38a2b2a53626a552a5f0f32c822ee1265be6827670ba157c9fa101cb23e6c75e625aa067e4577c2d805e261f4ffcb61097ea94c034c0a3c0cae7d7271
@@ -2864,6 +2876,15 @@ __metadata:
   dependencies:
     codex-tooltip: "npm:^1.0.6"
   checksum: 10c0/b76604a28a28ef520684222905517fa0456377feab82660e9b3b8937a760f7ca659dedc69cf2fc91137f6fccc7a4b185ad241230675d55fe62adf0ba288dbaf2
+  languageName: node
+  linkType: hard
+
+"@editorjs/image@npm:2.10.3":
+  version: 2.10.3
+  resolution: "@editorjs/image@npm:2.10.3"
+  dependencies:
+    "@codexteam/icons": "npm:^0.3.0"
+  checksum: 10c0/929893d74974bc6c814e179fc2d048ba0bdc626bbfc34b3ae448498e67afed6dd4071591fcb57abc655337451dd8addadfd1caf85097d772dd04c815cabec1dc
   languageName: node
   linkType: hard
 

@@ -11,6 +11,7 @@ export async function preparePortable({
   headerArchive,
   listArchive,
   quoteArchive,
+  imageArchive,
   node,
   versions,
   workspace,
@@ -23,6 +24,7 @@ export async function preparePortable({
   await cp(headerArchive, join(root, basename(headerArchive)));
   await cp(listArchive, join(root, basename(listArchive)));
   await cp(quoteArchive, join(root, basename(quoteArchive)));
+  await cp(imageArchive, join(root, basename(imageArchive)));
   await writeFile(
     join(root, 'package.json'),
     JSON.stringify({
@@ -34,6 +36,7 @@ export async function preparePortable({
         '@anarchitects/editorjs-tool-header': `file:${basename(headerArchive)}`,
         '@anarchitects/editorjs-tool-list': `file:${basename(listArchive)}`,
         '@anarchitects/editorjs-tool-quote': `file:${basename(quoteArchive)}`,
+        '@anarchitects/editorjs-tool-image': `file:${basename(imageArchive)}`,
         '@editorjs/editorjs': versions.editorjs,
       },
       devDependencies: { esbuild: '0.28.2', typescript: versions.typescript },
@@ -118,6 +121,23 @@ export async function preparePortable({
   for (const [, file, code] of quoteExamples)
     await writeFile(join(root, 'readme', file), code);
   await cp(
+    join(workspace, 'apps/editorjs/angular-host/src/image'),
+    join(root, 'image'),
+    { recursive: true },
+  );
+  const imageReadme = await readFile(
+    join(root, 'node_modules/@anarchitects/editorjs-tool-image/README.md'),
+    'utf8',
+  );
+  const imageExamples = [
+    ...imageReadme.matchAll(
+      /<!-- image-example-file: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g,
+    ),
+  ];
+  assert.equal(imageExamples.length, 3);
+  for (const [, file, code] of imageExamples)
+    await writeFile(join(root, 'readme', file), code);
+  await cp(
     join(workspace, 'apps/editorjs/angular-host/src/quote'),
     join(root, 'quote'),
     { recursive: true },
@@ -173,6 +193,8 @@ export async function preparePortable({
         'header/direct.ts',
         'list/direct.ts',
         'quote/direct.ts',
+        'image/direct.ts',
+        ...imageExamples.map(([, file]) => `readme/${file}`),
         ...quoteExamples.map(([, file]) => `readme/${file}`),
         ...listExamples.map(([, file]) => `readme/${file}`),
         ...headerExamples.map(([, file]) => `readme/${file}`),
@@ -221,7 +243,7 @@ export async function buildPortable({ root, node, report, run }) {
       `
     import { build } from 'esbuild';
     import { writeFile } from 'node:fs/promises';
-    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts', quote: 'quote/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
+    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts', quote: 'quote/direct.ts', image: 'image/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
     await writeFile('metadata.json', JSON.stringify(result.metafile));
   `,
     ],
@@ -377,6 +399,31 @@ export async function buildPortable({ root, node, report, run }) {
     join(root, 'dist/browser/quote-graph.json'),
     JSON.stringify({ chunks: quoteChunks.map((file) => basename(file)) }),
   );
+  const imageChunks = Object.entries(metadata.outputs)
+    .filter(([, output]) =>
+      Object.entries(output.inputs).some(
+        ([input, value]) =>
+          input.includes('@editorjs/image/dist/') && value.bytesInOutput > 0,
+      ),
+    )
+    .map(([file]) => file);
+  assert(imageChunks.length > 0, 'Missing upstream image provenance');
+  assert(
+    Object.keys(metadata.inputs).some((path) =>
+      path.includes('@anarchitects/editorjs-tool-image/dist/browser.js'),
+    ),
+    'Missing packaged image browser entry',
+  );
+  initial.clear();
+  visit('dist/browser/image.js');
+  assert(
+    !imageChunks.some((file) => initial.has(file)),
+    'Image entered the initial closure',
+  );
+  await writeFile(
+    join(root, 'dist/browser/image-graph.json'),
+    JSON.stringify({ chunks: imageChunks.map((file) => basename(file)) }),
+  );
   await writeFile(
     join(root, 'dist/browser/paragraph.html'),
     `<!doctype html><html><head><link rel="icon" href="data:,"></head><body><h1>Packaged paragraph</h1><button id="mount">Mount</button><div id="editor"></div><button id="save">Save</button><button id="render">Render saved</button><button id="clear">Clear</button><button id="readonly">Read only</button><button id="remove">Remove</button><output></output><h2>Built-in control</h2><div id="builtin"></div><button id="save-builtin">Save builtin</button><pre id="builtin-output"></pre><script type="module" src="/paragraph.js"></script></body></html>`,
@@ -392,6 +439,10 @@ export async function buildPortable({ root, node, report, run }) {
   await writeFile(
     join(root, 'dist/browser/quote.html'),
     `<!doctype html><html><head><link rel="icon" href="data:,"><style>#editor{min-height:500px}output{display:block;white-space:pre-wrap}</style></head><body><h1>Packaged quote</h1><button id="mount">Mount</button><div id="editor"></div><button id="save">Save</button><button id="render">Render saved</button><button id="clear">Clear</button><button id="readonly">Read only</button><button id="remove-main">Remove main</button><button id="remove">Remove</button><output></output><h2>Independent quote</h2><div id="second"></div><button id="save-second">Save second</button><pre id="second-output"></pre><h2>Default config</h2><div id="defaults"></div><button id="save-defaults">Save defaults</button><pre id="defaults-output"></pre><script type="module" src="/quote.js"></script></body></html>`,
+  );
+  await writeFile(
+    join(root, 'dist/browser/image.html'),
+    `<!doctype html><html><head><link rel="icon" href="data:,"><style>#editor{min-height:500px}output{display:block;white-space:pre-wrap}</style></head><body><h1>Packaged image</h1><button id="mount">Mount</button><div id="editor"></div><label>Upload outcome<select id="upload-mode"><option>success</option><option>pending</option><option>failure</option><option>reject</option><option>malformed</option></select></label><button id="upload-url">Upload URL</button><button id="release">Release uploads</button><button id="save">Save</button><button id="render">Render saved</button><button id="clear">Clear</button><button id="readonly">Read only</button><button id="remove-main">Remove main</button><button id="remove">Remove</button><output></output><h2>Independent image</h2><div id="second"></div><button id="save-second">Save second</button><pre id="second-output"></pre><script type="module" src="/image.js"></script></body></html>`,
   );
   await writeFile(
     join(root, 'dist/browser/readme.html'),

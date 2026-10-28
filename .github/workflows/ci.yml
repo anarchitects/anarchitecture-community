@@ -29,7 +29,7 @@ jobs:
           cache: 'yarn'
       - run: yarn install --immutable
       # Runtime-specific inputs keep Node 22 and Node 24 cache results separate.
-      - run: yarn nx run-many -p editorjs-core editorjs-tool-paragraph editorjs-tool-header editorjs-tool-list editorjs-tool-quote -t build typecheck test lint
+      - run: yarn nx run-many -p editorjs-core editorjs-tool-paragraph editorjs-tool-header editorjs-tool-list editorjs-tool-quote editorjs-tool-image -t build typecheck test lint
 
   better-auth-typeorm-adapter-compatibility:
     name: better-auth-typeorm-adapter (Node ${{ matrix.node }}, TypeORM ${{ matrix.typeorm }})

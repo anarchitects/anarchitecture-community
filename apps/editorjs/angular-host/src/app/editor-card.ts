@@ -15,6 +15,7 @@ import {
   type EditorJsErrorEvent,
 } from '@anarchitects/editorjs-angular';
 import type { OutputData } from '@anarchitects/editorjs-core';
+import { imageData } from '../image/definition';
 import { Ownership } from './ownership';
 
 const document = (
@@ -22,25 +23,28 @@ const document = (
   header = false,
   list = false,
   quote = false,
+  image = false,
 ): OutputData => ({
   blocks: [
-    quote
-      ? {
-          type: 'quote',
-          data: { text, caption: 'Attribution', alignment: 'left' },
-        }
-      : list
+    image
+      ? { type: 'image', data: { ...imageData, caption: text } }
+      : quote
         ? {
-            type: 'list',
-            data: {
-              style: 'unordered',
-              meta: {},
-              items: [{ content: text, meta: {}, items: [] }],
-            },
+            type: 'quote',
+            data: { text, caption: 'Attribution', alignment: 'left' },
           }
-        : header
-          ? { type: 'header', data: { text, level: 2 } }
-          : { type: 'paragraph', data: { text } },
+        : list
+          ? {
+              type: 'list',
+              data: {
+                style: 'unordered',
+                meta: {},
+                items: [{ content: text, meta: {}, items: [] }],
+              },
+            }
+          : header
+            ? { type: 'header', data: { text, level: 2 } }
+            : { type: 'paragraph', data: { text } },
   ],
 });
 
@@ -54,6 +58,7 @@ type Command = 'save' | 'render' | 'clear' | 'focus' | 'readOnly' | 'invalid';
 })
 export class EditorCard {
   readonly label = input.required<string>();
+  readonly imageMode = new URLSearchParams(location.search).has('image');
   readonly quoteMode = new URLSearchParams(location.search).has('quote');
   readonly listMode = new URLSearchParams(location.search).has('list');
   readonly headerMode = new URLSearchParams(location.search).has('header');
@@ -63,6 +68,7 @@ export class EditorCard {
       this.headerMode,
       this.listMode,
       this.quoteMode,
+      this.imageMode,
     ),
   );
   readonly replacement = signal<OutputData | undefined>(undefined);
@@ -71,6 +77,7 @@ export class EditorCard {
     ...(this.headerMode ? { defaultBlock: 'header' } : {}),
     ...(this.listMode ? { defaultBlock: 'list' } : {}),
     ...(this.quoteMode ? { defaultBlock: 'quote' } : {}),
+    ...(this.imageMode ? { defaultBlock: 'image' } : {}),
   };
   readonly mounted = signal(true);
   readonly ready = signal(false);
@@ -117,6 +124,7 @@ export class EditorCard {
         this.headerMode,
         this.listMode,
         this.quoteMode,
+        this.imageMode,
       ),
     );
   }
@@ -138,6 +146,7 @@ export class EditorCard {
               this.headerMode,
               this.listMode,
               this.quoteMode,
+              this.imageMode,
             ),
           );
           break;

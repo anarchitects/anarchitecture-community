@@ -130,7 +130,8 @@
       "editorjs-tool-paragraph",
       "editorjs-tool-header",
       "editorjs-tool-list",
-      "editorjs-tool-quote"
+      "editorjs-tool-quote",
+      "editorjs-tool-image"
     ],
     "version": {
       "preVersionCommand": "UV_CACHE_DIR=.cache/uv yarn nx run-many -t build",

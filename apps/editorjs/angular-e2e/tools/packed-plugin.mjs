@@ -43,6 +43,7 @@ export const createNodesV2 = [
                 'editorjs-tool-header',
                 'editorjs-tool-list',
                 'editorjs-tool-quote',
+                'editorjs-tool-image',
               ],
               target: 'build',
               params: 'ignore',

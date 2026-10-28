@@ -353,3 +353,70 @@ test('repeated teardown releases every created instance and suppresses detached 
     }
   }
 });
+
+test('activates packed image and independent alt authoring in Angular', async ({
+  page,
+}) => {
+  await page.goto('/?image');
+  const first = card(page, 'First');
+  const second = card(page, 'Second');
+  await expect(first.getByRole('status')).toHaveText('Ready');
+  const caption = first.locator('.image-tool__caption');
+  await expect(caption).toHaveText('First initial');
+  await first.getByLabel('Image purpose').selectOption('description');
+  await first
+    .getByLabel('Alternative text', { exact: true })
+    .fill('Angular red square');
+  await caption.fill('Angular caption');
+  await caption.click();
+  await first.locator('.ce-toolbar__settings-btn').click();
+  await first.getByText('With border', { exact: true }).click();
+  await first.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(first.getByTestId('command-result')).toHaveText(
+    'save completed',
+  );
+  await expect
+    .poll(async () => (await saved(first)).blocks[0].data)
+    .toMatchObject({
+      alt: 'Angular red square',
+      caption: 'Angular caption',
+      withBorder: true,
+    });
+  await first.getByRole('button', { name: 'Read only' }).click();
+  await expect(first.getByLabel('Image purpose')).toBeDisabled();
+  await expect(caption).toHaveAttribute('contenteditable', 'false');
+  await first.getByRole('button', { name: 'Read only' }).click();
+  await expect(
+    first.getByLabel('Alternative text', { exact: true }),
+  ).toHaveValue('Angular red square');
+  await first.getByRole('button', { name: 'Render', exact: true }).click();
+  await expect(caption).toHaveText('First rendered');
+  await expect(first.getByLabel('Image purpose')).toHaveValue('unset');
+  await first.getByRole('button', { name: 'Clear', exact: true }).click();
+  const chooser = page.waitForEvent('filechooser');
+  await first.locator('.cdx-button').click();
+  await (
+    await chooser
+  ).setFiles({
+    name: 'red.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="60"><rect width="80" height="60" fill="red"/></svg>',
+    ),
+  });
+  await expect(first.locator('img')).toBeVisible();
+  await first.getByLabel('Image purpose').selectOption('decorative');
+  await first.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(first.getByTestId('command-result')).toHaveText(
+    'save completed',
+  );
+  await expect
+    .poll(async () => (await saved(first)).blocks[0].data)
+    .toMatchObject({
+      alt: '',
+      file: { id: 'file', meta: { width: 80, owned: true } },
+    });
+  await first.getByRole('button', { name: 'Unmount', exact: true }).click();
+  await expect(first.locator('.codex-editor')).toHaveCount(0);
+  await expect(second.getByLabel('Image purpose')).toHaveValue('unset');
+});
