@@ -50,6 +50,9 @@
     },
     {
       "path": "./packages/editorjs/tool-image"
+    },
+    {
+      "path": "./packages/editorjs/upload-fetch"
     }
   ],
   "compilerOptions": {

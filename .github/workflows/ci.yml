@@ -29,7 +29,7 @@ jobs:
           cache: 'yarn'
       - run: yarn install --immutable
       # Runtime-specific inputs keep Node 22 and Node 24 cache results separate.
-      - run: yarn nx run-many -p editorjs-core editorjs-tool-paragraph editorjs-tool-header editorjs-tool-list editorjs-tool-quote editorjs-tool-image -t build typecheck test lint
+      - run: yarn nx run-many -p editorjs-core editorjs-tool-paragraph editorjs-tool-header editorjs-tool-list editorjs-tool-quote editorjs-tool-image editorjs-upload-fetch -t build typecheck test lint
 
   better-auth-typeorm-adapter-compatibility:
     name: better-auth-typeorm-adapter (Node ${{ matrix.node }}, TypeORM ${{ matrix.typeorm }})
@@ -118,11 +118,14 @@ jobs:
       - run: yarn install --immutable
       - run: yarn nx run editorjs-angular-e2e:install-browsers:ci
       - run: yarn nx run editorjs-angular-e2e:e2e
+      - run: yarn nx run editorjs-upload-fetch:test-browser
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: editorjs-angular-playwright
-          path: apps/editorjs/angular-e2e/test-output
+          path: |
+            apps/editorjs/angular-e2e/test-output
+            packages/editorjs/upload-fetch/test-output/browser
           retention-days: 7
           if-no-files-found: ignore
 

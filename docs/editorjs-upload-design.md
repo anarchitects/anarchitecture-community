@@ -44,6 +44,88 @@ The upload atom passed 53 tests on a cache miss (1.5 s), then replayed with
 after the atom input configuration changed. This is local reuse evidence, not
 a claim of remote reuse or new distributed execution measurements.
 
+## Fetch implementation increment #628
+
+The new `@anarchitects/editorjs-upload-fetch/browser` entry implements
+`createFetchFileUploader`, `createFetchUrlUploader`, `FetchUploadError` and their
+request/decoder/diagnostic types. The package has no root runtime facade and only
+core as a runtime dependency. Its public README owns configuration, backend
+mapping, cancellation, retry and security guidance. Existing core ports and
+ImageTool behavior remain unchanged.
+
+The preflight reread all eight Community ADRs at `8c41906f` and all eighteen Meta
+ADRs, including proposed and historical content. The remote Meta ADR inventory
+matches the clean adjacent checkout at `823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`.
+The Modern Angular guide index, repository application, architecture,
+testing/migration and validation guides were reviewed for package boundaries and
+consumer evidence; no Angular implementation is introduced. Local0004 requires
+archived consumer documentation, local0007/Meta0013 require independent initial
+release intent, and Meta0015 governs the new task graph. Governance proposals
+remain proposals; HTTP/Nest/auth/contract ADRs introduce no canonical wire schema,
+server adapter migration or framework dependency here. No accepted-ADR conflict
+was identified.
+
+Nx's installed `@nx/js:library` generator was inspected, dry-run and used with
+Vite/Vitest/ESLint; Yarn linked core without source aliases. The exact resolved
+project is `editorjs-upload-fetch`. Its version remains 0.0.1. A fresh registry
+read returned 404; 234 tag refs and 102 GitHub releases contain no Editor.js
+release. Use `init(editorjs-upload-fetch)` without publishing or bumping versions.
+
+Request construction is synchronous and supplies an endpoint plus RequestInit,
+not a consumed Request. Each invocation creates a controller and optional timeout
+covering Fetch, body consumption and decoder waiting. Non-2xx rejects by default;
+explicit error decoding can return a host failure but never convert non-2xx to
+success. The decoder validates its backend schema, then core normalization copies
+and checks successful JSON metadata. The adapter retains only safe diagnostic
+messages; causes remain private host diagnostics. No automatic retry, progress or
+remote rollback claim is added.
+
+A packed-browser check exposed upstream image 2.10.3's independent URL preloader:
+it attempts an image preview before invoking the configured uploader. Direct
+Fetch-adapter URL submission performs no fetch of the source URL. The public guide
+explicitly distinguishes these behaviors and requires host `img-src` policy when
+arbitrary remote previews must be prevented. The controlled consumer proves that
+CSP blocks that preview, while the backend receives the URL only as data. This
+preserves the accepted image bridge rather than reopening its contract.
+
+The adapter declarations and transport README examples compile in NodeNext and
+Bundler with ES2022/DOM and no ambient Node types. The optional Editor.js dynamic
+import recipe targets Bundler: upstream Editor.js's CommonJS-declared dynamic
+default is not constructable under NodeNext. This limitation is documented; no
+Node transport execution or wider browser certification is inferred.
+
+Build, lint, typecheck, unit/packed checks and two inferred Vitest file atoms are
+cacheable with source/config/lockfile/runtime/environment inputs. Typecheck uses
+`--noEmit` and its own `out-tsc/typecheck` build-info output, avoiding new competing
+writers in `dist`. Browser validation is one short cacheable `test-browser` target
+with core/image build prerequisites, random loopback port, unique temporary
+consumer, pinned Chromium version check and an isolated report path. It packs
+lockfile-selected installed dependencies and performs an offline archive install;
+no mutable registry state participates. ImageTool is a test graph dependency, not
+a published runtime dependency. Existing browser CI installs Chromium and invokes
+this target; Node 22.12.0 CI includes the package's non-browser checks. The full
+cross-cell packed/DTE consolidation remains #632; local reuse is not remote or
+distributed execution evidence.
+
+Local validation on Node 24.22.1 / TypeScript 6.0.3 passed build, typecheck and
+lint with no package lint warnings. The two inferred Vitest atoms passed all 45
+checks (41 adapter cases and four actual-archive checks). The non-Angular packed
+consumer passed 21 controlled HTTP/editor checks on Chromium 156.0.8078.4,
+including multipart Blob/File, URL submission, HTTP/network/JSON/mapping failures,
+abort, request/body timeout, metadata/caption and all three alt states. The
+idempotency fixture commits before stalling its response: default single attempt
+reports timeout, permitted retry returns the stored outcome with no duplicate
+storage, and key/payload conflict returns 409 without another retry.
+
+The final atom/browser/lint run took 8.0 seconds with four check misses and three
+build hits. Removing only the new package's generated dist, typecheck build-info
+and browser report files, then replaying Nx, restored all ten files byte-for-byte.
+Typecheck replay had 6/6 local hits (253 ms); atoms/browser/lint had 7/7 hits
+(288 ms). Changing declared `NODE_OPTIONS` invalidated the adapter atom and its
+build prerequisites. The `test-ci` coordinator requires Nx Cloud, so local atom
+checks invoked its two resolved file targets directly. Hosted CI and remote/DTE
+reuse remain separate evidence; no publication or downstream slice is included.
+
 ## Architecture review and baseline
 
 Reviewed on 28 October 2026 against Community `3cf0ac8` (merged #625) and Meta
@@ -119,9 +201,9 @@ must be safe without browser globals; actually executing browser requests is a
 separate capability. Node transport execution and non-Chromium browser support
 are not implied by import safety.
 
-The new project/export does not exist yet. #628 must use Nx generation and the
-workspace package-linking workflow, then verify its resolved name, boundaries
-and tasks. This design adds no empty project. No Angular `HttpClient` adapter is
+The project/export is implemented by #628 using Nx generation and workspace
+package linking, with resolved tasks and packed boundary checks. The original
+#626 design did not create an empty project. No Angular `HttpClient` adapter is
 selected: a host needing its interceptor chain can inject a service implementing
 the same core port. Fetch does not run Angular HTTP interceptors, and this work
 must not install or replace application HTTP providers.

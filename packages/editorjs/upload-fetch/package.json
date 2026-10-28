@@ -1,0 +1,219 @@
+{
+  "name": "@anarchitects/editorjs-upload-fetch",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./browser": {
+      "@anarchitecture-community/source": "./src/browser.ts",
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js",
+      "default": "./dist/browser.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "name": "editorjs-upload-fetch",
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/editorjs/upload-fetch"
+        },
+        "inputs": [
+          "uploadTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "build": {
+        "inputs": [
+          "production",
+          "^production",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json"
+        ]
+      },
+      "typecheck": {
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json"
+        ],
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/out-tsc/typecheck"
+        ],
+        "options": {
+          "cwd": "packages/editorjs/upload-fetch",
+          "commands": [
+            "tsc --project tsconfig.lib.json --noEmit --tsBuildInfoFile out-tsc/typecheck/lib.tsbuildinfo",
+            "tsc --project tsconfig.spec.json --noEmit --tsBuildInfoFile out-tsc/typecheck/spec.tsbuildinfo"
+          ],
+          "parallel": false
+        },
+        "dependsOn": [
+          "build",
+          "^typecheck"
+        ],
+        "cache": true
+      },
+      "lint": {
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          "{workspaceRoot}/eslint.config.mjs",
+          "{workspaceRoot}/tools/eslint-rules/**/*"
+        ]
+      },
+      "vite:test": {
+        "inputs": [
+          "uploadTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "vitest:test": {
+        "inputs": [
+          "uploadTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "test-ci": {
+        "inputs": [
+          "uploadTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "test-ci--tests/adapter.spec.ts": {
+        "inputs": [
+          "uploadTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "test-ci--tests/package.spec.ts": {
+        "inputs": [
+          "uploadTests",
+          "^default"
+        ],
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "test-browser": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "uploadTests",
+          "^default",
+          "{workspaceRoot}/packages/editorjs/tool-image/**/*",
+          {
+            "runtime": "node -p \"require('playwright-core/package.json').version\""
+          },
+          {
+            "env": "PLAYWRIGHT_BROWSERS_PATH"
+          }
+        ],
+        "outputs": [
+          "{projectRoot}/test-output/browser"
+        ],
+        "dependsOn": [
+          "build",
+          {
+            "projects": [
+              "editorjs-tool-image"
+            ],
+            "target": "build"
+          }
+        ],
+        "options": {
+          "command": "node packages/editorjs/upload-fetch/tests/browser/run.mjs"
+        }
+      }
+    },
+    "namedInputs": {
+      "uploadTests": [
+        "default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/tsconfig.json",
+        {
+          "env": "CI"
+        },
+        {
+          "runtime": "npm --version"
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "@anarchitects/editorjs-core": "^0.0.1"
+  },
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Host-configurable Fetch upload adapters for Editor.js file and URL ports.",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/editorjs/upload-fetch"
+  },
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/upload-fetch#readme"
+}
