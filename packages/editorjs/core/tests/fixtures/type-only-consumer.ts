@@ -54,6 +54,12 @@ import type {
   ToolRegistryErrorCode,
   ToolRegistryError,
   ToolResolver,
+  UploadOperation,
+  UploadOperationOptions,
+  UploadRetryOutcome,
+  UploadRetryPolicy,
+  UploadScheduler,
+  UploadStoppedError,
 } from '@anarchitects/editorjs-core';
 
 // Keep every documented type reachable through the published root declarations.
@@ -94,6 +100,12 @@ export interface AdditionalPublicContracts {
   registryCode: ToolRegistryErrorCode;
   registryError: ToolRegistryError;
   resolver: ToolResolver;
+  uploadOperation: UploadOperation<Asset, HostError>;
+  uploadOptions: UploadOperationOptions<HostError>;
+  retryOutcome: UploadRetryOutcome<HostError>;
+  retryPolicy: UploadRetryPolicy<HostError>;
+  scheduler: UploadScheduler;
+  stoppedUpload: UploadStoppedError;
 }
 
 interface ToolData {

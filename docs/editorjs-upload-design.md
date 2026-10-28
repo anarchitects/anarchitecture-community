@@ -6,6 +6,44 @@ decisions for #627–#633, not available exports or new compatibility promises.
 This slice changes documentation only. It neither starts the next slice nor
 authorizes a release, merge, dependency update or consumer migration.
 
+Implementation increment #627 adds core `composeImageUploader`,
+`createUploadOperation`, `UploadStoppedError` and their operation/options/retry/
+scheduler types. It leaves the existing ports and image bridge unchanged. The
+[core README](../packages/editorjs/core/README.md#upload-boundaries) is the consumer
+contract; the other surfaces below remain planned.
+
+The #627 preflight reread all eight local and eighteen Meta ADRs against Community
+`03de3951` and the same verified Meta inventory. Relevant architecture/testing
+guides and resolved core build/test/typecheck/lint targets were reviewed. No ADR
+conflict or dependency change was identified. Runtime/lockfile/config inputs and
+cacheable package checks remain in place; emitting checks precede final build/pack
+to avoid overlapping declaration writers. Registry 404, 234 remote tag refs and
+102 GitHub releases again show no Editor.js distribution; use `init(editorjs-core)`.
+The new inferred `test-ci--tests/upload-operation.spec.ts` atom explicitly uses
+the core test target's source/config/lockfile/runtime/environment inputs. Its
+inferred report directory is isolated by file, and source imports need no build
+artifact prerequisite. The existing packed package atom retains its build edge.
+
+The concrete retry policy requires a host-supplied `UploadScheduler` callback
+returning cancellation. This keeps core's implementation and declarations
+ES2022-only instead of introducing DOM/Node timer APIs. Options are snapshotted;
+host callbacks start in a microtask so the handle exists before callbacks run and
+can be stopped reentrantly. Invalid options throw before work. Invalid dynamic
+delays reject with `RangeError`; async policy callbacks are rejected and observed.
+These refine the planned execution contract without adding a transport or
+changing the existing upload port.
+
+Local #627 validation on Node 24.22.1 / TypeScript 6.0.3 passed core build,
+typecheck, lint and all 269 tests (53 composition/operation cases). Packed checks
+exercise the actual public exports in isolated Node, verify the archived README,
+and compile public types plus its examples in NodeNext and Bundler modes with
+ES2022-only libraries and no ambient types. Lint retains the pre-existing `_time`
+warning in the document coordinator. Hosted CI remains separate evidence.
+The upload atom passed 53 tests on a cache miss (1.5 s), then replayed with
+1/1 local cache hits (472 ms). The full core suite/packed checks passed again
+after the atom input configuration changed. This is local reuse evidence, not
+a claim of remote reuse or new distributed execution measurements.
+
 ## Architecture review and baseline
 
 Reviewed on 28 October 2026 against Community `3cf0ac8` (merged #625) and Meta

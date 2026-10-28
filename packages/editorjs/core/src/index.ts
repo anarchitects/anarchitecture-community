@@ -22,6 +22,18 @@ export type {
   UploadSuccess,
   UrlUploader,
 } from './lib/uploader.js';
+export { composeImageUploader } from './lib/compose-image-uploader.js';
+export {
+  createUploadOperation,
+  UploadStoppedError,
+} from './lib/upload-operation.js';
+export type {
+  UploadOperation,
+  UploadOperationOptions,
+  UploadRetryOutcome,
+  UploadRetryPolicy,
+  UploadScheduler,
+} from './lib/upload-operation.js';
 export {
   composeToolRegistry,
   selectToolRegistry,

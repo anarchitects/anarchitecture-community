@@ -113,12 +113,31 @@ describe('published package', () => {
           'EditorJsDocumentCoordinator',
           'EditorJsOperationError',
           'ToolRegistryError',
+          'UploadStoppedError', 'composeImageUploader', 'createUploadOperation',
           'composeToolRegistry', 'createToolMap', 'createToolResolver',
           'normalizeOutputData', 'parseContentWithProvenance', 'parseOutputData', 'validateOutputData',
           'selectToolRegistry', 'validateToolReferences',
         ].sort());
         assert.ok(import.meta.resolve('@anarchitects/editorjs-core').endsWith('/dist/index.js'));
         assert.ok(import.meta.resolve('@anarchitects/editorjs-core/package.json').endsWith('/package.json'));
+        const hostFailure = { success: 0, error: new Error('host-owned') };
+        const fileResponse = { success: 1, file: { url: '/asset', id: 42 } };
+        class Files { async uploadByFile() { assert.equal(this.constructor, Files); return fileResponse; } }
+        const uploads = core.composeImageUploader(new Files(), { uploadByUrl: async () => hostFailure });
+        assert.equal(await uploads.uploadByFile(new Uint8Array([1])), fileResponse);
+        assert.equal(await uploads.uploadByUrl('/source'), hostFailure);
+        let uploadAttempts = 0;
+        const retrying = core.createUploadOperation(async () => ++uploadAttempts === 1 ? hostFailure : fileResponse, {
+          retry: { maxAttempts: 2, replaySafe: true, shouldRetry: outcome => outcome.kind === 'failure', delayMs: 0,
+            schedule: resume => { const timer = setTimeout(resume, 0); return () => clearTimeout(timer); } },
+        });
+        assert.equal(await retrying.result, fileResponse);
+        assert.equal(uploadAttempts, 2);
+        const stoppedUpload = core.createUploadOperation(() => new Promise(() => {}));
+        const stoppedResult = assert.rejects(stoppedUpload.result, error => error instanceof core.UploadStoppedError && error.code === 'stopped');
+        await Promise.resolve();
+        stoppedUpload.stop();
+        await stoppedResult;
         assert.deepEqual(core.parseOutputData('{"blocks":[]}'), { ok: true, data: { blocks: [] } });
         class CustomTool { constructor() { throw new Error('must not construct'); } }
         const registry = core.composeToolRegistry([[{
