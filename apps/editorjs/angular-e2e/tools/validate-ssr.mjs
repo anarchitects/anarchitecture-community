@@ -46,7 +46,9 @@ const editorOutputs = Object.entries(stats.outputs)
       Object.keys(details.inputs).some(
         (input) =>
           input.includes('@editorjs/editorjs/') ||
-          input.includes('/registry/tools/'),
+          input.includes('/registry/tools/') ||
+          input.includes('/common/tools/') ||
+          /@editorjs\/(paragraph|header|list|quote|image)\//.test(input),
       ),
   )
   .map(([file]) => join(output, 'server', basename(file)));
@@ -167,7 +169,7 @@ try {
       'Applications must coexist, not just queued HTTP requests',
     );
   }
-  for (const route of ['registry', 'registry/forms']) {
+  for (const route of ['registry', 'registry/forms', 'tools', 'tools/forms']) {
     for (const concurrent of [false, true]) {
       const verify = async (marker) => {
         const result = await request(
@@ -179,7 +181,7 @@ try {
         try {
           const holders =
             dom.window.document.querySelectorAll('aa-editorjs > div');
-          assert.equal(holders.length, route === 'registry' ? 2 : 1);
+          assert.equal(holders.length, route.endsWith('forms') ? 1 : 2);
           for (const holder of holders)
             assert.equal(holder.childNodes.length, 0);
           assert.equal(
@@ -308,7 +310,8 @@ async function request(path, name, wait = 0) {
   const authoring =
     path.startsWith('/standalone') ||
     path.startsWith('/forms') ||
-    path.startsWith('/registry');
+    path.startsWith('/registry') ||
+    path.startsWith('/tools');
   // Angular schedules platform destruction after rendering. Observe its actual
   // DestroyRef callbacks; do not force disposal or infer it from HTTP completion.
   if (authoring)

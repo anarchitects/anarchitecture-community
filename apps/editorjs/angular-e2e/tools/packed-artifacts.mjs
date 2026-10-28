@@ -125,6 +125,7 @@ export async function sourceFingerprint(workspace) {
     'apps/editorjs/angular-host/public',
     'apps/editorjs/angular-host/project.json',
     'apps/editorjs/angular-e2e/tools/prepare-packed.mjs',
+    'apps/editorjs/angular-e2e/tools/independent-tools.mjs',
     'apps/editorjs/angular-e2e/tools/portable-consumer.mjs',
     'apps/editorjs/angular-e2e/tools/packed-ssr.mjs',
     'apps/editorjs/angular-e2e/tools/readme-ssr.mjs',

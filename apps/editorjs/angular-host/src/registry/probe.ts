@@ -6,6 +6,10 @@ export interface RegistryProbe {
   destroyed: number;
   blockCreated: number;
   blockDestroyed: number;
+  uploadStarted?: number;
+  uploadFinished?: number;
+  holdUpload?: boolean;
+  releaseUpload?: () => void;
   failNext?: boolean;
   holdNext?: boolean;
   release?: () => void;
@@ -33,7 +37,7 @@ export function evaluated(name: string): void {
 export async function loading(name: string): Promise<void> {
   const state = probe();
   state.loads.push(name);
-  if (name !== 'card') return;
+  if (name !== 'card' && name !== 'common-paragraph') return;
   if (state.holdNext) {
     state.holdNext = false;
     await new Promise<void>((resolve) => {

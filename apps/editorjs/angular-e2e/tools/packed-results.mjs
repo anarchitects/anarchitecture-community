@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { pathsFor, readSnapshot } from './packed-artifacts.mjs';
+import {
+  pathsFor,
+  readSnapshot,
+  sourceFingerprint,
+} from './packed-artifacts.mjs';
 import { phasesFor } from './packed-phases.mjs';
 
 const [runId, selectedMode = 'all', selectedCell = 'all'] =
@@ -25,6 +29,11 @@ for (const mode of modes)
     let snapshot;
     try {
       snapshot = await readSnapshot(input, runId, mode, cell);
+      assert.equal(
+        snapshot.sources,
+        await sourceFingerprint(workspace),
+        'Prepare a new snapshot after package or fixture changes',
+      );
       await cp(join(input, 'evidence'), join(output, 'preparation'), {
         recursive: true,
       });

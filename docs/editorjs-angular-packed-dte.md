@@ -35,8 +35,8 @@ For each of the three version cells, independently for CSR and SSR:
    examples. It retains both locks and produces a consumer snapshot.
 2. Build/evidence atoms consume that immutable snapshot. CSR has five atoms:
    a portable non-Angular consumer, native Forms interoperability, one application
-   build, and two browser files. SSR has seventeen: the four Angular CSR atoms
-   plus four SSR builds, server validation, five
+   build, and two browser files. SSR has eighteen: the four Angular CSR atoms
+   plus four SSR builds, server validation, six
    hydration files, isolation, and two independently rooted README build/test
    recipes. Each application build executes once per snapshot, not per spec.
 3. Browser/server atoms depend explicitly on the builds they consume. Build
@@ -48,7 +48,7 @@ For each of the three version cells, independently for CSR and SSR:
    evidence even after failures or skipped dependants. The public aggregate
    commands enforce the same gate locally.
 
-The full graph contains **66 cacheable atoms**, plus six uncached
+The full graph contains **69 cacheable atoms**, plus six uncached
 preparation targets outside the distributed invocation. Preparations keep CSR
 without SSR peers independent from SSR's embedded CSR checks.
 
@@ -131,7 +131,7 @@ read-only Actions permission; it is not written into consumer snapshots or logs.
 The worker count/template can be changed through `EDITORJS_PACKED_DISTRIBUTION`;
 `3 editorjs-packed` is an initial capacity choice, not a measured optimum.
 
-The coordinator requests all 66 atoms in one Nx invocation. Nx owns task
+The coordinator requests all 69 atoms in one Nx invocation. Nx owns task
 assignment and prerequisite ordering. Explicit completion runs with `always()`
 after worker startup, including failure/cancellation paths. The final uncached
 gate and retained evidence apply to all cells, even when the distributed invocation
@@ -142,7 +142,11 @@ remains a separate check.
 
 The timings below describe the original 60-atom graph. The registry validation
 in #597 adds one portable consumer and one registry hydration atom per version
-cell; it does not establish a new hosted timing or cost baseline.
+cell; it does not establish a new hosted timing or cost baseline. The real five-tool
+validation in #615 adds a separate combined hydration atom per cell, bringing the
+current graph to 69. See [combined-tool validation](editorjs-common-tools-validation.md)
+for its matrix, cache and hosted evidence. Older timings and the dated rollout
+blocker below describe their original commits.
 
 Local baseline on 26 October 2026, macOS arm64, reference cell, prerequisite
 library cache warm: the original serial SSR harness passed in **177.90 s**.

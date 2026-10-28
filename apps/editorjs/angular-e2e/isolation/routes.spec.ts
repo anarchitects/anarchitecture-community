@@ -238,9 +238,14 @@ test.describe('deliberately eager production negative control', () => {
     expect(eager.runtimeRequests.length).toBeGreaterThan(0);
     expect(eager.runtimeEvaluated.length).toBeGreaterThan(0);
     expect(eager.sessions).toEqual([]);
-    expect(
-      await page.evaluate(() => window.registryProbe?.evaluated),
-    ).toContain('card');
+    expect(await page.evaluate(() => window.registryProbe?.evaluated)).toEqual(
+      expect.arrayContaining([
+        'card',
+        ...['paragraph', 'header', 'list', 'quote', 'image'].map(
+          (name) => 'common-' + name,
+        ),
+      ]),
+    );
     expect(
       await page.evaluate(
         () =>
@@ -305,4 +310,62 @@ test('registry authoring delivers selected tools only and leaves cached code aft
   );
   expect(remounted.runtimeRequests).toEqual(active.runtimeRequests);
   expect(await page.evaluate(() => window.registryProbe?.created)).toBe(4);
+});
+
+test('real tool modules and embedded styles arrive only with authoring and remain cached after disposal', async ({
+  page,
+  graph,
+  delivery,
+}) => {
+  graph.assertIsolated();
+  await page.goto('/');
+  await idleWindow(page);
+  delivery.assertPublic(await delivery.checkpoint('before packaged tools'));
+  const styles = () => page.locator('style').allTextContents();
+  expect((await styles()).some((css) => css.includes('.image-tool'))).toBe(
+    false,
+  );
+  await page.getByRole('link', { name: 'Packaged tools', exact: true }).click();
+  await expect(page.getByTestId('registry-ready').first()).toHaveText('1');
+  await expect(page.getByTestId('registry-ready').last()).toHaveText('1');
+  const active = await delivery.checkpoint('five packaged tools active');
+  for (const name of ['paragraph', 'header', 'list', 'quote', 'image']) {
+    const outputs = graph.tools['common-' + name];
+    expect(
+      active.runtimeResponses.some((url) =>
+        outputs.includes(new URL(url).pathname.slice(1)),
+      ),
+    ).toBe(true);
+    expect(
+      active.runtimeEvaluated.some((url) =>
+        outputs.includes(new URL(url).pathname.slice(1)),
+      ),
+    ).toBe(true);
+  }
+  expect(
+    active.runtimeRequests.some((url) =>
+      graph.tools['unselected'].includes(new URL(url).pathname.slice(1)),
+    ),
+  ).toBe(false);
+  expect((await styles()).some((css) => css.includes('.image-tool'))).toBe(
+    true,
+  );
+  await page.getByRole('link', { name: 'Public', exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.registryProbe?.destroyed))
+    .toBe(2);
+  await expect(page.locator('.ce-block')).toHaveCount(0);
+  expect((await styles()).some((css) => css.includes('.image-tool'))).toBe(
+    true,
+  );
+  const exited = await delivery.checkpoint(
+    'packaged owners destroyed; modules and styles cached',
+  );
+  expect(exited.runtimeRequests).toEqual(active.runtimeRequests);
+  await page.getByRole('link', { name: 'Packaged tools', exact: true }).click();
+  await expect(page.getByTestId('registry-ready').last()).toHaveText('1');
+  expect(await page.evaluate(() => window.registryProbe?.created)).toBe(4);
+  expect(
+    (await delivery.checkpoint('new packaged owners')).runtimeRequests,
+  ).toEqual(active.runtimeRequests);
 });

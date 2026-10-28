@@ -14,7 +14,12 @@ import { commandRunner } from './packed-process.mjs';
 import { buildPackedSsr, ssrProfiles } from './packed-ssr.mjs';
 import { validateReadmeSsr } from './readme-ssr.mjs';
 import { packedPhases, phasesFor } from './packed-phases.mjs';
-import { pathsFor, readSnapshot, sha256 } from './packed-artifacts.mjs';
+import {
+  pathsFor,
+  readSnapshot,
+  sha256,
+  sourceFingerprint,
+} from './packed-artifacts.mjs';
 import { leasePorts } from './packed-ports.mjs';
 
 const [mode, cell, phase, runId] = process.argv.slice(2);
@@ -47,6 +52,11 @@ try {
     cache: join(report, 'npm-cache'),
     ownerPid: process.ppid,
   });
+  assert.equal(
+    snapshot.sources,
+    await sourceFingerprint(workspace),
+    'Prepare a new snapshot after package or fixture changes',
+  );
   const { run } = runner;
   const dependencies = packedPhases[phase];
   for (const dependency of dependencies) {

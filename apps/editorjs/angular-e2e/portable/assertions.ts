@@ -10,6 +10,9 @@ declare global {
       blockCreated: number;
       blockDestroyed: number;
       release?: () => void;
+      holdUpload?: boolean;
+      releaseUpload?: () => void;
+      uploadFinished?: number;
     };
   }
 }
