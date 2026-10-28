@@ -268,6 +268,33 @@ If that minimum cannot be established through public seams, #614 must bring a
 bounded upstream fix/version/contract amendment back for review before claiming
 support. Never hide it with a never-settling promise or disabled assertions.
 
+### Image alt authoring amendment (#614)
+
+The image browser export is a bounded composition adapter over upstream 2.10.3,
+using only public constructor, render, save, settings, paste and append methods.
+It owns a labelled native purpose selector and description textarea. Saved `alt`
+is optional: absent means unset (including legacy data), a nonblank string is an
+authored description, and an explicitly empty string means decorative. Empty
+editor description input remains unset; choosing Decorative is deliberate.
+Caption and file metadata cannot overwrite this field. Hosts own publication
+policy for unset alt and emit authored values through escaped attribute/DOM APIs.
+No public renderer is introduced.
+
+A fast successful upload can precede upstream's FileReader preview and leave the
+image hidden. On either outcome, the adapter snapshots current caption/settings through
+public save and replaces the upstream view using public constructor/render. Alt
+controls stay in place; a caption selection can be lost. Late preview/result work
+stays in the detached old view. Saved `file` and `alt` explicitly bypass Editor.js
+HTML cleaning; caption inherits enabled inline-tool sanitizer rules.
+
+The adapter adds Editor.js removed/destroy hooks for its own event listeners and
+observer; it decorates the public render tree with authored alt and makes upstream
+content inert in read-only mode. A per-instance public API notifier delegate
+suppresses notifications once removed. Uploads already started still settle and
+can update detached upstream UI; no private method is patched, no transport is
+aborted and no promise is left pending to conceal completion. The contract's
+previous minimum lifetime requirement remains the supported boundary.
+
 ## Consumer composition
 
 These are workflows for the planned exports, not runnable examples of shipped

@@ -47,6 +47,9 @@
     },
     {
       "path": "./packages/editorjs/tool-quote"
+    },
+    {
+      "path": "./packages/editorjs/tool-image"
     }
   ],
   "compilerOptions": {
