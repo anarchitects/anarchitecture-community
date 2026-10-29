@@ -285,6 +285,13 @@ mixes unrelated uploads.
 
 ## Public exports and troubleshooting
 
+For an optional backend, the [bounded Nest upload example](./nest-example.md)
+includes complete server and browser code for Nest 12.3.2 with Fastify or native
+Node. It demonstrates authorization seams, file and URL policy, size limits,
+error mapping and duplicate protection using controlled local data. Nest and
+storage remain application dependencies; see the example's production limits
+before adapting it to a deployed service.
+
 `/browser` exports `createFetchFileUploader`, `createFetchUrlUploader`,
 `FetchUploadError`, and the types `FetchUploadErrorCode`, `FetchUploadOptions`,
 `FetchUploadRequest`, `FetchUploadResponseContext`. `./package.json` is exported.

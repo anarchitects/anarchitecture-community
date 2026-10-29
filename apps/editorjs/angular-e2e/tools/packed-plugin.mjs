@@ -44,6 +44,9 @@ export const createNodesV2 = [
                 'editorjs-tool-list',
                 'editorjs-tool-quote',
                 'editorjs-tool-image',
+                ...(mode === 'csr' && cell === 'angular22-reference'
+                  ? ['editorjs-upload-fetch']
+                  : []),
               ],
               target: 'build',
               params: 'ignore',
@@ -57,13 +60,18 @@ export const createNodesV2 = [
             runId: 'missing',
           },
         };
-        for (const phase of phasesFor(mode)) {
+        for (const phase of phasesFor(mode, cell)) {
           const prerequisites = packedPhases[phase];
           targets[`${prefix}${phase}`] = {
             executor: 'nx:run-commands',
             cache: true,
             parallelism: true,
-            inputs,
+            inputs: [
+              ...inputs,
+              ...(phase.startsWith('nest-upload-')
+                ? [{ env: 'PLAYWRIGHT_BROWSERS_PATH' }]
+                : []),
+            ],
             outputs: [
               `{workspaceRoot}/dist/editorjs-packed-results/{options.runId}/${mode}/${cell}/${phase}`,
             ],

@@ -15,6 +15,7 @@ import { prepareIndependentTools } from './independent-tools.mjs';
 import { preparePortable } from './portable-consumer.mjs';
 import { preparePackedSsr } from './packed-ssr.mjs';
 import { prepareReadmeSsr } from './readme-ssr.mjs';
+import { prepareNestUpload } from './nest-upload.mjs';
 import { commandRunner } from './packed-process.mjs';
 import {
   pathsFor,
@@ -65,6 +66,14 @@ try {
       'packages/editorjs/tool-paragraph',
     ],
     ['@anarchitects/editorjs-angular', 'dist/packages/editorjs/angular'],
+    ...(mode === 'csr' && names.includes('angular22-reference')
+      ? [
+          [
+            '@anarchitects/editorjs-upload-fetch',
+            'packages/editorjs/upload-fetch',
+          ],
+        ]
+      : []),
   ]) {
     const output = await run(
       'npm',
@@ -74,7 +83,12 @@ try {
     );
     archives[name] = join(scratch, JSON.parse(output)[0].filename);
   }
-  for (const name of names) await validate(name, matrix[name], archives);
+  for (const name of names) {
+    const selectedArchives = { ...archives };
+    if (name !== 'angular22-reference')
+      delete selectedArchives['@anarchitects/editorjs-upload-fetch'];
+    await validate(name, matrix[name], selectedArchives);
+  }
 } finally {
   runner.dispose();
   await rm(scratch, { recursive: true, force: true });
@@ -250,6 +264,15 @@ async function validate(name, versions, archives) {
     await run(node, [compiler, '-p', 'tsconfig.root.json'], root);
     console.log(`Root declarations/imports without Forms passed: ${name}`);
     if (mode === 'csr') {
+      if (name === 'angular22-reference')
+        await prepareNestUpload({
+          root: join(scratch, `${name}-nest-upload`),
+          destination: join(root, 'nest-upload.tar.gz'),
+          archives,
+          report,
+          run,
+          workspace,
+        });
       await prepareIndependentTools({
         parent: join(scratch, `${name}-independent`),
         archives,

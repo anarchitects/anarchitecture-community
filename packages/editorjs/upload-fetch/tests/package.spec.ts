@@ -18,6 +18,7 @@ it('ships only public browser declarations/runtime and the actual guide/license'
   expect(paths).toEqual(
     expect.arrayContaining([
       'README.md',
+      'nest-example.md',
       'LICENSE',
       'dist/browser.js',
       'dist/browser.d.ts',
@@ -30,6 +31,9 @@ it('ships only public browser declarations/runtime and the actual guide/license'
   );
   expect(readFileSync(join(installed, 'README.md'), 'utf8')).toBe(
     readFileSync(join(source, 'README.md'), 'utf8'),
+  );
+  expect(readFileSync(join(installed, 'nest-example.md'), 'utf8')).toBe(
+    readFileSync(join(source, 'nest-example.md'), 'utf8'),
   );
   const manifest = JSON.parse(
     readFileSync(join(installed, 'package.json'), 'utf8'),

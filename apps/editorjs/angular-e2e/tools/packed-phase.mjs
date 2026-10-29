@@ -21,6 +21,7 @@ import {
   sourceFingerprint,
 } from './packed-artifacts.mjs';
 import { leasePorts } from './packed-ports.mjs';
+import { validateNestUpload } from './nest-upload.mjs';
 
 const [mode, cell, phase, runId] = process.argv.slice(2);
 assert.equal(
@@ -28,7 +29,7 @@ assert.equal(
   process.env.EDITORJS_PACKED_RUN_ID,
   'The task argument and hashed run ID must agree',
 );
-assert(phasesFor(mode).includes(phase), `Invalid packed phase: ${phase}`);
+assert(phasesFor(mode, cell).includes(phase), `Invalid packed phase: ${phase}`);
 const workspace = resolve(import.meta.dirname, '../../../..');
 const project = resolve(import.meta.dirname, '..');
 const { input, output: report } = pathsFor(workspace, runId, mode, cell, phase);
@@ -38,6 +39,7 @@ const lock = `${report}.lock`;
 await mkdir(lock); // Prevent concurrent writers for the same run and atom.
 let root;
 let portableRoot;
+let nestRoot;
 let lease;
 let runner;
 const started = Date.now();
@@ -147,7 +149,24 @@ try {
         env,
       );
     let buildPath;
-    if (phase === 'portable') {
+    if (phase.startsWith('nest-upload-')) {
+      nestRoot = await realpath(
+        await mkdtemp(join(tmpdir(), 'editorjs-nest-upload-atom-')),
+      );
+      await run(
+        'tar',
+        ['-xzf', join(root, 'nest-upload.tar.gz'), '-C', nestRoot],
+        workspace,
+      );
+      await validateNestUpload({
+        root: nestRoot,
+        node,
+        platform: phase.slice('nest-upload-'.length),
+        report,
+        run,
+        workspace,
+      });
+    } else if (phase === 'portable') {
       portableRoot = await realpath(
         await mkdtemp(join(tmpdir(), 'editorjs-portable-atom-')),
       );
@@ -232,6 +251,7 @@ try {
 } finally {
   await lease?.release();
   if (portableRoot) await rm(portableRoot, { recursive: true, force: true });
+  if (nestRoot) await rm(nestRoot, { recursive: true, force: true });
   if (root) await rm(root, { recursive: true, force: true });
   await writeFile(
     join(report, 'result.json'),

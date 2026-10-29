@@ -536,6 +536,15 @@ and [submit](https://angular.dev/api/forms/signals/submit).
 
 ### Optional Nest reference target
 
+**#631 scope clarification (2026-10-29):** the maintainer explicitly added
+`@nestjs/platform-node@12.3.2` alongside the Fastify selection below. Each
+adapter receives an independent installation and equivalent bounded upload
+checks, with no ecosystem-default or SSR support change. The complete
+[consumer example](../packages/editorjs/upload-fetch/nest-example.md) ships in
+the Fetch archive; [implementation evidence and limits](editorjs-nest-upload-validation.md)
+record exact dependencies, architecture review and the two Nx atoms. The
+original selection below remains the #626 design baseline.
+
 Select `@nestjs/common`, `@nestjs/core` and `@nestjs/platform-fastify` **12.3.2**,
 Fastify **5.12.7**, `@fastify/multipart` **10.1.6**, Node **24.15.0** and TypeScript
 **6.0.3** for #631's isolated example. Registry metadata confirms the platform's

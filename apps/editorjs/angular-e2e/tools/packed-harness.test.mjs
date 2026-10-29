@@ -60,10 +60,23 @@ test('distributed graphs contain only cacheable tasks with isolated outputs and 
       'angular22-reference',
       'angular22-current',
     ]) {
-      for (const phase of phasesFor(mode)) visit(targetFor(mode, cell, phase));
+      for (const phase of phasesFor(mode, cell))
+        visit(targetFor(mode, cell, phase));
       assert.equal(targets[targetFor(mode, cell, 'prepare')].cache, false);
     }
-  assert.equal(visited.size, 87); // (7 CSR atoms + 22 SSR atoms) × 3
+  assert.equal(visited.size, 89); // (7 CSR atoms + 22 SSR atoms) × 3 + 2 Nest adapters
+  for (const mode of ['csr', 'ssr'])
+    for (const cell of [
+      'angular22-minimum',
+      'angular22-reference',
+      'angular22-current',
+    ])
+      assert.equal(
+        phasesFor(mode, cell).filter((phase) =>
+          phase.startsWith('nest-upload-'),
+        ).length,
+        mode === 'csr' && cell === 'angular22-reference' ? 2 : 0,
+      );
   for (const value of ['0', '-1', '1.5', 'Infinity', '9', '2 --skip'])
     assert.throws(() => parallelism(value));
 });
@@ -153,7 +166,7 @@ test('failed validation evidence survives collection and fails the uncached gate
   await writeFile(join(input, 'snapshot.json'), JSON.stringify(snapshot));
   await readSnapshot(input, runId, mode, cell);
   await assert.rejects(readSnapshot(input, 'another-run', mode, cell));
-  for (const phase of phasesFor(mode)) {
+  for (const phase of phasesFor(mode, cell)) {
     if (phase === 'csr-editor') continue;
     await mkdir(join(output, phase), { recursive: true });
     await writeFile(
@@ -213,7 +226,7 @@ test('failed validation evidence survives collection and fails the uncached gate
   );
   assert.match(stale.error, /Prepare a new snapshot/);
   // Independently test collection, even when every retained phase claims success.
-  for (const phase of phasesFor(mode)) {
+  for (const phase of phasesFor(mode, cell)) {
     const file = join(output, phase, 'result.json');
     const result = JSON.parse(await readFile(file, 'utf8'));
     await writeFile(
