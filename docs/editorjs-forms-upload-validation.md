@@ -134,3 +134,31 @@ replayed 2/2 hits (228ms). Changing only declared `NG_BUILD_MAX_WORKERS` from 2 
 1 produced 0/2 hits and passed both tasks (21.5s). Restoring 2 replayed the original
 2/2 hits (214ms). Runtime/source/archive correctness checks remain in the existing
 snapshot fingerprint and harness; no broad cache bypass was introduced.
+
+## CI correction — 29 October 2026
+
+GitHub Actions run `40875135136` failed all three CSR-only `build-csr` atoms:
+the shared upload page imported `ActivatedRoute`, while those fresh consumers
+deliberately do not install `@angular/router`. The earlier SSR-mode matrix
+installed that peer and therefore did not expose the missing boundary. This was
+a fixture dependency regression, not a DTE worker or cache failure.
+
+The shared page now uses only its `forms` input. The SSR host enables Angular's
+route-to-input binding and supplies explicit `forms: true` / `forms: false` route
+data. The CSR host continues supplying the input directly. No peer is added and
+no check, cache input, output or task dependency is weakened.
+
+The correction re-enumerated and read all eight Community and eighteen Meta ADRs;
+the Meta inventory still matches `823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`.
+Modern Angular A02/A04/A09/A10 require explicit host composition and independent
+consumer/build evidence. Meta 0015 requires preserving accurate cache/DTE
+boundaries; local 0004 keeps this fixture diagnosis outside the package README.
+No accepted-decision conflict or exception is introduced.
+
+Correction validation passes host lint and CSR/SSR typechecks. CSR-only run
+`26baee40-d279-4c54-b5ba-d52e18983502` passes all three fresh compatibility cells,
+all 21 validation atoms and all three completeness gates (5m26s). This includes
+the three previously failing builds, with the router still absent. Reference
+SSR run `8ea59d43-a5b7-4ec3-8dca-932cb94dfacc` passes all 22 validation atoms and
+its completeness gate (4m53s), including both upload routes in all three
+hydration profiles, no-JS behavior and public-route isolation.

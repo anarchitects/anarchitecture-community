@@ -3,10 +3,8 @@ import {
   Component,
   inject,
   input,
-  computed,
   signal,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
 import type { OutputData } from '@anarchitects/editorjs-core';
 import { FormsUploadEditor } from './forms-upload-editor';
 import { UploadEditor } from './upload-editor';
@@ -36,7 +34,7 @@ import { createBackend, UPLOAD_BACKEND } from './backend';
     <span data-testid="backend-completed">{{ backend.completed() }}</span>
     @if (mounted()) {
       @for (generation of [revision()]; track generation) {
-        @if (withForms()) {
+        @if (forms()) {
           <aa-forms-upload-editor
             data-owner="A"
             label="A"
@@ -48,7 +46,7 @@ import { createBackend, UPLOAD_BACKEND } from './backend';
         }
       }
     }
-    @if (withForms()) {
+    @if (forms()) {
       @for (generation of [revisionB()]; track generation) {
         <aa-forms-upload-editor
           data-owner="B"
@@ -64,10 +62,6 @@ import { createBackend, UPLOAD_BACKEND } from './backend';
 })
 export class UploadPage {
   readonly forms = input(false);
-  private readonly route = inject(ActivatedRoute, { optional: true });
-  readonly withForms = computed(
-    () => this.forms() || this.route?.snapshot.data['forms'] === true,
-  );
   readonly documentA = signal<OutputData | undefined>(undefined);
   readonly documentB = signal<OutputData | undefined>(undefined);
   readonly revisionB = signal(0);
