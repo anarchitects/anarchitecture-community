@@ -42,7 +42,7 @@ for (const mode of modes)
     }
     // Inspect every required atom even after failures. Nx skips dependants of
     // failed builds; absent records must never be interpreted as passing checks.
-    for (const phase of phasesFor(mode)) {
+    for (const phase of phasesFor(mode, cell)) {
       try {
         const { output: phaseOutput } = pathsFor(
           workspace,

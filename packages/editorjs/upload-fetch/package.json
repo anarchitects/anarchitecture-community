@@ -13,6 +13,7 @@
   },
   "files": [
     "dist",
+    "nest-example.md",
     "!**/*.tsbuildinfo"
   ],
   "nx": {

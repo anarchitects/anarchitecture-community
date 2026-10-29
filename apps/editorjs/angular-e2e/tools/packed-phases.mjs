@@ -1,5 +1,7 @@
 /** File atoms share immutable consumer snapshots and separately cached builds. */
 export const packedPhases = {
+  'nest-upload-fastify': [],
+  'nest-upload-node': [],
   portable: [],
   interop: [],
   'build-csr': [],
@@ -56,10 +58,15 @@ export const packedPhases = {
   'readme-default': [],
   'readme-full': [],
 };
-export const phasesFor = (mode) =>
+export const phasesFor = (mode, cell) =>
   Object.keys(packedPhases).filter(
     (phase) =>
-      (mode === 'ssr' && phase !== 'portable') ||
+      (phase.startsWith('nest-upload-') &&
+        mode === 'csr' &&
+        cell === 'angular22-reference') ||
+      (mode === 'ssr' &&
+        phase !== 'portable' &&
+        !phase.startsWith('nest-upload-')) ||
       ([
         'portable',
         'interop',

@@ -3,7 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "apps/editorjs/angular-e2e/src",
-  "implicitDependencies": ["editorjs-angular-host"],
+  "implicitDependencies": ["editorjs-angular-host", "editorjs-upload-fetch"],
   "targets": {
     "e2e": {
       "dependsOn": ["^build"],

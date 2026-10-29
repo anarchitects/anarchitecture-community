@@ -24,7 +24,7 @@ const runner = commandRunner({});
 const targets = (phase) =>
   cells
     .flatMap((cell) =>
-      (phase === 'prepare' ? ['prepare'] : phasesFor(mode)).map((atom) =>
+      (phase === 'prepare' ? ['prepare'] : phasesFor(mode, cell)).map((atom) =>
         targetFor(mode, cell, atom),
       ),
     )

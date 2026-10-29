@@ -13,7 +13,7 @@ console.log(
   ['csr', 'ssr']
     .flatMap((mode) =>
       Object.keys(matrix).flatMap((cell) =>
-        phasesFor(mode).map((phase) => targetFor(mode, cell, phase)),
+        phasesFor(mode, cell).map((phase) => targetFor(mode, cell, phase)),
       ),
     )
     .join(','),
