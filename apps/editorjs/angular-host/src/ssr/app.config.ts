@@ -8,6 +8,12 @@ import { provideEditorJsTools } from '@anarchitects/editorjs-angular';
 
 const routes: Routes = [
   {
+    path: 'forms-upload',
+    data: { forms: true },
+    loadComponent: () =>
+      import('../upload/upload-page').then((m) => m.UploadPage),
+  },
+  {
     path: 'upload',
     providers: [
       provideEditorJsTools([

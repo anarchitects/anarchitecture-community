@@ -212,6 +212,19 @@ after the packed runs; no runtime/fixture/README code changed afterward. The
 corrected unit graph and package/fixture type/lint checks were rerun. Remote reuse,
 hosted DTE timing and the remaining full SSR matrix remain #632 evidence gates.
 
+## Native Forms implementation increment #630
+
+The optional native Forms composition is now supplied as a complete compiled
+recipe in the [Angular README](../packages/editorjs/angular/README.md#uploads-with-native-signal-forms).
+It uses the existing owner and `EditorJsControl`, derives native upload validation
+errors, blocks outstanding uploads, and locks editing before authoritative
+snapshot capture and native submission. No new facade, package export, runtime
+implementation or dependency is needed. Reset recreates the entire session and
+preserves the Image Tool teardown order. The [validation record](editorjs-forms-upload-validation.md)
+records the ADR preflight, exact compatibility cells, behavioral coverage and
+cache/DTE evidence. The remaining endpoint and consolidated release work retain
+their own sequencing gates.
+
 ## Architecture review and baseline
 
 Reviewed on 28 October 2026 against Community `3cf0ac8` (merged #625) and Meta

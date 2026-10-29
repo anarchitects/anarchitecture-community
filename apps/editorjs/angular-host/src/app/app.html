@@ -12,7 +12,7 @@
     Outputs: <span data-testid="outputs">{{ ownership.outputs() }}</span>
   </aside>
   @if (uploadMode) {
-  <aa-upload-page />
+  <aa-upload-page [forms]="uploadForms" />
   } @else if (formsMode) {
   <aa-forms-card label="First" />
   <aa-forms-card label="Second" />

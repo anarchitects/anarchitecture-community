@@ -2,14 +2,19 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  input,
+  computed,
   signal,
 } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import type { OutputData } from '@anarchitects/editorjs-core';
+import { FormsUploadEditor } from './forms-upload-editor';
 import { UploadEditor } from './upload-editor';
 import { createBackend, UPLOAD_BACKEND } from './backend';
 
 @Component({
   selector: 'aa-upload-page',
-  imports: [UploadEditor],
+  imports: [UploadEditor, FormsUploadEditor],
   providers: [{ provide: UPLOAD_BACKEND, useFactory: createBackend }],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -31,13 +36,41 @@ import { createBackend, UPLOAD_BACKEND } from './backend';
     <span data-testid="backend-completed">{{ backend.completed() }}</span>
     @if (mounted()) {
       @for (generation of [revision()]; track generation) {
-        <aa-upload-editor data-owner="A" label="A" />
+        @if (withForms()) {
+          <aa-forms-upload-editor
+            data-owner="A"
+            label="A"
+            [document]="documentA()"
+            (replacement)="documentA.set($event); revision.update(increment)"
+          />
+        } @else {
+          <aa-upload-editor data-owner="A" label="A" />
+        }
       }
     }
-    <aa-upload-editor data-owner="B" label="B" />
+    @if (withForms()) {
+      @for (generation of [revisionB()]; track generation) {
+        <aa-forms-upload-editor
+          data-owner="B"
+          label="B"
+          [document]="documentB()"
+          (replacement)="documentB.set($event); revisionB.update(increment)"
+        />
+      }
+    } @else {
+      <aa-upload-editor data-owner="B" label="B" />
+    }
   `,
 })
 export class UploadPage {
+  readonly forms = input(false);
+  private readonly route = inject(ActivatedRoute, { optional: true });
+  readonly withForms = computed(
+    () => this.forms() || this.route?.snapshot.data['forms'] === true,
+  );
+  readonly documentA = signal<OutputData | undefined>(undefined);
+  readonly documentB = signal<OutputData | undefined>(undefined);
+  readonly revisionB = signal(0);
   readonly backend = inject(UPLOAD_BACKEND);
   readonly modes = [
     'held-success',
