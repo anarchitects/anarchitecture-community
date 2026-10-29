@@ -114,9 +114,71 @@ fresh preparation. Keep the uncached completeness gate for full-matrix claims.
 
 ## Execution record
 
-Validation is in progress for this PR. Final local matrix, invalidation and hosted
-coordinator evidence will be recorded here after execution; no hosted result or
-cost improvement is claimed by the implementation alone.
+Local validation on 29 October 2026 used macOS arm64 and orchestration Node
+24.22.2 (CI remains pinned to 24.22.1):
+
+- Fixture lint/typechecks and all seven harness tests pass. The six non-emitting
+  core/tool checks pass ([Nx run](https://cloud.nx.app/runs/PRq5JHHiUJ)).
+- Fetch unit/packed checks and 21 controlled browser scenarios pass
+  ([Nx run](https://cloud.nx.app/runs/Wt85gloyPq)).
+- Fresh six-cell preparation took **2m48s**. The first 89-atom invocation took
+  **9m52s**, with no hits: **86 passed**, and the three SSR checks caught a test
+  assertion comparing rendered `waiting` to `waiting`. The assertion now trims
+  surrounding whitespace; the state/credential/lifetime assertions remain.
+  [Initial run](https://cloud.nx.app/runs/Yjf8k2cDwN).
+- All three corrected packed SSR checks and their builds pass
+  ([36.9s correction run](https://cloud.nx.app/runs/PriOV1uwM6)); the workspace
+  SSR check passes too ([Nx run](https://cloud.nx.app/runs/DmpUy77vX4)).
+  All **89 required phase results** and all **six uncached completeness gates**
+  now pass. This is a full matrix plus the focused assertion correction, not a
+  claim that the first invocation was entirely green.
+- The original local output-removal replay restored all **15 files byte-for-byte**
+  with **2/2 hits**, Nx **353ms** / replay subprocess **3.96s**
+  ([Nx replay](https://cloud.nx.app/runs/R6lSQzgkCW)).
+- Independent temporary changes to core source, the ImageTool dependency version
+  and shared TypeScript configuration each caused Nx's runtime hash guard to
+  reject the old snapshot before execution. Every original file was restored.
+  A source change during an earlier preparation was also rejected by the new
+  before/after fingerprint guard. Logs are retained under `invalidation`.
+- Changing only `PLAYWRIGHT_BROWSERS_PATH` to the explicit existing browser
+  location caused **0/2 hits** and both tasks passed in **17.8s**
+  ([environment probe](https://cloud.nx.app/runs/TrWP1QrJ4S)); its unchanged-code
+  baseline passed cold in 18.2s. This exercises the newly declared environment
+  input, not a broad `skipNxCache` bypass.
+
+An isolated local **remote** replay used exactly the same task hashes as its
+cold seed but received **0/2 remote hits**. The audit correctly failed and restored
+its saved cold evidence; no remote success is inferred from a normal local hit.
+Local remote-cache availability is separate from CI's authenticated DTE cache.
+The audit retains the remote `nx-run.json`, including hashes and cache statuses,
+rather than relying on elapsed time or a successful re-execution. Local cache
+locations may be per-user in Nx 23; the audit does not assume `.nx/cache` is the
+active local store.
+
+Hosted run links, actual worker execution, coordinator collection, restoration
+results and measured durations are recorded in the focused
+[PR #640](https://github.com/anarchitects/anarchitecture-community/pull/640)
+validation record once CI completes. The CI artifact
+`editorjs-angular-packed-evidence` retains all six collections and the strict
+remote restoration audit. The first hosted run also exposed the whitespace
+assertion and correctly failed the SSR completeness gates while retaining the
+successful and failed atom diagnostics. Two hosted isolation atoms also reproduced the earlier cold public-page stall
+inside the helper's unbounded `requestIdleCallback` waits. The helper now gives
+both callbacks a one-second deadline and retains their `didTimeout`/elapsed
+observations as Playwright attachments. This follows the
+[API scheduling contract](https://www.w3.org/TR/requestidlecallback/): idle
+periods are not guaranteed. The 30-second test timeout, one-second observation
+interval, production dependency-graph checks, request/preload/evaluation checks,
+positive controls and eager negative controls remain. A deadline observation is
+not labeled proof that the browser was actually idle. Application scheduling is
+unchanged. All three corrected isolation cells pass
+([Nx run](https://cloud.nx.app/runs/c3m0Ksx9Gl)); final lint/typecheck/harness
+checks pass. Final local restoration again returns **2/2 hits** and restores
+all **15 files**, with Nx reporting **7ms** and the complete replay subprocess
+**12.06s** ([Nx run](https://cloud.nx.app/runs/OjzQCVFkBM)). Runtime hashing,
+startup and transfer overhead must not be confused with task execution time.
+All six completeness gates pass again afterward. No cost improvement is inferred
+from the implementation.
 
 ## Cache and cost boundary
 
@@ -134,3 +196,35 @@ matrix. Compare coordinator time, worker initialization/active duration and
 snapshot transfer separately. Capacity/cost tuning remains owned by repository
 maintainers after representative hosted measurements; no silent DTE exemption
 or cache bypass is introduced.
+
+## Local artifact identities
+
+Prepared run `si632-matrix-v3`, macOS arm64, orchestration Node 24.22.2.
+Fresh preparation took 2m48s ([Nx run](https://cloud.nx.app/runs/QfQMcTdJZW)).
+All six snapshots share source fingerprint
+`3016457ec18ae02e4303f7566caabeaed2f605765805b63a1ff009b416fb9b3a`.
+
+| Mode/cell     | Snapshot SHA-256                                                   | Installed lock SHA-256                                             |
+| ------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| csr/minimum   | `dc62a9b5aaae1815fdfe6deb987bb4b0c78edb8f68f870ef84c7978e1df0254d` | `6870d7e9c3b699079713907dafe60e35207992b2d6a3f42ec02c8340fe5e0ce6` |
+| csr/reference | `b2153715c07885ac59a30701130a072a8f10cb95b67674a7a3ab644fd3199d3c` | `6c18e139820ee67e932dc17ce6594f01a34ba7f1ed0dfa07aa3ad68b2d92ddf1` |
+| csr/current   | `53985bbe8297cf599199fe7f96a356a7953930738bacb4b2edb38301a3f612ed` | `180518ff298a97e93017048789502aa2e332d612961f47e1e563c59499ad4460` |
+| ssr/minimum   | `627be6d91c3aaaef6a929ec8a1209375b7c7d217fdf595e2fd51276fe734fe54` | `1f402cdf0edff856e758a5fdd47a8229d01d8ad089fb11ad59ea4a678075a7ea` |
+| ssr/reference | `874c73386ece64b2f196193fa2374adf0535a13a14c404f804bb28dca2b551fd` | `9f544ee1a8a4a0e14b0a24745ca818cec1b4db370b539311572096ab1b270962` |
+| ssr/current   | `be816cca3ca8b6082836892f1c8abc9b1e7206437bbddb968731c5740224003c` | `0ea78f308d9fbf70d1aaf08182cd12a0b08e801999a22a22650e990cf594391b` |
+
+| Actual package archive                | SHA-256                                                            |
+| ------------------------------------- | ------------------------------------------------------------------ |
+| @anarchitects/editorjs-core           | `226312e2251e29c9bf583257d6293b5e3e530285eb20a2d324b226772548944d` |
+| @anarchitects/editorjs-tool-header    | `2a98929815b82b9f5216fa04f8b12bd3e8c5c9cc6426e002683bd0cf80471c03` |
+| @anarchitects/editorjs-tool-list      | `2fda3ac1801a20a39e89cfe8a14d04f360e55868ce7fe08a589cd2b97485dc3c` |
+| @anarchitects/editorjs-tool-quote     | `4f6a775b9c1ed62bb26d8dd582c937f986a5eb208730b9982cc0f29e290b0428` |
+| @anarchitects/editorjs-tool-image     | `c88f312358e3bc66320e81e9aa1a1885cbda26f6de4a2f0c40210468dfe875b5` |
+| @anarchitects/editorjs-tool-paragraph | `5c504467baa6682a4693e57eedf12376f297bcb96838ee70dba76b7897c277ea` |
+| @anarchitects/editorjs-angular        | `3f83bc8360a84b6927221d5650f029f538d73d4fffaf88dc6052f0683965abea` |
+| @anarchitects/editorjs-upload-fetch   | `1b9ac5c6c9b1837159e6acf8746c7637a2d44c6707f2a4a168bbd6618355068f` |
+
+The retained `snapshot.json` records archive names, platform and selected versions.
+Preparation evidence also includes Forms-absent and installed locks, independently
+installed portable/Nest consumers and version-resolution records. These generated
+artifacts remain outside Git; CI retains its own Linux snapshots/locks and reports.

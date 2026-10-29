@@ -6,10 +6,28 @@ import { fixturePort } from '../tools/ssr-environment.mjs';
 /** A bounded idle observation, not a timer-based application activation policy. */
 async function idleWindow(page: Page) {
   await expect(page.locator('main')).toHaveAttribute('data-rendered', 'true');
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) => requestIdleCallback(() => resolve()));
+  const observation = await page.evaluate(async () => {
+    const idle = () =>
+      new Promise<{ timedOut: boolean; waitedMs: number }>((resolve) => {
+        const start = performance.now();
+        // Idle time is not guaranteed on a busy worker. Bound this test-only
+        // scheduling opportunity without changing application activation policy.
+        requestIdleCallback(
+          (deadline) =>
+            resolve({
+              timedOut: deadline.didTimeout,
+              waitedMs: performance.now() - start,
+            }),
+          { timeout: 1_000 },
+        );
+      });
+    const before = await idle();
     await new Promise((resolve) => setTimeout(resolve, 1_000));
-    await new Promise<void>((resolve) => requestIdleCallback(() => resolve()));
+    return { before, after: await idle() };
+  });
+  await test.info().attach('idle-observation', {
+    body: JSON.stringify(observation),
+    contentType: 'application/json',
   });
 }
 

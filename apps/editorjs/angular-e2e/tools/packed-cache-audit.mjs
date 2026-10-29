@@ -31,6 +31,7 @@ const report = join(
 const scratch = await mkdtemp(join(tmpdir(), 'editorjs-cache-audit-'));
 const before = {};
 const result = { runId, cache, phases, status: 'failed' };
+await rm(report, { recursive: true, force: true });
 await mkdir(report, { recursive: true });
 
 async function manifest(directory) {
@@ -109,6 +110,15 @@ try {
   });
   result.durationMs = performance.now() - start;
   await writeFile(join(report, 'nx.log'), terminal);
+  const nxRun =
+    cache === 'remote'
+      ? JSON.parse(await readFile(join(scratch, 'cache/run.json'), 'utf8'))
+      : undefined;
+  if (nxRun)
+    await writeFile(
+      join(report, 'nx-run.json'),
+      JSON.stringify(nxRun, null, 2),
+    );
   assert.equal(code, 0, 'Cache replay must pass');
   const after = {};
   for (const phase of phases) {
@@ -120,16 +130,14 @@ try {
       before[phase],
       `Cache did not restore identical ${phase} evidence`,
     );
+    const task = nxRun?.tasks.find(
+      ({ target }) => target === targetFor(mode, cell, phase),
+    );
     if (cache === 'remote')
-      assert(
-        terminal
-          .split('\n')
-          .some(
-            (line) =>
-              line.includes(targetFor(mode, cell, phase)) &&
-              line.includes('[remote cache]'),
-          ),
-        `Nx did not report a remote cache hit for ${phase}`,
+      assert.equal(
+        task?.cacheStatus,
+        'remote-cache-hit',
+        `Expected remote cache restoration for ${phase}`,
       );
   }
   await writeFile(join(report, 'after.json'), JSON.stringify(after, null, 2));

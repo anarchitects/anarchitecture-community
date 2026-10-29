@@ -215,7 +215,7 @@ try {
             for (const ready of dom.window.document.querySelectorAll(
               '[data-testid="ready"]',
             ))
-              assert.equal(ready.textContent, 'waiting');
+              assert.equal(ready.textContent.trim(), 'waiting');
             assert(!result.html.includes('PRIVATE_'));
           } else {
             assert.equal(
