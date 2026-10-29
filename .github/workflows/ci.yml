@@ -222,6 +222,10 @@ jobs:
       - name: Complete packed DTE
         if: ${{ always() && steps.workers.outcome == 'success' }}
         run: yarn nx-cloud complete-ci-run
+      - name: Verify remote packed output restoration
+        env:
+          NX_CLOUD_DISTRIBUTED_EXECUTION: 'false'
+        run: node apps/editorjs/angular-e2e/tools/packed-cache-audit.mjs "$EDITORJS_PACKED_RUN_ID" remote
       - uses: actions/upload-artifact@v4
         if: always()
         with:

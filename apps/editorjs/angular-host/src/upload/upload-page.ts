@@ -9,6 +9,7 @@ import type { OutputData } from '@anarchitects/editorjs-core';
 import { FormsUploadEditor } from './forms-upload-editor';
 import { UploadEditor } from './upload-editor';
 import { createBackend, UPLOAD_BACKEND } from './backend';
+import { UPLOAD_REQUEST_MARKER } from './request-marker';
 
 @Component({
   selector: 'aa-upload-page',
@@ -17,6 +18,7 @@ import { createBackend, UPLOAD_BACKEND } from './backend';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1>Independent uploads</h1>
+    <p data-testid="marker">{{ requestMarker }}</p>
     <label
       >Next outcome
       <select #outcome (change)="backend.mode.set(outcome.value)">
@@ -61,6 +63,8 @@ import { createBackend, UPLOAD_BACKEND } from './backend';
   `,
 })
 export class UploadPage {
+  readonly requestMarker =
+    inject(UPLOAD_REQUEST_MARKER, { optional: true })?.() ?? 'public-default';
   readonly forms = input(false);
   readonly documentA = signal<OutputData | undefined>(undefined);
   readonly documentB = signal<OutputData | undefined>(undefined);

@@ -237,6 +237,20 @@ test.describe('deliberately eager production negative control', () => {
     );
     expect(eager.runtimeRequests.length).toBeGreaterThan(0);
     expect(eager.runtimeEvaluated.length).toBeGreaterThan(0);
+    const backend = graph.tools['upload-backend'];
+    expect(backend.some((asset) => graph.publicClosure.includes(asset))).toBe(
+      true,
+    );
+    expect(
+      eager.runtimeResponses.some((url) =>
+        backend.includes(new URL(url).pathname.slice(1)),
+      ),
+    ).toBe(true);
+    expect(
+      eager.runtimeEvaluated.some((url) =>
+        backend.includes(new URL(url).pathname.slice(1)),
+      ),
+    ).toBe(true);
     expect(eager.sessions).toEqual([]);
     expect(await page.evaluate(() => window.registryProbe?.evaluated)).toEqual(
       expect.arrayContaining([
@@ -258,6 +272,50 @@ test.describe('deliberately eager production negative control', () => {
     );
     await expect(page.locator('aa-editorjs')).toHaveCount(0);
   });
+});
+
+test('upload backend arrives only on authoring and cached code does not retain owner state', async ({
+  page,
+  graph,
+  delivery,
+}) => {
+  graph.assertIsolated();
+  await page.goto('/');
+  await idleWindow(page);
+  delivery.assertPublic(await delivery.checkpoint('before upload authoring'));
+  await page.getByRole('link', { name: 'Uploads', exact: true }).click();
+  await expect(
+    page.locator('aa-upload-editor').getByTestId('ready'),
+  ).toHaveText(['ready', 'ready']);
+  const active = await delivery.checkpoint('upload authoring active');
+  for (const observed of [active.runtimeResponses, active.runtimeEvaluated])
+    expect(
+      observed.some((url) =>
+        graph.tools['upload-backend'].includes(new URL(url).pathname.slice(1)),
+      ),
+    ).toBe(true);
+  await expect(page.getByTestId('backend-calls')).toHaveText('0');
+  await page
+    .getByRole('button', { name: 'Upload URL', exact: true })
+    .first()
+    .click();
+  await expect(page.getByTestId('backend-calls')).toHaveText('1');
+  await page
+    .getByRole('button', { name: 'Release uploads', exact: true })
+    .click();
+  await expect(page.getByTestId('backend-completed')).toHaveText('1');
+  await page.getByRole('link', { name: 'Public', exact: true }).click();
+  await expect(page.locator('aa-upload-editor')).toHaveCount(0);
+  await page.getByRole('link', { name: 'Uploads', exact: true }).click();
+  await expect(
+    page.locator('aa-upload-editor').getByTestId('ready'),
+  ).toHaveText(['ready', 'ready']);
+  await expect(page.getByTestId('backend-calls')).toHaveText('0');
+  await expect(page.getByTestId('backend-completed')).toHaveText('0');
+  expect(
+    (await delivery.checkpoint('fresh upload owners with cached code'))
+      .runtimeRequests,
+  ).toEqual(active.runtimeRequests);
 });
 
 test('registry authoring delivers selected tools only and leaves cached code after disposal', async ({
