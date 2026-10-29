@@ -1763,3 +1763,383 @@ Contributor details are in the
 ## License
 
 Apache-2.0.
+
+## Uploads with native Signal Forms
+
+Install the optional `@angular/forms` peer alongside the Image Tool dependencies
+above. This opt-in recipe composes `createEditorJsUploadOwner` with the existing
+`EditorJsControl` and native `validate`/`submit`. It adds no control facade and
+changes no behavior for standalone or Forms consumers who do not select it.
+Supply your upload port and an awaited persistence function to
+`startArticleEditor`; mount `<app-article-editor></app-article-editor>`.
+The persistence function returns false for an expected safe application failure;
+transport exceptions stay in the host's error handling.
+
+This recipe **blocks while uploads are active**. `pending()` still means native
+asynchronous validation, `submitting()` means the native submission action, and
+the host's `locked()` also covers snapshot capture. `ignoreValidators: 'none'`
+blocks pending validation; it does not wait. Submit again after validation
+completes. `EditorJsControl.save()` captures the editor and does not await uploads.
+If adding async document validation, derive a stable content key for its resource
+parameters (for example, serialize the blocks being validated). Do not key it on
+the entire snapshot object or its capture timestamp: every save creates a new
+snapshot, which would restart validation on every submission attempt. The schema
+below uses synchronous upload rules; remote content validation remains host-owned.
+
+<!-- example-file: forms-upload-editor.ts -->
+
+```ts
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  inject,
+  InjectionToken,
+  input,
+  output,
+  signal,
+  viewChild,
+  type OnInit,
+} from '@angular/core';
+import { bootstrapApplication } from '@angular/platform-browser';
+import {
+  FormField,
+  form,
+  required,
+  submit,
+  validate,
+} from '@angular/forms/signals';
+import { createEditorJsUploadOwner } from '@anarchitects/editorjs-angular';
+import {
+  EditorJsControl,
+  type EditorJsControlConfig,
+} from '@anarchitects/editorjs-angular/forms';
+import {
+  composeToolRegistry,
+  createToolResolver,
+  EDITOR_JS_2_31_7_TOOL_PROFILE,
+  type ImageUploader,
+  type OutputData,
+} from '@anarchitects/editorjs-core';
+import { defineImageTool } from '@anarchitects/editorjs-tool-image';
+
+interface Article {
+  title: string;
+  body: OutputData;
+}
+const BACKEND = new InjectionToken<ImageUploader<Blob>>('article uploads');
+const PERSIST = new InjectionToken<(article: Article) => Promise<boolean>>(
+  'persist article',
+);
+
+@Component({
+  selector: 'app-article-session',
+  imports: [FormField, EditorJsControl],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <section aria-label="Article" [attr.aria-busy]="uploads.busy()">
+      <p role="status">{{ uploads.activeCount() }} uploads in progress</p>
+      <div #surface [inert]="locked()" [attr.inert]="locked() ? '' : null">
+        <label>Title <input [formField]="fields.title" /></label>
+        @if (config(); as configured) {
+          <aa-editorjs-control
+            aria-label="Article body"
+            [formField]="fields.body"
+            [config]="configured"
+            (ready)="ready.set(true)"
+            (error)="
+              notice.set('The editor operation failed. Please try again.')
+            "
+          />
+        }
+      </div>
+      <!-- No form element: neither click nor Enter has a native submission fallback. -->
+      <button
+        type="button"
+        [disabled]="
+          !ready() || locked() || uploads.busy() || uploads.hasErrors()
+        "
+        (click)="save()"
+      >
+        Save article
+      </button>
+      <button type="button" (click)="reset()">Reset current article</button>
+      @for (error of fields().errorSummary(); track $index) {
+        <p role="alert">{{ error.message }}</p>
+      }
+      @for (operation of uploads.operations(); track operation.id) {
+        @if (operation.status !== 'active') {
+          <button type="button" (click)="uploads.acknowledge(operation.id)">
+            Acknowledge upload error
+          </button>
+        }
+      }
+      @if (uploads.overflow(); as overflow) {
+        <button type="button" (click)="uploads.acknowledge(overflow.id)">
+          Acknowledge older upload errors
+        </button>
+      }
+      <p role="status">{{ notice() }}</p>
+      @if (fields().pending()) {
+        <p role="status">Validation in progress</p>
+      }
+      @if (fields().submitting()) {
+        <p role="status">Saving article</p>
+      }
+    </section>
+  `,
+})
+export class ArticleSession implements OnInit {
+  readonly initial = input.required<Article>();
+  readonly replacement = output<Article>();
+  readonly lifetime = inject(DestroyRef);
+  private readonly persist = inject(PERSIST);
+  readonly uploads = createEditorJsUploadOwner(inject(BACKEND), {
+    destroyRef: this.lifetime,
+    mapError: () =>
+      'An image upload failed. Retry or remove it, then acknowledge this error.',
+  });
+  readonly model = signal<Article>({ title: '', body: { blocks: [] } });
+  readonly fields = form(this.model, (path) => {
+    required(path.title, { message: 'Enter an article title.' });
+    validate(path.body, () => [
+      ...(this.uploads.busy()
+        ? [
+            {
+              kind: 'upload-busy',
+              message: 'Wait for image uploads before saving.',
+            },
+          ]
+        : []),
+      ...this.uploads
+        .operations()
+        .filter((op) => op.status !== 'active')
+        .map((op) => ({ kind: 'upload-failed', message: op.message })),
+      ...(this.uploads.overflow()
+        ? [
+            {
+              kind: 'upload-failed',
+              message:
+                'Additional uploads failed; review before acknowledging.',
+            },
+          ]
+        : []),
+    ]);
+  });
+  readonly locked = signal(false);
+  readonly ready = signal(false);
+  readonly notice = signal('');
+  readonly config = signal<EditorJsControlConfig | undefined>(undefined);
+  private readonly editor = viewChild(EditorJsControl);
+  private readonly surface = viewChild<ElementRef<HTMLElement>>('surface');
+
+  ngOnInit() {
+    this.fields().reset(this.initial());
+  }
+  constructor() {
+    const available = () => !this.locked() && !this.uploads.disposed();
+    const resolver = createToolResolver(
+      composeToolRegistry(
+        [
+          [
+            defineImageTool({
+              source: 'lazy',
+              load: () =>
+                import('@anarchitects/editorjs-tool-image/browser').then(
+                  (m) => m.ImageTool,
+                ),
+              settings: {
+                config: {
+                  uploader: {
+                    uploadByFile: (file: Blob) =>
+                      available()
+                        ? this.uploads.uploader.uploadByFile(file)
+                        : Promise.resolve({ success: 0 as const }),
+                    uploadByUrl: (url: string) =>
+                      available()
+                        ? this.uploads.uploader.uploadByUrl(url)
+                        : Promise.resolve({ success: 0 as const }),
+                  },
+                },
+              },
+            }),
+          ],
+        ],
+        { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+      ),
+    );
+    this.lifetime.onDestroy(() => resolver.dispose());
+    afterNextRender(() => {
+      void resolver
+        .resolve()
+        .then((tools) => {
+          if (!this.lifetime.destroyed)
+            this.config.set({ tools, defaultBlock: 'image' });
+        })
+        .catch(() => {
+          if (!this.lifetime.destroyed)
+            this.notice.set('Image tools could not load.');
+        });
+      // Capture-phase guard closes the gap before Angular applies inert.
+      const element = this.surface()?.nativeElement;
+      const gate = (event: Event) => {
+        if (!this.locked()) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      };
+      const events = [
+        'pointerdown',
+        'pointerup',
+        'mouseup',
+        'touchstart',
+        'dblclick',
+        'keyup',
+        'mousedown',
+        'click',
+        'keydown',
+        'beforeinput',
+        'input',
+        'paste',
+        'cut',
+        'drop',
+      ];
+      for (const name of events) element?.addEventListener(name, gate, true);
+      this.lifetime.onDestroy(() => {
+        for (const name of events)
+          element?.removeEventListener(name, gate, true);
+      });
+    });
+  }
+  reset() {
+    const article = this.initial();
+    this.ready.set(false);
+    this.locked.set(true);
+    this.editor()?.reset();
+    // Session destruction removes the tool before DestroyRef disposes uploads.
+    this.fields().reset(article);
+    this.replacement.emit(article);
+  }
+  async save() {
+    const editor = this.editor();
+    if (
+      !editor ||
+      !this.ready() ||
+      this.lifetime.destroyed ||
+      this.locked() ||
+      this.uploads.disposed()
+    )
+      return;
+    if (this.uploads.busy() || this.uploads.hasErrors()) {
+      this.notice.set('Resolve outstanding uploads before saving.');
+      return;
+    }
+    this.locked.set(true); // Also guards programmatic duplicate calls before snapshot capture.
+    const generation = this.uploads.generation();
+    const current = () =>
+      this.ready() &&
+      !this.lifetime.destroyed &&
+      !this.uploads.disposed() &&
+      this.uploads.generation() === generation &&
+      !this.uploads.busy() &&
+      !this.uploads.hasErrors();
+    try {
+      const snapshot = await editor.save(); // This API does not wait for uploads.
+      if (!current()) return;
+      this.model.update((article) => ({ ...article, body: snapshot }));
+      const saved = await submit(this.fields, {
+        ignoreValidators: 'none',
+        action: async (field) => {
+          if (!current())
+            return { kind: 'superseded', message: 'The article changed.' };
+          const success = await this.persist({
+            ...field().value(),
+            body: snapshot,
+          });
+          if (!current()) return undefined;
+          return success
+            ? undefined
+            : {
+                kind: 'server',
+                message: 'The article could not be saved. Please try again.',
+              };
+        },
+      });
+      if (current())
+        this.notice.set(
+          saved ? 'Article saved.' : 'Review the form before saving again.',
+        );
+    } catch {
+      if (current())
+        this.notice.set('The article could not be saved. Please try again.');
+    } finally {
+      this.locked.set(false);
+    }
+  }
+}
+
+@Component({
+  selector: 'app-article-editor',
+  imports: [ArticleSession],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @for (generation of [revision()]; track generation) {
+      <app-article-session
+        [initial]="article()"
+        (replacement)="replace($event)"
+      />
+    }
+  `,
+})
+export class ArticleEditor {
+  readonly article = signal<Article>({ title: '', body: { blocks: [] } });
+  readonly revision = signal(0);
+  replace(article: Article) {
+    this.article.set(article);
+    this.revision.update((value) => value + 1); // Recreate even for the same value.
+  }
+}
+export function startArticleEditor(
+  backend: ImageUploader<Blob>,
+  persist: (article: Article) => Promise<boolean>,
+) {
+  return bootstrapApplication(ArticleEditor, {
+    providers: [
+      { provide: BACKEND, useValue: backend },
+      { provide: PERSIST, useValue: persist },
+    ],
+  });
+}
+```
+
+The outer component replaces the complete session on reset, including same-value
+reset. Call `replace(nextArticle)` for a different document. The native reset API
+clears interaction state; destroying the session retires its editor, tool and
+upload owner. Owner reset alone cannot invalidate callbacks already held by an
+Image Tool. Disposal fences local results but does not abort a transport or undo
+stored files. Persistence already sent to a server has the same limitation.
+
+The lock prevents new editing and upload calls during snapshot capture and
+submission. If your host adds programmatic document writes, disabled/readonly
+rules or additional uploader entry points, apply the same guard there and reject
+an attempt if availability or document identity changes. Use native `disabled`
+and `readonly` schema rules; do not bind those inputs over `[formField]`. Do not
+route upload errors through the editor's initialization/save error output.
+
+Upload errors are derived validators, so other validators and native server
+errors remain under Angular's ownership. Snapshot reconciliation changes the
+model; Angular clears server errors on edited fields according to its native
+semantics. A later successful upload does not acknowledge an earlier failure.
+Acknowledge only after the host determines that the failed operation is resolved
+or its image is no longer relevant. Concurrent failures and the bounded overflow
+summary all block this recipe. Acknowledgement does not change dirty/touched
+state. A host may deliberately choose nonblocking upload presentation instead.
+
+There is no native HTML form in this example: before hydration, the button is
+inert and Enter cannot navigate or leak draft content into a URL. If embedding
+inside an ancestor form, that host must prevent unsafe native submission too.
+The registry loads browser tools only after rendering; SSR evaluates neither
+Image Tool constructors nor upload requests. The image bridge preserves caption,
+metadata and alt's three states: unset, authored description, and decorative
+empty string. Upload completion never invents alternative text.

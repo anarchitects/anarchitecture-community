@@ -14,7 +14,12 @@ import { UploadPage } from '../upload/upload-page';
   styleUrl: './app.css',
 })
 export class App {
-  readonly uploadMode = new URLSearchParams(location.search).has('upload');
+  readonly uploadMode =
+    new URLSearchParams(location.search).has('upload') ||
+    new URLSearchParams(location.search).has('forms-upload');
+  readonly uploadForms = new URLSearchParams(location.search).has(
+    'forms-upload',
+  );
   readonly formsMode = new URLSearchParams(location.search).has('forms');
   readonly ownership = inject(Ownership);
 }

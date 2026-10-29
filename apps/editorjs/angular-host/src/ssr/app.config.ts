@@ -3,12 +3,23 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { hydration } from './hydration';
-import { provideRouter, Routes } from '@angular/router';
+import {
+  provideRouter,
+  Routes,
+  withComponentInputBinding,
+} from '@angular/router';
 import { provideEditorJsTools } from '@anarchitects/editorjs-angular';
 
 const routes: Routes = [
   {
+    path: 'forms-upload',
+    data: { forms: true },
+    loadComponent: () =>
+      import('../upload/upload-page').then((m) => m.UploadPage),
+  },
+  {
     path: 'upload',
+    data: { forms: false },
     providers: [
       provideEditorJsTools([
         {
@@ -87,7 +98,7 @@ const routes: Routes = [
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    provideRouter(routes, withComponentInputBinding()),
     hydration,
   ],
 };

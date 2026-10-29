@@ -6,6 +6,7 @@ export const packedPhases = {
   'csr-editor': ['build-csr'],
   'csr-forms': ['build-csr'],
   'csr-upload': ['build-csr'],
+  'csr-forms-upload': ['build-csr'],
   'build-ssr-production': [],
   'build-ssr-diagnostic': [],
   'build-ssr-full': [],
@@ -27,6 +28,11 @@ export const packedPhases = {
     'build-ssr-full',
   ],
   'hydration-forms': [
+    'build-ssr-production',
+    'build-ssr-diagnostic',
+    'build-ssr-full',
+  ],
+  'hydration-forms-upload': [
     'build-ssr-production',
     'build-ssr-diagnostic',
     'build-ssr-full',
@@ -61,6 +67,7 @@ export const phasesFor = (mode) =>
         'csr-editor',
         'csr-forms',
         'csr-upload',
+        'csr-forms-upload',
       ].includes(phase) &&
         mode === 'csr'),
   );
