@@ -7,6 +7,7 @@ type MenuConfig = Exclude<
 >;
 import {
   composeToolRegistry,
+  createToolResolver,
   selectToolRegistry,
   validateToolReferences,
   EDITOR_JS_2_31_7_TOOL_PROFILE,
@@ -52,6 +53,7 @@ function action(label: string, run: () => unknown | Promise<unknown>) {
 }
 
 async function start() {
+  if (mode === 'code') return startCodeProbe();
   if (mode === 'editorial' || mode === 'editorial-alias')
     return startEditorial();
   if (mode === 'direct') {
@@ -191,6 +193,90 @@ async function start() {
     const error = await outcome;
     pendingHolder.remove();
     return { constructed, error, children: pendingHolder.childElementCount };
+  });
+  status.textContent = 'Ready';
+}
+
+async function startCodeProbe() {
+  const { codeRegistry } = await import('./code-lazy.js');
+  const { codeSettings } = await import('./code-settings.js');
+  const { requireCodeDocument } = await import('./code-data.js');
+  const config = { placeholder: 'Probe code' };
+  action('Unselected code', async () => {
+    const resolver = createToolResolver(
+      selectToolRegistry(codeRegistry(config), []),
+    );
+    try {
+      return { names: Object.keys(await resolver.resolve()) };
+    } finally {
+      resolver.dispose();
+    }
+  });
+  action('Code diagnostics', async () => {
+    const errorOf = async (run: () => unknown) => {
+      try {
+        await run();
+        return 'accepted';
+      } catch (error) {
+        return String(error);
+      }
+    };
+    const configError = await errorOf(() => codeRegistry({ placeholder: 123 }));
+    const dataError = await errorOf(() =>
+      requireCodeDocument({ blocks: [{ type: 'code', data: { code: 123 } }] }),
+    );
+    const namespace = createToolResolver(
+      composeToolRegistry(
+        [
+          [
+            {
+              name: 'code',
+              kind: 'block',
+              source: 'lazy',
+              // @ts-expect-error A namespace is not a constructor; also exercise the runtime diagnostic.
+              load: () => import('@editorjs/code'),
+            },
+          ],
+        ],
+        { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+      ),
+    );
+    const exportError = await errorOf(() => namespace.resolve());
+    namespace.dispose();
+    let attempts = 0;
+    const retry = createToolResolver(
+      composeToolRegistry(
+        [
+          [
+            {
+              name: 'code',
+              kind: 'block',
+              source: 'lazy',
+              settings: codeSettings(config),
+              load: async () => {
+                if (++attempts === 1)
+                  throw new Error('Injected loader rejection');
+                return (await import('@editorjs/code')).default;
+              },
+            },
+          ],
+        ],
+        { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+      ),
+    );
+    const loadError = await errorOf(() => retry.resolve());
+    const resolved = await retry.resolve();
+    const recovered =
+      resolved.code.class === (await import('@editorjs/code')).default;
+    retry.dispose();
+    return {
+      configError,
+      dataError,
+      exportError,
+      loadError,
+      attempts,
+      recovered,
+    };
   });
   status.textContent = 'Ready';
 }

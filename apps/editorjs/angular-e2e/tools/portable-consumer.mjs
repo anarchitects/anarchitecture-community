@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, basename } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
 /** Fresh installation is separate from the cacheable browser/build atom. */
 export async function preparePortable({
@@ -38,6 +40,7 @@ export async function preparePortable({
         '@anarchitects/editorjs-tool-quote': `file:${basename(quoteArchive)}`,
         '@anarchitects/editorjs-tool-image': `file:${basename(imageArchive)}`,
         '@editorjs/editorjs': versions.editorjs,
+        '@editorjs/code': '2.9.4',
       },
       devDependencies: { esbuild: '0.28.2', typescript: versions.typescript },
     }),
@@ -81,6 +84,12 @@ export async function preparePortable({
       'flag-tune.ts',
       'editorial-registry.ts',
       'editorial-main.ts',
+      'code-data.ts',
+      'code-settings.ts',
+      'code-direct.ts',
+      'code-lazy.ts',
+      'code-main.ts',
+      'code.html',
     ],
   );
   await mkdir(join(root, 'custom'));
@@ -234,6 +243,7 @@ export async function preparePortable({
       files: [
         'custom/main.ts',
         'custom/editorial-main.ts',
+        'custom/code-main.ts',
         'custom/callout-direct.ts',
         'custom/probe.ts',
         'registry/direct.ts',
@@ -256,6 +266,76 @@ export async function preparePortable({
     ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.json'],
     root,
   );
+  const codeRoot = join(root, 'node_modules/@editorjs/code');
+  const codePackage = JSON.parse(
+    await readFile(join(codeRoot, 'package.json'), 'utf8'),
+  );
+  const lock = JSON.parse(
+    await readFile(join(root, 'package-lock.json'), 'utf8'),
+  );
+  const codeLock = lock.packages['node_modules/@editorjs/code'];
+  assert.equal(codePackage.version, '2.9.4');
+  assert.equal(codePackage.license, 'MIT');
+  assert.equal(
+    codeLock.integrity,
+    'sha512-c0zyWodNqjL/0WI67sZvACIOFU9IAHG0UeeIpjss8pZGGNBum+UWkh7nKULK0SYvaOrdPdlWWqjuFU1TFA5jUA==',
+  );
+  await cp(join(codeRoot, 'LICENSE'), join(report, 'code-LICENSE'));
+  // NodeNext interoperability is measured independently of the supported Bundler recipe.
+  await writeFile(
+    join(root, 'code-node-next.mts'),
+    `
+    import type { BlockToolConstructable } from '@editorjs/editorjs';
+    const constructor: BlockToolConstructable = (await import('@editorjs/code')).default;
+    void constructor;
+  `,
+  );
+  await writeFile(
+    join(root, 'code-node-next.json'),
+    JSON.stringify({
+      compilerOptions: {
+        noEmit: true,
+        strict: true,
+        target: 'ES2022',
+        module: 'NodeNext',
+        moduleResolution: 'NodeNext',
+        lib: ['ES2022', 'DOM'],
+        types: [],
+      },
+      files: ['code-node-next.mts'],
+    }),
+  );
+  const nodeNext = spawnSync(
+    node,
+    ['node_modules/typescript/bin/tsc', '-p', 'code-node-next.json'],
+    { cwd: root, encoding: 'utf8' },
+  );
+  assert.ifError(nodeNext.error);
+  assert.notEqual(
+    nodeNext.status,
+    0,
+    'Revisit the documented NodeNext default-export limitation if interoperability changes',
+  );
+  assert.match(nodeNext.stdout, /TS2322|TS2419|TS2351/);
+  await writeFile(
+    join(report, 'code-package.json'),
+    JSON.stringify(
+      {
+        package: codePackage,
+        installed: codeLock,
+        esmSha256: createHash('sha256')
+          .update(await readFile(join(codeRoot, 'dist/code.mjs')))
+          .digest('hex'),
+        nodeNext: {
+          status: nodeNext.status,
+          diagnostics: nodeNext.stdout + nodeNext.stderr,
+        },
+        supported: 'TypeScript Bundler / browser ESM',
+      },
+      null,
+      2,
+    ),
+  );
   await run(
     node,
     [
@@ -264,7 +344,7 @@ export async function preparePortable({
       `
     import assert from 'node:assert/strict';
     import { composeToolRegistry, createToolResolver, EDITOR_JS_2_31_7_TOOL_PROFILE } from '@anarchitects/editorjs-core';
-    for (const name of ['@angular/core', '@angular/forms', '@anarchitects/editorjs-angular']) assert.throws(() => import.meta.resolve(name), { code: 'ERR_MODULE_NOT_FOUND' });
+    for (const name of ['@angular/core', '@angular/forms', '@anarchitects/editorjs-angular', '@nestjs/core']) assert.throws(() => import.meta.resolve(name), { code: 'ERR_MODULE_NOT_FOUND' });
     let calls = 0;
     class Tool {}
     const registry = composeToolRegistry([[{ name: 'custom', kind: 'block', source: 'lazy', load: async () => { calls++; return Tool; } }]], { profile: EDITOR_JS_2_31_7_TOOL_PROFILE });
@@ -292,7 +372,7 @@ export async function buildPortable({ root, node, report, run }) {
       `
     import { build } from 'esbuild';
     import { writeFile } from 'node:fs/promises';
-    const result = await build({ entryPoints: { 'dist/main': 'custom/main.ts', 'editorial/dist/main': 'custom/editorial-main.ts', 'custom-probe': 'custom/probe.ts', direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts', quote: 'quote/direct.ts', image: 'image/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
+    const result = await build({ entryPoints: { 'dist/main': 'custom/main.ts', 'dist/code-main': 'custom/code-main.ts', 'editorial/dist/main': 'custom/editorial-main.ts', 'custom-probe': 'custom/probe.ts', direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts', quote: 'quote/direct.ts', image: 'image/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
     await writeFile('metadata.json', JSON.stringify(result.metafile));
   `,
     ],
@@ -353,6 +433,27 @@ export async function buildPortable({ root, node, report, run }) {
   }
   visitCustom('dist/browser/dist/main.js');
   visitCustom('dist/browser/editorial/dist/main.js');
+  visitCustom('dist/browser/dist/code-main.js');
+  visitCustom('dist/browser/custom-probe.js');
+  const codeChunks = Object.entries(metadata.outputs)
+    .filter(([, output]) =>
+      Object.entries(output.inputs).some(
+        ([file, value]) =>
+          file.includes('node_modules/@editorjs/code/dist/code.mjs') &&
+          value.bytesInOutput > 0,
+      ),
+    )
+    .map(([file]) => file);
+  assert(codeChunks.length > 0, 'Missing external Code implementation');
+  assert(
+    !codeChunks.some((file) => customInitial.has(file)),
+    'External Code entered the initial closure',
+  );
+  const codeDelivery = JSON.stringify({
+    chunks: codeChunks.map((file) => file.replace('dist/browser/', '')),
+  });
+  await writeFile(join(report, 'code-delivery.json'), codeDelivery);
+  await writeFile(join(root, 'dist/browser/code-delivery.json'), codeDelivery);
   const calloutChunks = Object.entries(metadata.outputs)
     .filter(([, output]) =>
       Object.entries(output.inputs).some(
@@ -578,6 +679,10 @@ export async function buildPortable({ root, node, report, run }) {
   await cp(
     join(root, 'custom/index.html'),
     join(root, 'dist/browser/custom-tool.html'),
+  );
+  await cp(
+    join(root, 'custom/code.html'),
+    join(root, 'dist/browser/code.html'),
   );
   await writeFile(
     join(root, 'dist/browser/editorial.html'),

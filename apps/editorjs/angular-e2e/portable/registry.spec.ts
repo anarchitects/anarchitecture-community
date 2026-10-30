@@ -2,6 +2,205 @@ import { test, expect } from '../hydration/fixture.js';
 import { behavior, lifetime } from './assertions.js';
 import type { Page } from '@playwright/test';
 
+for (const mode of ['direct', 'lazy']) {
+  test(`archived third-party Code ${mode} edits literal text, round trips, styles and removes`, async ({
+    page,
+  }) => {
+    const requested: string[] = [];
+    page.on('request', (request) =>
+      requested.push(new URL(request.url()).pathname.slice(1)),
+    );
+    const name = mode === 'lazy' ? 'snippet' : 'code';
+    await page.goto(`/code.html?mode=${mode}&name=${name}`);
+    await expect(page.getByRole('status')).toHaveText('Not started');
+    const delivery: { chunks: string[] } = await (
+      await page.request.get('/code-delivery.json')
+    ).json();
+    expect(delivery.chunks.some((chunk) => requested.includes(chunk))).toBe(
+      false,
+    );
+    await page.getByRole('button', { name: 'Start editor' }).click();
+    await expect(page.getByRole('status')).toHaveText('Ready');
+    expect(delivery.chunks.every((chunk) => requested.includes(chunk))).toBe(
+      true,
+    );
+    const code = page.getByPlaceholder('Write literal code');
+    await expect(code).toHaveValue('// Restored sample');
+    await expect(code).toHaveCSS('min-height', '200px');
+    await expect(code).toHaveCSS('white-space', 'pre');
+    await code.click();
+    await code.fill('');
+    const literal = '<script>alert("literal")</script>\nconst value = 1;';
+    await code.pressSequentially(literal);
+    await expect(page.getByRole('status')).toHaveText('Changed');
+    await expect(page.locator('#editor script')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    const saved = page.getByRole('textbox', { name: 'Saved document JSON' });
+    await expect(saved).toHaveValue(/const value/);
+    expect(JSON.parse(await saved.inputValue()).blocks[0]).toMatchObject({
+      type: name,
+      data: { code: literal },
+    });
+    await code.fill('Temporary');
+    await page.getByRole('button', { name: 'Reload JSON' }).click();
+    await expect(code).toHaveValue(literal);
+    // Upstream's Tab handler mutates value without notifying native input listeners.
+    await code.evaluate((element) => {
+      element.dataset['inputEvents'] = '0';
+      element.addEventListener('input', () => {
+        element.dataset['inputEvents'] = String(
+          Number(element.dataset['inputEvents']) + 1,
+        );
+      });
+    });
+    await code.click();
+    await code.press('ControlOrMeta+End');
+    await code.press('Tab');
+    await expect(code).toHaveValue(literal + '  ');
+    await expect(code).toHaveAttribute('data-input-events', '0');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect
+      .poll(
+        async () => JSON.parse(await saved.inputValue()).blocks[0].data.code,
+      )
+      .toBe(literal + '  ');
+    await page.getByRole('button', { name: 'Toggle read only' }).click();
+    await expect(page.getByRole('status')).toHaveText('Read only');
+    await expect(code).toBeDisabled();
+    await expect(code).toHaveValue(literal + '  ');
+    await page.getByRole('button', { name: 'Toggle read only' }).click();
+    await expect(page.getByRole('status')).toHaveText('Editable');
+    await expect(code).toBeEnabled();
+    await code.click();
+    await code.selectText();
+    await code.press('Delete');
+    // Editor.js intercepts forward Delete at the textarea's end, even for a selection.
+    await expect(code).toHaveValue(literal + '  ');
+    await code.press('ControlOrMeta+A');
+    await code.press('Backspace');
+    await expect(code).toHaveValue('');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect
+      .poll(
+        async () => JSON.parse(await saved.inputValue()).blocks[0].data.code,
+      )
+      .toBe('');
+    await code.click();
+    await code.hover();
+    await page.locator('#editor .ce-toolbar__plus').click();
+    await page.getByText('Code sample', { exact: true }).click();
+    await expect(
+      page.getByPlaceholder('Write literal code').last(),
+    ).toHaveValue('// New sample');
+    await saved.fill(
+      JSON.stringify({ blocks: [{ type: name, data: { code: 123 } }] }),
+    );
+    await page.getByRole('button', { name: 'Reload JSON' }).click();
+    await expect(page.getByRole('status')).toContainText('tool_data_invalid');
+    await expect(
+      page.getByPlaceholder('Write literal code').last(),
+    ).toHaveValue('// New sample');
+    await page.getByRole('button', { name: 'Remove editor' }).click();
+    await expect(page.getByRole('status')).toHaveText('Removed');
+    await expect(page.locator('#editor')).toBeEmpty();
+    await expect(
+      page.getByRole('button', { name: 'Save', exact: true }),
+    ).toBeDisabled();
+  });
+}
+
+test('third-party selection stays unloaded and invalid config/export/load paths recover explicitly', async ({
+  page,
+}) => {
+  const requested: string[] = [];
+  page.on('request', (request) =>
+    requested.push(new URL(request.url()).pathname.slice(1)),
+  );
+  await page.goto('/custom-probe.html?mode=code');
+  await expect(page.locator('#status')).toHaveText('Ready');
+  const delivery: { chunks: string[] } = await (
+    await page.request.get('/code-delivery.json')
+  ).json();
+  await page.getByRole('button', { name: 'Unselected code' }).click();
+  await expect(page.locator('output')).toHaveText('{"names":[]}');
+  expect(delivery.chunks.some((chunk) => requested.includes(chunk))).toBe(
+    false,
+  );
+  await page.getByRole('button', { name: 'Code diagnostics' }).click();
+  await expect(page.locator('output')).toContainText('"recovered":true');
+  const diagnostics = JSON.parse(await page.locator('output').innerText());
+  expect(diagnostics.configError).toContain('string placeholder');
+  expect(diagnostics.dataError).toContain('tool_data_invalid');
+  expect(diagnostics.exportError).toContain('invalid-loaded-constructor');
+  expect(diagnostics.loadError).toContain('load-failed');
+  expect(diagnostics.attempts).toBe(2);
+});
+
+test('third-party module evaluation failure is visible and a corrected fresh page recovers', async ({
+  page,
+}) => {
+  const delivery: { chunks: string[] } = await (
+    await page.request.get('/code-delivery.json')
+  ).json();
+  const pattern = `**/${delivery.chunks[0]}`;
+  await page.route(pattern, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: 'throw new Error("Injected Code module failure");',
+    }),
+  );
+  await page.goto('/code.html');
+  await page.getByRole('button', { name: 'Start editor' }).click();
+  await expect(page.getByRole('status')).toContainText('load-failed');
+  await expect(page.locator('#editor')).toBeEmpty();
+  await page.unroute(pattern);
+  await page.reload();
+  await page.getByRole('button', { name: 'Start editor' }).click();
+  await expect(page.getByRole('status')).toHaveText('Ready');
+  await expect(page.getByPlaceholder('Write literal code')).toBeEditable();
+});
+
+test('removing a third-party owner during import prevents late editor creation', async ({
+  page,
+}) => {
+  const delivery: { chunks: string[] } = await (
+    await page.request.get('/code-delivery.json')
+  ).json();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let requested = false;
+  await page.route(`**/${delivery.chunks[0]}`, async (route) => {
+    requested = true;
+    await gate;
+    await route.continue();
+  });
+  await page.goto('/code.html');
+  await page.getByRole('button', { name: 'Start editor' }).click();
+  await expect.poll(() => requested).toBe(true);
+  await page.getByRole('button', { name: 'Remove editor' }).click();
+  await expect(page.getByRole('status')).toHaveText('Removed');
+  const loaded = page.waitForResponse((response) =>
+    new URL(response.url()).pathname.endsWith(delivery.chunks[0]),
+  );
+  release();
+  await loaded;
+  // Module evaluation is observable through its style insertion even after owner disposal.
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Array.from(document.querySelectorAll('style')).some((style) =>
+          style.textContent?.includes('.ce-code__textarea'),
+        ),
+      ),
+    )
+    .toBe(true);
+  await expect(page.locator('#editor')).toBeEmpty();
+  await expect(page.getByRole('status')).toHaveText('Removed');
+});
+
 test('packed core README mounts, saves and disposes a real Editor.js instance', async ({
   page,
 }) => {
