@@ -118,6 +118,22 @@ export async function buildGraph(eager = false) {
       ),
     )
     .map(([file]) => file);
+  if (packed) {
+    for (const [name, source] of Object.entries({
+      'custom-callout': 'examples/custom/callout-tool.ts',
+      'custom-marker': 'examples/custom/marker-tool.ts',
+      'custom-flag': 'examples/custom/flag-tune.ts',
+      'custom-code': 'node_modules/@editorjs/code/dist/',
+    }))
+      tools[name] = Object.entries(outputs)
+        .filter(([, output]) =>
+          Object.entries(output.inputs).some(
+            ([input, value]) =>
+              input.includes(source) && value.bytesInOutput > 0,
+          ),
+        )
+        .map(([file]) => file);
+  }
   for (const [tool, files] of Object.entries(tools))
     assert(files.length > 0, `Missing tool output: ${tool}`);
   const initial = closure(main);

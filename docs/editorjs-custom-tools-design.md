@@ -3,8 +3,56 @@
 Contributor design for [#642](https://github.com/anarchitects/anarchitecture-community/issues/642),
 the first slice of epic #73. It fixes the scope and evidence required in
 #643–#648. The implementation increments below record #643's block example and
-#644's inline/tune extension, #645's external Code recipe and #646's Angular
-composition. The planning tables do not certify later slices.
+#644's inline/tune extension, #645's external Code recipe, #646's Angular
+composition and #647's packed validation. The planning tables do not certify
+unexecuted gates.
+
+## Packed validation increment (#647)
+
+The packed SSR consumer now copies the actual extracted Angular/core guide files
+and adds only private route activation and request-state plumbing. The existing
+registry hydration atom exercises the standalone and Forms examples in production,
+diagnostic and full-hydration profiles, including navigation during delayed Code
+delivery. Existing generic registry, five-tool, upload and Forms-upload checks
+remain in their original atoms.
+
+Production graph classification includes archived CalloutTool, MarkerTool,
+FlagTune and Code. Browser request/response/coverage observations and Code styles
+prove activation delivery; the eager negative control retains the same actual
+implementations. Guarded server imports positively reject each custom browser
+module, while sequential and overlapping HTTP requests must render inert markup
+with isolated request state and completed owner disposal.
+
+Preflight on 30 October 2026 read all eight Community and eighteen Meta ADRs,
+including historical/proposed records, from Community baseline
+`c3a03b1e1aa3739985893648572718c824196bcf`. All Meta ADR blobs match the fresh remote
+inventory and clean adjacent checkout at
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. The Modern Angular index, repository
+application and architecture, provider, reactivity, Forms, rendering, SSR/build
+and testing guides were reviewed. Community0004 and A01/A02/A03/A05/A07/A09/A10
+require actual public artifacts, neutral implementation reuse, explicit lifetimes
+and observed SSR/hydration/delivery behavior. Meta0015 requires exact snapshot
+inputs, restorable outputs, independent failure propagation and measured remote
+proof; local reuse does not establish hosted DTE. Meta0013/Community0007 preserve
+release intent. No accepted conflict or proposal override is introduced, and
+HTTP/Nest/authentication contracts retain their scopes.
+
+Resolved e2e (105 targets) and host (10 targets) configurations were inspected.
+The 89 cacheable atoms and six uncached preparations retain their existing
+topology. The already-hashed custom consumer and SSR helpers own the new copied
+source/configuration. The strict coordinator cache audit now restores the custom
+editor and Forms results as well as the shared CSR build and upload regression.
+Fresh installs and completeness checks remain uncached. Hosted work and CI
+monitoring require the maintainer's credit authorization; this is an execution
+constraint, not a claim that the hosted acceptance gate is satisfied.
+
+The changed Nx project is private `editorjs-angular-e2e`; package exports,
+runtime dependencies, peers and versions are unchanged. Fresh history checks
+found npm 404 for core/Angular, no Editor.js tags and no Editor.js distribution
+among all 102 GitHub Releases. Use non-bumping `init(editorjs-angular-e2e)`.
+
+See the [custom-tool validation record](editorjs-custom-tools-validation.md)
+for exact run identities, matrix results, cache evidence and remaining gates.
 
 ## Angular composition increment (#646)
 

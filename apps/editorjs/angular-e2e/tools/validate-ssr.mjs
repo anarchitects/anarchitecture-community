@@ -48,6 +48,10 @@ const editorOutputs = Object.entries(stats.outputs)
           input.includes('@editorjs/editorjs/') ||
           input.includes('/registry/tools/') ||
           input.includes('/common/tools/') ||
+          input.includes('examples/custom/callout-tool.ts') ||
+          input.includes('examples/custom/marker-tool.ts') ||
+          input.includes('examples/custom/flag-tune.ts') ||
+          input.includes('@editorjs/code/') ||
           /@editorjs\/(paragraph|header|list|quote|image)\//.test(input),
       ),
   )
@@ -73,6 +77,47 @@ const control = await childResult([
 assert.notEqual(control.code, 0);
 assert.match(control.stderr, /Editor.js server evaluation forbidden/);
 await writeFile(join(report, 'import-negative-control.log'), control.stderr);
+if (packed) {
+  const controls = {};
+  for (const source of [
+    'callout-tool.ts',
+    'marker-tool.ts',
+    'flag-tune.ts',
+    '@editorjs/code/',
+  ]) {
+    const files = Object.entries(stats.outputs).filter(
+      ([file, details]) =>
+        file.endsWith('.mjs') &&
+        Object.entries(details.inputs).some(
+          ([input, value]) => input.includes(source) && value.bytesInOutput > 0,
+        ),
+    );
+    assert(
+      files.length > 0,
+      `Missing archived custom server provenance: ${source}`,
+    );
+    const file = join(output, 'server', basename(files[0][0]));
+    assert(editorOutputs.includes(file));
+    const result = await childResult([
+      '--import',
+      guard,
+      '--input-type=module',
+      '-e',
+      `await import(${JSON.stringify(pathToFileURL(file).href)})`,
+    ]);
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /Editor.js server evaluation forbidden/);
+    controls[source] = {
+      file: basename(file),
+      code: result.code,
+      stderr: result.stderr,
+    };
+  }
+  await writeFile(
+    join(report, 'custom-import-negative-controls.json'),
+    JSON.stringify(controls, null, 2),
+  );
+}
 
 let stdout = '';
 let stderr = '';
@@ -176,6 +221,7 @@ try {
     'tools/forms',
     'upload',
     'forms-upload',
+    ...(packed ? ['custom', 'custom-forms'] : []),
   ]) {
     for (const concurrent of [false, true]) {
       const verify = async (marker) => {
@@ -189,9 +235,10 @@ try {
           const holders =
             dom.window.document.querySelectorAll('aa-editorjs > div');
           const uploads = route === 'upload' || route === 'forms-upload';
+          const custom = route.startsWith('custom');
           assert.equal(
             holders.length,
-            uploads ? 0 : route.endsWith('forms') ? 1 : 2,
+            uploads || custom ? 0 : route.endsWith('forms') ? 1 : 2,
           );
           for (const holder of holders)
             assert.equal(holder.childNodes.length, 0);
@@ -200,7 +247,18 @@ try {
               .textContent,
             marker,
           );
-          if (uploads) {
+          if (custom) {
+            assert(
+              dom.window.document.querySelector('aa-custom-ssr button')
+                .disabled,
+            );
+            assert.equal(
+              dom.window.document.querySelectorAll(
+                'app-custom-page, app-custom-form-page, .callout-text, .ce-code__textarea',
+              ).length,
+              0,
+            );
+          } else if (uploads) {
             for (const name of ['backend-calls', 'backend-completed'])
               assert.equal(
                 dom.window.document.querySelector(`[data-testid="${name}"]`)
@@ -342,6 +400,7 @@ async function request(path, name, wait = 0) {
     path.startsWith('/forms') ||
     path.startsWith('/registry') ||
     path.startsWith('/upload') ||
+    path.startsWith('/custom') ||
     path.startsWith('/tools');
   // Angular schedules platform destruction after rendering. Observe its actual
   // DestroyRef callbacks; do not force disposal or infer it from HTTP completion.

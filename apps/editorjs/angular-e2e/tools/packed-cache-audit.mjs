@@ -21,7 +21,7 @@ assert.equal(process.env.EDITORJS_PACKED_RUN_ID, runId);
 const workspace = resolve(import.meta.dirname, '../../../..');
 const mode = 'csr',
   cell = 'angular22-reference';
-const phases = ['build-csr', 'csr-upload'];
+const phases = ['build-csr', 'csr-upload', 'csr-editor', 'csr-forms'];
 const report = join(
   workspace,
   'dist/editorjs-packed-results',

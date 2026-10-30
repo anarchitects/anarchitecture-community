@@ -151,6 +151,14 @@ for #632 coverage, invalidation and current hosted evidence. See [combined-tool 
 for its matrix, cache and hosted evidence. Older timings and the dated rollout
 blocker below describe their original commits.
 
+The [custom-tool validation record](editorjs-custom-tools-validation.md) covers
+#647 without adding atoms: archived custom consumers extend the existing CSR,
+registry hydration, SSR and delivery checks. The coordinator cache audit now
+removes and compares the reference CSR build, upload, custom editor and Forms
+outputs. Its strict remote mode still requires explicit remote-hit statuses from
+an empty local cache/database. That record distinguishes local proof from the
+hosted evidence still required for #647.
+
 Local baseline on 26 October 2026, macOS arm64, reference cell, prerequisite
 library cache warm: the original serial SSR harness passed in **177.90 s**.
 The first portable-artifact/file-atom run passed all reference-cell assertions:
