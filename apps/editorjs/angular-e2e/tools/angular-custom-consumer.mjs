@@ -134,3 +134,74 @@ export async function checkAngularCustomImports({ root, node, run }) {
     root,
   );
 }
+
+/** Host-only activation/request plumbing; the archived consumer sources stay unchanged. */
+export async function prepareAngularCustomSsr(root) {
+  await cp(join(root, '..', 'examples'), join(root, 'examples'), {
+    recursive: true,
+  });
+  await writeFile(
+    join(root, 'examples/custom-ssr.ts'),
+    `
+    import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+    import { ActivatedRoute } from '@angular/router';
+    import { RequestState } from '../apps/editorjs/angular-host/src/ssr/request-state';
+    import { CustomPage } from './custom-page';
+    import { CustomFormPage } from './custom-form';
+
+    @Component({
+      selector: 'aa-custom-ssr',
+      imports: [CustomPage, CustomFormPage],
+      changeDetection: ChangeDetectionStrategy.OnPush,
+      template: \`
+        <p data-testid="marker">{{ state.initial.marker }}</p>
+        <button type="button" [disabled]="!hydrated()" (click)="active.set(true)">Activate custom tools</button>
+        @if (active()) {
+          @if (forms) { <app-custom-form-page /> } @else { <app-custom-page /> }
+        }
+      \`,
+    })
+    export class CustomSsrPage {
+      readonly state = new RequestState();
+      readonly forms = inject(ActivatedRoute).snapshot.data['customForms'] === true;
+      readonly active = signal(false);
+      readonly hydrated = signal(false);
+      constructor() { afterNextRender(() => this.hydrated.set(true)); }
+    }
+  `,
+  );
+  const host = join(root, 'apps/editorjs/angular-host/src');
+  const config = join(host, 'ssr/app.config.ts');
+  const original = await readFile(config, 'utf8');
+  assert(original.includes('const routes: Routes = ['));
+  await writeFile(
+    config,
+    original.replace(
+      'const routes: Routes = [',
+      `const routes: Routes = [
+    { path: 'custom', loadComponent: () => import('../../../../../examples/custom-ssr').then(m => m.CustomSsrPage) },
+    { path: 'custom-forms', data: { customForms: true }, loadComponent: () => import('../../../../../examples/custom-ssr').then(m => m.CustomSsrPage) },
+  `,
+    ),
+  );
+  const app = join(host, 'ssr/app.ts');
+  await writeFile(
+    app,
+    (await readFile(app, 'utf8')).replace(
+      '<nav aria-label="Fixture routes">',
+      '<nav aria-label="Fixture routes"><a routerLink="/custom">Custom tools</a><a routerLink="/custom-forms">Custom Forms</a>',
+    ),
+  );
+  const eager = join(host, 'isolation/main.eager.ts');
+  await writeFile(
+    eager,
+    (await readFile(eager, 'utf8')) +
+      `
+    import { CalloutTool } from '../../../../../examples/custom/callout-tool';
+    import { MarkerTool } from '../../../../../examples/custom/marker-tool';
+    import { FlagTune } from '../../../../../examples/custom/flag-tune';
+    import Code from '@editorjs/code';
+    Object.assign(window, { customEagerTools: [CalloutTool, MarkerTool, FlagTune, Code] });
+  `,
+  );
+}

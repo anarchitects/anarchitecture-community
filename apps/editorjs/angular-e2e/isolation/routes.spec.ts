@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixture.js';
 import { arm, held, release, events } from '../hydration/fixture.js';
-import { fixturePort } from '../tools/ssr-environment.mjs';
+import { fixturePort, packed } from '../tools/ssr-environment.mjs';
 
 /** A bounded idle observation, not a timer-based application activation policy. */
 async function idleWindow(page: Page) {
@@ -270,6 +270,30 @@ test.describe('deliberately eager production negative control', () => {
       ),
     ).toBe(true);
     expect(eager.sessions).toEqual([]);
+    if (packed) {
+      for (const name of [
+        'custom-callout',
+        'custom-marker',
+        'custom-flag',
+        'custom-code',
+      ]) {
+        expect(
+          graph.tools[name].some((asset) =>
+            graph.publicClosure.includes(asset),
+          ),
+        ).toBe(true);
+        expect(
+          eager.runtimeEvaluated.some((url) =>
+            graph.tools[name].includes(new URL(url).pathname.slice(1)),
+          ),
+        ).toBe(true);
+      }
+      expect(
+        (await page.locator('style').allTextContents()).some((css) =>
+          css.includes('.ce-code__textarea'),
+        ),
+      ).toBe(true);
+    }
     expect(await page.evaluate(() => window.registryProbe?.evaluated)).toEqual(
       expect.arrayContaining([
         'card',
@@ -289,6 +313,71 @@ test.describe('deliberately eager production negative control', () => {
       'Editor.js runtime was requested',
     );
     await expect(page.locator('aa-editorjs')).toHaveCount(0);
+  });
+});
+
+test.describe('archived custom production delivery', () => {
+  test.skip(!packed, 'Actual archived sources exist only in packed consumers');
+  test('custom implementations and Code styles arrive at activation while unselected tools stay absent', async ({
+    page,
+    graph,
+    delivery,
+  }) => {
+    graph.assertIsolated();
+    await page.goto('/');
+    await idleWindow(page);
+    delivery.assertPublic(
+      await delivery.checkpoint('public before archived custom authoring'),
+    );
+    await page.getByRole('link', { name: 'Custom tools', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Activate custom tools' }),
+    ).toBeEnabled();
+    await idleWindow(page);
+    delivery.assertPublic(
+      await delivery.checkpoint('archived route before explicit activation'),
+    );
+    expect(
+      (await page.locator('style').allTextContents()).some((css) =>
+        css.includes('.ce-code__textarea'),
+      ),
+    ).toBe(false);
+    await page.getByRole('button', { name: 'Activate custom tools' }).click();
+    await expect(
+      page
+        .getByRole('region', { name: 'Provider editor', exact: true })
+        .getByRole('status'),
+    ).toHaveText('Ready');
+    const active = await delivery.checkpoint('archived custom tools activated');
+    for (const name of [
+      'custom-callout',
+      'custom-marker',
+      'custom-flag',
+      'custom-code',
+    ]) {
+      for (const observed of [active.runtimeResponses, active.runtimeEvaluated])
+        expect(
+          observed.some((url) =>
+            graph.tools[name].includes(new URL(url).pathname.slice(1)),
+          ),
+        ).toBe(true);
+    }
+    for (const name of ['unselected', 'common-image', 'upload-backend'])
+      expect(
+        active.runtimeRequests.some((url) =>
+          graph.tools[name].includes(new URL(url).pathname.slice(1)),
+        ),
+      ).toBe(false);
+    expect(
+      (await page.locator('style').allTextContents()).some((css) =>
+        css.includes('.ce-code__textarea'),
+      ),
+    ).toBe(true);
+    await page.getByRole('link', { name: 'Public', exact: true }).click();
+    await expect(page.locator('.codex-editor')).toHaveCount(0);
+    expect(
+      (await delivery.checkpoint('archived owners disposed')).runtimeRequests,
+    ).toEqual(active.runtimeRequests);
   });
 });
 

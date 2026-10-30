@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { prepareAngularCustomSsr } from './angular-custom-consumer.mjs';
 
 /** Reuse the real fixture and its assertions; only installation/build roots differ. */
 export async function preparePackedSsr({ root, report, workspace, tsconfig }) {
@@ -12,6 +13,7 @@ export async function preparePackedSsr({ root, report, workspace, tsconfig }) {
   await cp(join(root, '..', 'public'), join(root, host, 'public'), {
     recursive: true,
   });
+  await prepareAngularCustomSsr(root);
   const { targets } = JSON.parse(
     await readFile(join(workspace, host, 'project.json'), 'utf8'),
   );
