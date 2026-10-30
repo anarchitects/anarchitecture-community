@@ -14,6 +14,52 @@ conversion, merging, shortcuts or asynchronous rendering.
 The optional [marker and flag extension](#add-an-inline-marker-and-a-per-block-flag)
 adds bounded inline formatting and independently saved per-block tune state.
 
+## Choose a recipe and its ownership
+
+Start with the callout page, then add the optional files for the path you need.
+The direct and eager maps use the same classes as the lazy registry; they do not
+provide separate tool implementations. Copy the files from the guide shipped
+with your installed core version, preserving each named file's contents.
+
+| Path                        | Start here                                                                                                             | Observable result                                                                               |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Block, direct/eager or lazy | [Install](#install-and-run), [direct/eager map](#typed-direct-and-eager-registration), [working page](#a-working-page) | Edit callout text/tone, save JSON, reload, toggle readonly, remove the editor.                  |
+| Inline and tune             | [Marker and flag](#add-an-inline-marker-and-a-per-block-flag), then [composed page](#run-the-composed-page)            | Marker HTML stays in callout text; flag state is saved separately under `blocks[*].tunes.flag`. |
+| Third-party tool            | [Pinned Code integration](#integrate-an-independently-installed-code-tool)                                             | Install Code separately; run direct or lazy delivery and round-trip literal code.               |
+
+The host owns each editor, resolver, holder and mutable configuration. Editor.js
+owns calling the tool's supported hooks; the tool owns its DOM, listeners and
+other resources. Registry `kind` and TypeScript assignability do not implement
+those hooks. Keep configuration separate from saved JSON: services, callbacks
+and DOM references are configuration, not document data. The configured block
+name becomes `blocks[*].type`; changing it requires an explicit host migration.
+
+| Boundary                                   | What it establishes                                    | What remains the host/tool's responsibility                                                               |
+| ------------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Core parsing/normalization                 | JSON-compatible document structure                     | Accepted application schema versions and migration.                                                       |
+| `validateOutputData` with tool validators  | The selected validator's checks on each block's `data` | Register validators under configured names; choose the unknown-tool policy.                               |
+| Tune validation in this guide              | Allowed tune names and boolean flag payload            | Check `block.tunes` explicitly; block-data validators do not receive it automatically.                    |
+| Registry/reference validation              | Valid selections, names and kinds                      | Actual upstream implementation, config schema and readonly behavior.                                      |
+| Browser sanitization and display rendering | Only the explicit rules implemented at that boundary   | A safe public renderer, URL/HTML policy and server authorization; schema success is not an XSS guarantee. |
+
+Callout supports readonly text/tone display; marker mutation is unavailable in
+readonly mode; flag activation refuses readonly or detached owners. Code renders
+a disabled textarea. These are bounded capabilities of these implementations,
+not capabilities inherited by every registered tool. See the versioned
+[block](https://github.com/codex-team/editor.js/blob/v2.31.7/types/tools/block-tool.d.ts),
+[inline](https://github.com/codex-team/editor.js/blob/v2.31.7/types/tools/inline-tool.d.ts)
+and [tune](https://github.com/codex-team/editor.js/blob/v2.31.7/types/block-tunes/block-tune.d.ts)
+contracts alongside the upstream [Tools API](https://editorjs.io/tools-api/) and
+[Block Tunes API](https://editorjs.io/block-tunes-api/). Living documentation can
+describe behavior beyond the pinned release.
+
+Register teardown before awaiting readiness. Dispose the resolver to fence late
+loads, and separately destroy the editor through its owner. An imported module
+cannot be unloaded; Code's shared injected stylesheet remains after removal.
+After an initialization failure, dispose the owner, correct the cause and create
+a fresh one. Loader retries cannot repair an invalid export or clear the browser's
+module cache. The sections below retain each tool's precise cleanup limits.
+
 ## Install and run
 
 In an empty directory, run `npm init -y`, then

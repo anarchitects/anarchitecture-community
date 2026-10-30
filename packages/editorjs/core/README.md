@@ -12,14 +12,25 @@ shared document contract. The core defines the portable API; consumers adapt the
 domain models to it and own persistence, rendering, and migrations. It does not
 create an editor, install tools, implement an upload transport, or prescribe a storage envelope.
 
-For authoring, start with [registry composition](#tool-registry-composition), then
-[direct browser integration](#direct-browser-integration). Angular hosts can use
-the [optional Angular providers](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/angular#tool-providers-and-injector-ownership)
-over the same definitions; Angular is never required by core.
+For authoring, start with the shipped [custom-tool guide](custom-tools.md).
+It supplies complete tool implementations, validation, a browser page and cleanup;
+no missing tool package or repository checkout is required. Choose a path:
+
+| Goal                                            | Complete recipe                                                                                                                     |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Create a custom block                           | [Callout: install, edit, save and reload](custom-tools.md#install-and-run)                                                          |
+| Add inline formatting and tune state            | [Marker and flag](custom-tools.md#add-an-inline-marker-and-a-per-block-flag)                                                        |
+| Use an independently installed tool             | [Code 2.9.4, direct or lazy](custom-tools.md#integrate-an-independently-installed-code-tool)                                        |
+| Use the same tools in Angular or optional Forms | [Angular composition](https://github.com/anarchitects/anarchitecture-community/blob/main/packages/editorjs/angular/custom-tools.md) |
+
+The [registry](#tool-registry-composition) and [browser owner](#direct-browser-integration)
+sections below are API references for adapting those recipes. Angular is never
+required by core. Read the guide shipped with your installed version; GitHub's
+default branch may describe newer examples.
 
 ## Installation
 
-Install a published release with your package manager:
+When a release is available in your registry, install it with your package manager:
 
 ```sh
 npm install @anarchitects/editorjs-core
@@ -28,6 +39,10 @@ yarn add @anarchitects/editorjs-core
 # or
 pnpm add @anarchitects/editorjs-core
 ```
+
+Before initial publication, use the supplied `anarchitects-editorjs-core-0.0.1.tgz`
+archive in place of the package name. The manifest version alone does not establish
+registry availability; a registry 404 is not a TypeScript or application error.
 
 No initialization, Angular provider, Nx workspace, or Editor.js installation is
 needed to use the core. An interactive editor integration installs and configures
