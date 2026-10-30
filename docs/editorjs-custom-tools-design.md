@@ -3,8 +3,73 @@
 Contributor design for [#642](https://github.com/anarchitects/anarchitecture-community/issues/642),
 the first slice of epic #73. It fixes the scope and evidence required in
 #643–#648. The implementation increments below record #643's block example and
-#644's inline/tune extension. External Code and Angular recipes remain later slices;
+#644's inline/tune extension and #645's external Code recipe. Angular recipes remain a later slice;
 the planning tables do not certify those implementations.
+
+## External Code increment (#645)
+
+The archived custom-tool guide now includes direct and lazy registration of the
+independently installed `@editorjs/code@2.9.4`, matching the selection below. It
+uses public default imports with no constructor cast or first-party adapter.
+Consumer-owned configuration/data boundaries validate before construction;
+the runnable page supports explicit browser activation, configured names,
+save/reload, readonly and disposal. Code is preserved as literal text.
+
+Preflight on 30 October 2026 freshly enumerated and read all eight Community and
+eighteen Meta ADRs, including proposed and historical material. Community starts
+from merged #644 at `2d874e0a1fa9f2aaf347dff9e24135e3c29e1274`. All Meta ADR hashes
+match the clean adjacent checkout and fresh remote tree at
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. Relevant architecture, SSR/build and
+testing guides plus the Modern Angular index/repository application were read.
+Community0004, Meta0013/Community0007, Meta0015 and A02/A05/A09/A10 constrain
+archive completeness, release intent, inputs/outputs, ownership and actual
+consumer evidence. No accepted conflict or proposal override is introduced.
+Governance, HTTP/Nest and authentication decisions retain their existing scopes.
+
+The existing portable preparation installs Code at the exact version, checks its
+npm integrity, records package/module/license metadata and the complete dependency
+lock, and compiles the actual archived examples under Bundler. A separate
+NodeNext probe records its default-export declaration incompatibility; this is
+not masked with a constructor cast. The neutral data/config examples continue
+to compile under both NodeNext and Bundler without DOM libraries.
+
+Production metadata and browser requests check that Code stays outside initial
+and unselected delivery. The real package supplies its injected CSS. Tests cover
+direct/lazy editing, literal HTML-like code, save/reload, empty data, toolbox
+seeding, readonly, removal, invalid config/data, wrong module-export mapping,
+loader rejection/retry and failed module evaluation followed by a fresh page.
+Upstream Tab indentation changes textarea value without an input event; the
+guide requires explicit saving and leaves additional autosave adaptation to the
+host. No universal tool validator or runtime dependency is added to core.
+The browser gate also captures Editor.js intercepting forward Delete at the
+textarea's end despite a selection; Select All plus Backspace clears correctly.
+The guide records this upstream limitation rather than adding an adapter or
+masking browser errors. Readonly completion is observed after the awaited toggle.
+
+Resolved core (28 targets) and e2e (105 targets) configurations retain their
+cache policies and isolated outputs. Existing guide/probe/build-helper entries
+in `sourceFingerprint` cover this change; the fresh snapshot contains Code's
+pinned install and lock. No project, atom or DTE topology changes. Local checks
+precede fresh preparation to avoid overlapping package writers. CI monitoring
+is not part of this slice at the maintainer's request; hosted evidence remains
+a separate gate and broader matrix consolidation belongs to #647.
+
+Fresh release-history checks returned npm 404 for core, no remote Editor.js
+tags and no Editor.js distribution among all 102 GitHub Releases. Core remains
+unreleased at 0.0.1; this slice uses non-bumping
+`init(editorjs-core,editorjs-angular-e2e)` without a version change.
+
+Local validation passed: core build and 269 tests across 11 files; core/e2e lint
+and typecheck; formatting/whitespace checks; fresh reference-cell preparation
+(`si645-final`) and all 30 portable Chromium cases (31.0 seconds). The isolated
+consumer uses Node 24.15.0, TypeScript 6.0.3 and Editor.js 2.31.7 without Angular,
+Forms or Nest. Installed Code's ESM SHA-256 is
+`90c8cdbc85aae49414189e5eea67096b5a64b7441f1d8f5aa3ed0c673c101992`.
+The separate NodeNext probe exits 2 with TS2322: its dynamic default resolves
+to a declaration namespace instead of `BlockToolConstructable`. Bundler compiles
+the actual direct/lazy recipes without that adaptation. Evidence includes the
+installed lock, license, module hash, diagnostics and delivery metadata. These
+local results do not claim the broader matrix, hosted restoration or green CI.
 
 ## Inline and tune increment (#644)
 

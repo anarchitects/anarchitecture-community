@@ -1085,6 +1085,9 @@ For complete application-owned tools, see [Author custom tools](custom-tools.md)
 The shipped guide includes a safe editable callout, an inline marker, a per-block
 flag tune, and separate DOM-free block/tune validation. Typed registration and
 composition feed working pages with save/reload, readonly guards and teardown.
+It also includes [direct and lazy third-party Code integration](custom-tools.md#integrate-an-independently-installed-code-tool)
+with an explicit `@editorjs/code@2.9.4` install, configuration/data validation,
+browser-only activation, styles and bounded compatibility guidance.
 
 Install Editor.js separately (`npm install @editorjs/editorjs@2.31.7`) and use a
 browser bundler with TypeScript's DOM library. Save the following as

@@ -1151,3 +1151,377 @@ See the upstream [MenuConfig](https://editorjs.io/menu-config/) and
 and [tune](https://github.com/codex-team/editor.js/blob/v2.31.7/types/block-tunes/block-tune.d.ts)
 declarations. This bounded example does not promise arbitrary selection editing,
 resource-owning plugins or compatibility with other Editor.js versions.
+
+## Integrate an independently installed Code tool
+
+This example uses **`@editorjs/code@2.9.4` with Editor.js 2.31.7** in a bundled
+browser application. Install it explicitly with `npm install --save-exact
+@editorjs/code@2.9.4`; core does not install or re-export it. Keep the earlier
+`callout-editor.ts` and `callout-data.ts` owner files. No CalloutTool browser
+implementation is needed by this page.
+
+The [upstream package](https://github.com/editor-js/code) is MIT licensed and ships
+its LICENSE. Its public default export resolves to `dist/code.mjs` for imports,
+`dist/code.umd.js` for require, and `dist/index.d.ts` for types. It declares
+`@codexteam/icons: ^0.3.2` and no peers or engines; install Editor.js explicitly.
+The browser recipe uses TypeScript's **Bundler** resolution. NodeNext, raw Node
+execution and UMD/CDN consumption are separate interoperability questions, not
+supported modes of this recipe. Pin your dependency lock and reassess upgrades.
+
+The module injects its CSS into `document.head` when evaluated. No extra CSS
+import, font, image or external stylesheet is needed. Keep the import behind
+browser activation: importing it on a server is not a substitute for delivering
+its styles in the browser. Strict CSP nonce handling, iframes and alternate
+documents need separate integration work. Removal destroys the editor's owned
+DOM; it does not unload the module or remove its shared injected stylesheet.
+
+### Validate configuration and saved code
+
+Save as `code-data.ts`. These application-owned checks deliberately accept only
+the documented placeholder and `{ code: string }` data. Missing/unknown data or
+tunes fail before construction. Empty code remains valid. Core validates the
+envelope and registry structure; it cannot certify a third-party tool's config.
+
+<!-- neutral-example-file: code-data.ts -->
+
+```ts
+import {
+  validateOutputData,
+  type ToolDataValidator,
+} from '@anarchitects/editorjs-core';
+
+export function requireCodeConfig(input: unknown) {
+  if (
+    typeof input !== 'object' ||
+    input === null ||
+    Array.isArray(input) ||
+    !('placeholder' in input) ||
+    typeof input.placeholder !== 'string' ||
+    Object.keys(input).some((key) => key !== 'placeholder')
+  )
+    throw new Error('Code config requires only a string placeholder');
+  return { placeholder: input.placeholder };
+}
+
+export const validateCode: ToolDataValidator = (data) => {
+  if (
+    typeof data !== 'object' ||
+    data === null ||
+    Array.isArray(data) ||
+    !('code' in data) ||
+    typeof data.code !== 'string' ||
+    Object.keys(data).some((key) => key !== 'code')
+  )
+    return {
+      ok: false,
+      errors: [
+        { message: 'Expected only a string code field', path: ['code'] },
+      ],
+    };
+  return { ok: true };
+};
+
+export function requireCodeDocument(input: unknown, name = 'code') {
+  const result = validateOutputData(input, {
+    toolValidators: new Map([[name, validateCode]]),
+    unknownTools: 'reject',
+  });
+  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  if (result.data.blocks.some((block) => Object.keys(block.tunes ?? {}).length))
+    throw new Error('This code document does not accept saved tunes');
+  return result.data;
+}
+```
+
+Code is **literal text**, including any HTML-looking characters. Upstream's
+`sanitize.code: true` preserves that content; it is not a public HTML sanitizer.
+Render saved code with `textContent` or an equivalently escaped rendering API,
+never execute it or insert it as trusted HTML. This example has no backend,
+syntax highlighter, durable persistence or publication policy.
+
+### Preserve upstream settings and select the constructor
+
+Save as `code-settings.ts`. Type-only upstream imports are erased at build time.
+The configuration is checked independently of TypeScript and the registry.
+Toolbox data seeds a new block; it does not overwrite restored code.
+
+<!-- browser-example-file: code-settings.ts -->
+
+```ts
+import type CodeTool from '@editorjs/code';
+import type { CodeConfig, CodeData } from '@editorjs/code';
+import type { ToolConfiguration } from '@anarchitects/editorjs-core';
+import { requireCodeConfig } from './code-data.js';
+
+export function codeSettings(input: unknown) {
+  return {
+    config: requireCodeConfig(input),
+    toolbox: { title: 'Code sample', data: { code: '// New sample' } },
+  } satisfies Omit<
+    ToolConfiguration<typeof CodeTool, CodeConfig, CodeData>,
+    'class'
+  >;
+}
+```
+
+Save as `code-direct.ts`. This is a browser-only module: its static imports
+deliver Editor.js and Code as soon as this module is imported. Import it only
+when eager delivery at that browser boundary is intended.
+
+<!-- browser-example-file: code-direct.ts -->
+
+```ts
+import EditorJS, { type EditorConfig } from '@editorjs/editorjs';
+import CodeTool from '@editorjs/code';
+import {
+  composeToolRegistry,
+  createToolMap,
+  EDITOR_JS_2_31_7_TOOL_PROFILE,
+} from '@anarchitects/editorjs-core';
+import { codeSettings } from './code-settings.js';
+import { requireCodeDocument } from './code-data.js';
+
+export function createDirectCode(
+  holder: HTMLElement,
+  input: unknown,
+  config: unknown,
+  name = 'code',
+  onChange: EditorConfig['onChange'] = () => undefined,
+) {
+  const data = requireCodeDocument(input, name);
+  const registry = composeToolRegistry(
+    [
+      [
+        {
+          name,
+          kind: 'block',
+          source: 'eager',
+          registration: { class: CodeTool, ...codeSettings(config) },
+        },
+      ],
+    ],
+    { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+  );
+  return new EditorJS({
+    holder,
+    data,
+    defaultBlock: name,
+    tools: createToolMap(registry),
+    onChange,
+  });
+}
+```
+
+Save as `code-lazy.ts`. The loader returns the actual **default constructor**,
+never the module namespace. Unselected definitions do not load. The configured
+name is saved in `blocks[*].type`; pass the same name to the document validator.
+
+<!-- browser-example-file: code-lazy.ts -->
+
+```ts
+import {
+  composeToolRegistry,
+  selectToolRegistry,
+  EDITOR_JS_2_31_7_TOOL_PROFILE,
+} from '@anarchitects/editorjs-core';
+import { codeSettings } from './code-settings.js';
+
+export function codeRegistry(config: unknown, name = 'code') {
+  const registry = composeToolRegistry(
+    [
+      [
+        {
+          name,
+          kind: 'block',
+          source: 'lazy',
+          load: () => import('@editorjs/code').then((module) => module.default),
+          settings: codeSettings(config),
+        },
+      ],
+    ],
+    { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+  );
+  return selectToolRegistry(registry, [name]);
+}
+```
+
+### Run direct or lazy delivery
+
+Save as `code-main.ts` and `code.html`. Compile with `npx tsc --noEmit --strict
+--target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM
+code-main.ts`, then serve `npx esbuild code-main.ts --bundle --format=esm
+--splitting --outdir=dist --servedir=.`. Open `/code.html` for lazy registration or
+`/code.html?mode=direct` for eager registration at activation. Neither page loads
+Code before **Start editor**. Use `&name=snippet` (or `?name=snippet`) to try a
+configured name. Save and Reload JSON use the same validation boundary.
+
+<!-- browser-example-file: code-main.ts -->
+
+```ts
+import type EditorJS from '@editorjs/editorjs';
+import { codeRegistry } from './code-lazy.js';
+import { requireCodeConfig, requireCodeDocument } from './code-data.js';
+import { mountCallout } from './callout-editor.js';
+
+const holder = document.querySelector<HTMLElement>('#editor')!;
+const status = document.querySelector<HTMLElement>('#status')!;
+const saved = document.querySelector<HTMLTextAreaElement>('#saved')!;
+const start = document.querySelector<HTMLButtonElement>('#start')!;
+const buttons = document.querySelectorAll<HTMLButtonElement>(
+  '[data-editor-action]',
+);
+const params = new URL(location.href).searchParams;
+const name = params.get('name') ?? 'code';
+const config = requireCodeConfig({ placeholder: 'Write literal code' });
+const read = (input: unknown) => requireCodeDocument(input, name);
+let owner: ReturnType<typeof mountCallout> | undefined;
+let removed = false;
+const events = new AbortController();
+const changed = () => {
+  if (!removed) status.textContent = 'Changed';
+};
+const report = (error: unknown) => {
+  if (!removed) status.textContent = String(error);
+};
+
+start.addEventListener(
+  'click',
+  () => {
+    start.disabled = true;
+    const activate = async () => {
+      const input = {
+        blocks: [{ type: name, data: { code: '// Restored sample' } }],
+      };
+      if (params.get('mode') === 'direct') {
+        const { createDirectCode } = await import('./code-direct.js');
+        if (removed) return;
+        const editor = createDirectCode(holder, input, config, name, changed);
+        let cleanup: Promise<void> | undefined;
+        owner = {
+          ready: editor.isReady.then(() => editor),
+          dispose: () =>
+            (cleanup ??= (async () => {
+              await editor.isReady.catch(() => undefined);
+              if (typeof editor.destroy === 'function') editor.destroy();
+            })()),
+        };
+      } else {
+        owner = mountCallout(
+          holder,
+          codeRegistry(config, name),
+          input,
+          name,
+          changed,
+          read,
+        );
+      }
+      await owner.ready;
+      if (removed) return;
+      for (const button of buttons) button.disabled = false;
+      status.textContent = 'Ready';
+    };
+    activate().catch(async (error) => {
+      await owner?.dispose();
+      report(error);
+    });
+  },
+  { signal: events.signal },
+);
+
+function action(id: string, run: (editor: EditorJS) => Promise<void>) {
+  document.querySelector(id)!.addEventListener(
+    'click',
+    () => {
+      owner?.ready
+        .then((editor) => (removed ? undefined : run(editor)))
+        .catch(report);
+    },
+    { signal: events.signal },
+  );
+}
+action('#save', async (editor) => {
+  const data = read(await editor.save());
+  if (!removed) {
+    saved.value = JSON.stringify(data);
+    status.textContent = 'Saved';
+  }
+});
+action('#reload', async (editor) => {
+  await editor.render(read(saved.value));
+  if (!removed) status.textContent = 'Reloaded';
+});
+action('#readonly', async (editor) => {
+  const readOnly = await editor.readOnly.toggle();
+  if (!removed) status.textContent = readOnly ? 'Read only' : 'Editable';
+});
+document.querySelector('#remove')!.addEventListener(
+  'click',
+  () => {
+    removed = true;
+    events.abort();
+    start.disabled = true;
+    for (const button of buttons) button.disabled = true;
+    Promise.resolve(owner?.dispose()).then(() => {
+      status.textContent = 'Removed';
+    });
+  },
+  { signal: events.signal },
+);
+```
+
+<!-- browser-example-file: code.html -->
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Literal code editor</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <h1>Literal code editor</h1>
+    <button id="start">Start editor</button>
+    <section aria-label="Code editor"><div id="editor"></div></section>
+    <button id="save" data-editor-action disabled>Save</button>
+    <button id="reload" data-editor-action disabled>Reload JSON</button>
+    <button id="readonly" data-editor-action disabled>Toggle read only</button>
+    <button id="remove">Remove editor</button>
+    <p id="status" role="status">Not started</p>
+    <label for="saved">Saved document JSON</label
+    ><textarea id="saved"></textarea>
+    <script type="module" src="/dist/code-main.js"></script>
+  </body>
+</html>
+```
+
+Readonly renders Code's textarea **disabled**, so keyboard editing is unavailable.
+Wait for `readOnly.toggle()` to resolve before editing the rebuilt block.
+Ordinary typing emits editor changes. Upstream Tab/Shift+Tab indentation changes
+the textarea value directly without dispatching an input event; do not assume
+`onChange` covers every programmatic edit. Save explicitly at submission, and
+test any additional autosave/keyboard adaptation in the host. This recipe does
+not certify pasted HTML normalization, syntax highlighting or comprehensive
+accessibility of the third-party control. The host labels the editor region;
+the upstream textarea itself supplies a placeholder rather than a label.
+
+Editor.js 2.31.7 intercepts forward Delete when the textarea selection ends at
+the last character, so it can leave selected text unchanged. The tested clearing
+path is Select All followed by Backspace. Review keyboard behavior against your
+product's requirements; this recipe does not patch the upstream key handler.
+
+The tool has no instance `destroy()` hook. Its key handler belongs to its textarea;
+dispose the editor owner and release references to removed DOM. Do not invent
+a tool destruction API. Removal during lazy activation prevents late creation.
+
+Malformed config fails before lazy loading; invalid saved data fails before
+construction. A failed import rejects readiness and is shown as text. Correct
+the deployment/network error and reload the page to create a fresh owner;
+native module failures can remain cached in a document. A wrong export mapping
+must be corrected to `module.default`. Core's resolver reports loader/constructor
+errors and supports explicit retry, but retry cannot repair a missing export,
+unsupported config or the browser's module cache. Dispose failed owners.
+Consumers own dependency maintenance, lockfiles, browser/CSP testing and support
+for their chosen tool version. This is evidence for one bounded integration,
+not a new Community tool package or a general third-party compatibility promise.

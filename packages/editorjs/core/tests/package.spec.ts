@@ -268,6 +268,12 @@ describe('published package', () => {
         'flag-tune.ts',
         'editorial-registry.ts',
         'editorial-main.ts',
+        'code-data.ts',
+        'code-settings.ts',
+        'code-direct.ts',
+        'code-lazy.ts',
+        'code-main.ts',
+        'code.html',
       ]);
       writeFileSync(
         join(temporaryDirectory, 'package.json'),
@@ -348,6 +354,15 @@ describe('published package', () => {
         assert.equal(validateEditorialDocument(tuned({}, 'paragraph')).ok, false);
         assert.equal(validateEditorialDocument(tuned({review: {flagged: true}}, 'aside'), 'aside', 'review').ok, true);
         assert.equal(validateEditorialDocument(tuned({flag: {flagged: true}}, 'aside'), 'aside', 'review').ok, false);
+        const { requireCodeConfig, requireCodeDocument } = await import('./compiled-${moduleResolution}/code-data.js');
+        assert.deepEqual(requireCodeConfig({placeholder: 'Code'}), {placeholder: 'Code'});
+        for (const config of [null, [], {}, {placeholder: 1}, {placeholder: '', extra: true}]) assert.throws(() => requireCodeConfig(config));
+        const codeDoc = data => ({blocks: [{type: 'code', data}]});
+        for (const code of ['', '<script>literal</script>', 'line 1\\nline 2']) assert.deepEqual(requireCodeDocument(JSON.stringify(codeDoc({code}))), codeDoc({code}));
+        for (const data of [{}, {code: 1}, {code: '', language: 'js'}]) assert.throws(() => requireCodeDocument(codeDoc(data)));
+        assert.throws(() => requireCodeDocument({blocks: [{type: 'code', data: {code: ''}, tunes: {unknown: true}}]}));
+        assert.throws(() => requireCodeDocument(codeDoc({code: ''}), 'snippet'));
+        assert.equal(requireCodeDocument({blocks: [{type: 'snippet', data: {code: ''}}]}, 'snippet').blocks[0].type, 'snippet');
         console.log('quick start ok');
       `,
         ],
