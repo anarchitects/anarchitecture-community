@@ -67,6 +67,226 @@ async function openCalloutSettings(page: Page) {
   await page.locator('#editor .ce-toolbar__settings-btn').click();
 }
 
+async function openEditorialSettings(
+  page: Page,
+  index = 0,
+  holder = '#editor',
+) {
+  const editable = page
+    .locator(holder)
+    .getByRole('textbox', { name: 'Editorial callout' })
+    .nth(index);
+  await editable.click();
+  await editable.hover();
+  await page.locator(`${holder} .ce-toolbar__settings-btn`).click();
+}
+
+test('archived marker supports keyboard application, active removal, bold and sanitized reload', async ({
+  page,
+}) => {
+  await page.goto('/editorial.html');
+  await expect(page.getByRole('status')).toHaveText('Ready');
+  const text = page.getByRole('textbox', { name: 'Editorial callout' }).first();
+  const marker = page.locator('[data-item-name="marker"]');
+  await text.selectText();
+  await text.dispatchEvent('mouseup', { bubbles: true });
+  await expect(marker).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Highlight text', exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await expect(marker).toHaveClass(/focused/);
+  await page.keyboard.press('Enter');
+  await expect(text.locator('mark')).toHaveText('First callout');
+  await expect(marker).toHaveClass(/active/);
+  await marker.click();
+  await expect(text.locator('mark')).toHaveCount(0);
+  await expect(marker).not.toHaveClass(/active/);
+  await page.locator('[data-item-name="bold"]').click();
+  await expect(text.locator('b')).toHaveText('First callout');
+  await marker.click();
+  await expect(text.locator('mark b, b mark')).toHaveText('First callout');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const saved = page.getByRole('textbox', { name: 'Saved document JSON' });
+  await expect(saved).toHaveValue(/<mark>/);
+  const doc = JSON.parse(await saved.inputValue());
+  expect(doc.blocks[0].tunes.flag).toEqual({ flagged: false });
+  doc.blocks[0].data.text =
+    '<mark class="untrusted" onclick="alert(1)"><b>Restored</b></mark> plain';
+  await saved.fill(JSON.stringify(doc));
+  await page.getByRole('button', { name: 'Reload JSON' }).click();
+  await expect(text.locator('mark')).toHaveText('Restored');
+  expect(
+    await text.locator('mark').evaluate((el) => el.attributes.length),
+  ).toBe(0);
+  await text.selectText();
+  await text.dispatchEvent('mouseup', { bubbles: true });
+  await expect(marker).toHaveClass(/disabled/);
+  // The documented bounded removal supports a selection wholly inside one mark.
+  await text.locator('mark').selectText();
+  await text.dispatchEvent('mouseup', { bubbles: true });
+  await expect(marker).not.toHaveClass(/disabled/);
+  await expect(marker).toHaveClass(/active/);
+  await marker.click();
+  await expect(text.locator('mark')).toHaveCount(0);
+  await expect(text.locator('b')).toHaveText('Restored');
+  await page.getByRole('button', { name: 'Toggle read only' }).click();
+  await expect(text).not.toBeEditable();
+  await text.selectText();
+  await text.dispatchEvent('mouseup', { bubbles: true });
+  await expect(marker).toHaveCount(0);
+});
+
+test('archived flag tune uses the keyboard, keeps independent blocks and reloads saved state', async ({
+  page,
+}) => {
+  await page.goto('/editorial.html');
+  await expect(page.getByRole('status')).toHaveText('Ready');
+  const flags = page.locator('#editor .callout-flag');
+  await expect(flags.nth(0)).toHaveAttribute('data-flagged', 'false');
+  await expect(flags.nth(1)).toHaveAttribute('data-flagged', 'false');
+  await openEditorialSettings(page);
+  const flagMenu = page.getByText('Flag for review', { exact: true });
+  // Two block settings precede the custom tune in the upstream menu.
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown');
+  await expect(flagMenu.locator('..')).toHaveClass(/focused/);
+  await page.keyboard.press('Enter');
+  await expect(flags.nth(0)).toHaveAttribute('data-flagged', 'true');
+  await expect(flags.nth(1)).toHaveAttribute('data-flagged', 'false');
+  await expect(page.getByRole('status')).toHaveText('Changed');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  const saved = page.getByRole('textbox', { name: 'Saved document JSON' });
+  await expect(saved).toHaveValue(/"flagged":true/);
+  expect(
+    JSON.parse(await saved.inputValue()).blocks.map(
+      (b: { tunes: unknown }) => b.tunes,
+    ),
+  ).toEqual([{ flag: { flagged: true } }, { flag: { flagged: false } }]);
+  await page.getByRole('button', { name: 'Reload JSON' }).click();
+  await expect(page.getByRole('status')).toHaveText('Reloaded');
+  await expect(flags.nth(0)).toHaveAttribute('data-flagged', 'true');
+  await openEditorialSettings(page);
+  await expect(flagMenu.locator('..')).toHaveClass(/active/);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Toggle read only' }).click();
+  await expect(
+    page.getByRole('textbox', { name: 'Editorial callout' }).first(),
+  ).not.toBeEditable();
+  await expect(flags.nth(0)).toContainText('Flagged for review');
+  await page.getByRole('button', { name: 'Remove editor' }).click();
+  await expect(page.getByRole('status')).toHaveText('Removed');
+  await expect(flags).toHaveCount(0);
+});
+
+for (const mode of ['editorial', 'editorial-alias']) {
+  test(`archived inline/tune ${mode} guards and diagnostics preserve independent owners`, async ({
+    page,
+  }) => {
+    await page.goto(`/custom-probe.html?mode=${mode}`);
+    await expect(page.locator('#status')).toHaveText('Ready');
+    const output = page.locator('output');
+    const flagName = mode === 'editorial-alias' ? 'review' : 'flag';
+    await openEditorialSettings(page);
+    await page.getByText('Flag for review', { exact: true }).click();
+    await page.getByRole('button', { name: 'Tune state', exact: true }).click();
+    await expect(output).toContainText('"dispatches":1');
+    await expect
+      .poll(async () => {
+        await page
+          .getByRole('button', { name: 'Tune state', exact: true })
+          .click();
+        return JSON.parse(await output.innerText()).changes;
+      })
+      .toBeGreaterThan(0);
+    await page.getByRole('button', { name: 'Save both' }).click();
+    await expect(output).toContainText('"first"');
+    const data = JSON.parse(await output.innerText());
+    expect(data.first.blocks.map((b: { tunes: unknown }) => b.tunes)).toEqual([
+      { [flagName]: { flagged: true } },
+      { [flagName]: { flagged: false } },
+    ]);
+    expect(data.other.blocks.map((b: { tunes: unknown }) => b.tunes)).toEqual([
+      { [flagName]: { flagged: false } },
+      { [flagName]: { flagged: false } },
+    ]);
+    expect(data.first.blocks[0].type).toBe(
+      mode === 'editorial-alias' ? 'aside' : 'callout',
+    );
+    const ownText = page.locator('#editor .callout-text').first();
+    await ownText.selectText();
+    await ownText.dispatchEvent('mouseup', { bubbles: true });
+    await expect(
+      page.locator(
+        `#editor [data-item-name="${mode === 'editorial-alias' ? 'highlight' : 'marker'}"]`,
+      ),
+    ).toBeVisible();
+    const otherText = page.locator('#other-editor .callout-text').first();
+    await otherText.selectText();
+    // Invoke a retained menu without a click that would clear the foreign selection.
+    await page
+      .getByRole('button', { name: 'Marker guards' })
+      .dispatchEvent('click');
+    await expect(output).toContainText('"unchanged":true');
+    const guard = JSON.parse(await output.innerText());
+    expect(guard.checked).toBeGreaterThan(0);
+    expect(guard.disabled).toBe(true);
+    await expect(otherText.locator('mark')).toHaveCount(0);
+    await page.locator('#editor').evaluate((holder) => {
+      const fields = holder.querySelectorAll('.callout-text');
+      const range = document.createRange();
+      range.setStart(fields[0].firstChild!, 0);
+      range.setEnd(fields[1].firstChild!, 3);
+      const selection = window.getSelection()!;
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+    await page
+      .getByRole('button', { name: 'Marker guards' })
+      .dispatchEvent('click');
+    await expect(output).toContainText('"disabled":true');
+    await expect(output).toContainText('"unchanged":true');
+    await page.getByRole('button', { name: 'Disable probe' }).click();
+    await expect(ownText).not.toBeEditable();
+    await page.getByRole('button', { name: 'Stale tune' }).click();
+    await expect(output).toContainText('"dispatches":1');
+    await expect(output).toContainText('"disabled":true');
+    await ownText.selectText();
+    await page
+      .getByRole('button', { name: 'Marker guards' })
+      .dispatchEvent('click');
+    await expect(output).toContainText('"disabled":true');
+    await expect(output).toContainText('"unchanged":true');
+    await page.getByRole('button', { name: 'Reference diagnostics' }).click();
+    await expect(output).toContainText('duplicate-name');
+    const diagnostics = JSON.parse(await output.innerText());
+    expect(diagnostics.missing).toContain('invalid-reference');
+    expect(diagnostics.wrongKind).toContain('invalid-reference');
+    await page
+      .getByRole('button', { name: 'Invalid tune before load' })
+      .click();
+    await expect(output).toContainText('"loads":0');
+    await expect(output).toContainText('tool_data_invalid');
+    await page
+      .getByRole('button', { name: 'Remove probe', exact: true })
+      .click();
+    await expect(page.locator('#editor')).toBeEmpty();
+    await otherText.selectText();
+    await page
+      .getByRole('button', { name: 'Marker guards' })
+      .dispatchEvent('click');
+    await expect(output).toContainText('"unchanged":true');
+    await expect(output).toContainText('"disabled":true');
+    await page.getByRole('button', { name: 'Stale tune' }).click();
+    await expect(output).toContainText('"dispatches":1');
+    await openEditorialSettings(page, 1, '#other-editor');
+    await page.getByText('Flag for review', { exact: true }).click();
+    await expect(
+      page.locator('#other-editor .callout-flag').nth(1),
+    ).toHaveAttribute('data-flagged', 'true');
+  });
+}
+
 test('archived custom-block page edits with keyboard, saves, reloads, disables and removes', async ({
   page,
 }) => {

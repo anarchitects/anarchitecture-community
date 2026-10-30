@@ -263,6 +263,11 @@ describe('published package', () => {
         'callout-editor.ts',
         'main.ts',
         'index.html',
+        'editorial-data.ts',
+        'marker-tool.ts',
+        'flag-tune.ts',
+        'editorial-registry.ts',
+        'editorial-main.ts',
       ]);
       writeFileSync(
         join(temporaryDirectory, 'package.json'),
@@ -328,6 +333,21 @@ describe('published package', () => {
         assert.equal(validateCalloutDocument({blocks: [{type: 'aside', data: {text: '', tone: 'warning'}}]}, 'aside').ok, true);
         assert.equal(validateCalloutDocument({blocks: [{type: 'callout', data: {text: '', tone: 'info'}, tunes: {flag: {flagged: true}}}]}).ok, false);
         assert.equal(validateCallout({text: '<img src=x onerror=alert(1)>', tone: 'info'}, {type: 'callout', blockIndex: 0}).ok, true, 'Schema validation must not be misrepresented as HTML sanitization');
+        const { validateEditorialDocument, requireEditorialDocument } = await import('./compiled-${moduleResolution}/editorial-data.js');
+        const tuned = (tunes, type = 'callout') => ({blocks: [{type, data: {text: '<mark>Text</mark>', tone: 'info'}, ...(tunes === undefined ? {} : {tunes})}]});
+        for (const tunes of [undefined, {}, {flag: {flagged: false}}, {flag: {flagged: true}}]) {
+          const input = tuned(tunes);
+          assert.deepEqual(requireEditorialDocument(JSON.stringify(input)), input);
+        }
+        for (const payload of [null, [], true, 'true', {}, {flagged: 'true'}, {flagged: true, extra: 1}]) {
+          const result = validateEditorialDocument(tuned({flag: payload}));
+          assert.equal(result.ok, false);
+          assert.deepEqual(result.errors[0].path, ['blocks', 0, 'tunes', 'flag']);
+        }
+        assert.equal(validateEditorialDocument(tuned({unknown: {flagged: true}})).ok, false);
+        assert.equal(validateEditorialDocument(tuned({}, 'paragraph')).ok, false);
+        assert.equal(validateEditorialDocument(tuned({review: {flagged: true}}, 'aside'), 'aside', 'review').ok, true);
+        assert.equal(validateEditorialDocument(tuned({flag: {flagged: true}}, 'aside'), 'aside', 'review').ok, false);
         console.log('quick start ok');
       `,
         ],

@@ -76,6 +76,11 @@ export async function preparePortable({
       'callout-editor.ts',
       'main.ts',
       'index.html',
+      'editorial-data.ts',
+      'marker-tool.ts',
+      'flag-tune.ts',
+      'editorial-registry.ts',
+      'editorial-main.ts',
     ],
   );
   await mkdir(join(root, 'custom'));
@@ -228,6 +233,7 @@ export async function preparePortable({
       },
       files: [
         'custom/main.ts',
+        'custom/editorial-main.ts',
         'custom/callout-direct.ts',
         'custom/probe.ts',
         'registry/direct.ts',
@@ -286,7 +292,7 @@ export async function buildPortable({ root, node, report, run }) {
       `
     import { build } from 'esbuild';
     import { writeFile } from 'node:fs/promises';
-    const result = await build({ entryPoints: { 'dist/main': 'custom/main.ts', 'custom-probe': 'custom/probe.ts', direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts', quote: 'quote/direct.ts', image: 'image/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
+    const result = await build({ entryPoints: { 'dist/main': 'custom/main.ts', 'editorial/dist/main': 'custom/editorial-main.ts', 'custom-probe': 'custom/probe.ts', direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts', quote: 'quote/direct.ts', image: 'image/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
     await writeFile('metadata.json', JSON.stringify(result.metafile));
   `,
     ],
@@ -346,6 +352,7 @@ export async function buildPortable({ root, node, report, run }) {
         visitCustom(edge.path);
   }
   visitCustom('dist/browser/dist/main.js');
+  visitCustom('dist/browser/editorial/dist/main.js');
   const calloutChunks = Object.entries(metadata.outputs)
     .filter(([, output]) =>
       Object.entries(output.inputs).some(
@@ -359,9 +366,31 @@ export async function buildPortable({ root, node, report, run }) {
     !calloutChunks.some((file) => customInitial.has(file)),
     'Callout entered the lazy page initial closure',
   );
+  const editorialChunks = Object.fromEntries(
+    ['marker-tool', 'flag-tune'].map((name) => {
+      const chunks = Object.entries(metadata.outputs)
+        .filter(([, output]) =>
+          Object.entries(output.inputs).some(
+            ([file, value]) =>
+              file === `custom/${name}.ts` && value.bytesInOutput > 0,
+          ),
+        )
+        .map(([file]) => file);
+      assert(chunks.length > 0, `Missing archived ${name} implementation`);
+      assert(
+        !chunks.some((file) => customInitial.has(file)),
+        `${name} entered the lazy page initial closure`,
+      );
+      return [name, chunks];
+    }),
+  );
   await writeFile(
     join(report, 'custom-tool-delivery.json'),
-    JSON.stringify({ initial: [...customInitial], calloutChunks }),
+    JSON.stringify({
+      initial: [...customInitial],
+      calloutChunks,
+      editorialChunks,
+    }),
   );
   const commonTools = Object.fromEntries(
     ['paragraph', 'header', 'list', 'quote', 'image'].map((name) => [
@@ -549,6 +578,13 @@ export async function buildPortable({ root, node, report, run }) {
   await cp(
     join(root, 'custom/index.html'),
     join(root, 'dist/browser/custom-tool.html'),
+  );
+  await writeFile(
+    join(root, 'dist/browser/editorial.html'),
+    (await readFile(join(root, 'custom/index.html'), 'utf8')).replace(
+      '/dist/main.js',
+      '/editorial/dist/main.js',
+    ),
   );
   await writeFile(
     join(root, 'dist/browser/custom-probe.html'),

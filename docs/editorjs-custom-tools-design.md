@@ -2,9 +2,73 @@
 
 Contributor design for [#642](https://github.com/anarchitects/anarchitecture-community/issues/642),
 the first slice of epic #73. It fixes the scope and evidence required in
-#643–#648. The implementation increment below records #643's delivered block
-example. Inline/tune, external Code and Angular recipes remain later slices;
+#643–#648. The implementation increments below record #643's block example and
+#644's inline/tune extension. External Code and Angular recipes remain later slices;
 the planning tables do not certify those implementations.
+
+## Inline and tune increment (#644)
+
+The shipped guide extends the same callout with `MarkerTool`, `FlagTune`, a
+separate neutral tune-data boundary and a composed runnable page. Marker toggles
+a nonempty selection inside one editable callout; partially mixed formatting and
+cross-block/owner selections are unsupported. Removing a mark preserves its text
+and bold children. Flag state belongs to each tune instance, defaults to false,
+persists under the configured tune name and explicitly dispatches block changes.
+Readonly and detached callbacks cannot mutate state. Neither example allocates
+external resources or invents destruction hooks absent from Editor.js 2.31.7.
+
+Preflight freshly enumerated and read all eight Community ADRs and eighteen Meta
+ADRs, including their historical/proposed sections, on 30 October 2026. Community
+baseline is merged #643 at `04f3ceba23485df52420d7e24a771fdc8aac9595`; all Meta ADR
+blob hashes match the freshly fetched tree and clean adjacent checkout at
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. The Modern Angular index, repository
+application, architecture, SSR/build and testing guides were reread. The accepted
+constraints in the architecture table below remain applicable. No conflict,
+exception, HTTP/default change or proposal override is introduced.
+
+Core's existing block-data validator does not validate tune payloads. The new
+document boundary separately rejects unknown tune keys and malformed flag data,
+while the original block-only validator retains its closed policy. Composition
+selects block/inline/tune names together and explicitly replaces the whole block
+definition. Built-in bold and block actions coexist with the custom menus.
+
+The package gate compiles the actual archived neutral fences with ES2022-only
+libraries under NodeNext and Bundler. Existing portable preparation extracts and
+strictly compiles all twelve guide files, builds both runnable pages, and checks
+that the three lazy implementations remain outside their initial closures.
+Editor.js 2.31.7's inline constructor declaration still returns an HTMLElement-only
+base despite its instance/runtime MenuConfig support; the guide explains the
+existing owner's single opaque tools-map bridge. No new core runtime API or
+dependency masks that mismatch.
+
+Real browser validation also exposed that the upstream tool API captures
+`ui.nodes` before UI preparation, despite its nonoptional declarations. Marker
+therefore receives its dedicated host holder through config and remembers its
+first editable element; flag uses its own `BlockAPI.holder`. Both reject detached
+content before mutation, without relying on that early UI snapshot.
+
+Private probe subclasses instrument the archived implementations only. Existing
+portable registry tests own keyboard/menu, formatting, save/reload, dispatch,
+configured-name, validation and owner-isolation evidence. Guide/probe/build helper
+changes are already covered by the explicit packed source fingerprint. No new
+project, task, cache policy or DTE topology is added; uncached fresh preparation
+and existing portable atoms remain the gates. Broader matrix evidence stays #647.
+
+Local validation on 30 October 2026 passed core build/test/lint/typecheck and e2e
+lint/typecheck through Nx, then fresh reference preparation and the portable atom
+(`si644-local3`). All 25 browser cases passed in 27.0 seconds, including four new
+inline/tune cases. The isolated consumer compiled and ran with Editor.js 2.31.7,
+TypeScript 6.0.3 and Node 24.15.0, without Angular installed; the Nx coordinator
+used Node 26.13.0. Keyboard activation, active state, bounded marker removal,
+bold retention, sanitized reload, tune defaults/reload/dispatch, two-owner
+isolation, configured aliases, reference errors and pre-load tune rejection
+passed. Readonly, cross-block/owner and removed-owner guards passed. Hosted
+minimum/current cells and remote restoration remain separate CI gates.
+
+Fresh npm/tag/release checks returned npm 404 for core, no remote Editor.js tag
+refs and no Editor.js distribution among all 102 GitHub Releases. Core remains
+unpublished at 0.0.1. This slice uses
+`init(editorjs-core,editorjs-angular-e2e)` without a version bump or publication.
 
 ## Framework-neutral block increment (#643)
 

@@ -1,4 +1,4 @@
-# Author a custom block tool
+# Author custom block, inline and tune tools
 
 This guide implements an application-owned callout for Editor.js **2.31.7**.
 It uses `@anarchitects/editorjs-core` without Angular. The browser classes below
@@ -10,6 +10,9 @@ The saved data is `{ text: string, tone: 'info' | 'warning' }`. Text permits
 text. Empty text is valid and survives saving. This example supports ordinary
 editing and tone settings; it does not implement custom paste substitutions,
 conversion, merging, shortcuts or asynchronous rendering.
+
+The optional [marker and flag extension](#add-an-inline-marker-and-a-per-block-flag)
+adds bounded inline formatting and independently saved per-block tune state.
 
 ## Install and run
 
@@ -410,6 +413,7 @@ it separately destroys the raw editor. Loader/initialization failure rejects
 import {
   createToolResolver,
   type ToolRegistry,
+  type OutputData,
 } from '@anarchitects/editorjs-core';
 import type EditorJS from '@editorjs/editorjs';
 import type { EditorConfig } from '@editorjs/editorjs';
@@ -421,8 +425,10 @@ export function mountCallout(
   input: unknown,
   name = 'callout',
   onChange: NonNullable<EditorConfig['onChange']> = () => undefined,
+  readDocument: (input: unknown) => OutputData = (input) =>
+    requireCalloutDocument(input, name),
 ) {
-  const data = requireCalloutDocument(input, name);
+  const data = readDocument(input);
   const resolver = createToolResolver(registry, { defaultBlock: name });
   let removed = false;
   let editor: EditorJS | undefined;
@@ -624,3 +630,524 @@ resolver retry/disposal and document validation contracts. The upstream
 define the browser lifecycle implemented here. Compatibility is bounded to that
 Editor.js version; this example is not a claim about every third-party tool,
 browser, public renderer or production blog workflow.
+
+## Add an inline marker and a per-block flag
+
+The following optional files extend the same callout. `MarkerTool` writes
+attribute-free `mark` elements into its enclosing block's text. `FlagTune` saves
+`{ flagged: boolean }` separately under `blocks[*].tunes.flag`. Neither adds a
+block type. Keep the earlier files, including the owner helper; its optional
+`readDocument` argument lets this composition use the stricter boundary below.
+
+### Validate tune data at the document boundary
+
+Save as `editorial-data.ts`. This is another DOM-free file. Missing flag data
+means false for a new or older block, but a present payload must contain exactly
+one boolean `flagged` field. Unknown tune keys are rejected. The original
+`validateCalloutDocument` remains the closed block-only policy; use this boundary
+for the composed editor on **both load and save**.
+
+<!-- neutral-example-file: editorial-data.ts -->
+
+```ts
+import {
+  validateOutputData,
+  type OutputDataValidationResult,
+} from '@anarchitects/editorjs-core';
+import { validateCallout } from './callout-data.js';
+
+export interface FlagData {
+  flagged: boolean;
+}
+
+export function isFlagData(value: unknown): value is FlagData {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    'flagged' in value &&
+    typeof value.flagged === 'boolean' &&
+    Object.keys(value).length === 1
+  );
+}
+
+export function validateEditorialDocument(
+  input: unknown,
+  blockName = 'callout',
+  flagName = 'flag',
+): OutputDataValidationResult {
+  const result = validateOutputData(input, {
+    toolValidators: new Map([[blockName, validateCallout]]),
+    unknownTools: 'reject',
+  });
+  if (!result.ok) return result;
+  for (const [index, block] of result.data.blocks.entries()) {
+    for (const [name, value] of Object.entries(block.tunes ?? {})) {
+      if (name !== flagName || !isFlagData(value))
+        return {
+          ok: false,
+          errors: [
+            {
+              source: 'tool',
+              code: 'tool_data_invalid',
+              path: ['blocks', index, 'tunes', name],
+              message:
+                name !== flagName
+                  ? 'Unknown tune'
+                  : 'Expected exactly { flagged: boolean }',
+            },
+          ],
+        };
+    }
+  }
+  return result;
+}
+
+export function requireEditorialDocument(
+  input: unknown,
+  blockName = 'callout',
+  flagName = 'flag',
+) {
+  const result = validateEditorialDocument(input, blockName, flagName);
+  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  return result.data;
+}
+```
+
+Core's `ToolDataValidator` receives block **data**, not tune data. Its success
+cannot certify `tunes.flag`. This additional traversal belongs to the consuming
+application's schema; there is no new core validator API. Configured names must
+match in the registry and validator. `marker` has no separate saved payload.
+
+### Toggle marker formatting
+
+Save as `marker-tool.ts`. Select a nonempty range inside one editable callout.
+Activate “Highlight text” to wrap it; selecting within a single existing mark
+and activating again removes that entire mark, preserving its text and bold
+children. A selection spanning partially marked and unmarked content or multiple
+marks is deliberately unsupported and disabled. Cross-block selections,
+collapsed carets, another editor's selection and readonly content are rejected.
+The tool does not implement arbitrary nested-format normalization.
+
+<!-- browser-example-file: marker-tool.ts -->
+
+```ts
+import type {
+  API,
+  InlineTool,
+  InlineToolConstructorOptions,
+} from '@editorjs/editorjs';
+type MenuConfig = Exclude<
+  Awaited<ReturnType<InlineTool['render']>>,
+  HTMLElement
+>;
+
+export class MarkerTool implements InlineTool {
+  static get isInline() {
+    return true;
+  }
+  static get isReadOnlySupported() {
+    return false;
+  }
+  static get sanitize() {
+    return { mark: {} };
+  }
+  private readonly api: API;
+
+  private readonly holder: HTMLElement;
+  private editable: HTMLElement | undefined;
+
+  constructor({ api, config }: InlineToolConstructorOptions) {
+    if (!(config?.holder instanceof HTMLElement))
+      throw new Error('Marker requires its editor holder');
+    this.api = api;
+    this.holder = config.holder;
+  }
+
+  private context() {
+    if (
+      !this.holder.isConnected ||
+      (this.editable && !this.editable.isConnected) ||
+      this.api.readOnly.isEnabled
+    )
+      return;
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount !== 1 || selection.isCollapsed)
+      return;
+    const range = selection.getRangeAt(0);
+    const element = (node: Node) =>
+      node instanceof Element ? node : node.parentElement;
+    const editable = element(range.startContainer)?.closest<HTMLElement>(
+      '.callout-text[contenteditable="true"]',
+    );
+    if (
+      !editable ||
+      !editable.contains(range.endContainer) ||
+      !this.holder.contains(editable) ||
+      (this.editable && this.editable !== editable)
+    )
+      return;
+    this.editable = editable;
+    const startMark = element(range.startContainer)?.closest('mark');
+    const endMark = element(range.endContainer)?.closest('mark');
+    if (startMark && startMark === endMark && editable.contains(startMark))
+      return { selection, range, mark: startMark };
+    const intersecting = Array.from(editable.querySelectorAll('mark')).filter(
+      (mark) => range.intersectsNode(mark),
+    );
+    if (intersecting.length) {
+      const mark = intersecting[0];
+      if (intersecting.length !== 1 || range.toString() !== mark.textContent)
+        return;
+      return { selection, range, mark };
+    }
+    return { selection, range, mark: undefined };
+  }
+
+  render(): MenuConfig {
+    return {
+      title: 'Highlight text',
+      icon: '<span aria-hidden="true">M</span>',
+      hint: { title: 'Highlight text' },
+      isDisabled: !this.context(),
+      isActive: () => !!this.context()?.mark,
+      onActivate: () => {
+        const context = this.context();
+        if (!context) return;
+        const { selection, range, mark } = context;
+        const selected = document.createRange();
+        if (mark) {
+          const first = mark.firstChild,
+            last = mark.lastChild;
+          if (!first || !last) return;
+          mark.replaceWith(...Array.from(mark.childNodes));
+          selected.setStartBefore(first);
+          selected.setEndAfter(last);
+        } else {
+          const wrapper = document.createElement('mark');
+          wrapper.append(range.extractContents());
+          range.insertNode(wrapper);
+          selected.selectNodeContents(wrapper);
+        }
+        selection.removeAllRanges();
+        selection.addRange(selected);
+      },
+    };
+  }
+}
+```
+
+This uses the current `MenuConfig` activation/state hooks instead of the
+deprecated `surround`/`checkState` methods. Editor.js owns the toolbar's mouse and
+keyboard handlers; the tool reads the current selection on each call and retains
+no `Range`, global listener, timer or request. There is no invented inline
+`destroy()` hook. Destroy the editor through its owner. Detached-editor and
+readonly checks also make retained menu callbacks inert after teardown.
+
+Pass this editor's dedicated holder in the marker config. The instance remembers
+its first editable element and rejects a different or detached one, including
+after block reload/removal. Editor.js recreates inline instances when rendering
+the toolbar. Do not share a holder/config across editor owners. This explicit
+boundary avoids Editor.js 2.31.7's early `api.ui.nodes` snapshot, whose declared
+nodes can be undefined when tool APIs are constructed before UI preparation.
+
+Marker mutation changes the block DOM, which Editor.js observes. The explicit
+sanitizer maps on **both** marker and callout keep `mark` without attributes.
+Never replace `{}` with `true` to mean “no attributes”: that upstream rule allows
+attributes. The public renderer still needs its own safe rendering policy.
+
+### Save per-block tune state
+
+Save as `flag-tune.ts`. The instance owns its boolean, wrapper and status text.
+Its menu is disabled in readonly mode; the callback checks the current readonly
+state and that its own wrapper still belongs to the live editor.
+
+<!-- browser-example-file: flag-tune.ts -->
+
+```ts
+import type {
+  API,
+  BlockAPI,
+  BlockTune,
+  BlockTuneConstructable,
+} from '@editorjs/editorjs';
+import { isFlagData, type FlagData } from './editorial-data.js';
+type MenuConfig = Exclude<ReturnType<BlockTune['render']>, HTMLElement>;
+
+export class FlagTune implements BlockTune {
+  static get isTune() {
+    return true;
+  }
+  private readonly api: API;
+  private readonly block: BlockAPI;
+  private readonly wrapper = document.createElement('div');
+  private readonly status = document.createElement('span');
+  private flagged: boolean;
+
+  constructor({
+    api,
+    block,
+    data,
+  }: ConstructorParameters<BlockTuneConstructable>[0]) {
+    if (data !== undefined && !isFlagData(data))
+      throw new Error('Invalid flag tune data');
+    this.flagged = data === undefined ? false : data.flagged;
+    this.api = api;
+    this.block = block;
+    this.wrapper.className = 'callout-flag';
+    this.status.className = 'callout-flag-status';
+    this.status.contentEditable = 'false';
+    this.refresh();
+  }
+
+  private refresh() {
+    this.wrapper.dataset.flagged = String(this.flagged);
+    this.status.textContent = this.flagged
+      ? 'Flagged for review'
+      : 'Not flagged';
+  }
+
+  private canEdit() {
+    return (
+      this.wrapper.isConnected &&
+      !this.api.readOnly.isEnabled &&
+      this.block.holder.contains(this.wrapper)
+    );
+  }
+
+  wrap(content: HTMLElement) {
+    this.wrapper.replaceChildren(this.status, content);
+    return this.wrapper;
+  }
+
+  render(): MenuConfig {
+    return {
+      title: 'Flag for review',
+      icon: '<span aria-hidden="true">F</span>',
+      isActive: () => this.flagged,
+      isDisabled: !this.canEdit(),
+      closeOnActivate: true,
+      onActivate: () => {
+        if (!this.canEdit()) return;
+        this.flagged = !this.flagged;
+        this.refresh();
+        this.block.dispatchChange();
+      },
+    };
+  }
+
+  save(): FlagData {
+    return { flagged: this.flagged };
+  }
+}
+```
+
+There is no per-instance tune destruction hook in this upstream contract.
+This implementation starts no external resource and uses no shared mutable
+state, static `prepare` or static `reset`. The editor owns the menu and removes
+the block wrapper; detached callbacks cannot mutate it. If you add resources,
+design their ownership around supported hooks before adding them to this sample.
+Readonly is an editing restriction, not server authorization.
+
+### Compose and deliberately replace definitions
+
+Save as `editorial-registry.ts`. All three names are selected together. The
+block references the selected marker and flag plus built-in bold. The second
+composition replaces the **whole** callout definition to change its label; it
+does not deep-merge config or remove references. Loaders return constructors.
+
+<!-- browser-example-file: editorial-registry.ts -->
+
+```ts
+import {
+  composeToolRegistry,
+  selectToolRegistry,
+  validateToolReferences,
+  EDITOR_JS_2_31_7_TOOL_PROFILE,
+  type ToolConfiguration,
+} from '@anarchitects/editorjs-core';
+import type { CalloutTool } from './callout-tool.js';
+import type { CalloutConfig, CalloutData } from './callout-data.js';
+
+export function editorialRegistry(
+  holder: HTMLElement,
+  blockName = 'callout',
+  markerName = 'marker',
+  flagName = 'flag',
+) {
+  const settings = {
+    config: { label: 'Callout text' },
+    inlineToolbar: ['bold', markerName],
+    tunes: [flagName],
+  } satisfies Omit<
+    ToolConfiguration<typeof CalloutTool, CalloutConfig, CalloutData>,
+    'class'
+  >;
+  const block = {
+    name: blockName,
+    kind: 'block',
+    source: 'lazy',
+    load: () => import('./callout-tool.js').then((m) => m.CalloutTool),
+    settings,
+  } as const;
+  const base = composeToolRegistry(
+    [
+      [
+        block,
+        {
+          name: markerName,
+          kind: 'inline',
+          source: 'lazy',
+          load: () => import('./marker-tool.js').then((m) => m.MarkerTool),
+          settings: { config: { holder } },
+        },
+        {
+          name: flagName,
+          kind: 'tune',
+          source: 'lazy',
+          load: () => import('./flag-tune.js').then((m) => m.FlagTune),
+        },
+      ],
+    ],
+    { profile: EDITOR_JS_2_31_7_TOOL_PROFILE },
+  );
+  const configured = composeToolRegistry(
+    [
+      [
+        {
+          ...block,
+          replace: true,
+          settings: { ...settings, config: { label: 'Editorial callout' } },
+        },
+      ],
+    ],
+    { profile: EDITOR_JS_2_31_7_TOOL_PROFILE, base },
+  );
+  const selected = selectToolRegistry(configured, [
+    blockName,
+    markerName,
+    flagName,
+  ]);
+  validateToolReferences(selected, { defaultBlock: blockName });
+  return selected;
+}
+```
+
+Omitting a referenced marker/tune, using the wrong kind, or referencing a removed
+name fails with core's `invalid-reference` diagnostic. Reusing an existing name
+without `replace: true` fails with `duplicate-name`. A tune must not be selected
+as an inline tool. Renaming `flag` to `review` saves under `tunes.review`; pass
+that name to `requireEditorialDocument` too. Core does not rewrite documents.
+
+Each implementation is checked against the upstream instance interface.
+Editor.js 2.31.7's `InlineToolConstructable` declaration still returns the older
+HTMLElement-only base interface even though `InlineTool.render` and the runtime
+support MenuConfig. The existing owner helper's single opaque tools-map bridge
+handles this upstream declaration mismatch; no constructor is redefined and no
+core runtime type or export changes. The real browser remains the behavior gate.
+
+### Run the composed page
+
+Save as `editorial-main.ts`, keeping the earlier `index.html`. Compile with
+`npx tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution
+bundler --lib ES2022,DOM editorial-main.ts`, then use
+`npx esbuild editorial-main.ts --bundle --format=esm --splitting --entry-names=main
+--outdir=dist --servedir=.` to serve that same page with this entry point.
+Select text to open the inline toolbar; use Tab/arrow keys and Enter to activate
+Highlight text. Block settings contain Flag for review and the built-in block
+actions. Save/reload preserves markers and each block's independent flag.
+
+<!-- browser-example-file: editorial-main.ts -->
+
+```ts
+import type EditorJS from '@editorjs/editorjs';
+import { editorialRegistry } from './editorial-registry.js';
+import { requireEditorialDocument } from './editorial-data.js';
+import { mountCallout } from './callout-editor.js';
+
+const holder = document.querySelector<HTMLElement>('#editor')!;
+const status = document.querySelector<HTMLElement>('#status')!;
+const saved = document.querySelector<HTMLTextAreaElement>('#saved')!;
+const buttons = document.querySelectorAll<HTMLButtonElement>(
+  '[data-editor-action]',
+);
+const events = new AbortController();
+const owner = mountCallout(
+  holder,
+  editorialRegistry(holder),
+  {
+    blocks: [
+      { type: 'callout', data: { text: 'First callout', tone: 'info' } },
+      { type: 'callout', data: { text: 'Second callout', tone: 'warning' } },
+    ],
+  },
+  'callout',
+  () => {
+    if (!events.signal.aborted) status.textContent = 'Changed';
+  },
+  requireEditorialDocument,
+);
+const report = (error: unknown) => {
+  if (!events.signal.aborted) status.textContent = String(error);
+};
+owner.ready
+  .then(() => {
+    if (events.signal.aborted) return;
+    for (const button of buttons) button.disabled = false;
+    status.textContent = 'Ready';
+  })
+  .catch(report);
+
+function action(id: string, run: (editor: EditorJS) => Promise<void>) {
+  document.querySelector(id)!.addEventListener(
+    'click',
+    () => {
+      owner.ready.then(run).catch(report);
+    },
+    { signal: events.signal },
+  );
+}
+action('#save', async (editor) => {
+  const data = requireEditorialDocument(await editor.save());
+  if (events.signal.aborted) return;
+  saved.value = JSON.stringify(data);
+  status.textContent = 'Saved';
+});
+action('#reload', async (editor) => {
+  await editor.render(requireEditorialDocument(saved.value));
+  if (!events.signal.aborted) status.textContent = 'Reloaded';
+});
+action('#readonly', async (editor) => {
+  await editor.readOnly.toggle();
+});
+document.querySelector('#remove')!.addEventListener(
+  'click',
+  () => {
+    events.abort();
+    for (const button of buttons) button.disabled = true;
+    owner
+      .dispose()
+      .then(() => {
+        status.textContent = 'Removed';
+      })
+      .catch((error: unknown) => {
+        status.textContent = String(error);
+      });
+  },
+  { signal: events.signal },
+);
+```
+
+These examples use only public package imports and the existing resolver/owner.
+No Angular, Forms, Nest or new tool package is needed. The inline tool is a
+mutating control and explicitly **does not support readonly activation**;
+Editor.js filters it out in that mode. The callout and flag's saved state remain
+visible, and the flag's activation guard rejects readonly or detached mutation.
+Keep the same document boundary for received data and before persistence.
+
+See the upstream [MenuConfig](https://editorjs.io/menu-config/) and
+[Block Tunes API](https://editorjs.io/block-tunes-api/) alongside the pinned
+[inline](https://github.com/codex-team/editor.js/blob/v2.31.7/types/tools/inline-tool.d.ts)
+and [tune](https://github.com/codex-team/editor.js/blob/v2.31.7/types/block-tunes/block-tune.d.ts)
+declarations. This bounded example does not promise arbitrary selection editing,
+resource-owning plugins or compatibility with other Editor.js versions.
