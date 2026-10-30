@@ -15,6 +15,10 @@ import { prepareIndependentTools } from './independent-tools.mjs';
 import { preparePortable } from './portable-consumer.mjs';
 import { preparePackedSsr } from './packed-ssr.mjs';
 import { prepareReadmeSsr } from './readme-ssr.mjs';
+import {
+  prepareAngularCustom,
+  checkAngularCustomImports,
+} from './angular-custom-consumer.mjs';
 import { prepareNestUpload } from './nest-upload.mjs';
 import { commandRunner } from './packed-process.mjs';
 import {
@@ -128,6 +132,7 @@ async function validate(name, versions, archives, sources) {
       ]),
     ),
     '@editorjs/editorjs': versions.editorjs,
+    '@editorjs/code': '2.9.4',
     rxjs: '7.8.2',
     tslib: '2.8.1',
   };
@@ -184,6 +189,7 @@ async function validate(name, versions, archives, sources) {
       new URL('./serve-packed.mjs', import.meta.url),
       join(root, 'server.mjs'),
     );
+    await prepareAngularCustom({ root, report, workspace });
     const tsconfig = {
       compilerOptions: {
         target: 'ES2022',
@@ -258,11 +264,13 @@ async function validate(name, versions, archives, sources) {
         'examples/quote-app.ts',
         'examples/image-app.ts',
         'examples/upload-editor.ts',
+        'examples/custom-page.ts',
         'src/upload/upload-editor.ts',
       ],
     });
     await assertBoundaries(root, node, false);
     await run(node, [compiler, '-p', 'tsconfig.root.json'], root);
+    await checkAngularCustomImports({ root, node, run });
     console.log(`Root declarations/imports without Forms passed: ${name}`);
     if (mode === 'csr') {
       if (name === 'angular22-reference')

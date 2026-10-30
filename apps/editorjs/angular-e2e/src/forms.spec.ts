@@ -1,4 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { customFormCases } from '../custom/cases.js';
+
+customFormCases();
 
 const card = (page: Page, name = 'First') =>
   page.getByRole('region', { name: `${name} form`, exact: true });

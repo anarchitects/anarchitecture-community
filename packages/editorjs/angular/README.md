@@ -1100,6 +1100,11 @@ validate editor output at runtime. Use core parsers/validators for untrusted dat
 
 ## Tool providers and injector ownership
 
+For a complete application using the shared callout, inline marker, flag tune
+and independently installed Code tool, see [Compose custom tools with Angular](custom-tools.md).
+It includes direct/provider composition, explicitly owned environments and an
+optional native Signal Forms workflow with validation, reset and submission.
+
 `provideEditorJsTools(contribution, options?)` and `EDITOR_JS_TOOL_REGISTRY` are
 optional environment APIs. They make a core tool registry available to an
 application, route or explicitly created child `EnvironmentInjector`. They do not

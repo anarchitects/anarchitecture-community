@@ -1,4 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { customEditorCases } from '../custom/cases.js';
+
+customEditorCases();
 
 const card = (page: Page, name: string) =>
   page.getByRole('region', { name: `${name} editor`, exact: true });
