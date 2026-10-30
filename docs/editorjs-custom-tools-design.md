@@ -3,8 +3,79 @@
 Contributor design for [#642](https://github.com/anarchitects/anarchitecture-community/issues/642),
 the first slice of epic #73. It fixes the scope and evidence required in
 #643–#648. The implementation increments below record #643's block example and
-#644's inline/tune extension and #645's external Code recipe. Angular recipes remain a later slice;
-the planning tables do not certify those implementations.
+#644's inline/tune extension, #645's external Code recipe and #646's Angular
+composition. The planning tables do not certify later slices.
+
+## Angular composition increment (#646)
+
+The Angular README links a complete `custom-tools.md` shipped in its archive.
+Its five named source files reuse the seven archived core block, inline, tune,
+Code data/config and browser implementation files. Direct composition supplies
+an explicit resolved tools map; provider composition uses public environment
+providers, synchronous DI capture, inherited selection and whole-definition
+replacement. Registry display reads the provider token only after successful
+provider initialization; direct editors retain complete provider bypass.
+Each editor owns its config, holder, component and environment
+disposal. Initialization-only configuration and error/recovery boundaries remain
+the existing wrapper contracts; no registration engine or rendering bridge is added.
+
+Preflight on 30 October 2026 enumerated and read all eight Community and eighteen
+Meta ADRs, including historical/proposed records. Community starts from merged
+#645 at `cccf1e3a08622a497b4055f751f6cda4c133bdfd`; every Meta ADR hash matches the
+fresh remote tree and clean adjacent checkout at
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. The Modern Angular index, repository
+application and architecture, providers, reactivity, forms, rendering, SSR/build
+and testing guides were read. Community0004 and A01/A02/A03/A05/A07/A09/A10
+require complete consumer sources, owner lifetimes, optional native Forms,
+lazy browser imports and public integration evidence. Meta0015 preserves exact
+inputs, isolated/restorable outputs and uncached fresh preparation;
+Meta0013/Community0007 constrain release intent. No accepted conflict or proposal
+override is introduced; HTTP/Nest, authentication and governance scopes are unchanged.
+
+The optional example uses `EditorJsControl`, native `FormField` and schema rules.
+It shares the core validation callbacks, adds host-owned tune checks, separates
+async validation from operational errors and submission, and preserves edits on
+persistence failure. Forms model validation uses the existing normalization
+option to omit Angular's symbol metadata, while all other JSON validation and
+the neutral document boundary remain strict. Explicit saving compares the actual editor snapshot with
+the Forms model before submission; silent upstream Code Tab edits refresh that
+model and require review before another save. No CVA, Forms-state facade or
+writes to Forms-owned inputs are introduced. Host ports are cancellable demo
+defaults, not a production persistence implementation.
+
+Fresh packed preparation extracts the actual Angular and core archive sources,
+checks Angular guide byte equality, pins Code 2.9.4 and records its integrity/lock.
+It compiles standalone examples before installing Forms, checks plain-Node imports
+with browser globals trapped, and compiles the optional Forms example afterward.
+Existing CSR editor/Forms atoms execute the archived components through a private
+bootstrap and controllable host ports. Existing unit tests retain coverage of DI
+capture/selection, explicit precedence, config/load/create/ready failures,
+initialization-only config and stale owner operations. New browser cases exercise
+the actual custom tools, independent owners, load failure/recovery, delayed
+delivery teardown and native Forms behavior. Upload and image alt contracts remain
+unchanged. Full SSR/matrix/delivery/restoration consolidation belongs to #647.
+
+Resolved Angular (15 targets) and e2e (105 targets) configurations retain their
+cache policies and isolated outputs. `sourceFingerprint` now names the shipped
+Angular guide and extraction/bootstrap helper. No project, atom or DTE topology
+changes. Local checks run with Nx Cloud disabled; no CI monitoring is authorized.
+
+Fresh npm history returned 404 for Angular, remote Editor.js tags were absent,
+and none of all 102 GitHub Releases distributed Editor.js packages. Angular
+remains unreleased at 0.0.1; the slice uses non-bumping
+`init(editorjs-angular,editorjs-angular-e2e)` without changing versions.
+
+Local validation passed: Angular build and 196 tests across seven files;
+Angular/e2e lint and typecheck; all seven packed-harness tests; formatting and
+whitespace checks. Fresh `si646-reviewed` CSR preparation passed in all three
+exact Angular/Node cells listed below, including archived standalone compilation
+with Forms absent, guarded Node imports and subsequent Forms compilation.
+The reference-cell production build and all 24 Chromium editor/Forms cases
+passed (14 editor, 10 Forms), including six new archived custom-tool cases.
+Evidence is under `dist/editorjs-packed-inputs/si646-reviewed/csr/` and
+`dist/editorjs-packed-results/si646-reviewed/csr/angular22-reference/`.
+These results do not claim the remaining browser/SSR matrix, hosted restoration
+or green CI; #647 owns broader consolidation and CI was not monitored.
 
 ## External Code increment (#645)
 

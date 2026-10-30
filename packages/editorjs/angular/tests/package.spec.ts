@@ -160,6 +160,11 @@ describe('published Angular contracts', () => {
     expect(readFileSync(join(packageDirectory, 'README.md'), 'utf8')).toBe(
       readFileSync(resolve(import.meta.dirname, '../README.md'), 'utf8'),
     );
+    expect(
+      readFileSync(join(packageDirectory, 'custom-tools.md'), 'utf8'),
+    ).toBe(
+      readFileSync(resolve(import.meta.dirname, '../custom-tools.md'), 'utf8'),
+    );
   });
 
   it('imports the root without Forms or Editor.js installed or browser global access', () => {
