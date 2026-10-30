@@ -16,6 +16,7 @@
   },
   "files": [
     "dist",
+    "custom-tools.md",
     "!**/*.tsbuildinfo"
   ],
   "nx": {

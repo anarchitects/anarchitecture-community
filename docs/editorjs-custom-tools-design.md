@@ -2,9 +2,70 @@
 
 Contributor design for [#642](https://github.com/anarchitects/anarchitecture-community/issues/642),
 the first slice of epic #73. It fixes the scope and evidence required in
-#643–#648. The examples and guide locations described as planned below do not yet
-exist as supported consumer surfaces. This slice changes documentation only;
-it adds no runtime API, dependency, package or compatibility claim.
+#643–#648. The implementation increment below records #643's delivered block
+example. Inline/tune, external Code and Angular recipes remain later slices;
+the planning tables do not certify those implementations.
+
+## Framework-neutral block increment (#643)
+
+The [shipped custom-tool guide](../packages/editorjs/core/custom-tools.md) now
+contains the complete CalloutTool, its neutral validator, direct/eager/lazy
+registrations, an explicit editor owner and a runnable page. Core has no new
+runtime export, dependency or schema. The guide is explicitly included in the
+package archive and linked from its README.
+
+Preflight used merged #642 at Community `8558c32637d7248ed2d04575d7f500b58ab93568`.
+All eight local ADRs and eighteen Meta ADRs had been read in this session; this
+slice re-enumerated the sources and verified that the local ADRs, engineering
+guides and agent instructions are unchanged. The freshly fetched Meta tree still
+matches the reviewed clean checkout at
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. The complete inventory and applicable
+constraints below remain in force; no accepted conflict or exception arose.
+
+The package test compares archived guide bytes and compiles its neutral example
+under NodeNext and Bundler with ES2022-only libraries and no ambient types. The
+existing portable preparation extracts the guide's actual named TypeScript and
+HTML fences, compiles the concrete browser classes, and builds the working page.
+Private probes add instrumentation only; they inherit the archived class and
+never substitute a second implementation. The existing portable registry spec
+owns the additional editing/settings/reload/validation/lifetime cases.
+
+Editor.js 2.31.7 does not export `MenuConfig` by name from its root. The example
+derives that type from its exported `BlockTool.renderSettings` signature, keeping
+imports public. Text allows attribute-free `b`, `mark` and structural `br`; no
+marker authoring implementation is implied. Empty sanitizer attribute maps are
+intentional: upstream's `true` tag rule preserves attributes. The browser test
+checks removed event/style attributes, excluded image requests and saved HTML.
+Browser-only empty `br` scaffolding saves as an empty string without losing the
+block or tone. The closed document boundary rejects
+unknown tools and saved tunes. Empty text stays valid; a deliberate upstream
+validate-false control demonstrates omitted content cannot be recovered by
+validating the resulting document.
+
+Resolved core and e2e tasks retain their existing caching and dependencies. The
+guide and private probe are added to the explicit packed source fingerprint.
+Preparation remains uncached, browser/build work remains in the existing portable
+atoms for each CSR cell, and completeness/remote-restoration checks remain intact.
+No new project, atom or DTE topology is introduced. Local task checks precede
+packing; typechecks emit only their isolated build-info output. This slice's
+evidence does not replace #647's broader custom-tool matrix and DTE measurements.
+
+Local validation on 30 October 2026 passed core build/test/lint/typecheck and
+e2e lint/typecheck through Nx, plus fresh reference preparation and the existing
+portable atom (`si643-local4`). All 21 browser cases passed, including eight new
+custom-block cases, in 19.6 seconds of Playwright execution. The consumer used
+Node 24.15.0 / TypeScript 6.0.3 / Editor.js 2.31.7 without Angular installed;
+the local Nx coordinator used Node 26.13.0. The extracted working page passed
+keyboard tone selection, safe restored HTML, empty saves, readonly toggling and
+listener teardown. Instrumented cases passed configured direct/eager/alias names,
+pre-load rejection, pending-owner disposal, explicit settings notification and
+stale-callback guards. Hosted minimum/current cells and remote-cache evidence
+remain CI gates; local passing results are not represented as hosted DTE proof.
+
+Fresh history checks on 30 October 2026 returned npm 404 for core, no remote
+Editor.js tag refs, and no Editor.js distribution among all 102 GitHub Releases.
+The package remains unreleased at 0.0.1; use the exact non-bumping scope
+`init(editorjs-core,editorjs-angular-e2e)`. No version bump or publication occurs.
 
 ## Architecture review and baseline
 

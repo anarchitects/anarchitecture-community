@@ -57,6 +57,41 @@ export async function preparePortable({
     ['browser-editor.ts'],
   );
   await mkdir(join(root, 'readme'));
+  const guide = await readFile(
+    join(root, 'node_modules/@anarchitects/editorjs-core/custom-tools.md'),
+    'utf8',
+  );
+  const customExamples = [
+    ...guide.matchAll(
+      /<!-- (?:neutral|browser)-example-file: ([\w.-]+) -->\s*```(?:ts|html)\n([\s\S]*?)```/g,
+    ),
+  ];
+  assert.deepEqual(
+    customExamples.map(([, file]) => file),
+    [
+      'callout-data.ts',
+      'callout-tool.ts',
+      'callout-direct.ts',
+      'callout-lazy.ts',
+      'callout-editor.ts',
+      'main.ts',
+      'index.html',
+    ],
+  );
+  await mkdir(join(root, 'custom'));
+  for (const [, file, code] of customExamples)
+    await writeFile(join(root, 'custom', file), code);
+  await cp(
+    join(workspace, 'apps/editorjs/angular-e2e/tools/custom-tool-probe.txt'),
+    join(root, 'custom/probe.ts'),
+  );
+  await writeFile(
+    join(report, 'custom-tool-examples.json'),
+    JSON.stringify({
+      source: '@anarchitects/editorjs-core/custom-tools.md',
+      files: customExamples.map(([, file]) => file),
+    }),
+  );
   const paragraphReadme = await readFile(
     join(root, 'node_modules/@anarchitects/editorjs-tool-paragraph/README.md'),
     'utf8',
@@ -192,6 +227,9 @@ export async function preparePortable({
         noEmit: true,
       },
       files: [
+        'custom/main.ts',
+        'custom/callout-direct.ts',
+        'custom/probe.ts',
         'registry/direct.ts',
         'readme/main.ts',
         'paragraph/direct.ts',
@@ -248,7 +286,7 @@ export async function buildPortable({ root, node, report, run }) {
       `
     import { build } from 'esbuild';
     import { writeFile } from 'node:fs/promises';
-    const result = await build({ entryPoints: { direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts', quote: 'quote/direct.ts', image: 'image/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
+    const result = await build({ entryPoints: { 'dist/main': 'custom/main.ts', 'custom-probe': 'custom/probe.ts', direct: 'registry/direct.ts', readme: 'readme/main.ts', paragraph: 'paragraph/direct.ts', header: 'header/direct.ts', list: 'list/direct.ts', quote: 'quote/direct.ts', image: 'image/direct.ts' }, bundle: true, format: 'esm', splitting: true, outdir: 'dist/browser', metafile: true });
     await writeFile('metadata.json', JSON.stringify(result.metafile));
   `,
     ],
@@ -298,6 +336,32 @@ export async function buildPortable({ root, node, report, run }) {
       .flat()
       .some((file) => initial.has(`dist/browser/${file}`)),
     'Tool code entered the portable eager closure',
+  );
+  const customInitial = new Set();
+  function visitCustom(file) {
+    if (customInitial.has(file)) return;
+    customInitial.add(file);
+    for (const edge of metadata.outputs[file].imports)
+      if (edge.kind !== 'dynamic-import' && !edge.external)
+        visitCustom(edge.path);
+  }
+  visitCustom('dist/browser/dist/main.js');
+  const calloutChunks = Object.entries(metadata.outputs)
+    .filter(([, output]) =>
+      Object.entries(output.inputs).some(
+        ([file, value]) =>
+          file === 'custom/callout-tool.ts' && value.bytesInOutput > 0,
+      ),
+    )
+    .map(([file]) => file);
+  assert(calloutChunks.length > 0, 'Missing archived callout implementation');
+  assert(
+    !calloutChunks.some((file) => customInitial.has(file)),
+    'Callout entered the lazy page initial closure',
+  );
+  await writeFile(
+    join(report, 'custom-tool-delivery.json'),
+    JSON.stringify({ initial: [...customInitial], calloutChunks }),
   );
   const commonTools = Object.fromEntries(
     ['paragraph', 'header', 'list', 'quote', 'image'].map((name) => [
@@ -481,6 +545,14 @@ export async function buildPortable({ root, node, report, run }) {
   await writeFile(
     join(root, 'dist/browser/readme.html'),
     `<!doctype html><html><head><link rel="icon" href="data:,"></head><body><h1>Core README</h1><div id="editor"></div><button id="save">Save</button><button id="remove">Remove</button><output></output><script type="module" src="/readme.js"></script></body></html>`,
+  );
+  await cp(
+    join(root, 'custom/index.html'),
+    join(root, 'dist/browser/custom-tool.html'),
+  );
+  await writeFile(
+    join(root, 'dist/browser/custom-probe.html'),
+    `<!doctype html><html lang="en"><head><link rel="icon" href="data:,"></head><body><h1>Custom tool probes</h1><div id="editor"></div><p id="status" role="status">Loading</p><output></output><script type="module" src="/custom-probe.js"></script></body></html>`,
   );
   await writeFile(
     join(root, 'dist/browser/index.html'),
