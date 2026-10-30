@@ -11,6 +11,10 @@ The follow-on [common-tool package contract](editorjs-common-tools-design.md)
 defines epic #71's planned integrations over this registry and records their
 upstream evidence; it does not add APIs to the shipped registry.
 
+The [custom-tool integration contract](editorjs-custom-tools-design.md) scopes
+epic #73's complete authoring examples and third-party compatibility evidence over
+the existing registry. It does not replace the registration or ownership rules here.
+
 Implementation increment #593 adds core composition, selection, reference
 validation, the metadata profile and diagnostics. It also adds `createToolMap`
 for synchronous eager materialization: this additive refinement lets the
