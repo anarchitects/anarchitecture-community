@@ -54,6 +54,7 @@ let runner = commandRunner({ cache });
 const run = (...args) => runner.run(...args);
 
 try {
+  const sources = await sourceFingerprint(workspace);
   const archives = {};
   for (const [name, directory] of [
     ['@anarchitects/editorjs-core', 'packages/editorjs/core'],
@@ -87,14 +88,14 @@ try {
     const selectedArchives = { ...archives };
     if (name !== 'angular22-reference')
       delete selectedArchives['@anarchitects/editorjs-upload-fetch'];
-    await validate(name, matrix[name], selectedArchives);
+    await validate(name, matrix[name], selectedArchives, sources);
   }
 } finally {
   runner.dispose();
   await rm(scratch, { recursive: true, force: true });
 }
 
-async function validate(name, versions, archives) {
+async function validate(name, versions, archives, sources) {
   const root = join(scratch, name);
   const { input } = pathsFor(workspace, runId, mode, name);
   await mkdir(input, { recursive: true });
@@ -372,6 +373,11 @@ async function validate(name, versions, archives) {
       ],
       root,
     );
+    assert.equal(
+      await sourceFingerprint(workspace),
+      sources,
+      'Sources changed during preparation; discard this snapshot and prepare again',
+    );
     await json(join(input, 'snapshot.json'), {
       version: 1,
       runId,
@@ -381,7 +387,7 @@ async function validate(name, versions, archives) {
       artifacts,
       platform: platformIdentity(),
       sha256: await sha256(archive),
-      sources: await sourceFingerprint(workspace),
+      sources,
     });
     await json(join(report, 'result.json'), {
       status: 'passed',

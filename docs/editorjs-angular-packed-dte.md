@@ -13,7 +13,7 @@ proposed governance records. Applicable accepted decisions are Meta ADR 0015
 (exact compatibility, SSR isolation and packed-consumer evidence), and Community
 ADR 0004 (actual packed README validation). Meta HTTP/Nest policies and Community
 ADR 0005/0006 do not authorize changing the fixture's supported runtime. No
-package API, peer range, HTTP adapter, release policy or proposed ADR is changed.
+package API, peer range, existing HTTP adapter default, release policy or proposed ADR is changed.
 
 The previous blanket uncached packed harness is refined into uncached fresh
 preparation, cacheable validation atoms, and an uncached evidence-completeness gate. Fresh
@@ -33,10 +33,10 @@ For each of the three version cells, independently for CSR and SSR:
    archives, proves root imports/declarations with Forms absent, installs matched
    Forms, checks all versions/paths/exports, and compiles README/declaration
    examples. It retains both locks and produces a consumer snapshot.
-2. Build/evidence atoms consume that immutable snapshot. CSR has five atoms:
+2. Build/evidence atoms consume that immutable snapshot. CSR has seven atoms:
    a portable non-Angular consumer, native Forms interoperability, one application
-   build, and two browser files. SSR has eighteen: the four Angular CSR atoms
-   plus four SSR builds, server validation, six
+   build, and four browser files. SSR has twenty-two: the six Angular CSR atoms
+   plus four SSR builds, server validation, eight
    hydration files, isolation, and two independently rooted README build/test
    recipes. Each application build executes once per snapshot, not per spec.
 3. Browser/server atoms depend explicitly on the builds they consume. Build
@@ -48,7 +48,8 @@ For each of the three version cells, independently for CSR and SSR:
    evidence even after failures or skipped dependants. The public aggregate
    commands enforce the same gate locally.
 
-The full graph contains **69 cacheable atoms**, plus six uncached
+The full graph contains **89 cacheable atoms**, including two additional Nest
+12.3.2 upload references (Fastify/native Node) in reference CSR, plus six uncached
 preparation targets outside the distributed invocation. Preparations keep CSR
 without SSR peers independent from SSR's embedded CSR checks.
 
@@ -131,7 +132,7 @@ read-only Actions permission; it is not written into consumer snapshots or logs.
 The worker count/template can be changed through `EDITORJS_PACKED_DISTRIBUTION`;
 `3 editorjs-packed` is an initial capacity choice, not a measured optimum.
 
-The coordinator requests all 69 atoms in one Nx invocation. Nx owns task
+The coordinator requests all 89 atoms in one Nx invocation. Nx owns task
 assignment and prerequisite ordering. Explicit completion runs with `always()`
 after worker startup, including failure/cancellation paths. The final uncached
 gate and retained evidence apply to all cells, even when the distributed invocation
@@ -143,8 +144,10 @@ remains a separate check.
 The timings below describe the original 60-atom graph. The registry validation
 in #597 adds one portable consumer and one registry hydration atom per version
 cell; it does not establish a new hosted timing or cost baseline. The real five-tool
-validation in #615 adds a separate combined hydration atom per cell, bringing the
-current graph to 69. See [combined-tool validation](editorjs-common-tools-validation.md)
+validation in #615 adds a separate combined hydration atom per cell, bringing that
+graph to 69. Upload and Forms-upload checks subsequently bring it to 87, and
+the two Nest references bring it to 89. See the [consolidated upload report](editorjs-upload-validation.md)
+for #632 coverage, invalidation and current hosted evidence. See [combined-tool validation](editorjs-common-tools-validation.md)
 for its matrix, cache and hosted evidence. Older timings and the dated rollout
 blocker below describe their original commits.
 
@@ -205,7 +208,7 @@ six-job matrix. Account separately for npm resolution, snapshot transfer,
 browser/OS setup, builds, tests and collection. Run-level and per-command timings
 are retained to support this comparison.
 
-### Hosted rollout blocker (26 October 2026)
+### Historical hosted rollout blocker (26 October 2026)
 
 Draft [PR #604](https://github.com/anarchitects/anarchitecture-community/pull/604),
 commit `d7188c60cf2f5c8df9cac1ad679bc553c4c7690e`, ran in
@@ -224,4 +227,5 @@ downloader. The launch template now installs `unzip` explicitly before restoring
 the artifact. This is an initialization prerequisite; validation assertions and
 cache contracts are unchanged. Hosted atom execution, remote artifact/failure
 restoration and DTE performance/cost remain **unverified** until the corrected
-worker run succeeds. Keep the PR in draft until the hosted checks pass.
+worker run succeeds. That draft restriction applied to #604 at the time. Current rollout evidence
+is recorded in the [upload validation report](editorjs-upload-validation.md).

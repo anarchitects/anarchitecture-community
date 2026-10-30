@@ -41,6 +41,10 @@ test('distributed graphs contain only cacheable tasks with isolated outputs and 
     const target = targets[name];
     assert.equal(target.cache, true, `Uncacheable DTE prerequisite: ${name}`);
     assert(
+      target.inputs.some((input) => input.env === 'PLAYWRIGHT_BROWSERS_PATH'),
+      `Browser location must invalidate packed evidence: ${name}`,
+    );
+    assert(
       target.inputs.some((input) =>
         input.runtime?.includes('packed-input-hash'),
       ),

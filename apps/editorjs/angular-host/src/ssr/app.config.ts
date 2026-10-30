@@ -9,6 +9,8 @@ import {
   withComponentInputBinding,
 } from '@angular/router';
 import { provideEditorJsTools } from '@anarchitects/editorjs-angular';
+import { RequestState } from './request-state';
+import { UPLOAD_REQUEST_MARKER } from '../upload/request-marker';
 
 const routes: Routes = [
   {
@@ -98,6 +100,12 @@ const routes: Routes = [
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    {
+      provide: UPLOAD_REQUEST_MARKER,
+      // Called by the page, not here: RequestState's DestroyRef must belong to
+      // the component rather than a cached route/application injector.
+      useValue: () => new RequestState().initial.marker,
+    },
     provideRouter(routes, withComponentInputBinding()),
     hydration,
   ],

@@ -98,7 +98,24 @@
             "env": "NODE_OPTIONS"
           },
           "{workspaceRoot}/tsconfig.json"
-        ]
+        ],
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/out-tsc/typecheck"
+        ],
+        "options": {
+          "cwd": "packages/editorjs/tool-quote",
+          "commands": [
+            "tsc --project tsconfig.lib.json --noEmit --tsBuildInfoFile out-tsc/typecheck/lib.tsbuildinfo",
+            "tsc --project tsconfig.spec.json --noEmit --tsBuildInfoFile out-tsc/typecheck/spec.tsbuildinfo"
+          ],
+          "parallel": false
+        },
+        "dependsOn": [
+          "build",
+          "^typecheck"
+        ],
+        "cache": true
       },
       "lint": {
         "inputs": [

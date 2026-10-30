@@ -28,6 +28,7 @@ export const createNodesV2 = [
           { env: 'CI' },
           { env: 'EDITORJS_PACKED_RUN_ID' },
           { env: 'NG_BUILD_MAX_WORKERS' },
+          { env: 'PLAYWRIGHT_BROWSERS_PATH' },
           { runtime: 'node --version' },
           { runtime: `node ${tools}/packed-input-hash.mjs ${mode} ${cell}` },
         ];
@@ -66,12 +67,7 @@ export const createNodesV2 = [
             executor: 'nx:run-commands',
             cache: true,
             parallelism: true,
-            inputs: [
-              ...inputs,
-              ...(phase.startsWith('nest-upload-')
-                ? [{ env: 'PLAYWRIGHT_BROWSERS_PATH' }]
-                : []),
-            ],
+            inputs,
             outputs: [
               `{workspaceRoot}/dist/editorjs-packed-results/{options.runId}/${mode}/${cell}/${phase}`,
             ],

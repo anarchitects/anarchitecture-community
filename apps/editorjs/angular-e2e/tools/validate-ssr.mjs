@@ -169,7 +169,14 @@ try {
       'Applications must coexist, not just queued HTTP requests',
     );
   }
-  for (const route of ['registry', 'registry/forms', 'tools', 'tools/forms']) {
+  for (const route of [
+    'registry',
+    'registry/forms',
+    'tools',
+    'tools/forms',
+    'upload',
+    'forms-upload',
+  ]) {
     for (const concurrent of [false, true]) {
       const verify = async (marker) => {
         const result = await request(
@@ -181,7 +188,11 @@ try {
         try {
           const holders =
             dom.window.document.querySelectorAll('aa-editorjs > div');
-          assert.equal(holders.length, route.endsWith('forms') ? 1 : 2);
+          const uploads = route === 'upload' || route === 'forms-upload';
+          assert.equal(
+            holders.length,
+            uploads ? 0 : route.endsWith('forms') ? 1 : 2,
+          );
           for (const holder of holders)
             assert.equal(holder.childNodes.length, 0);
           assert.equal(
@@ -189,12 +200,31 @@ try {
               .textContent,
             marker,
           );
-          assert.equal(
-            dom.window.document.querySelector(
-              '[data-testid="registry-config-label"]',
-            ).textContent,
-            marker,
-          );
+          if (uploads) {
+            for (const name of ['backend-calls', 'backend-completed'])
+              assert.equal(
+                dom.window.document.querySelector(`[data-testid="${name}"]`)
+                  .textContent,
+                '0',
+              );
+            assert.equal(
+              dom.window.document.querySelectorAll('[data-testid="ready"]')
+                .length,
+              2,
+            );
+            for (const ready of dom.window.document.querySelectorAll(
+              '[data-testid="ready"]',
+            ))
+              assert.equal(ready.textContent.trim(), 'waiting');
+            assert(!result.html.includes('PRIVATE_'));
+          } else {
+            assert.equal(
+              dom.window.document.querySelector(
+                '[data-testid="registry-config-label"]',
+              ).textContent,
+              marker,
+            );
+          }
           assert(
             !dom.window.document.querySelector(
               '[contenteditable], .registry-card, [ngskiphydration]',
@@ -290,8 +320,8 @@ async function request(path, name, wait = 0) {
   const response = await fetch(base + path, {
     headers: {
       'x-fixture-delay': String(wait),
-      authorization: 'Bearer synthetic-secret-not-for-transfer',
-      cookie: 'session=synthetic-cookie-not-for-transfer',
+      authorization: `Bearer synthetic-secret-not-for-transfer-${name}`,
+      cookie: `session=synthetic-cookie-not-for-transfer-${name}`,
     },
     signal: AbortSignal.timeout(10000),
   });
@@ -311,6 +341,7 @@ async function request(path, name, wait = 0) {
     path.startsWith('/standalone') ||
     path.startsWith('/forms') ||
     path.startsWith('/registry') ||
+    path.startsWith('/upload') ||
     path.startsWith('/tools');
   // Angular schedules platform destruction after rendering. Observe its actual
   // DestroyRef callbacks; do not force disposal or infer it from HTTP completion.
@@ -325,10 +356,8 @@ async function request(path, name, wait = 0) {
   assert.deepEqual(lifetime, {
     owners: authoring ? 1 : 0,
     destroyed: authoring ? 1 : 0,
-    loaders:
-      path.startsWith('/standalone') || path.startsWith('/forms') ? 1 : 0,
-    loadersDestroyed:
-      path.startsWith('/standalone') || path.startsWith('/forms') ? 1 : 0,
+    loaders: /^\/(standalone|forms)(\?|$)/.test(path) ? 1 : 0,
+    loadersDestroyed: /^\/(standalone|forms)(\?|$)/.test(path) ? 1 : 0,
     calls: 0,
     instances: 0,
   });
