@@ -15,6 +15,17 @@ into a `custom/` directory beside the files below: `callout-data.ts`,
 not package exports. Keep their validation, sanitization and keyboard limitations;
 Angular does not replace their implementation. Use TypeScript Bundler resolution.
 
+Use the installed core guide that matches your package version; the GitHub link
+is for browsing and may track newer work. Before registry publication, install
+the supplied core and Angular `.tgz` archives together as described in the
+[README](README.md#installation-and-prerequisites).
+
+Start with `CustomPage` for two independent standalone editors. Continue with
+`CustomFormPage` only after installing matching `@angular/forms`; leave its module
+out of a Forms-absent application. Both paths reuse the same block, marker, tune,
+Code settings and document validator. The examples display saved JSON or call an
+explicit host persistence port; they do not define storage or publication.
+
 ## Share definitions and document validation
 
 The following file has no Angular runtime imports. Each call creates fresh config
@@ -727,3 +738,29 @@ a form must define its native fallback and hydration strategy explicitly.
 This example adds no upload transport, public renderer or storage schema; retain
 the README's upload/operation policies and authored/missing/decorative alt rules
 when composing image tools.
+
+## SSR, delivery and support limits
+
+Use the README's [host rendering configuration](README.md#ssr-prerendering-and-hydration)
+and [delayed activation](README.md#delayed-activation) when these pages belong to
+an SSR application. The pages create their browser-owned environment and editor
+after client rendering; server HTML is inert and does not render saved blocks.
+For interaction-driven authoring, let a parent view decide when to create the
+page. Keep the same inactive state on the server and initial client render, and
+use a non-submitting activation button. Provider registration alone is not an
+activation, request-isolation or code-delivery policy.
+
+The verified combinations are Angular 22.0.0 / Node 22.22.3, Angular 22.1.4 /
+Node 24.15.0 and Angular 22.2.2 / Node 26.0.0, with TypeScript 6.0.3,
+Editor.js 2.31.7 and Code 2.9.4. Declared peer ranges in the README are broader
+than these exact checks. Chromium evidence covers these recipes, including
+request isolation, hydration, explicit activation and removal during lazy Code
+loading; it is not certification of every browser, hydration trigger or tool.
+
+Keep browser implementations behind activation and inspect your production
+chunks and requests: eager imports, router preloading and service workers can
+defeat that boundary. Code injects shared CSS on module evaluation; strict CSP
+nonce support and alternate documents are outside this recipe. A custom route
+reuse strategy must explicitly dispose retained components and environments.
+For application data, authorization, rendering safety and schema migration,
+retain the [core guide's ownership boundaries](https://github.com/anarchitects/anarchitecture-community/blob/main/packages/editorjs/core/custom-tools.md#choose-a-recipe-and-its-ownership).

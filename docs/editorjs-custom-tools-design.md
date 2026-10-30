@@ -7,6 +7,22 @@ the first slice of epic #73. It fixes the scope and evidence required in
 composition and #647's packed validation. The planning tables do not certify
 unexecuted gates.
 
+## Documentation and readiness increment (#648)
+
+The owning core and Angular READMEs now lead to the shipped complete recipes,
+identify the real copied source files used by shorter API sketches and explain
+local-archive installation before publication. The guides consolidate lifecycle,
+configuration, readonly, cleanup/recovery, validation and SSR/delivery ownership.
+All 62 public code fences and all runtime/package contracts remain unchanged.
+
+The [validation and readiness record](editorjs-custom-tools-validation.md#documentation-and-release-readiness-review-648)
+contains the fresh architecture preflight, package-history review, actual-archive
+checks and release gates. It also records the completed #647 hosted run: all 89
+tasks across three workers, six coordinator collections and strict four-task remote
+restoration. Controlled worker-failure experiments, full cold/warm cost comparison
+and publication remain separately owned gates, not implied by those successes.
+This increment does not start persistence, broader demos/testing or publication.
+
 ## Packed validation increment (#647)
 
 The packed SSR consumer now copies the actual extracted Angular/core guide files
