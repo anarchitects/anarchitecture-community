@@ -1322,14 +1322,24 @@ uses core's operation runner; it installs no HTTP client, interceptors, Fetch
 adapter or global upload registry. Share a stateless backend through DI, then
 create a separate owner for every editor instance.
 
-Install `@anarchitects/editorjs-tool-image` and its `@editorjs/image` peer to use
-this example. Supply your existing `ImageUploader<Blob>` to `startUploadEditor`;
+Install `@anarchitects/editorjs-tool-image` to use this example; it supplies its
+pinned `@editorjs/image` dependency. Keep the Editor.js peer installed as above.
+Supply your existing `ImageUploader<Blob>` to `startUploadEditor`;
 compose separate capabilities with core's `composeImageUploader` if needed.
 The browser document must contain `<app-upload-editor></app-upload-editor>`.
 The optional `@anarchitects/editorjs-upload-fetch/browser` adapter can implement
 that port, or your host may capture its already configured HTTP client in a
 provider factory. Resolve injected dependencies synchronously: request callbacks
 run later, outside the injection context.
+
+For HTTP, use the Fetch adapter's
+[complete custom-backend mapping](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/upload-fetch#quick-start-a-custom-backend)
+and pass the result of `createUploads()` to `startUploadEditor`. That optional
+adapter requires a separate install and does not use Angular HttpClient
+interceptors. With native Forms, pass the same port to
+[the upload-aware submission recipe](#uploads-with-native-signal-forms).
+Both image methods remain required; explicitly deny unsupported URL uploads.
+Accept Blob inputs without assuming that a filename exists.
 
 <!-- example-file: upload-editor.ts -->
 
@@ -1760,10 +1770,6 @@ through the [issue tracker](https://github.com/anarchitects/anarchitecture-commu
 Contributor details are in the
 [development guide](https://github.com/anarchitects/anarchitecture-community/blob/main/docs/editorjs-angular-development.md).
 
-## License
-
-Apache-2.0.
-
 ## Uploads with native Signal Forms
 
 Install the optional `@angular/forms` peer alongside the Image Tool dependencies
@@ -2143,3 +2149,11 @@ The registry loads browser tools only after rendering; SSR evaluates neither
 Image Tool constructors nor upload requests. The image bridge preserves caption,
 metadata and alt's three states: unset, authored description, and decorative
 empty string. Upload completion never invents alternative text.
+
+This recipe coordinates editing and submission; it does not certify a complete
+blog. The application still owns publication validation for unset alt, safe public
+rendering, document migrations, durable storage and production upload security.
+
+## License
+
+Apache-2.0.

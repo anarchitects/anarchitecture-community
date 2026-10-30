@@ -79,6 +79,10 @@ describe('published package', () => {
     expect(readFileSync(join(packageDirectory, 'README.md'), 'utf8')).toBe(
       readFileSync(resolve(import.meta.dirname, '../README.md'), 'utf8'),
     );
+    expect(packedFiles).toContain('LICENSE');
+    expect(readFileSync(join(packageDirectory, 'LICENSE'), 'utf8')).toBe(
+      readFileSync(resolve(import.meta.dirname, '../LICENSE'), 'utf8'),
+    );
     expect(
       packedFiles.some((file) =>
         /(^src\/|^tests\/|\.spec\.|\.tsbuildinfo$)/.test(file),

@@ -4,6 +4,10 @@ Contributor evidence for [#632](https://github.com/anarchitects/anarchitecture-c
 This consolidates #627–#631 without changing a public API, supported range,
 release version or HTTP adapter default. #633 remains a separate readiness review.
 
+The subsequent [upload release-readiness review](editorjs-upload-release-readiness.md)
+consolidates consumer guidance, final archive inspection and the remaining
+release-commit gates. Historical execution evidence below retains its original scope.
+
 ## Architecture preflight
 
 All eight Community ADRs and all eighteen Meta ADRs were enumerated and read,
