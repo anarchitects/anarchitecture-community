@@ -80,6 +80,12 @@ describe('published package', () => {
       readFileSync(resolve(import.meta.dirname, '../README.md'), 'utf8'),
     );
     expect(packedFiles).toContain('LICENSE');
+    expect(packedFiles).toContain('custom-tools.md');
+    expect(
+      readFileSync(join(packageDirectory, 'custom-tools.md'), 'utf8'),
+    ).toBe(
+      readFileSync(resolve(import.meta.dirname, '../custom-tools.md'), 'utf8'),
+    );
     expect(readFileSync(join(packageDirectory, 'LICENSE'), 'utf8')).toBe(
       readFileSync(resolve(import.meta.dirname, '../LICENSE'), 'utf8'),
     );
@@ -240,6 +246,36 @@ describe('published package', () => {
         writeFileSync(join(temporaryDirectory, filename), example[2]);
         return filename;
       });
+      const guide = readFileSync(
+        join(packageDirectory, 'custom-tools.md'),
+        'utf8',
+      );
+      const guideExamples = [
+        ...guide.matchAll(
+          /<!-- (neutral|browser)-example-file: ([\w.-]+) -->\s*```(?:ts|html)\n([\s\S]*?)```/g,
+        ),
+      ];
+      expect(guideExamples.map(([, , file]) => file)).toEqual([
+        'callout-data.ts',
+        'callout-tool.ts',
+        'callout-direct.ts',
+        'callout-lazy.ts',
+        'callout-editor.ts',
+        'main.ts',
+        'index.html',
+      ]);
+      writeFileSync(
+        join(temporaryDirectory, 'package.json'),
+        '{"type":"module"}',
+      );
+      for (const [, kind, file, code] of guideExamples) {
+        expect(code).not.toMatch(
+          /@anarchitecture-community\/source|packages\/editorjs|@angular\//,
+        );
+        if (kind !== 'neutral') continue;
+        writeFileSync(join(temporaryDirectory, file), code);
+        exampleFiles.push(file);
+      }
       writeFileSync(
         join(temporaryDirectory, 'tsconfig.json'),
         JSON.stringify({
@@ -282,6 +318,16 @@ describe('published package', () => {
         assert.deepEqual(JSON.parse(savedJson), {
           blocks: [{ id: 'intro', type: 'paragraph', data: { text: 'Hello' } }],
         });
+        const { validateCalloutDocument, requireCalloutDocument, validateCallout } = await import('./compiled-${moduleResolution}/callout-data.js');
+        const doc = data => ({ blocks: [{ type: 'callout', data }] });
+        assert.deepEqual(requireCalloutDocument(JSON.stringify(doc({text: '', tone: 'info'}))).blocks[0].data, {text: '', tone: 'info'});
+        for (const input of ['{', null, { blocks: 'wrong' }, doc({}), doc({text: 1, tone: 'info'}), doc({text: '', tone: 'danger'}), doc({text: ''})])
+          assert.equal(validateCalloutDocument(input).ok, false);
+        assert.deepEqual(validateCalloutDocument(doc({text: ''})).errors[0].path, ['blocks', 0, 'data', 'tone']);
+        assert.equal(validateCalloutDocument({blocks: [{type: 'paragraph', data: {text: 'unknown'}}]}).errors[0].code, 'unknown_tool');
+        assert.equal(validateCalloutDocument({blocks: [{type: 'aside', data: {text: '', tone: 'warning'}}]}, 'aside').ok, true);
+        assert.equal(validateCalloutDocument({blocks: [{type: 'callout', data: {text: '', tone: 'info'}, tunes: {flag: {flagged: true}}}]}).ok, false);
+        assert.equal(validateCallout({text: '<img src=x onerror=alert(1)>', tone: 'info'}, {type: 'callout', blockIndex: 0}).ok, true, 'Schema validation must not be misrepresented as HTML sanitization');
         console.log('quick start ok');
       `,
         ],

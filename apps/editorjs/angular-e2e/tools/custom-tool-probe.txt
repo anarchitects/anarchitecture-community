@@ -1,0 +1,116 @@
+// Private instrumentation; implementation files come only from the packed guide.
+import type EditorJS from '@editorjs/editorjs';
+import type { BlockTool } from '@editorjs/editorjs';
+type MenuConfig = Exclude<ReturnType<NonNullable<BlockTool['renderSettings']>>, HTMLElement>;
+import { composeToolRegistry, EDITOR_JS_2_31_7_TOOL_PROFILE, type ToolRegistry, type ToolConfiguration } from '@anarchitects/editorjs-core';
+import type { CalloutTool } from './callout-tool.js';
+import type { CalloutConfig, CalloutData } from './callout-data.js';
+import { mountCallout } from './callout-editor.js';
+import { calloutRegistry } from './callout-lazy.js';
+import { requireCalloutDocument } from './callout-data.js';
+
+const holder = document.querySelector<HTMLElement>('#editor')!;
+const status = document.querySelector<HTMLElement>('#status')!;
+const mode = new URL(location.href).searchParams.get('mode') ?? 'instrumented';
+const name = mode === 'alias' ? 'aside' : 'callout';
+let changes = 0;
+let destroys = 0;
+let lastMenu: MenuConfig = [];
+let retained: HTMLElement | undefined;
+const initial = { blocks: [{ type: name, data: { text: 'Original', tone: 'info' } }] };
+let editor: EditorJS;
+let dispose: () => Promise<void>;
+
+function action(label: string, run: () => unknown | Promise<unknown>) {
+  const button = document.createElement('button');
+  button.textContent = label;
+  button.addEventListener('click', () => {
+    Promise.resolve().then(run).then(value => {
+      document.querySelector('output')!.textContent = JSON.stringify(value ?? null);
+    }).catch(error => { status.textContent = String(error); });
+  });
+  document.body.append(button);
+}
+
+async function start() {
+  if (mode === 'direct') {
+    const { createDirectCallout } = await import('./callout-direct.js');
+    editor = createDirectCallout(holder, initial);
+    dispose = async () => { await editor.isReady; editor.destroy(); };
+    await editor.isReady;
+  } else {
+    let registry: ToolRegistry = calloutRegistry(name);
+    if (mode === 'eager') {
+      const { eagerRegistry } = await import('./callout-direct.js');
+      registry = eagerRegistry;
+    } else if (mode === 'instrumented' || mode === 'omission') {
+      const { CalloutTool } = await import('./callout-tool.js');
+      class ObservedCallout extends CalloutTool {
+        override render() { const element = super.render(); retained = element; return element; }
+        override renderSettings() { lastMenu = super.renderSettings(); return lastMenu; }
+        override validate(data: unknown): data is CalloutData { return mode === 'omission' ? false : super.validate(data); }
+        override destroy() { destroys++; super.destroy(); super.destroy(); }
+      }
+      registry = composeToolRegistry([[
+        {name, kind: 'block', source: 'eager', registration: {
+          class: ObservedCallout, config: {label: 'Callout text'}, inlineToolbar: ['bold'],
+        }},
+      ]], {profile: EDITOR_JS_2_31_7_TOOL_PROFILE});
+    }
+    const owner = mountCallout(holder, registry, initial, name, () => { changes++; holder.dataset.changes = String(changes); });
+    dispose = owner.dispose;
+    editor = await owner.ready;
+  }
+  action('Save probe', async () => requireCalloutDocument(await editor.save(), name));
+  action('Probe state', () => ({changes, destroys, editable: retained?.contentEditable}));
+  action('Disable probe', () => editor.readOnly.toggle(true));
+  action('Remove probe', async () => { await dispose(); await dispose(); return {destroys}; });
+  action('Stale settings', () => {
+    for (const item of Array.isArray(lastMenu) ? lastMenu : [lastMenu])
+      if ('name' in item && item.name === 'callout-info' && 'onActivate' in item)
+        item.onActivate?.(item);
+    return {changes, destroys, editable: retained?.contentEditable};
+  });
+  action('Invalid before load', () => {
+    let loads = 0;
+    const invalidRegistry = composeToolRegistry([[
+      {name: 'callout', kind: 'block', source: 'lazy', load: async () => { loads++; throw new Error('Must not load'); }},
+    ]], {profile: EDITOR_JS_2_31_7_TOOL_PROFILE});
+    try { mountCallout(document.createElement('div'), invalidRegistry, {blocks: [{type: 'callout', data: {text: ''}}]}); }
+    catch (error) { return {loads, error: String(error)}; }
+    throw new Error('Invalid input accepted');
+  });
+  action('Pending owner', async () => {
+    let constructed = 0;
+    class NeverMounted { constructor() { constructed++; } }
+    let release!: (tool: typeof NeverMounted) => void;
+    const held = new Promise<typeof NeverMounted>(resolve => { release = resolve; });
+    const pendingRegistry = composeToolRegistry([[
+      {name: 'callout', kind: 'block', source: 'lazy', load: () => held},
+    ]], {profile: EDITOR_JS_2_31_7_TOOL_PROFILE});
+    const pendingHolder = document.createElement('div');
+    document.body.append(pendingHolder);
+    const pending = mountCallout(pendingHolder, pendingRegistry, initial);
+    const outcome = pending.ready.then(() => 'unexpected success', error => String(error));
+    await pending.dispose();
+    release(NeverMounted);
+    const error = await outcome;
+    pendingHolder.remove();
+    return {constructed, error, children: pendingHolder.childElementCount};
+  });
+  status.textContent = 'Ready';
+}
+start().catch(error => { status.textContent = String(error); });
+
+// These checks compile against the actual archived implementation.
+function registrationTypes(tool: typeof CalloutTool) {
+  const valid: ToolConfiguration<typeof CalloutTool, CalloutConfig, CalloutData> = {
+    class: tool, config: {label: 'Callout'}, toolbox: {data: {tone: 'warning'}},
+  };
+  // @ts-expect-error Config label is not numeric.
+  valid.config = {label: 1};
+  // @ts-expect-error Unsupported toolbox tone.
+  valid.toolbox = {data: {tone: 'danger'}};
+  return valid;
+}
+void registrationTypes;
