@@ -587,7 +587,7 @@ an official `ToolConstructable`. See the upstream
 `ImageUploader<Input, FileData, ErrorData>` combines asynchronous `uploadByFile`
 and `uploadByUrl` callbacks. Use `FileUploader` or `UrlUploader` for a host that
 exposes only one capability. `Input` is explicit: browser consumers can use
-`File`, while server consumers can use their own byte or stream payload. The core
+`Blob` (including `File`), while server consumers can use their own byte or stream payload. The core
 imports neither DOM nor Node types.
 
 Both callbacks resolve to `UploadResponse<FileData, ErrorData>`:
@@ -613,6 +613,21 @@ Expected failures can resolve with `success: 0`. Transport exceptions can also
 reject the promise; rejection values are not typed by TypeScript. Hosts must
 catch them as unknown and either report them or map them to an explicit failure
 response. These interfaces do not perform I/O or handle exceptions automatically.
+
+Choose the integration for your host:
+
+| Need                               | Public integration                                                                                                                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Existing file/URL services         | [Compose the two ports](#compose-file-and-url-capabilities); keep their metadata and error types.                                                                                         |
+| Browser HTTP transport             | [Fetch adapter and custom-backend mapping](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/upload-fetch#quick-start-a-custom-backend).               |
+| Image authoring                    | [Image Tool](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/tool-image#upload-and-configuration-contract), with both methods and Blob input.        |
+| Per-editor Angular activity/errors | [Optional upload owner](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/angular#optional-upload-ownership), without Forms.                           |
+| Native Forms submission            | [Upload-aware Forms recipe](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/angular#uploads-with-native-signal-forms), with an explicit save policy. |
+
+Install only the integrations you select. None is required to use these core
+contracts. Upload success does not wait for or persist a document save, generate
+alternative text, or establish a safe public renderer. An image host must retain
+unset, authored and deliberately decorative alt separately from the caption.
 
 ### Compose file and URL capabilities
 

@@ -66,6 +66,14 @@ controls, not file-content validation. No endpoint/header/request-body/action
 configuration, HTTP implementation, credentials, storage, URL-fetch service,
 retry loop or Forms pending/error state is supplied.
 
+For a custom HTTP backend, the optional
+[Fetch adapter](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/upload-fetch#quick-start-a-custom-backend)
+maps your request/response contract into the same ports. Angular hosts can add
+[per-editor upload activity and errors](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/angular#optional-upload-ownership)
+or the [native Forms submission recipe](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/angular#uploads-with-native-signal-forms).
+These are separate opt-in integrations; selecting the image tool does not install
+a transport, enable retries or make a form wait for uploads.
+
 Hosts must validate file content/size, permitted URL schemes/origins, authorization
 and durable URL lifetime. Captions can contain inline HTML; sanitize for the target
 renderer. Treat button HTML as trusted configuration. Structural validation does
@@ -102,6 +110,10 @@ content renderer. Host renderers should set `image.alt = data.alt` when present,
 including the deliberate empty string, or use their framework's escaped attribute
 binding. Never interpolate alt into HTML. Establish an explicit publication policy
 for unset alt; do not silently treat unset as decorative or infer it from caption.
+
+Image authoring alone does not make a blog ready to publish. The application must
+also verify its publication rules, safe public renderer, persisted-document
+migrations, durable asset storage and production upload controls.
 
 ## Direct lazy browser owner
 

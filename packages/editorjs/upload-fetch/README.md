@@ -154,6 +154,22 @@ allowlist (for example, `'self' data: blob:` for same-origin assets and local
 previews). Backend URL-ingest restrictions alone do not prevent this browser
 preview. Allow only the asset origins your host deliberately trusts.
 
+## Angular and native Forms composition
+
+The same `createUploads()` result can be supplied to the Angular wrapper's
+[standalone upload-owner example](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/angular#optional-upload-ownership).
+Install the wrapper and image tool only for that integration. Each editor needs
+its own state owner even when it shares a backend service; Fetch does not acquire
+Angular HttpClient interceptors or Forms behavior automatically.
+
+For native Signal Forms, use the wrapper's
+[upload-aware submission example](https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/angular#uploads-with-native-signal-forms)
+with the same port and your persistence function. It deliberately blocks saving
+while uploads are active, preserves native validation/submission state, and
+recreates editor/tool/owner state on document reset. Calling `editor.save()` alone
+does not wait for uploads. Neither transport completion nor a saved snapshot
+provides durable document storage or publication validation for missing alt text.
+
 ## Request and decoder options
 
 `createFetchFileUploader(options)` returns `FileUploader<Blob, F, E>`;
@@ -316,3 +332,8 @@ See the [Fetch standard](https://fetch.spec.whatwg.org/#fetch-method) for transp
 semantics. Report reproducible problems through
 [GitHub issues](https://github.com/anarchitects/anarchitecture-community/issues),
 with package/browser versions and redacted request/response details.
+
+## License
+
+Apache-2.0. The optional Nest example uses separately installed server dependencies
+under their own licenses; no Nest runtime is bundled into this adapter.
