@@ -10,13 +10,24 @@ initialization-only. The component exposes an instance-scoped `api` for imperati
 controls. The optional `/forms` entry point adds native Angular Signal Forms
 value binding, composite interaction, availability and focus; see its current limits below.
 
+For custom block, inline, tune and third-party tools, use the shipped
+[complete Angular composition guide](custom-tools.md). It reuses the core guide's
+actual implementations in direct, provider and optional Signal Forms consumers.
+The basic quick start below needs only Editor.js's built-in paragraph.
+
 ## Installation and prerequisites
 
-In an existing Angular application, install the published packages:
+In an existing Angular application, install the packages when they are available
+in your registry:
 
 ```sh
 npm install @anarchitects/editorjs-angular @anarchitects/editorjs-core @editorjs/editorjs@2.31.7
 ```
+
+Before initial publication, replace the two Anarchitects names with their supplied
+`0.0.1.tgz` archives in the same install command. Install the core archive explicitly
+so the Angular package's `^0.0.1` dependency resolves locally. A manifest version
+does not by itself mean that a package has been published.
 
 Use the equivalent Yarn or pnpm command. Supply matching Angular core/common
 versions from Angular 22 and its supported Node/TypeScript toolchain.
@@ -1054,8 +1065,12 @@ including when passing an already-typed upstream configuration object. Data is a
 separate inbound value. Readiness and changes are separate outbound events.
 
 `tools` uses core `ToolRegistration` / `ToolConfiguration`, preserving consumer
-tool constructor, configuration and toolbox-data types. For example, given your
-own Editor.js-compatible tool:
+tool constructor, configuration and toolbox-data types. For the following API
+sketch, copy `callout-data.ts` and `callout-tool.ts` from the installed core package's
+[complete guide](https://github.com/anarchitects/anarchitecture-community/blob/main/packages/editorjs/core/custom-tools.md)
+beside this file. `CalloutTool` is application source, not an exported package class.
+This eager import is for a browser-only entry point; use the
+[lazy Angular recipe](custom-tools.md) for SSR and delayed activation.
 
 ```ts
 import type { EditorJsConfig } from '@anarchitects/editorjs-angular';
@@ -1118,7 +1133,10 @@ tools. With no registry, Editor.js retains its normal built-ins. This rule also
 applies to `EditorJsControl` through its root editor component.
 
 Declare lazy tools in the application or route environment, then omit `tools`
-from the editor config:
+from the editor config. The following sketch uses the same copied
+`callout-tool.ts` and `callout-data.ts`; it is not a dependency on an unspecified
+tool implementation. For a complete bootstrap, labelled editing UI, saved output
+and teardown, follow [the shipped recipe](custom-tools.md#standalone-direct-and-provider-composition).
 
 ```ts
 import {

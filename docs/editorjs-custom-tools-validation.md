@@ -4,6 +4,9 @@ This contributor record covers #647 at the merged #646 baseline
 `c3a03b1e1aa3739985893648572718c824196bcf`. The architecture preflight and constraints
 are recorded in the [custom-tool design](editorjs-custom-tools-design.md#packed-validation-increment-647).
 Consumer guidance remains in the archived core and Angular custom-tool guides.
+The [final documentation review](#documentation-and-release-readiness-review-648)
+records #648's changes and the completed #647 hosted evidence separately from
+the eventual release gate.
 
 ## Required evidence and ownership
 
@@ -131,9 +134,156 @@ identity preserves fresh-install evidence and native/runtime compatibility.
 Package build reuse remains independent of this exclusion.
 
 The existing three-worker hosted configuration remains an initial capacity
-choice. This change makes no optimum or invoiced-savings claim. Before closing
-#647, retain a hosted distributed invocation and strict same-attempt remote
-restoration, inspect worker assignment/failure propagation and collection, and
-record coordinator/worker/transfer durations separately. CI monitoring and
-additional hosted runs remain subject to the maintainer's explicit credit
-constraint. No hosted check is represented as completed by local verification.
+choice. This change makes no optimum or invoiced-savings claim. At #647's local
+handoff, hosted evidence was pending; the completed run is reviewed below.
+Per-worker utilization, a full cold/warm CI comparison and invoiced cost remain
+maintainer-owned measurements to revisit before changing capacity. CI monitoring
+and additional hosted runs remain subject to the maintainer's credit constraint.
+
+## Completed #647 hosted evidence reviewed for #648
+
+This is a one-time inspection of completed evidence, not a new CI run or monitoring
+session. [PR #656](https://github.com/anarchitects/anarchitecture-community/pull/656)
+merged at `c3c7232850e2beecbf53c2e40e28687737278cce`. Its head
+`5cb79493baa504e67c38d7e5521c247092519629` passed all twelve jobs in
+[Actions run 41101061258](https://github.com/anarchitects/anarchitecture-community/actions/runs/41101061258),
+including the Node 22.12.0 neutral-package gate. The run's
+[packed evidence artifact](https://github.com/anarchitects/anarchitecture-community/actions/runs/41101061258/artifacts/12999657881)
+was downloaded and inspected on 30 October 2026. Its configured retention is seven
+days; these recorded observations do not extend artifact retention.
+
+| Evidence                   | Observed result                                                                                                                                                                                                                                                                               |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Distributed invocation     | [Nx run mLPPgTDDdf](https://cloud.nx.app/runs/mLPPgTDDdf), summary [LLL4xoYkrC](https://cloud.nx.app/run-end/LLL4xoYkrC): 89 successful executed tasks, zero failures, zero cached tasks, three workers.                                                                                      |
+| Coordinator results        | All 89 phase records and all six uncached collection records passed for `gh-41101061258-1`; no failed or missing result was found.                                                                                                                                                            |
+| Strict remote restoration  | `cache-audit/result.json` passed for build-csr, csr-upload, csr-editor and csr-forms. `nx-run.json` records `remote-cache-hit` and status 0 for each. Before/after SHA-256 manifests agree for all 31 files after deleting their directories and using an empty private local cache/database. |
+| Exact consumer environment | Linux x64; Angular 22.0.0 / 22.1.4 / 22.2.2, Node 22.22.3 / 24.15.0 / 26.0.0, Editor.js 2.31.7, Code 2.9.4, TypeScript 6.0.3; orchestration Node 24.22.1, Playwright 1.64.0 and pinned Chromium revision 1248.                                                                                |
+| Coordinator durations      | Packed job 16m 31s including setup, preparation, distribution, audit and upload. Preparation's Nx invocation 3m 0s. Distributed-start to distributed-completed log timestamps: approximately 11m 40s, including worker startup/transfer/wait.                                                 |
+| Work and replay durations  | Sum of retained atom durations 2,686.421 s, not billed worker time. Four-task remote audit subprocess 7.076 s; Nx reports 572 ms. This subset replay is not a warm rerun of the full CI matrix.                                                                                               |
+
+The hosted reference archive SHA-256 identities are core
+`730241626a2d25e4b0189ab8d4a991a1b5de5fda096ab6d4afbc5cc63c49de7a`
+and Angular `c67d64b739f3cfa4619b3aa2d893ab9d24b106fb2df5b2fc63f4d3e5a6958194`.
+They identify that Linux build, separately from the earlier local archives and
+the documentation candidates below.
+
+The success run does not establish controlled worker-failure propagation or
+separate per-worker startup/transfer/utilization figures. Local failure and
+collection probes above and the historical hosted failures recorded in the
+[upload validation](editorjs-upload-validation.md#execution-record) remain
+separate evidence for the unchanged failure/collection harness. Maintainers own
+any further controlled hosted failure/cost experiment; none was launched here.
+
+## Documentation and release-readiness review (#648)
+
+Review baseline: merged #647 at `c3c7232850e2beecbf53c2e40e28687737278cce`.
+The fresh preflight enumerated and read all eight local ADRs and eighteen Meta
+ADRs, including proposed/historical records. Meta's clean adjacent checkout and
+all ADR blob identities match the remote tree
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. Relevant Modern Angular guides were
+reviewed again. Community0004 requires usable shipped documentation; A01/A02/A03/
+A07/A09/A10 require bounded compatibility, neutral reuse, owner lifetimes and
+actual consumers. Community0007/Meta0013 retain independent non-bumping release
+intent; Meta0015 keeps cache/DTE proof and fresh-state gates distinct. No accepted
+conflict, proposal override, HTTP adapter change or dependency upgrade is introduced.
+
+The four owning README/guide files now promote complete install-to-result paths,
+identify the copied source files needed by API sketches, explain prepublication
+archive installation and distinguish structural, block-data, tune and rendering
+validation. They summarize upstream lifecycle/configuration, readonly capability,
+configured-name persistence, cleanup/recovery and SSR activation limits. All 62
+fenced code blocks are byte-identical to the merged predecessor; public runtime
+source, manifests, declarations and tests are unchanged.
+
+| Consumer journey        | Reviewed public source and retained proof                                                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Neutral block authoring | Core `custom-tools.md`: complete callout schema/class, direct/eager maps, lazy owner, HTML page and commands; actual archived sources compile and run without Angular/Forms/Nest/Nx.                                            |
+| Inline and tune         | Same guide: bounded marker selection and readonly behavior; independent flag state with explicit tune-payload validation and configured names.                                                                                  |
+| External Code           | Explicit 2.9.4 install, default-export selection, config/data guards, direct/lazy modes and CSS-on-evaluation; no all-tools package or new Community adapter.                                                                   |
+| Standalone Angular      | Angular `custom-tools.md`: same seven core source files, fresh per-owner config, explicit-map precedence, provider environments and teardown; Forms-absent compilation/import guard.                                            |
+| Optional Forms          | Native Signal Forms entry point and example, model validation, reset/touch/dirty, explicit snapshot review and submission; editor errors, upload activity and validation pending remain different states.                       |
+| SSR/hydration/delivery  | #647's full exact matrix and hosted evidence above; no claim for arbitrary third-party tools, nested hydration, custom route reuse or every browser.                                                                            |
+| #71/#72 compatibility   | Caption remains distinct from missing/authored/decorative alt. No generated alt or publication guarantee. Upload ports, Blob/File semantics, error/metadata ownership and explicit submission/teardown policy remain unchanged. |
+
+### Package and release intent
+
+Fresh npm lookups returned 404 for both affected packages; remote tags contain no
+Editor.js releases, and neither package appears among all 102 GitHub Releases.
+This review does not infer publication from a manifest. Resolved Nx project names
+are `editorjs-core` and `editorjs-angular`; each retains independent release intent
+at 0.0.1 and non-bumping `init` development. No manifest, dependency range or release
+configuration changes are required. Core has no runtime dependencies/peers; Angular
+depends on core `^0.0.1`, peers on core/common `^22.0.0` and Editor.js `^2.31.7`,
+with Forms `^22.0.0` optional. The separate `/forms` entry remains optional.
+
+The declared ranges exceed the exact verified cells. Core's Node baseline remains
+22.12.0 and neutral ES2022/NodeNext/Bundler declarations. The Code recipe remains
+Bundler-only: upstream NodeNext declarations, raw Node/UMD consumption, strict CSP
+nonce handling, alternate documents and comprehensive accessibility are not
+certified. Code's silent Tab/Shift+Tab edits require an explicit save; no blanket
+autosave, third-party compatibility or blog-publication claim is added.
+
+### Final artifact validation
+
+On 30 October 2026, local run `si648-review` used macOS arm64 and Node 26.13.0
+for orchestration, with `NX_NO_CLOUD=true` throughout:
+
+- Scoped core/Angular test, lint and typecheck: **9 tasks passed**, no cache hits.
+- Four fresh isolated preparations: all three CSR cells and reference SSR passed,
+  including compilation of the actual archived guides with Forms absent/present.
+  The first reference preparation was blocked behind an idle upload-fetch Vite
+  build; that process was terminated and the reference preparation retried alone.
+  The retry passed without a source change. This was not a clean first attempt.
+- Focused packed run: **22 tasks passed**, no cache hits, in 2m44s. This comprises
+  portable/interop/editor/Forms in each CSR cell and reference SSR,
+  hydration-registry and isolation, with seven build prerequisites. Logs record
+  **194 browser cases** and **120 interoperability assertions** passing.
+- This is a focused rerun, not a new full 89-phase run or completeness collection.
+  The unchanged runtime, fixtures and 62 public code blocks retain the separately
+  identified full #647 evidence above. This PR's configured CI remains its own gate.
+- After checks completed, both final Nx builds passed, followed by sequential
+  `npm pack --ignore-scripts` operations with an isolated writable npm cache.
+  Archive inspection confirmed owning README/guide/LICENSE bytes, Apache-2.0,
+  ESM metadata, export/declaration targets, optional Forms and absence of source,
+  test and build-info files. Angular also retains its generated `tslib` dependency
+  (`^2.3.0`). No new browser asset is shipped; the independently installed Code
+  package's license/integrity and runtime CSS remain covered by preparation and
+  the browser cases. Generic installs remain free of Angular/Forms/Nest/Nx.
+
+Final archives in `/tmp/si648-final-archives` are byte-identical to the archives
+installed in **all four** tested snapshots:
+
+| Archive                                              | SHA-256                                                            |
+| ---------------------------------------------------- | ------------------------------------------------------------------ |
+| `anarchitects-editorjs-core-0.0.1.tgz` (37 files)    | `5fd4d9c534f8f3a909a51ee8abd5e2e08a8f0c36b78a52f397b9a60285564bb1` |
+| `anarchitects-editorjs-angular-0.0.1.tgz` (10 files) | `a2384cd5c800bd51567be8ff0879d5c07b2b6fb5c97e1e4ca84d45707019b2f5` |
+
+| Prepared consumer | Angular / Node   | Consumer snapshot SHA-256                                          |
+| ----------------- | ---------------- | ------------------------------------------------------------------ |
+| CSR minimum       | 22.0.0 / 22.22.3 | `be4877f9242759c48c1d2d862360a4652bfaddc1b690745cee7fdefc773b2a6f` |
+| CSR reference     | 22.1.4 / 24.15.0 | `e3f696d37c71aa72dfdc8bb902e6723cb9e17aa6756de27d4bb06d1ef2a5ded2` |
+| CSR current       | 22.2.2 / 26.0.0  | `830994c07e119b0509cb648e0415434f6d3182d455edafa105cf59eceb8518c6` |
+| SSR reference     | 22.1.4 / 24.15.0 | `6950e6545c122966a94e0b7b69d8cd82dc6facbac165a5b09711b7e0eb6ddb95` |
+
+All use TypeScript 6.0.3, Editor.js 2.31.7 and Code 2.9.4. Local preparation
+metadata, exact lockfiles and archive evidence live under
+`dist/editorjs-packed-inputs/si648-review`; phase results/logs live under
+`dist/editorjs-packed-results/si648-review`. These generated files are not
+committed or published. This local identity record does not certify a future
+release commit or broaden the declared verified matrix.
+
+### Release gate and follow-on ownership
+
+This is a readiness review, not release authorization. Before publication, #76
+must select the exact release commit, require **all configured CI checks green
+for that commit**, complete checks before the final build/pack, inspect those
+exact archives (README/LICENSE, exports/declarations, examples, assets, peers and
+isolated install), and verify npm/tag/release history again. Do not publish a prior
+candidate archive after changing its sources or assume a merged PR's CI covers a
+later release commit. First distribution remains exactly 0.0.1 independently per
+package. No version bump, tag, release or publication is performed by this review.
+
+#74 retains persistence, schema evolution and migrations; #75/#78 retain broader
+testing/demos; #76 retains publication. Hosts retain authorization, public rendering,
+storage, credentials, dependency locks and consumer adoption. This review starts
+none of those workstreams and does not automatically close #73 or its open gates.
