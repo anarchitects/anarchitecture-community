@@ -31,6 +31,13 @@ Before initial publication, replace the core package name with the supplied
 `anarchitects-editorjs-core-0.0.1.tgz` path. Use this guide from the same installed
 package version. No repository checkout is needed.
 
+The neutral persistence, migration and service recipes are checked with
+TypeScript 6.0.3 in both NodeNext and Bundler resolution modes, using only
+ES2022 library types. Runtime round trips and failure/preservation behavior are
+exercised on Node 22.12.0, 22.22.3, 24.15.0 and 26.0.0 without Angular, Forms,
+Nest, Nx or Editor.js installed. This does not establish compatibility for an
+application's database driver, browser tools or other host dependencies.
+
 Copy `persistence.ts`, `memory-store.ts` and `main.mjs` from the sections below
 into that directory. Save this configuration as `tsconfig.json`:
 

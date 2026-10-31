@@ -42,6 +42,39 @@ export async function sha256(file) {
   return hash.digest('hex');
 }
 
+/** The result record owns the manifest; every other retained file is evidence. */
+export async function artifactManifest(directory) {
+  const files = {};
+  async function visit(relative = '') {
+    for (const entry of (
+      await readdir(join(directory, relative), { withFileTypes: true })
+    ).sort((a, b) => a.name.localeCompare(b.name))) {
+      const path = relative ? `${relative}/${entry.name}` : entry.name;
+      if (path === 'result.json') continue;
+      if (entry.isDirectory()) await visit(path);
+      else {
+        assert(entry.isFile(), `Unsupported evidence entry: ${path}`);
+        files[path] = await sha256(join(directory, path));
+      }
+    }
+  }
+  await visit();
+  return files;
+}
+
+export async function verifyArtifacts(directory, expected) {
+  assert(
+    expected && typeof expected === 'object' && !Array.isArray(expected),
+    'Missing artifact manifest',
+  );
+  assert(Object.keys(expected).length > 0, 'Empty artifact manifest');
+  assert.deepEqual(
+    await artifactManifest(directory),
+    expected,
+    'Required evidence was missing, added or modified',
+  );
+}
+
 export async function readSnapshot(input, runId, mode, cell) {
   const snapshot = JSON.parse(
     await readFile(join(input, 'snapshot.json'), 'utf8'),
@@ -75,6 +108,9 @@ export async function sourceFingerprint(workspace) {
     'packages/editorjs/core/custom-tools.md',
     'packages/editorjs/core/persistence.md',
     'packages/editorjs/core/service.md',
+    'packages/editorjs/core/tests/fixtures/persistence-consumer.mjs',
+    'packages/editorjs/core/tests/fixtures/migration-consumer.mjs',
+    'packages/editorjs/core/tests/fixtures/service-consumer.mjs',
     'packages/editorjs/angular/persistence.md',
     'packages/editorjs/core/LICENSE',
     'packages/editorjs/core/tsconfig.json',
@@ -147,6 +183,7 @@ export async function sourceFingerprint(workspace) {
     'apps/editorjs/angular-e2e/tools/readme-ssr.mjs',
     'apps/editorjs/angular-e2e/tools/nest-upload.mjs',
     'apps/editorjs/angular-e2e/tools/nest-persistence.mjs',
+    'apps/editorjs/angular-e2e/tools/neutral-persistence.mjs',
     'apps/editorjs/angular-e2e/tools/angular-persistence.mjs',
     'apps/editorjs/angular-e2e/tools/compatibility-matrix.json',
     'apps/editorjs/angular-e2e/tools/serve-packed.mjs',

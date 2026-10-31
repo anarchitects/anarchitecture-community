@@ -19,9 +19,12 @@ import {
   readSnapshot,
   sha256,
   sourceFingerprint,
+  artifactManifest,
+  verifyArtifacts,
 } from './packed-artifacts.mjs';
 import { leasePorts } from './packed-ports.mjs';
 import { validateNestUpload } from './nest-upload.mjs';
+import { validateNeutralPersistence } from './neutral-persistence.mjs';
 
 const [mode, cell, phase, runId] = process.argv.slice(2);
 assert.equal(
@@ -40,6 +43,7 @@ await mkdir(lock); // Prevent concurrent writers for the same run and atom.
 let root;
 let portableRoot;
 let nestRoot;
+let neutralRoot;
 let lease;
 let runner;
 const started = Date.now();
@@ -73,6 +77,10 @@ try {
       `Wrong consumer snapshot: ${dependency}`,
     );
     assert.equal(result.runId, runId);
+    assert.equal(result.mode, mode);
+    assert.equal(result.cell, cell);
+    assert.equal(result.phase, dependency);
+    await verifyArtifacts(output, result.artifacts);
   }
   {
     root = await realpath(
@@ -167,6 +175,20 @@ try {
         workspace,
       });
     } else if (phase === 'portable') {
+      neutralRoot = await realpath(
+        await mkdtemp(join(tmpdir(), 'editorjs-neutral-persistence-')),
+      );
+      await run(
+        'tar',
+        ['-xzf', join(root, 'neutral-persistence.tar.gz'), '-C', neutralRoot],
+        workspace,
+      );
+      await validateNeutralPersistence({
+        root: neutralRoot,
+        node,
+        report,
+        run,
+      });
       portableRoot = await realpath(
         await mkdtemp(join(tmpdir(), 'editorjs-portable-atom-')),
       );
@@ -252,7 +274,15 @@ try {
   await lease?.release();
   if (portableRoot) await rm(portableRoot, { recursive: true, force: true });
   if (nestRoot) await rm(nestRoot, { recursive: true, force: true });
+  if (neutralRoot) await rm(neutralRoot, { recursive: true, force: true });
   if (root) await rm(root, { recursive: true, force: true });
+  let artifacts;
+  try {
+    artifacts = await artifactManifest(report);
+  } catch (error) {
+    status = 'failed';
+    failure = `Artifact recording failed: ${error}`;
+  }
   await writeFile(
     join(report, 'result.json'),
     JSON.stringify(
@@ -265,6 +295,7 @@ try {
         error: failure,
         snapshot: snapshot.sha256,
         buildSha,
+        artifacts,
         started,
         durationMs: Date.now() - started,
         consumerRemoved: true,
