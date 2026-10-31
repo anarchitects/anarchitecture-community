@@ -1,0 +1,2430 @@
+{
+  "node": "v24.22.2",
+  "platform": "darwin",
+  "arch": "arm64",
+  "tooling": {
+    "typescript": "6.0.3",
+    "esbuild": "0.28.2",
+    "@playwright/test": "1.64.0"
+  },
+  "lockSha256": "0e407a4a5290ec0b441efe58697ee69a807609c933867e96d51e9486dfde7396",
+  "fixturesSha256": "1cc6b352a7a450437a4deb2caa8e0f467ddf9eaf30a5f4271d07fc43981db7c2",
+  "packages": {
+    "editorjs-parser": {
+      "version": "3.2.1",
+      "license": "MIT",
+      "dependencies": {},
+      "peers": {},
+      "engines": {
+        "node": ">=18"
+      },
+      "exports": {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "import": "./dist/index.js",
+          "require": "./dist/index.cjs",
+          "default": "./dist/index.js"
+        },
+        "./package.json": "./package.json"
+      },
+      "main": "./dist/index.cjs",
+      "module": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "licenseSha256": "a99b2ba58f9310ac2100fa0cc10f55381d42036fb9bb7242a0158f7b7ab9c58f",
+      "entrySha256": "9db937c823c7b4616f019c318289ca73bb7bdedb5641688fbc8e105bbddc2aaf",
+      "esm": {
+        "ok": true,
+        "html": "<p class=\"paragraph\">Node probe</p>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<p class=\"paragraph\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>"
+          },
+          {
+            "name": "heading",
+            "html": "<h2>Heading</h2>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<h6>Heading</h6>"
+          },
+          {
+            "name": "quote",
+            "html": "<blockquote ><p>Quote</p><cite>Author <b>name</b></cite></blockquote>"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<div class=\"cdx-checklist\"><div class=\"cdx-checklist__item cdx-checklist__item--checked\">Done</div><div class=\"cdx-checklist__item\">Todo</div></div>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "image-unset",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "configured-alias",
+            "html": ""
+          },
+          {
+            "name": "callout-and-flag",
+            "html": ""
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<p class=\"paragraph\">Paragraph</p>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<pre><code class=\"code-block\">&lt;img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"&gt;</code></pre>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<p class=\"paragraph\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\"><figcaption class=\"fig-cap\">Caption</figcaption></figure>"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "html": ""
+          },
+          {
+            "name": "malformed-data",
+            "html": ""
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "html": "<p class=\"paragraph\">Before</p><p class=\"paragraph\">After</p>"
+          }
+        ],
+        "stderr": ""
+      },
+      "cjs": {
+        "ok": true,
+        "html": "<p class=\"paragraph\">Node probe</p>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<p class=\"paragraph\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>"
+          },
+          {
+            "name": "heading",
+            "html": "<h2>Heading</h2>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<h6>Heading</h6>"
+          },
+          {
+            "name": "quote",
+            "html": "<blockquote ><p>Quote</p><cite>Author <b>name</b></cite></blockquote>"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<div class=\"cdx-checklist\"><div class=\"cdx-checklist__item cdx-checklist__item--checked\">Done</div><div class=\"cdx-checklist__item\">Todo</div></div>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "image-unset",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "configured-alias",
+            "html": ""
+          },
+          {
+            "name": "callout-and-flag",
+            "html": ""
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<p class=\"paragraph\">Paragraph</p>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<pre><code class=\"code-block\">&lt;img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"&gt;</code></pre>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<p class=\"paragraph\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\"><figcaption class=\"fig-cap\">Caption</figcaption></figure>"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "html": ""
+          },
+          {
+            "name": "malformed-data",
+            "html": ""
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "html": "<p class=\"paragraph\">Before</p><p class=\"paragraph\">After</p>"
+          }
+        ],
+        "stderr": ""
+      },
+      "esmTrapped": {
+        "ok": true,
+        "html": "<p class=\"paragraph\">Node probe</p>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<p class=\"paragraph\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>"
+          },
+          {
+            "name": "heading",
+            "html": "<h2>Heading</h2>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<h6>Heading</h6>"
+          },
+          {
+            "name": "quote",
+            "html": "<blockquote ><p>Quote</p><cite>Author <b>name</b></cite></blockquote>"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<div class=\"cdx-checklist\"><div class=\"cdx-checklist__item cdx-checklist__item--checked\">Done</div><div class=\"cdx-checklist__item\">Todo</div></div>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "image-unset",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "configured-alias",
+            "html": ""
+          },
+          {
+            "name": "callout-and-flag",
+            "html": ""
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<p class=\"paragraph\">Paragraph</p>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<pre><code class=\"code-block\">&lt;img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"&gt;</code></pre>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<p class=\"paragraph\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\"><figcaption class=\"fig-cap\">Caption</figcaption></figure>"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "html": ""
+          },
+          {
+            "name": "malformed-data",
+            "html": ""
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "html": "<p class=\"paragraph\">Before</p><p class=\"paragraph\">After</p>"
+          }
+        ],
+        "stderr": ""
+      },
+      "cjsTrapped": {
+        "ok": true,
+        "html": "<p class=\"paragraph\">Node probe</p>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<p class=\"paragraph\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>"
+          },
+          {
+            "name": "heading",
+            "html": "<h2>Heading</h2>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<h6>Heading</h6>"
+          },
+          {
+            "name": "quote",
+            "html": "<blockquote ><p>Quote</p><cite>Author <b>name</b></cite></blockquote>"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<div class=\"cdx-checklist\"><div class=\"cdx-checklist__item cdx-checklist__item--checked\">Done</div><div class=\"cdx-checklist__item\">Todo</div></div>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "image-unset",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>"
+          },
+          {
+            "name": "configured-alias",
+            "html": ""
+          },
+          {
+            "name": "callout-and-flag",
+            "html": ""
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<p class=\"paragraph\">Paragraph</p>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<pre><code class=\"code-block\">&lt;img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"&gt;</code></pre>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<p class=\"paragraph\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\"><figcaption class=\"fig-cap\">Caption</figcaption></figure>"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "html": ""
+          },
+          {
+            "name": "malformed-data",
+            "html": ""
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "html": "<p class=\"paragraph\">Before</p><p class=\"paragraph\">After</p>"
+          }
+        ],
+        "stderr": ""
+      },
+      "typesNodeNext": {
+        "status": 0,
+        "output": ""
+      },
+      "typesBundler": {
+        "status": 0,
+        "output": ""
+      },
+      "browserBundleBytes": 7099,
+      "importStyleElements": 0,
+      "cases": [
+        {
+          "name": "paragraph-inline",
+          "html": "<p class=\"paragraph\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<p class=\"paragraph\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>",
+            "images": [],
+            "links": ["https://example.invalid/read"],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "heading",
+          "html": "<h2>Heading</h2>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<h2>Heading</h2>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "invalid-heading",
+          "html": "<h6>Heading</h6>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<h6>Heading</h6>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "quote",
+          "html": "<blockquote ><p>Quote</p><cite>Author <b>name</b></cite></blockquote>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<blockquote><p>Quote</p><cite>Author <b>name</b></cite></blockquote>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "list-v2-ordered",
+          "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>",
+            "images": [],
+            "links": [],
+            "orderedLists": [
+              {
+                "start": null,
+                "type": null
+              },
+              {
+                "start": null,
+                "type": null
+              }
+            ]
+          }
+        },
+        {
+          "name": "list-v2-checklist",
+          "html": "<div class=\"cdx-checklist\"><div class=\"cdx-checklist__item cdx-checklist__item--checked\">Done</div><div class=\"cdx-checklist__item\">Todo</div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"cdx-checklist\"><div class=\"cdx-checklist__item cdx-checklist__item--checked\">Done</div><div class=\"cdx-checklist__item\">Todo</div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "legacy-flat-list",
+          "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "image-authored",
+          "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>",
+            "images": [
+              {
+                "alt": "Visible caption",
+                "src": "https://example.invalid/photo.png"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "image-decorative",
+          "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>",
+            "images": [
+              {
+                "alt": "Visible caption",
+                "src": "https://example.invalid/photo.png"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "image-unset",
+          "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"https://example.invalid/photo.png\" alt=\"Visible caption\"><figcaption class=\"fig-cap\">Visible caption</figcaption></figure>",
+            "images": [
+              {
+                "alt": "Visible caption",
+                "src": "https://example.invalid/photo.png"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "configured-alias",
+          "html": "",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "callout-and-flag",
+          "html": "",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unknown-tune",
+          "html": "<p class=\"paragraph\">Paragraph</p>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<p class=\"paragraph\">Paragraph</p>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "literal-code",
+          "html": "<pre><code class=\"code-block\">&lt;img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"&gt;</code></pre>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<pre><code class=\"code-block\">&lt;img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"&gt;</code></pre>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unsafe-inline",
+          "html": "<p class=\"paragraph\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<p class=\"paragraph\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"javascript:globalThis.__spikeExecuted=true\">click</a></p>",
+            "images": [
+              {
+                "alt": null,
+                "src": "https://example.invalid/x"
+              }
+            ],
+            "links": ["javascript:globalThis.__spikeExecuted=true"],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unsafe-image-attribute",
+          "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\"><figcaption class=\"fig-cap\">Caption</figcaption></figure>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<figure class=\"fig-img\"><img class=\"img   \" src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\"><figcaption class=\"fig-cap\">Caption</figcaption></figure>",
+            "images": [
+              {
+                "alt": "Caption",
+                "src": "x"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unsafe-custom",
+          "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">",
+            "images": [
+              {
+                "alt": null,
+                "src": "https://example.invalid/x"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unknown-block",
+          "html": "",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "malformed-data",
+          "html": "",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "prototype-name",
+          "html": "[object Object]",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "[object Object]",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "mixed-unknown-document",
+          "html": "<p class=\"paragraph\">Before</p><p class=\"paragraph\">After</p>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<p class=\"paragraph\">Before</p><p class=\"paragraph\">After</p>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        }
+      ],
+      "blockedNetworkRequests": 5,
+      "esmBrowserParity": true,
+      "cjsBrowserParity": true,
+      "instanceIsolation": {
+        "secondInstanceHtml": "<p class=\"changed-by-other-instance\">Other instance</p>"
+      }
+    },
+    "editorjs-html": {
+      "version": "4.0.5",
+      "license": "MIT",
+      "dependencies": {},
+      "peers": {},
+      "engines": {},
+      "exports": null,
+      "main": ".build/edjsHTML.node.js",
+      "module": null,
+      "types": ".build/src/main.d.ts",
+      "licenseSha256": "418a2df5e3b63a4aa1bdd0ddf73f1ae4fc3959f4dc3f80cc5baa4bae1a932075",
+      "entrySha256": "2520a4a4af89bf9ca71ed68b6690a44dc2b12315305bcfccb40c7addd91f49d0",
+      "esm": {
+        "ok": true,
+        "html": "<p>Node probe</p>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<p>Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>"
+          },
+          {
+            "name": "heading",
+            "html": "<h2>Heading</h2>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<h99>Heading</h99>"
+          },
+          {
+            "name": "quote",
+            "html": "<blockquote>Quote</blockquote> - Author <b>name</b>"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<ol><li>Done</li><li>Todo</li></ol>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "image-unset",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "configured-alias",
+            "error": "[editorjs-html]: Parser function for heading does not exist"
+          },
+          {
+            "name": "callout-and-flag",
+            "error": "[editorjs-html]: Parser function for callout does not exist"
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<p>Paragraph</p>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<pre><code><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"></code></pre>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<p><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<img src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\" />"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "error": "[editorjs-html]: Parser function for unknown does not exist"
+          },
+          {
+            "name": "malformed-data",
+            "error": "Cannot read properties of null (reading 'alignment')"
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "error": "[editorjs-html]: Parser function for unknown does not exist"
+          }
+        ],
+        "stderr": ""
+      },
+      "cjs": {
+        "ok": true,
+        "html": "<p>Node probe</p>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<p>Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>"
+          },
+          {
+            "name": "heading",
+            "html": "<h2>Heading</h2>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<h99>Heading</h99>"
+          },
+          {
+            "name": "quote",
+            "html": "<blockquote>Quote</blockquote> - Author <b>name</b>"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<ol><li>Done</li><li>Todo</li></ol>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "image-unset",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "configured-alias",
+            "error": "[editorjs-html]: Parser function for heading does not exist"
+          },
+          {
+            "name": "callout-and-flag",
+            "error": "[editorjs-html]: Parser function for callout does not exist"
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<p>Paragraph</p>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<pre><code><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"></code></pre>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<p><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<img src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\" />"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "error": "[editorjs-html]: Parser function for unknown does not exist"
+          },
+          {
+            "name": "malformed-data",
+            "error": "Cannot read properties of null (reading 'alignment')"
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "error": "[editorjs-html]: Parser function for unknown does not exist"
+          }
+        ],
+        "stderr": ""
+      },
+      "esmTrapped": {
+        "ok": true,
+        "html": "<p>Node probe</p>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<p>Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>"
+          },
+          {
+            "name": "heading",
+            "html": "<h2>Heading</h2>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<h99>Heading</h99>"
+          },
+          {
+            "name": "quote",
+            "html": "<blockquote>Quote</blockquote> - Author <b>name</b>"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<ol><li>Done</li><li>Todo</li></ol>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "image-unset",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "configured-alias",
+            "error": "[editorjs-html]: Parser function for heading does not exist"
+          },
+          {
+            "name": "callout-and-flag",
+            "error": "[editorjs-html]: Parser function for callout does not exist"
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<p>Paragraph</p>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<pre><code><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"></code></pre>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<p><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<img src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\" />"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "error": "[editorjs-html]: Parser function for unknown does not exist"
+          },
+          {
+            "name": "malformed-data",
+            "error": "Cannot read properties of null (reading 'alignment')"
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "error": "[editorjs-html]: Parser function for unknown does not exist"
+          }
+        ],
+        "stderr": ""
+      },
+      "cjsTrapped": {
+        "ok": true,
+        "html": "<p>Node probe</p>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<p>Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>"
+          },
+          {
+            "name": "heading",
+            "html": "<h2>Heading</h2>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<h99>Heading</h99>"
+          },
+          {
+            "name": "quote",
+            "html": "<blockquote>Quote</blockquote> - Author <b>name</b>"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<ol><li>Done</li><li>Todo</li></ol>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "image-unset",
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />"
+          },
+          {
+            "name": "configured-alias",
+            "error": "[editorjs-html]: Parser function for heading does not exist"
+          },
+          {
+            "name": "callout-and-flag",
+            "error": "[editorjs-html]: Parser function for callout does not exist"
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<p>Paragraph</p>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<pre><code><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"></code></pre>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<p><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<img src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\" />"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "error": "[editorjs-html]: Parser function for unknown does not exist"
+          },
+          {
+            "name": "malformed-data",
+            "error": "Cannot read properties of null (reading 'alignment')"
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "error": "[editorjs-html]: Parser function for unknown does not exist"
+          }
+        ],
+        "stderr": ""
+      },
+      "typesNodeNext": {
+        "status": 2,
+        "output": "node_modules/editorjs-html/.build/src/main.d.ts(1,45): error TS2307: Cannot find module '@editorjs/editorjs' or its corresponding type declarations."
+      },
+      "typesBundler": {
+        "status": 2,
+        "output": "node_modules/editorjs-html/.build/src/main.d.ts(1,45): error TS2307: Cannot find module '@editorjs/editorjs' or its corresponding type declarations."
+      },
+      "browserBundleBytes": 2487,
+      "importStyleElements": 0,
+      "cases": [
+        {
+          "name": "paragraph-inline",
+          "html": "<p>Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<p>Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p>",
+            "images": [],
+            "links": ["https://example.invalid/read"],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "heading",
+          "html": "<h2>Heading</h2>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<h2>Heading</h2>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "invalid-heading",
+          "html": "<h99>Heading</h99>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<h99>Heading</h99>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "quote",
+          "html": "<blockquote>Quote</blockquote> - Author <b>name</b>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<blockquote>Quote</blockquote> - Author <b>name</b>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "list-v2-ordered",
+          "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<ol><li>Parent<ol><li>Child</li></ol></li></ol>",
+            "images": [],
+            "links": [],
+            "orderedLists": [
+              {
+                "start": null,
+                "type": null
+              },
+              {
+                "start": null,
+                "type": null
+              }
+            ]
+          }
+        },
+        {
+          "name": "list-v2-checklist",
+          "html": "<ol><li>Done</li><li>Todo</li></ol>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<ol><li>Done</li><li>Todo</li></ol>",
+            "images": [],
+            "links": [],
+            "orderedLists": [
+              {
+                "start": null,
+                "type": null
+              }
+            ]
+          }
+        },
+        {
+          "name": "legacy-flat-list",
+          "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<ul><li>Legacy one</li><li>Legacy two</li></ul>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "image-authored",
+          "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\">",
+            "images": [
+              {
+                "alt": "Visible caption",
+                "src": "https://example.invalid/photo.png"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "image-decorative",
+          "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\">",
+            "images": [
+              {
+                "alt": "Visible caption",
+                "src": "https://example.invalid/photo.png"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "image-unset",
+          "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\" />",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<img src=\"https://example.invalid/photo.png\" alt=\"Visible caption\">",
+            "images": [
+              {
+                "alt": "Visible caption",
+                "src": "https://example.invalid/photo.png"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "configured-alias",
+          "error": "[editorjs-html]: Parser function for heading does not exist",
+          "mutated": false
+        },
+        {
+          "name": "callout-and-flag",
+          "error": "[editorjs-html]: Parser function for callout does not exist",
+          "mutated": false
+        },
+        {
+          "name": "unknown-tune",
+          "html": "<p>Paragraph</p>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<p>Paragraph</p>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "literal-code",
+          "html": "<pre><code><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"></code></pre>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<pre><code><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"></code></pre>",
+            "images": [
+              {
+                "alt": null,
+                "src": "https://example.invalid/x"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unsafe-inline",
+          "html": "<p><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<p><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"javascript:globalThis.__spikeExecuted=true\">click</a></p>",
+            "images": [
+              {
+                "alt": null,
+                "src": "https://example.invalid/x"
+              }
+            ],
+            "links": ["javascript:globalThis.__spikeExecuted=true"],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unsafe-image-attribute",
+          "html": "<img src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\" />",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<img src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"Caption\">",
+            "images": [
+              {
+                "alt": "Caption",
+                "src": "x"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unsafe-custom",
+          "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">",
+            "images": [
+              {
+                "alt": null,
+                "src": "https://example.invalid/x"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unknown-block",
+          "error": "[editorjs-html]: Parser function for unknown does not exist",
+          "mutated": false
+        },
+        {
+          "name": "malformed-data",
+          "error": "Cannot read properties of null (reading 'alignment')",
+          "mutated": false
+        },
+        {
+          "name": "prototype-name",
+          "html": "[object Object]",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "[object Object]",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "mixed-unknown-document",
+          "error": "[editorjs-html]: Parser function for unknown does not exist",
+          "mutated": false
+        }
+      ],
+      "blockedNetworkRequests": 6,
+      "esmBrowserParity": true,
+      "cjsBrowserParity": true
+    },
+    "editorjs-to-html": {
+      "version": "1.0.4",
+      "license": "MIT",
+      "dependencies": {},
+      "peers": {},
+      "engines": {},
+      "exports": null,
+      "main": "./build/Parser.esm.js",
+      "module": null,
+      "types": "./build/index.d.ts",
+      "licenseSha256": "2dbb9135d1354290313aea3e0ee37083125d52073b1078efc313fa3dac58f54d",
+      "entrySha256": "329fa5200804fd49badcf845558a4477a43b10f16f2ccee13c0801422be6166c",
+      "esm": {
+        "ok": true,
+        "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Node probe</p></div></div>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p></div></div>"
+          },
+          {
+            "name": "heading",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><h2 class=\"ce-header\" id=\"undefined\">Heading</h2></div></div>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><h99 class=\"ce-header\" id=\"undefined\">Heading</h99></div></div>"
+          },
+          {
+            "name": "quote",
+            "error": "document is not defined"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Parent</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Child</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li></ol>\n                </div>\n              </li></ol></div></div>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Done</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Todo</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li></ol></div></div>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ul class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li>HELLOLegacy one</li><li>HELLOLegacy two</li></ul></div></div>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"https://example.invalid/photo.png\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"https://example.invalid/photo.png\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "image-unset",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"https://example.invalid/photo.png\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "configured-alias",
+            "html": "Sorry, not realized yet"
+          },
+          {
+            "name": "callout-and-flag",
+            "html": "Sorry, not realized yet"
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Paragraph</p></div></div>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block ce-code\">\n            <textarea class=\"ce-code__textarea cdx-input\" placeholder=\"Enter a code\" disabled=\"\">\n                <img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">\n            </textarea>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p></div></div>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Caption\n            </div>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "html": "Sorry, not realized yet"
+          },
+          {
+            "name": "malformed-data",
+            "error": "Cannot read properties of null (reading 'alignment')"
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Before</p></div></div>Sorry, not realized yet<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">After</p></div></div>"
+          }
+        ],
+        "stderr": ""
+      },
+      "cjs": {
+        "ok": true,
+        "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Node probe</p></div></div>",
+        "cases": [
+          {
+            "name": "paragraph-inline",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p></div></div>"
+          },
+          {
+            "name": "heading",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><h2 class=\"ce-header\" id=\"undefined\">Heading</h2></div></div>"
+          },
+          {
+            "name": "invalid-heading",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><h99 class=\"ce-header\" id=\"undefined\">Heading</h99></div></div>"
+          },
+          {
+            "name": "quote",
+            "error": "document is not defined"
+          },
+          {
+            "name": "list-v2-ordered",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Parent</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Child</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li></ol>\n                </div>\n              </li></ol></div></div>"
+          },
+          {
+            "name": "list-v2-checklist",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Done</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Todo</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li></ol></div></div>"
+          },
+          {
+            "name": "legacy-flat-list",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ul class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li>HELLOLegacy one</li><li>HELLOLegacy two</li></ul></div></div>"
+          },
+          {
+            "name": "image-authored",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"https://example.invalid/photo.png\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "image-decorative",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"https://example.invalid/photo.png\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "image-unset",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"https://example.invalid/photo.png\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "configured-alias",
+            "html": "Sorry, not realized yet"
+          },
+          {
+            "name": "callout-and-flag",
+            "html": "Sorry, not realized yet"
+          },
+          {
+            "name": "unknown-tune",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Paragraph</p></div></div>"
+          },
+          {
+            "name": "literal-code",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block ce-code\">\n            <textarea class=\"ce-code__textarea cdx-input\" placeholder=\"Enter a code\" disabled=\"\">\n                <img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">\n            </textarea>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "unsafe-inline",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p></div></div>"
+          },
+          {
+            "name": "unsafe-image-attribute",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Caption\n            </div>\n        </div>\n    </div></div>"
+          },
+          {
+            "name": "unsafe-custom",
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+          },
+          {
+            "name": "unknown-block",
+            "html": "Sorry, not realized yet"
+          },
+          {
+            "name": "malformed-data",
+            "error": "Cannot read properties of null (reading 'alignment')"
+          },
+          {
+            "name": "prototype-name",
+            "html": "[object Object]"
+          },
+          {
+            "name": "mixed-unknown-document",
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Before</p></div></div>Sorry, not realized yet<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">After</p></div></div>"
+          }
+        ],
+        "stderr": ""
+      },
+      "esmTrapped": {
+        "ok": false,
+        "error": "browser global: document",
+        "stderr": ""
+      },
+      "cjsTrapped": {
+        "ok": false,
+        "error": "browser global: document",
+        "stderr": ""
+      },
+      "typesNodeNext": {
+        "status": 2,
+        "output": "probe.mts(1,22): error TS7016: Could not find a declaration file for module 'editorjs-to-html'. '<consumer>/node_modules/editorjs-to-html/build/Parser.esm.js' implicitly has an 'any' type.\n  Try `npm i --save-dev @types/editorjs-to-html` if it exists or add a new declaration (.d.ts) file containing `declare module 'editorjs-to-html';`"
+      },
+      "typesBundler": {
+        "status": 2,
+        "output": "probe.mts(1,22): error TS7016: Could not find a declaration file for module 'editorjs-to-html'. '<consumer>/node_modules/editorjs-to-html/build/Parser.esm.js' implicitly has an 'any' type.\n  Try `npm i --save-dev @types/editorjs-to-html` if it exists or add a new declaration (.d.ts) file containing `declare module 'editorjs-to-html';`"
+      },
+      "browserBundleBytes": 34076,
+      "importStyleElements": 14,
+      "cases": [
+        {
+          "name": "paragraph-inline",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a></p></div></div>",
+            "images": [],
+            "links": ["https://example.invalid/read"],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "heading",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><h2 class=\"ce-header\" id=\"undefined\">Heading</h2></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><h2 class=\"ce-header\" id=\"undefined\">Heading</h2></div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "invalid-heading",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><h99 class=\"ce-header\" id=\"undefined\">Heading</h99></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><h99 class=\"ce-header\" id=\"undefined\">Heading</h99></div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "quote",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><blockquote class=\"cdx-block cdx-quote\"><div class=\"cdx-input cdx-quote__text\">Quote</div><div class=\"cdx-input cdx-quote__caption\">Author <b>name</b></div></blockquote></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><blockquote class=\"cdx-block cdx-quote\"><div class=\"cdx-input cdx-quote__text\">Quote</div><div class=\"cdx-input cdx-quote__caption\">Author <b>name</b></div></blockquote></div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "list-v2-ordered",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Parent</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Child</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li></ol>\n                </div>\n              </li></ol></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Parent</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Child</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li></ol>\n                </div>\n              </li></ol></div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": [
+              {
+                "start": null,
+                "type": null
+              },
+              {
+                "start": null,
+                "type": null
+              },
+              {
+                "start": null,
+                "type": null
+              }
+            ]
+          }
+        },
+        {
+          "name": "list-v2-checklist",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Done</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Todo</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li></ol></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Done</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li><li class=\"cdx-nested-list__item\">\n                <div class=\"cdx-nested-list__item-body\">\n                  <div class=\"cdx-nested-list__item-content\">Todo</div>\n                  <ol class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"></ol>\n                </div>\n              </li></ol></div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": [
+              {
+                "start": null,
+                "type": null
+              },
+              {
+                "start": null,
+                "type": null
+              },
+              {
+                "start": null,
+                "type": null
+              }
+            ]
+          }
+        },
+        {
+          "name": "legacy-flat-list",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ul class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li>HELLOLegacy one</li><li>HELLOLegacy two</li></ul></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><ul class=\"cdx-nested-list cdx-block cdx-nested-list--ordered\"><li>HELLOLegacy one</li><li>HELLOLegacy two</li></ul></div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "image-authored",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"https://example.invalid/photo.png\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" src=\"https://example.invalid/photo.png\" alt=\"\">\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>",
+            "images": [
+              {
+                "alt": "",
+                "src": "https://example.invalid/photo.png"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "image-decorative",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"https://example.invalid/photo.png\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" src=\"https://example.invalid/photo.png\" alt=\"\">\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>",
+            "images": [
+              {
+                "alt": "",
+                "src": "https://example.invalid/photo.png"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "image-unset",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"https://example.invalid/photo.png\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" src=\"https://example.invalid/photo.png\" alt=\"\">\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Visible caption\n            </div>\n        </div>\n    </div></div>",
+            "images": [
+              {
+                "alt": "",
+                "src": "https://example.invalid/photo.png"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "configured-alias",
+          "html": "Sorry, not realized yet",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "Sorry, not realized yet",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "callout-and-flag",
+          "html": "Sorry, not realized yet",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "Sorry, not realized yet",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unknown-tune",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Paragraph</p></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Paragraph</p></div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "literal-code",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block ce-code\">\n            <textarea class=\"ce-code__textarea cdx-input\" placeholder=\"Enter a code\" disabled=\"\">\n                <img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">\n            </textarea>\n        </div>\n    </div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block ce-code\">\n            <textarea class=\"ce-code__textarea cdx-input\" placeholder=\"Enter a code\" disabled=\"\">                &lt;img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"&gt;\n            </textarea>\n        </div>\n    </div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unsafe-inline",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a></p></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\"><img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"javascript:globalThis.__spikeExecuted=true\">click</a></p></div></div>",
+            "images": [
+              {
+                "alt": null,
+                "src": "https://example.invalid/x"
+              }
+            ],
+            "links": ["javascript:globalThis.__spikeExecuted=true"],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unsafe-image-attribute",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" \n                    src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" \n                    alt=\"\" \n                >\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Caption\n            </div>\n        </div>\n    </div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\">\n        <div class=\"cdx-block image-tool image-tool--filled   \">\n            <div class=\"image-tool__image\">\n                <img class=\"image-tool__image-picture\" src=\"x\" onerror=\"globalThis.__spikeExecuted=true\" alt=\"\">\n            </div>\n            <div class=\"cdx-input image-tool__caption\" contenteditable=\"false\" data-placeholder=\"Caption\">\n                Caption\n            </div>\n        </div>\n    </div></div>",
+            "images": [
+              {
+                "alt": "",
+                "src": "x"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unsafe-custom",
+          "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": true,
+            "html": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">",
+            "images": [
+              {
+                "alt": null,
+                "src": "https://example.invalid/x"
+              }
+            ],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "unknown-block",
+          "html": "Sorry, not realized yet",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "Sorry, not realized yet",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "malformed-data",
+          "error": "Cannot read properties of null (reading 'alignment')",
+          "mutated": false
+        },
+        {
+          "name": "prototype-name",
+          "html": "[object Object]",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "[object Object]",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        },
+        {
+          "name": "mixed-unknown-document",
+          "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Before</p></div></div>Sorry, not realized yet<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">After</p></div></div>",
+          "deterministic": true,
+          "mutated": false,
+          "dom": {
+            "executed": false,
+            "html": "<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">Before</p></div></div>Sorry, not realized yet<div class=\"ce-block\"><div class=\"ce-block__content\"><p class=\"ce-paragraph cdx-block\" style=\"text-align:inherit\">After</p></div></div>",
+            "images": [],
+            "links": [],
+            "orderedLists": []
+          }
+        }
+      ],
+      "blockedNetworkRequests": 5,
+      "esmBrowserParity": false,
+      "cjsBrowserParity": false
+    }
+  },
+  "sanitizers": {
+    "sanitize-html": {
+      "node": {
+        "html": "<p>Hello <b>bold</b><img src=\"https://example.invalid/x\" /><a>link</a></p>"
+      },
+      "browserHtml": "<p>Hello <b>bold</b><img src=\"https://example.invalid/x\" /><a>link</a></p>",
+      "browserBundleBytes": 157142
+    },
+    "dompurify": {
+      "node": {
+        "isSupported": false,
+        "hasSanitize": false
+      },
+      "browserHtml": "<p>Hello <b>bold</b><img src=\"https://example.invalid/x\"><a>link</a></p>",
+      "browserBundleBytes": 31165
+    }
+  },
+  "contracts": {
+    "inputs": [
+      "packages/editorjs/core/src/lib/compose-image-uploader.ts",
+      "packages/editorjs/core/src/lib/upload-operation.ts",
+      "packages/editorjs/core/src/lib/tool-registry-contracts.ts",
+      "packages/editorjs/core/src/lib/tool-registry-validation.ts",
+      "packages/editorjs/core/src/lib/tool-registry.ts",
+      "packages/editorjs/core/src/lib/tool-resolver.ts",
+      "packages/editorjs/core/src/lib/json-value.ts",
+      "packages/editorjs/core/src/lib/parse-output-data.ts",
+      "packages/editorjs/core/src/lib/content-provenance.ts",
+      "packages/editorjs/core/src/lib/validate-output-data.ts",
+      "packages/editorjs/core/src/lib/editor-contracts.ts",
+      "packages/editorjs/core/src/lib/editor-document-coordinator.ts",
+      "packages/editorjs/core/src/index.ts",
+      "packages/editorjs/tool-paragraph/src/lib/paragraph.ts",
+      "packages/editorjs/tool-paragraph/src/index.ts",
+      "packages/editorjs/tool-header/src/lib/header.ts",
+      "packages/editorjs/tool-header/src/index.ts",
+      "packages/editorjs/tool-quote/src/lib/quote.ts",
+      "packages/editorjs/tool-quote/src/index.ts",
+      "packages/editorjs/tool-list/src/lib/list.ts",
+      "packages/editorjs/tool-list/src/index.ts",
+      "packages/editorjs/tool-image/src/lib/image.ts",
+      "packages/editorjs/tool-image/src/index.ts",
+      "<stdin>"
+    ],
+    "cases": [
+      {
+        "name": "paragraph-inline",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "paragraph",
+                "data": {
+                  "text": "Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a>"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "heading",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "header",
+                "data": {
+                  "text": "Heading",
+                  "level": 2
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "invalid-heading",
+        "result": {
+          "ok": false,
+          "errors": [
+            {
+              "source": "tool",
+              "path": ["blocks", 0, "data", "level"],
+              "tool": "header",
+              "code": "tool_data_invalid",
+              "message": "Header data requires an integer level from 1 through 6.",
+              "validatorCode": "invalid_level"
+            }
+          ]
+        }
+      },
+      {
+        "name": "quote",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "quote",
+                "data": {
+                  "text": "Quote",
+                  "caption": "Author <b>name</b>",
+                  "alignment": "center"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "list-v2-ordered",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "list",
+                "data": {
+                  "style": "ordered",
+                  "meta": {
+                    "start": 3,
+                    "counterType": "upper-roman"
+                  },
+                  "items": [
+                    {
+                      "content": "Parent",
+                      "meta": {},
+                      "items": [
+                        {
+                          "content": "Child",
+                          "meta": {
+                            "start": 2,
+                            "counterType": "lower-alpha"
+                          },
+                          "items": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "list-v2-checklist",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "list",
+                "data": {
+                  "style": "checklist",
+                  "meta": {},
+                  "items": [
+                    {
+                      "content": "Done",
+                      "meta": {
+                        "checked": true
+                      },
+                      "items": []
+                    },
+                    {
+                      "content": "Todo",
+                      "meta": {
+                        "checked": false
+                      },
+                      "items": []
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "legacy-flat-list",
+        "result": {
+          "ok": false,
+          "errors": [
+            {
+              "source": "tool",
+              "path": ["blocks", 0, "data", "meta"],
+              "tool": "list",
+              "code": "tool_data_invalid",
+              "message": "Current list data requires a metadata object.",
+              "validatorCode": "invalid_meta"
+            }
+          ]
+        }
+      },
+      {
+        "name": "image-authored",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "image",
+                "data": {
+                  "file": {
+                    "url": "https://example.invalid/photo.png"
+                  },
+                  "caption": "Visible caption",
+                  "alt": "Authored description",
+                  "withBorder": false,
+                  "withBackground": false,
+                  "stretched": false
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "image-decorative",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "image",
+                "data": {
+                  "file": {
+                    "url": "https://example.invalid/photo.png"
+                  },
+                  "caption": "Visible caption",
+                  "alt": "",
+                  "withBorder": false,
+                  "withBackground": false,
+                  "stretched": false
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "image-unset",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "image",
+                "data": {
+                  "file": {
+                    "url": "https://example.invalid/photo.png"
+                  },
+                  "caption": "Visible caption",
+                  "withBorder": false,
+                  "withBackground": false,
+                  "stretched": false
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "configured-alias",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "Configured heading",
+                  "level": 2
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "callout-and-flag",
+        "result": {
+          "ok": false,
+          "errors": [
+            {
+              "source": "tool",
+              "code": "unknown_tool",
+              "path": ["blocks", 0, "type"],
+              "tool": "callout",
+              "message": "No validator is registered for this tool."
+            }
+          ]
+        }
+      },
+      {
+        "name": "unknown-tune",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "paragraph",
+                "data": {
+                  "text": "Paragraph"
+                },
+                "tunes": {
+                  "unrecognised": {
+                    "value": true
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "literal-code",
+        "result": {
+          "ok": false,
+          "errors": [
+            {
+              "source": "tool",
+              "code": "unknown_tool",
+              "path": ["blocks", 0, "type"],
+              "tool": "code",
+              "message": "No validator is registered for this tool."
+            }
+          ]
+        }
+      },
+      {
+        "name": "unsafe-inline",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "paragraph",
+                "data": {
+                  "text": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a>"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "unsafe-image-attribute",
+        "result": {
+          "ok": true,
+          "data": {
+            "version": "2.31.7",
+            "blocks": [
+              {
+                "type": "image",
+                "data": {
+                  "file": {
+                    "url": "x\" onerror=\"globalThis.__spikeExecuted=true"
+                  },
+                  "caption": "Caption",
+                  "alt": "Description",
+                  "withBorder": false,
+                  "withBackground": false,
+                  "stretched": false
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "unsafe-custom",
+        "result": {
+          "ok": false,
+          "errors": [
+            {
+              "source": "tool",
+              "code": "unknown_tool",
+              "path": ["blocks", 0, "type"],
+              "tool": "callout",
+              "message": "No validator is registered for this tool."
+            }
+          ]
+        }
+      },
+      {
+        "name": "unknown-block",
+        "result": {
+          "ok": false,
+          "errors": [
+            {
+              "source": "tool",
+              "code": "unknown_tool",
+              "path": ["blocks", 0, "type"],
+              "tool": "unknown",
+              "message": "No validator is registered for this tool."
+            }
+          ]
+        }
+      },
+      {
+        "name": "malformed-data",
+        "result": {
+          "ok": false,
+          "errors": [
+            {
+              "source": "structure",
+              "code": "invalid_type",
+              "path": ["blocks", 0, "data"],
+              "message": "Expected a plain JSON object."
+            }
+          ]
+        }
+      },
+      {
+        "name": "prototype-name",
+        "result": {
+          "ok": false,
+          "errors": [
+            {
+              "source": "tool",
+              "code": "unknown_tool",
+              "path": ["blocks", 0, "type"],
+              "tool": "toString",
+              "message": "No validator is registered for this tool."
+            }
+          ]
+        }
+      },
+      {
+        "name": "mixed-unknown-document",
+        "result": {
+          "ok": false,
+          "errors": [
+            {
+              "source": "tool",
+              "code": "unknown_tool",
+              "path": ["blocks", 1, "type"],
+              "tool": "unknown",
+              "message": "No validator is registered for this tool."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "chromium": "156.0.8078.4",
+  "installedPackages": [
+    "@types",
+    "dayjs",
+    "dom-serializer",
+    "domelementtype",
+    "domhandler",
+    "dompurify",
+    "domutils",
+    "editorjs-html",
+    "editorjs-parser",
+    "editorjs-to-html",
+    "entities",
+    "escape-string-regexp",
+    "htmlparser2",
+    "is-plain-object",
+    "launder",
+    "nanoid",
+    "parse-srcset",
+    "picocolors",
+    "postcss",
+    "sanitize-html",
+    "source-map-js"
+  ]
+}

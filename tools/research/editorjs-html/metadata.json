@@ -1,0 +1,223 @@
+{
+  "checked": "2026-10-31",
+  "registry": "https://registry.npmjs.org",
+  "repositories": [
+    {
+      "repo": "miadabdi/editorjs-parser",
+      "archived": false,
+      "pushed": "2026-09-10T20:03:55Z",
+      "updated": "2026-09-10T20:03:59Z",
+      "license": "MIT",
+      "defaultBranch": "main"
+    },
+    {
+      "repo": "pavittarx/editorjs-html",
+      "archived": false,
+      "pushed": "2026-01-20T19:46:08Z",
+      "updated": "2026-10-19T20:54:17Z",
+      "license": "MIT",
+      "defaultBranch": "master"
+    },
+    {
+      "repo": "vorjyga/editorjs-to-html",
+      "archived": false,
+      "pushed": "2024-01-27T09:45:27Z",
+      "updated": "2026-01-22T16:19:42Z",
+      "license": "MIT",
+      "defaultBranch": "main"
+    },
+    {
+      "repo": "yazanqwaider/editorjs-html-viewer",
+      "archived": false,
+      "pushed": "2023-09-09T14:16:01Z",
+      "updated": "2025-11-05T08:16:40Z",
+      "license": "MIT",
+      "defaultBranch": "main"
+    }
+  ],
+  "packages": [
+    {
+      "name": "editorjs-parser",
+      "version": "3.2.1",
+      "published": "2026-09-10T20:04:37.591Z",
+      "license": "MIT",
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/miadabdi/editorjs-parser.git"
+      },
+      "gitHead": "3c90fa900e7d5495e4b817f83cb65e5d46fb8127",
+      "dependencies": {},
+      "peerDependencies": {},
+      "engines": {
+        "node": ">=18"
+      },
+      "main": "./dist/index.cjs",
+      "module": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "exports": {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "import": "./dist/index.js",
+          "require": "./dist/index.cjs",
+          "default": "./dist/index.js"
+        },
+        "./package.json": "./package.json"
+      },
+      "dist": {
+        "integrity": "sha512-BOAPXMdw6k9NTh/WKRSXznOOktuwo+XPBes69c0N551gqSxVnJSFU7AeH6Zp5uJQBbikSUW9Fvnm2BLQ+dXU3w==",
+        "tarball": "https://registry.npmjs.org/editorjs-parser/-/editorjs-parser-3.2.1.tgz",
+        "unpackedSize": 53289,
+        "fileCount": 7
+      }
+    },
+    {
+      "name": "editorjs-html",
+      "version": "4.0.5",
+      "published": "2025-01-19T09:45:48.324Z",
+      "license": "MIT",
+      "repository": null,
+      "gitHead": "97d028c1c6612d7b50a822b7afd8b3c19248acbf",
+      "dependencies": {},
+      "peerDependencies": {},
+      "engines": {},
+      "main": ".build/edjsHTML.node.js",
+      "module": null,
+      "types": ".build/src/main.d.ts",
+      "exports": null,
+      "dist": {
+        "integrity": "sha512-ImQYxB3fNCJcd+nJ+Vbne/6PxidO1cYByNpu9nBDStVabfjVrMW65BuR+IEZfOii8VKYH+CW/lYDb2GDlzZtDg==",
+        "tarball": "https://registry.npmjs.org/editorjs-html/-/editorjs-html-4.0.5.tgz",
+        "unpackedSize": 40395,
+        "fileCount": 38
+      }
+    },
+    {
+      "name": "editorjs-to-html",
+      "version": "1.0.4",
+      "published": "2023-04-10T21:06:39.496Z",
+      "license": "MIT",
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vorjyga/editorjs-to-html.git"
+      },
+      "gitHead": "736444eba1ea00e1822cc375f39bbfe69edf5727",
+      "dependencies": {},
+      "peerDependencies": {},
+      "engines": {},
+      "main": "./build/Parser.esm.js",
+      "module": null,
+      "types": "./build/index.d.ts",
+      "exports": null,
+      "dist": {
+        "integrity": "sha512-0kMN4R2KtL2j89FiLonSx2s53y7SbdAMVAxkyH/bVT1ItfzFTLCdKWFPrXnxfR//bY6wQXJMhESIb5gmtEMx2A==",
+        "tarball": "https://registry.npmjs.org/editorjs-to-html/-/editorjs-to-html-1.0.4.tgz",
+        "unpackedSize": 202090,
+        "fileCount": 64
+      }
+    },
+    {
+      "name": "editorjs-html-viewer",
+      "version": "1.5.7",
+      "published": "2023-09-09T14:16:48.311Z",
+      "license": "MIT",
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/yazanqwaider/editorjs-html-viewer.git"
+      },
+      "gitHead": "b28f682f3930e176e679f9b060244dc959e7cb43",
+      "dependencies": {
+        "typescript": "^4.8.4"
+      },
+      "peerDependencies": {},
+      "engines": {},
+      "main": "dist/index.js",
+      "module": null,
+      "types": null,
+      "exports": {
+        ".": "./dist/index.js",
+        "./nodejs": "./dist/nodejs/index.js"
+      },
+      "dist": {
+        "integrity": "sha512-OaasXsz9X6Jxotk2dzgng0QKXW/jIlugyH9OA1gbSqbgRyLZwCrb62MF9jsMwM2a53kbNYw6anedIxjyigg5Eg==",
+        "tarball": "https://registry.npmjs.org/editorjs-html-viewer/-/editorjs-html-viewer-1.5.7.tgz",
+        "unpackedSize": 103042,
+        "fileCount": 14
+      }
+    },
+    {
+      "name": "sanitize-html",
+      "version": "2.18.1",
+      "published": "2026-10-14T18:15:44.574Z",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/apostrophecms/apostrophe.git",
+        "type": "git",
+        "directory": "packages/sanitize-html"
+      },
+      "gitHead": "a48dd9fec37d485516d445fbb14a5e76a30ab42e",
+      "dependencies": {
+        "launder": "^1.7.2",
+        "postcss": "^8.5.27",
+        "htmlparser2": "^12.0.0",
+        "parse-srcset": "^1.0.2",
+        "is-plain-object": "^5.1.0",
+        "escape-string-regexp": "^4.0.0"
+      },
+      "peerDependencies": {},
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "main": "index.js",
+      "module": null,
+      "types": null,
+      "exports": null,
+      "dist": {
+        "integrity": "sha512-2X5lC8fYla8YaT8g73Nj+HcLWXan5dLyCWLgVvaOmfw7JI78IRsyNtIDytTHdn7hBQbIkCah7Zbmd5jabzeDig==",
+        "tarball": "https://registry.npmjs.org/sanitize-html/-/sanitize-html-2.18.1.tgz",
+        "unpackedSize": 84753,
+        "fileCount": 4
+      }
+    },
+    {
+      "name": "dompurify",
+      "version": "3.4.17",
+      "published": "2026-10-12T12:41:28.880Z",
+      "license": "(MPL-2.0 OR Apache-2.0)",
+      "repository": {
+        "url": "git://github.com/cure53/DOMPurify.git",
+        "type": "git"
+      },
+      "gitHead": "a77a3e78b59f72fa4d1c83f22e121ad9cc7d3575",
+      "dependencies": {
+        "@types/trusted-types": "^2.0.7"
+      },
+      "peerDependencies": {},
+      "engines": {},
+      "main": "./dist/purify.cjs.js",
+      "module": "./dist/purify.es.mjs",
+      "types": "./dist/purify.cjs.d.ts",
+      "exports": {
+        ".": {
+          "import": {
+            "types": "./dist/purify.es.d.mts",
+            "default": "./dist/purify.es.mjs"
+          },
+          "default": {
+            "types": "./dist/purify.cjs.d.ts",
+            "default": "./dist/purify.cjs.js"
+          }
+        },
+        "./purify.js": "./dist/purify.js",
+        "./purify.min.js": "./dist/purify.min.js",
+        "./dist/purify.js": "./dist/purify.js",
+        "./dist/purify.min.js": "./dist/purify.min.js"
+      },
+      "dist": {
+        "integrity": "sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==",
+        "tarball": "https://registry.npmjs.org/dompurify/-/dompurify-3.4.17.tgz",
+        "unpackedSize": 1615512,
+        "fileCount": 24
+      }
+    }
+  ]
+}
