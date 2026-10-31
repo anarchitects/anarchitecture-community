@@ -18,6 +18,7 @@
     "dist",
     "custom-tools.md",
     "persistence.md",
+    "service.md",
     "!**/*.tsbuildinfo"
   ],
   "nx": {

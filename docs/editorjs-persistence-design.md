@@ -400,3 +400,104 @@ license and both guides match source; JavaScript/declarations are present;
 source, test fixtures and build-info files are absent. The PR records its
 SHA-256. #661 remains unstarted pending explicit maintainer instruction after
 merge; no publication or production data migration is performed by this slice.
+
+## SI-74.4 implementation record — 31 October 2026
+
+#661 starts from merged #660 at `9543bd8`. The eight local ADRs and eighteen
+Meta ADRs were re-enumerated before code changes. The unchanged full records
+read during the preceding slice remain part of this review: local ADRs and
+Modern Angular guides have no intervening changes, and the clean adjacent Meta
+checkout still matches the freshly fetched remote tree
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. No additional ADR directory or nested
+agent instructions were found. Modern Angular index, repository application,
+architecture and testing/migration guidance apply to neutral reuse; the existing
+Nest upload validation record supplies the reference installation and isolation
+constraints. The official Nest standalone-context and factory-provider guidance
+was checked for the new composition.
+
+Community0004 requires a complete shipped guide and execution of its actual
+archived sources. A02/A10 preserve framework-neutral public imports and testing.
+Meta0008/0009/0010 and Community0005/0006 retain Nest 12 feature direction and
+existing HTTP defaults. Meta0012 keeps canonical contracts with their owner:
+this illustrative DTO has no HTTP route or new shared schema authority.
+Community0007/Meta0013 require exact Nx scopes and independent release intent;
+Meta0015 requires fresh uncached installations, immutable packed inputs and
+isolated/restorable atom reports. No accepted-decision conflict or exception was
+identified; proposed and historical records do not override accepted decisions.
+
+The shipped [service guide](../packages/editorjs/core/service.md) copies the
+existing codec and evolution policy unchanged. Its neutral service snapshots
+and validates unknown input before asynchronous authorization, then calls a
+trusted repository port. Load/save return bounded structured results; errors do
+not echo content, credentials or arbitrary exception messages. Legacy reads
+prepare an editable candidate without writeback. The eight-record in-memory
+repository assigns revisions and performs a synchronous compare-and-write;
+stale writes preserve newer bytes. It is explicitly non-durable and makes no
+multi-process or database atomicity claim. Production adapters retain server
+authorization, transactional concurrency, credentials and unknown-outcome
+reconciliation responsibilities.
+
+The optional Nest 12.3.2 composition uses a factory provider and a thin
+unknown-DTO boundary with the same neutral service. Its standalone application
+context has no HTTP listener, request pipes or guards; it closes in `finally`.
+There is no core runtime/dependency/export change, new package, schema framework
+requirement, default-adapter change or production storage implementation.
+
+The existing core package test extracts the actual archived service source,
+compiles it under both NodeNext and Bundler with ES2022-only types, and executes
+the public demonstration plus eleven new behavioral checks per mode. They cover
+detached round trips, unknown DTO rejection, invalid/unsupported/migration-failed
+no-write behavior, concurrent stale writes, failure recovery, capacity,
+authorization, pending-request snapshot capture, explicit migration, corrupt
+reads and independent repository state. The neutral consumer has no Angular,
+Forms, Nest, Nx or installed Editor.js, and browser-global access throws.
+
+The existing CSR reference preparation installs the actual core archive in its
+Nest native-Node host and extracts both guides byte-for-byte. The existing
+`packed-csr-angular22-reference-nest-upload-node` atom now also compiles and runs
+the shipped standalone composition; its prior upload checks remain intact.
+The new guide and extraction helper participate in the packed source fingerprint.
+No target or capacity change is needed: the resolved graph remains 28 core and
+105 e2e targets, including 89 packed validation atoms. Fresh installations and
+completeness checks remain uncached. Validation uses local Nx with Cloud disabled;
+it makes no new hosted DTE or remote-cache claim.
+
+Fresh release-history checks found npm core still returns 404, no remote
+Editor.js release tags, and no Editor.js distribution among all 102 GitHub
+Releases. Affected exact project names are `editorjs-core` and
+`editorjs-angular-e2e`. Core retains independent version 0.0.1 and non-bumping
+`init` intent. #76 retains final release-commit checks and publication authority.
+
+Local validation used Node 24.22.2/macOS arm64, TypeScript 6.0.3 and Nx 23.2.1
+with `NX_NO_CLOUD=true`. Core's 271 tests passed, including 22 new nested
+service checks and the 46 existing persistence/migration checks. Core and e2e
+lint/typecheck passed, as did all seven packed-harness tests. Fresh CSR reference
+preparation completed, then the native-Node atom passed its existing sixteen
+upload scenario groups and the new standalone Nest service assertions. The
+new report records Nest common/core 12.3.2, Node 24.15.0, TypeScript 6.0.3 and
+core 0.0.1, with successful load/save, invalid/stale/forbidden and failed-write
+preservation outcomes. No broader Nest/Angular/SSR compatibility is claimed.
+
+The native-Node atom executed on a cache miss, then replayed from local cache;
+all fourteen report files were restored byte-for-byte after removing its output
+directory. One sandboxed replay missed the cache and failed on loopback `EPERM`;
+the replay with loopback permission hit the original successful cache entry.
+Temporary changes to the new guide and extraction helper each changed the source
+fingerprint and caused Nx to reject the stale snapshot before consumer validation. Both
+files and the fingerprint were restored exactly. Existing #659 configuration,
+dependency and environment invalidation evidence is reused because those input
+contracts are unchanged; the harness checks retain graph, isolation and failure
+propagation coverage. Local evidence is under
+`dist/editorjs-packed-inputs/si661-local` and
+`dist/editorjs-packed-results/si661-local`, not committed package contents.
+Hosted DTE/cost experiments and CI monitoring remain maintainer-owned and require
+explicit permission; revisit on a material workload/topology change.
+
+After all checks/build writers completed, the final 39-file core archive was
+packed and inspected. README, license and all three guides match source;
+JavaScript/declarations are present, and source/tests/build-info files are absent.
+Its SHA-256 is `2a594cc4a37a3cc7797b79edc6866a87449c570ee8868df9bce5327b6aab7d7a`,
+identical to the core archive exercised by the Nest reference atom. Formatting
+and diff-whitespace checks passed. #662 remains unstarted pending explicit
+maintainer instruction after merge; no publication, CI monitoring or optional
+hosted run was started.
