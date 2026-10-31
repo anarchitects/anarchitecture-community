@@ -3,16 +3,17 @@
 Research for [#681](https://github.com/anarchitects/anarchitecture-community/issues/681),
 the design gate of [#650](https://github.com/anarchitects/anarchitecture-community/issues/650).
 Baseline: Community `1e888cacdc287a7eaf94908d1498a7cd4dfee5e3`.
-Registry and upstream inspection: 31 October 2026. The recommendation is
-**proposed**, not an accepted architecture decision or a shipped renderer.
+Registry and upstream inspection: 31 October 2026. The recommendation was
+accepted by Johan Vrolix on 31 October 2026 in ADR0008. It is an architecture
+decision, not a shipped renderer or completed compatibility certification.
 
 ## Recommendation
 
 Build a narrow saved-block-to-HTML renderer behind our own typed API, using core
 structural validation and a maintained HTML sanitizer. Do not adopt an existing
-renderer as the engine or write an HTML parser/sanitizer ourselves. Provisionally
-select `sanitize-html@2.18.1` behind a private policy adapter, subject to the
-maintainer decision in [proposed ADR0008](adr/0008-editorjs-html-rendering.md).
+renderer as the engine or write an HTML parser/sanitizer ourselves. Select
+`sanitize-html@2.18.1` behind a private policy adapter, as accepted in
+[ADR0008](adr/0008-editorjs-html-rendering.md).
 
 The strongest candidate, `editorjs-parser@3.2.1`, has working neutral declarations,
 dual module exports and current maintenance evidence. However, matching our image
@@ -159,15 +160,16 @@ renderers' output contracts nor evidence against the observed execution cases.
 | Adopt html behind our adapter                     | Very small renderer and block callbacks                                                                      | Fix declaration closure, Code safety, list/alt contracts, prototype dispatch and diagnostics in addition to the common boundary. Not recommended.                                       |
 | Adopt a viewer                                    | Existing editor-like styles                                                                                  | DOM/CSS ownership and broader runtime concerns conflict with a neutral semantic package. Screened or measured limitations above. Not recommended.                                       |
 | Contribute upstream first                         | Could improve reusable defects such as declaration closure or isolation                                      | Maintainer acceptance/timing and different compatibility goals cannot gate this release. A later narrowly scoped upstream report/PR is possible only when instructed; none sent.        |
-| Narrow Community formatter + maintained sanitizer | Own exact saved profiles, strict results and extension lifetime; reuse established HTML parsing/sanitization | Own mapping/diagnostic correctness and dependency maintenance; measure sanitizer cost. Recommended in the proposed ADR.                                                                 |
+| Narrow Community formatter + maintained sanitizer | Own exact saved profiles, strict results and extension lifetime; reuse established HTML parsing/sanitization | Own mapping/diagnostic correctness and dependency maintenance; measure sanitizer cost. Selected in the accepted ADR.                                                                    |
 
 ## Architecture review and limitations
 
 Before generating the executable spike, all eight existing Community ADRs and
 all eighteen Meta ADR documents were enumerated and read, including proposals
 and historical material. The adjacent clean Meta checkout matches freshly
-verified remote tree `823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. The new ADR0008
-is proposed and does not add an accepted decision to that baseline. Modern
+verified remote tree `823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. ADR0008
+was proposed after that preflight and subsequently accepted by Johan Vrolix on
+31 October 2026; it adds a decision to the reviewed baseline. Modern
 Angular index, repository application, architecture, rendering, reactivity,
 providers, SSR/builds, testing/migration and validation guidance informed the seams.
 
@@ -190,8 +192,9 @@ the probe. It was stopped, and the bounded probe ran directly with local browser
 permission. No Nx configuration was changed to accommodate the experiment.
 No CI monitoring, hosted rerun, publication or upstream contribution was started.
 
-The maintainers must review ADR0008's policy, package seams, dependency/bundle
-tradeoff and target proof matrix before #682. #681's research is reviewable here;
-its required design-approval item remains open until an explicit maintainer
-decision is recorded. #682–#688 implement and prove the chosen design, then #75
-validates the integrated family, #76 owns publication and #651 follows release.
+Johan Vrolix accepted ADR0008's policy, package seams, dependency/bundle tradeoff
+and target proof matrix on 31 October 2026 and requested PR #689 be made ready
+for review. #681's design-approval gate is resolved. #682 still requires the
+predecessor to merge and an explicit instruction to start. #682–#688 implement
+and prove the chosen design, then #75 validates the integrated family, #76 owns
+publication and #651 follows release.

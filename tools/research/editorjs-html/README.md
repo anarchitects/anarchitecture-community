@@ -3,7 +3,7 @@
 This is a bounded observation harness for [#681](https://github.com/anarchitects/anarchitecture-community/issues/681),
 not a renderer, production test target or complete security audit. Read the
 [research report](../../../docs/editorjs-html-research.md) and
-[proposed ADR](../../../docs/adr/0008-editorjs-html-rendering.md).
+[accepted ADR](../../../docs/adr/0008-editorjs-html-rendering.md).
 
 ## Retained inputs and evidence
 
@@ -14,7 +14,7 @@ not a renderer, production test target or complete security audit. Read the
   repository snapshot indicators from 31 October 2026.
 - `probe.mjs`: Node/module/declaration, public neutral validator, browser DOM and
   sanitizer observations. A zero exit means the harness completed, not that
-  candidate output passed the proposed renderer policy.
+  candidate output passed the accepted renderer policy.
 - `results.json`: raw observations; hashes bind the consumer lock and fixtures.
 - `npm-audit.json`: dated known-advisory snapshot, not output-safety assurance.
 
@@ -78,5 +78,5 @@ snapshot from that consumer:
 Audit is a fresh external-state observation and may differ later. Do not overwrite
 committed evidence without updating its date, runtime/dependency identities and
 report. Browser output is inspected for 50 ms per rendered fixture; absence of an
-observed marker in that window is not proof of safety. The proposed policy and
+observed marker in that window is not proof of safety. The accepted policy and
 future #684 corpus are substantially broader than this candidate-comparison probe.

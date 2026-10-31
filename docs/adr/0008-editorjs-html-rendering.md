@@ -1,7 +1,8 @@
 # ADR0008: Safe Editor.js HTML rendering and optional Angular presentation
 
-- Status: **Proposed — awaiting maintainer decision**
+- Status: **Accepted**
 - Date: 2026-10-31
+- Accepted: 2026-10-31, by Johan Vrolix (explicit maintainer instruction)
 - Owners: Community maintainers
 - Scope: #650; design/research #681; implementation #682–#688
 - Evidence: [reproducible adoption research](../editorjs-html-research.md)
@@ -20,7 +21,7 @@ emit executable HTML through ordinary/custom paths. Adding a sanitizer alone
 cannot restore lost semantics. See the research for versions, license/dependency
 evidence, counterexamples and limits; this ADR does not claim a full security audit.
 
-## Proposed decision
+## Decision
 
 Create independently versioned `@anarchitects/editorjs-html` and
 `@anarchitects/editorjs-html-angular`. Implement only saved-block mapping and our
@@ -29,7 +30,7 @@ policy/result API ourselves. Reuse core structural parsing/validation and
 do not build another HTML parser, sanitizer engine, universal AST or editor
 registry. No production dependency or package is introduced by this ADR.
 
-The sanitizer's Node >=22.12.0 floor is compatible with the proposed neutral
+The sanitizer's Node >=22.12.0 floor is compatible with the selected neutral
 floor. Its measured browser probe is about 157 kB minified before compression;
 accepting that cost is part of this decision, not an incidental implementation
 choice. #687 measures real application cost. A change of sanitizer, relaxation of
@@ -40,7 +41,7 @@ design review and affected proof, not a silent implementation substitution.
 
 The headless package depends on core and its selected sanitizer. Its public
 runtime/types must not require Angular, Forms, Nest, Nx, GrapesJS, the Editor.js
-browser runtime or browser tool classes. Public API names below are the proposed
+browser runtime or browser tool classes. Public API names below are the planned
 seams to stabilize through #682/#683 type tests, not already available imports.
 
 - `renderEditorJsHtml(input, options?)` is synchronous and returns a discriminated
@@ -96,7 +97,7 @@ even after a successful strict render.
 The first #682 profile is paragraph, header and quote; #683 adds the remaining
 standard profile. Unsupported later blocks fail explicitly until implemented.
 
-| Saved profile   | Proposed output contract                                                                                                                                                                                                                                             |
+| Saved profile   | Output contract                                                                                                                                                                                                                                                      |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Paragraph       | p with permitted inline formatting; no automatic text-to-HTML guessing.                                                                                                                                                                                              |
 | Header          | h1–h6 for validated level; no clamping or hierarchy rewriting. Host owns heading hierarchy.                                                                                                                                                                          |
@@ -173,7 +174,7 @@ the maintained parser's tokens/hooks; no regex-only HTML parsing or sanitizer fo
   inequality. #682 must prove reliable classification with the selected sanitizer;
   inability to do so is a design blocker, not permission for silent transformations.
 
-Proposed defaults are 1 MiB UTF-8 JSON input, 1,000 blocks, JSON nesting at most
+The accepted defaults are 1 MiB UTF-8 JSON input, 1,000 blocks, JSON nesting at most
 32 levels, list nesting at most 16 levels, 100 KiB per content string, 2 MiB
 accumulated formatted/sanitized output and 100 detailed diagnostics plus one
 truncation diagnostic. Check bounds before callbacks and incrementally while
@@ -274,7 +275,7 @@ publication; #651 follows real npm availability. Each package starts independent
 at 0.0.1 only after fresh npm/tag/release checks confirm it is unreleased. Use its
 actual generated Nx project name for future package commit/release intent. This
 research has no new Nx project and no version bump. No automatic merge, release,
-consumer migration or upstream submission follows acceptance of this proposal.
+consumer migration or upstream submission follows acceptance of this decision.
 
 ## Consequences and approval
 
@@ -288,10 +289,10 @@ The full ADR preflight and accepted constraints are recorded in the research.
 No accepted decision is superseded or conflicting. Governance proposals retain
 their status; native Node HTTP candidate policy does not imply new renderer APIs.
 
-Maintainer approval must explicitly cover the build/adopt choice and sanitizer
-cost, strict/preview and missing-alt behavior, bounded class-only styling,
+Johan Vrolix explicitly accepted this ADR on 31 October 2026 and instructed that
+PR #689 be marked ready for review. Acceptance covers the build/adopt choice and
+sanitizer cost, strict/preview and missing-alt behavior, bounded class-only styling,
 validation/dependency boundary, Angular configuration/host contract and proof plan.
-**This record remains Proposed until that decision is recorded.** Merging a
-research PR alone does not silently mark it Accepted. #682 must not start before
-the design gate is resolved, the predecessor merges and the maintainer instructs
-the next slice to begin.
+The architecture decision gate is resolved. Implementation and compatibility proof
+remain with #682–#688; #682 still waits for the predecessor to merge and an explicit
+maintainer instruction to start the next slice.
