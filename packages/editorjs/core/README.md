@@ -1229,6 +1229,11 @@ ambient declarations. CommonJS output is not supplied.
 
 ## Consumer adapters
 
+For a complete validate, encode, store, read and reload example, use the shipped
+[persistence guide](persistence.md). It supplies raw JSON and an explicit
+consumer-record mapping, plus a bounded in-memory store and failure recovery.
+The copied helpers are application code, not additional package exports.
+
 Keep application-specific records outside the core. Extract the raw document from
 your record, apply your version policy and any explicit migration, then validate
 before storing or editing it. A storage boundary can accept the core contracts

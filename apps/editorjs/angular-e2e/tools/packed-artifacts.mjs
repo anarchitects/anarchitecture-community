@@ -73,6 +73,7 @@ export async function sourceFingerprint(workspace) {
     'packages/editorjs/core/package.json',
     'packages/editorjs/core/README.md',
     'packages/editorjs/core/custom-tools.md',
+    'packages/editorjs/core/persistence.md',
     'packages/editorjs/core/LICENSE',
     'packages/editorjs/core/tsconfig.json',
     'packages/editorjs/core/tsconfig.lib.json',
