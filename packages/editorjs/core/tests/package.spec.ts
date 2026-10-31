@@ -81,6 +81,10 @@ describe('published package', () => {
     );
     expect(packedFiles).toContain('LICENSE');
     expect(packedFiles).toContain('custom-tools.md');
+    expect(packedFiles).toContain('persistence.md');
+    expect(readFileSync(join(packageDirectory, 'persistence.md'), 'utf8')).toBe(
+      readFileSync(resolve(import.meta.dirname, '../persistence.md'), 'utf8'),
+    );
     expect(
       readFileSync(join(packageDirectory, 'custom-tools.md'), 'utf8'),
     ).toBe(
@@ -374,5 +378,92 @@ describe('published package', () => {
       );
       expect(output.trim()).toBe('quick start ok');
     },
+  );
+  it.each([
+    ['NodeNext', 'NodeNext'],
+    ['ESNext', 'Bundler'],
+  ])(
+    'runs the archived persistence recipes with %s/%s',
+    (module, moduleResolution) => {
+      const directory = join(
+        temporaryDirectory,
+        `persistence-${moduleResolution}`,
+      );
+      mkdirSync(directory);
+      writeFileSync(join(directory, 'package.json'), '{"type":"module"}');
+      const guide = readFileSync(
+        join(packageDirectory, 'persistence.md'),
+        'utf8',
+      );
+      const examples = [
+        ...guide.matchAll(
+          /<!-- persistence-example-file: ([\w.-]+) -->\s*```(?:ts|js)\n([\s\S]*?)```/g,
+        ),
+      ];
+      expect(examples.map(([, file]) => file)).toEqual([
+        'persistence.ts',
+        'memory-store.ts',
+        'main.mjs',
+      ]);
+      for (const [, file, source] of examples)
+        writeFileSync(join(directory, file), source);
+      writeFileSync(
+        join(directory, 'tsconfig.json'),
+        JSON.stringify({
+          compilerOptions: {
+            target: 'ES2022',
+            module,
+            moduleResolution,
+            lib: ['ES2022'],
+            types: [],
+            strict: true,
+            skipLibCheck: false,
+            outDir: 'compiled',
+          },
+          files: ['persistence.ts', 'memory-store.ts'],
+        }),
+      );
+      const env = { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' };
+      const compilation = spawnSync(
+        process.execPath,
+        [
+          createRequire(import.meta.url).resolve('typescript/bin/tsc'),
+          '-p',
+          'tsconfig.json',
+        ],
+        { cwd: directory, encoding: 'utf8', env },
+      );
+      expect(compilation.error).toBeUndefined();
+      expect(compilation.status, compilation.stdout + compilation.stderr).toBe(
+        0,
+      );
+      expect(
+        execFileSync(process.execPath, ['main.mjs'], {
+          cwd: directory,
+          encoding: 'utf8',
+          env,
+        }).trim(),
+      ).toBe(
+        [
+          'raw: 2 blocks reloaded',
+          'record: note-1 at r1; provenance present',
+          'write rejected; previous raw content preserved',
+        ].join('\n'),
+      );
+      writeFileSync(
+        join(directory, 'consumer.mjs'),
+        readFileSync(
+          resolve(import.meta.dirname, 'fixtures/persistence-consumer.mjs'),
+        ),
+      );
+      const checks = spawnSync(process.execPath, ['--test', 'consumer.mjs'], {
+        cwd: directory,
+        encoding: 'utf8',
+        env,
+      });
+      expect(checks.error).toBeUndefined();
+      expect(checks.status, checks.stdout + checks.stderr).toBe(0);
+    },
+    30_000,
   );
 });

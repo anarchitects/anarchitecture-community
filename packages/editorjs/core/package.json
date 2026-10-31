@@ -17,6 +17,7 @@
   "files": [
     "dist",
     "custom-tools.md",
+    "persistence.md",
     "!**/*.tsbuildinfo"
   ],
   "nx": {
@@ -61,8 +62,27 @@
         ]
       },
       "test-ci--tests/package.spec.ts": {
+        "options": {
+          "env": {}
+        },
         "dependsOn": [
           "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          {
+            "env": "CI"
+          }
         ]
       },
       "build": {

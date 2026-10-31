@@ -262,3 +262,75 @@ not rerun or claimed newly green. No build/pack writer or hosted run is needed.
 The next slice remains #659, started only on explicit maintainer instruction
 after this PR merges. #75/#78 broader demos/testing, #76 publication, production
 data migration, consumer adoption and public rendering remain outside #658.
+
+## SI-74.2 implementation record — 31 October 2026
+
+#659 starts from merged #658 (`1d62345`). Before code changes, all eight local
+ADRs and all eighteen Meta ADRs were enumerated and read, including proposed,
+historical and superseded records. The clean Meta checkout matched the freshly
+fetched remote tree at `823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. The Modern
+Angular index, repository application, architecture and testing guides were also
+reviewed for neutral reuse and package evidence. No accepted-decision conflict
+or exception was identified; proposed records do not change existing defaults.
+
+Community0004 requires the shipped install-to-result recipe and actual archive
+proof. A02/A10 keep it framework-neutral and test public imports. Meta0012 and
+Community0005/0006 preserve contract/HTTP ownership: no DTO, HTTP adapter, Angular
+or Forms implementation changes here. Community0007/Meta0013 retain independent
+initial version 0.0.1: fresh npm lookup returned 404 for core, remote Editor.js
+tags were absent, and all 102 GitHub Releases contained no Editor.js release.
+Exact Nx scopes are `editorjs-core` and `editorjs-angular-e2e`; this slice uses
+non-bumping `init` intent and leaves package exports/dependencies unchanged.
+
+The shipped [core persistence guide](../packages/editorjs/core/persistence.md)
+contains the shared codec, a bounded single-slot in-memory store, and a runnable
+raw/record demonstration. The store is intentionally non-durable and owns no
+external resources. Record metadata is explicitly mapped, never inferred from
+raw extension fields. Existing core APIs reject unsupported data before
+serialization; caller input is detached, optional provenance remains distinct,
+and rejected writes do not acknowledge success. Revision comparison and
+migrations remain later slices. No reusable core API gap was found.
+
+The existing package test extracts the three files from the actual npm archive,
+compiles both NodeNext and Bundler variants with ES2022-only declarations, runs
+the printed demonstration, then executes ten behavioral consumer checks per
+variant. These cover preservation/detachment, optional/opaque provenance,
+explicit format rejection, non-JSON/accessor rejection, validation policy,
+bounds, read failures, write recovery, submitted-snapshot acknowledgement and
+serialization failure. The consumer has no Angular, Forms, Nest, Nx or installed
+Editor.js; browser-global access throws. Only assertions live in the test
+fixture; the implementation comes from the archived guide.
+
+For Meta0015, the existing package atom now hashes the same source, dependency,
+configuration, runtime/platform, `NODE_OPTIONS` and `CI` inputs as core's full
+test target. Its build prerequisite and isolated inferred report directory are
+retained. An explicit empty `options.env` avoids Nx 23.2.1's inferred undefined
+environment on a fresh graph, which otherwise fails executor schema validation;
+it supplies no environment overrides. The new guide also participates in the
+packed snapshot source fingerprint. No new target, fresh-install cache policy,
+agent capacity or hosted experiment is introduced.
+
+Local validation used Node 24.22.2 on macOS arm64, TypeScript 6.0.3 and Nx
+23.2.1, with Nx Cloud disabled. Core build, lint, typecheck and all 271 tests in
+11 files passed, including the six package tests and their twenty nested
+persistence checks. The seven packed-harness tests passed with loopback access;
+the e2e lint target had zero errors and 72 existing warnings. The unchanged
+browser/Angular/Nest compatibility matrix was not rerun or newly certified.
+
+The package atom had a successful miss followed by a 2/2 local hit (including
+build), and removing its build directory restored identical output bytes from
+cache. Temporary changes to `tsconfig.base.json`, `yarn.lock` and `NODE_OPTIONS`
+each caused 0/2 hits. A guide-only fingerprint probe changed the snapshot hash
+and restored it exactly. An intentionally broken archived demonstration failed
+both new full-test cases; restoring the guide returned all 271 tests to green
+and the package atom to 2/2 hits. A separate atom failure probe stalled during
+its build and was stopped; it is not claimed as completed evidence. Temporary
+probes were restored. These are local checks, not remote-cache or hosted DTE
+proof; the existing distributed target topology is unchanged.
+
+After final checks, the core archive was packed and inspected: README, license
+and both guides match source; JavaScript/declarations are present; source,
+tests and build-info files are absent. No runtime dependencies, extra exports or
+version change were introduced. The PR records the inspected archive digest.
+#660 remains unstarted pending explicit maintainer instruction after merge;
+#76 retains final release-commit validation and publication.
