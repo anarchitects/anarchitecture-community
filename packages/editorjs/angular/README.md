@@ -14,6 +14,10 @@ For custom block, inline, tune and third-party tools, use the shipped
 [complete Angular composition guide](custom-tools.md). It reuses the core guide's
 actual implementations in direct, provider and optional Signal Forms consumers.
 The basic quick start below needs only Editor.js's built-in paragraph.
+For complete load/edit/save/reload paths, use the shipped
+[persistence guide](persistence.md). Its standalone and optional Signal Forms
+recipes share core's service, migration and validation, demonstrate revision
+conflicts and preserve newer drafts when a save completes late.
 
 ## Installation and prerequisites
 

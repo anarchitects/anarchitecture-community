@@ -1,6 +1,9 @@
 import { test, expect, bootstrap } from './fixture.js';
 import { behavior, lifetime } from '../portable/assertions.js';
 import { packed } from '../tools/ssr-environment.mjs';
+import { notebookHydrationCases } from './notebook-cases.js';
+
+notebookHydrationCases();
 
 test('registry SSR holders survive hydration and the shared tools perform real editing', async ({
   page,

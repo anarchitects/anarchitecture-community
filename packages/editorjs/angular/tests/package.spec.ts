@@ -107,6 +107,13 @@ describe('published Angular contracts', () => {
       readFileSync(join(packageDirectory, 'package.json'), 'utf8'),
     );
     expect(manifest.name).toBe('@anarchitects/editorjs-angular');
+    expect(packedFiles).toContain('persistence.md');
+    expect(readFileSync(join(packageDirectory, 'persistence.md'), 'utf8')).toBe(
+      readFileSync(
+        resolve(workspaceRoot, 'packages/editorjs/angular/persistence.md'),
+        'utf8',
+      ),
+    );
     expect(manifest.type).toBe('module');
     expect(manifest.sideEffects).toBe(false);
     expect(Object.keys(manifest.exports).sort()).toEqual([
