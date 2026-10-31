@@ -51,6 +51,7 @@ const editorOutputs = Object.entries(stats.outputs)
           input.includes('examples/custom/callout-tool.ts') ||
           input.includes('examples/custom/marker-tool.ts') ||
           input.includes('examples/custom/flag-tune.ts') ||
+          input.includes('examples/notebook/') ||
           input.includes('@editorjs/code/') ||
           /@editorjs\/(paragraph|header|list|quote|image)\//.test(input),
       ),
