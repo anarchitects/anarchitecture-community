@@ -5,6 +5,8 @@ This contributor record covers #663 at the merged #662 baseline
 archived core `persistence.md` / `service.md` and Angular `persistence.md`.
 The [persistence design](editorjs-persistence-design.md) records the preceding
 codec, evolution, service and notebook increments.
+The [final review](#final-documentation-and-release-readiness-review) records
+#664's documentation changes, final archive inspection and remaining release gates.
 
 ## Architecture and release preflight
 
@@ -174,3 +176,127 @@ publication gate. Cross-run snapshot reuse remains deliberately excluded until
 a reviewed identity preserves fresh dependency and native-runtime evidence.
 Databases, durable browser storage, authentication, HTTP APIs and broader
 #75/#78 work remain outside this slice.
+
+## Final documentation and release-readiness review
+
+#664 starts from merged #663 at `2d2071c0f2b4d5fc438c17321a06a630e0971539`.
+On 31 October 2026, all eight local ADRs and eighteen Meta ADRs were enumerated
+and read again, including proposed, historical and superseded records. Meta's
+clean checkout matches the fresh remote tree
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. The Modern Angular index, repository
+application, architecture, reactivity, Forms, SSR/builds, testing/migration and
+validation guides were reviewed. Community0004, Angular A01/A02/A03/A05/A07/
+A09/A10, Community0005–0007 and Meta0008–0013/0015 retain the constraints stated
+above. No accepted-decision conflict, proposal override, new HTTP contract,
+adapter default or compatibility expansion was identified.
+
+### Consumer journey and acceptance
+
+The core README now exposes the raw/record/migration/service paths near the
+start, with their observable results and bounded-memory limitation. The Angular
+README explains the choice between the shared notebook and an existing/raw
+storage model, snapshot acknowledgement, newer drafts and the server boundary.
+The service guide gives explicit expected output and a matching-version link
+to the optional Angular composition. All 47 executable/configuration fenced
+blocks in these three changed files are byte-identical to #663. The persistence
+guides and all runtime, fixture, manifest and task configuration sources are
+unchanged. No new test duplicates an unchanged implementation.
+
+| Requirement                        | Reviewed consumer path and acceptance evidence                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Raw JSON or consumer-owned records | Core README and `persistence.md`: explicit installs, file list, NodeNext/Bundler commands and expected raw/record results. No envelope requirement or framework dependency; #659/#663 preservation and failure checks.                                                                                                                                            |
+| Explicit evolution policy          | Core `persistence.md`: detached source/target fixtures, collision and version checks, preservation before explicit writeback, configured names and separate tune/editing policy. #660/#663 prove no write on unsupported/failed migration.                                                                                                                        |
+| Neutral service and optional Nest  | Core `service.md`: shared codec/evolution files, complete service and bounded repository, explicit optional dependencies, unknown DTO checks, trusted principal and revision conflicts. The Nest example is a standalone DI context, not an HTTP persistence endpoint. #661/#663 service checks remain separate from the native Node upload adapter's HTTP proof. |
+| Optional Angular and Forms         | Angular README and `persistence.md`: full copy list including shared tool files, explicit bootstrap/index host and observable Open/Save/Reload/failure actions. Forms is separately installed at the matching version. #662/#663 prove Forms-absent/present, newer edits, load generations and teardown.                                                          |
+| SSR and authoring semantics        | Inert opening state, browser-only activation and per-page ownership; #663 tests three hydration profiles in each cell. Caption and missing/authored/decorative alt, upload ownership and Code's explicit-snapshot limits remain distinct. No automatic alt authoring or public-rendering guarantee.                                                               |
+| Package usability and isolation    | Actual archive documentation, license, exports, declarations and dependency inspection below; core package tests execute archived sources with framework-resolution failures and browser-global traps.                                                                                                                                                            |
+
+Every promoted path has an install-to-result route using owning-package files
+and public imports. The examples intentionally stop at bounded in-memory
+repositories. A consumer owns durable storage, IDs/tenant scope, revision
+generation, transactional compare-and-write, migration rollout/rollback,
+retention, byte/work limits, authentication/authorization, credentials and
+rendering safety. Input validation, package versions, Editor.js versions and
+opaque provenance do not establish universal editing or publication compatibility.
+No named consumer adoption or production data migration is needed to complete #74.
+
+### Fresh checks and final artifacts
+
+Fresh npm history returned 404 for core and Angular. Remote tags and all 102
+GitHub Releases contained no Editor.js distribution. Exact affected scopes are
+`editorjs-core` and `editorjs-angular`, with independent versions still 0.0.1
+and non-bumping `init` intent. The release configuration's explicit `init` mapping
+remains `semverBump: none`; this review performs no release operation.
+
+Resolved Nx configuration remains 28 core, 15 Angular and 105 e2e targets, with
+89 cacheable packed atoms and six uncached fresh preparations. Package tests
+depend on builds; outputs and source/dependency/config/runtime/environment
+inputs are unchanged. Documentation participates in package inputs and packed
+source fingerprints. Fresh install, external release-history and completeness
+checks remain uncached. No target, cache exclusion, worker allocation or hosted
+topology changed.
+
+The unchanged workspace `yarn.lock` SHA-256 is
+`25e7e5f42144d0b322b569c92b7588af0cf3cdff2066973cc172aa1afe4434ac`;
+the consumer lockfile identities remain the separately dated #663 values above.
+
+Using macOS arm64 / Node 24.22.2 / Yarn 4.18.0 / Nx 23.2.1, with
+`NX_NO_CLOUD=true`, `NX_DAEMON=false` and `NX_ISOLATE_PLUGINS=false`:
+
+- Core/Angular lint, typecheck and test: nine tasks passed, zero cache hits,
+  12.8 s. All 271 core and 196 Angular tests passed. Existing lint warnings
+  remain (one core, fifteen Angular); no lint errors. The core package suite
+  packs/extracts the actual archive, compiles both neutral declaration modes
+  and executes all three recipes and preservation/failure suites.
+- After check writers completed, final core/Angular builds passed: two tasks,
+  zero cache hits, 2.7 s. Sequential `npm pack --ignore-scripts` used an isolated
+  writable cache; no build/pack writers overlapped.
+- Final inspection verified README/guide/LICENSE bytes against source,
+  Apache-2.0, ESM/export/declaration targets and absence of source/tests/build-info.
+  Core has no runtime or peer dependencies. Angular retains only core and its
+  generated `tslib` dependency, with Forms optional and isolated to `/forms`.
+  No new assets ship; existing custom tools and their third-party CSS retain
+  the explicitly bounded #73 evidence.
+- Formatting, diff whitespace and all 36 local/owning-repository documentation
+  links and anchors in the changed files passed review.
+
+| Final candidate         | SHA-256                                                            | Difference from the #663 archive |
+| ----------------------- | ------------------------------------------------------------------ | -------------------------------- |
+| Core 0.0.1, 39 files    | `0e9794cbf3ca2fa9356b93ede738b3e563077a39a7a8e9053eaa06a5755db644` | README.md and service.md only    |
+| Angular 0.0.1, 11 files | `8e5d139c6d1e1578eb77f72a14ffdf531a53f01c67c5dd17163029d3629ecac3` | README.md only                   |
+
+All remaining archive members, including runtime code, declarations, manifests,
+licenses and the full persistence/custom-tool example implementations, match
+the #663 archives byte-for-byte. Archives and inspection data are retained in
+`/tmp/si664-final`; checks/build logs are `/tmp/si664-checks.log` and
+`/tmp/si664-build.log`. Generated evidence is not committed.
+
+The exact three-cell compatibility matrix, four neutral Node runtimes, Nest
+12.3.2 reference, lockfile identities, browser cases and local cache/restoration/
+invalidation evidence remain the dated #663 record above. They are reused
+because their code, dependencies, examples and harness are unchanged. This
+review did not rerun the browser/Nest matrix or create fresh consumer snapshots
+or lockfiles. Its new archive hashes are documentation-only candidates, not
+the old snapshot identities. No remote cache/DTE or CI-green claim is inferred
+from merging #663, and no CI monitoring or optional hosted run was initiated.
+
+### Release and follow-on gates
+
+Implementation and documentation review complete #74's scoped delivery once
+this PR is reviewed and merged; they do not authorize publication. #76 must
+select the eventual release commit, verify fresh registry/tag/release history,
+require **all configured CI checks green on that exact commit**, then complete
+checks before the final build/pack and inspect its exact archives and isolated
+consumers. Validate README/LICENSE, exports/declarations, guide/example bytes,
+assets, dependency/peer isolation and compatible versions again. Do not publish
+an older candidate after changing sources or substitute a merged PR's status
+for the release commit's checks. First distribution remains independently
+0.0.1 per package; no version bump, tag, publication or automatic merge occurs here.
+
+Maintainers retain the pending remote restoration, hosted scheduling/failure
+and cold/warm cost evidence for the changed #663 workloads under Meta0015.
+Revisit those exclusions during an explicitly authorized hosted run or after
+material workload/toolchain changes; local evidence does not certify them.
+#75/#78 retain broader tests/demos, and #76 retains publication. Hosts retain
+durable storage, security, rendering, deployment and adoption. This slice
+starts none of those workstreams and does not automatically close the epic.

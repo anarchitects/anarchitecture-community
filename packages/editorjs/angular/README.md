@@ -478,6 +478,36 @@ it is not necessary for normal editing. No two-way form model, persistence, dirt
 or touched state is maintained. Use the imperative API when you need an awaited
 operation or an explicit save rather than automatic saved-change events.
 
+## Persisting a document
+
+The [notebook guide](persistence.md#installation-and-files) supplies complete
+standalone and native Signal Forms load/edit/save/reload recipes. Install the
+matching core archive, copy the shared files listed there, and choose one
+component. Only the Forms choice requires `@angular/forms`. Its local repository
+belongs to that page: **Reload notebook** reads the last acknowledged save, while
+refreshing the browser or destroying the page loses the demonstration data.
+
+The notebook's record and version policy are application choices. You can instead
+store raw `OutputData` JSON or map it into an existing schema using the installed
+core package's `persistence.md`; Angular does not require the notebook envelope.
+Do not treat package versions, Editor.js versions, schema/tool provenance and
+storage revisions as interchangeable compatibility labels.
+
+At the persistence boundary, capture an explicit editor snapshot, apply the
+shared schema/tool/tune policy and await the host's storage acknowledgement.
+Keep a failed or unsupported draft available for recovery. Only reset native
+Forms when that acknowledgement still describes the displayed draft; a response
+for an older snapshot must not clear newer edits. The guide demonstrates these
+rules, revision conflicts and disposal during an outstanding save.
+
+A durable host must validate and authorize again on the server, scope records
+and credentials, perform transactional revision checks and reconcile uncertain
+write outcomes. Upload completion, editor change events and Forms submission
+state do not establish durability. Preserve caption and missing/authored/
+decorative-alt intent; neither saving nor migration generates alt text or makes
+content safe for public HTML/URL rendering. The notebook's narrow editing policy
+must be deliberately extended before introducing other tools such as Code.
+
 ## Signal Forms
 
 Import `EditorJsControl` from `@anarchitects/editorjs-angular/forms` and install
