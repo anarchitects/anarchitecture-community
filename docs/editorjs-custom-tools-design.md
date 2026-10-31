@@ -7,6 +7,10 @@ the first slice of epic #73. It fixes the scope and evidence required in
 composition and #647's packed validation. The planning tables do not certify
 unexecuted gates.
 
+The subsequent [persistence and evolution design](editorjs-persistence-design.md)
+defines #74's host-owned storage and migration policies. It reuses these custom
+tools without changing their registration, saved-data or ownership contracts.
+
 ## Documentation and readiness increment (#648)
 
 The owning core and Angular READMEs now lead to the shipped complete recipes,
