@@ -1233,6 +1233,8 @@ For a complete validate, encode, store, read and reload example, use the shipped
 [persistence guide](persistence.md). It supplies raw JSON and an explicit
 consumer-record mapping, plus a bounded in-memory store and failure recovery.
 The copied helpers are application code, not additional package exports.
+The guide also demonstrates an [explicit content migration](persistence.md#apply-an-explicit-content-migration),
+including version policy, collision checks and a separate editing gate.
 
 Keep application-specific records outside the core. Extract the raw document from
 your record, apply your version policy and any explicit migration, then validate

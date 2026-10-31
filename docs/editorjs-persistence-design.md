@@ -334,3 +334,69 @@ tests and build-info files are absent. No runtime dependencies, extra exports or
 version change were introduced. The PR records the inspected archive digest.
 #660 remains unstarted pending explicit maintainer instruction after merge;
 #76 retains final release-commit validation and publication.
+
+## SI-74.3 implementation record — 31 October 2026
+
+#660 starts from merged #659 at `8cba4d9`. Before code changes, all eight local
+ADRs and eighteen Meta ADRs were enumerated and read again, including proposals
+and historical/superseded sections. The clean Meta checkout matches the fresh
+remote tree `823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. No other local ADR
+location or nested agent instructions were found. Modern Angular index,
+repository application, architecture and testing/migration guides were reviewed
+for the neutral package boundary and archive evidence.
+
+Community0004 requires complete shipped instructions and tests of the actual
+archive. A02/A10 preserve public imports and framework neutrality; Meta0012 and
+Community0005/0006 leave canonical HTTP contracts and framework defaults alone.
+No accepted-policy conflict or exception was found. Proposed governance records
+remain proposals. No new runtime API, dependency, schema authority or generic
+migration framework is introduced.
+
+The existing persistence guide now ships `evolution.ts`, explicit source/target
+fixtures and `migrate.mjs`, reusing its codec and memory store. Migration only
+accepts the documented schema path and configured names, preserves supported
+untouched JSON, rejects collisions and unsupported supplied versions, validates
+the full target before changing provenance, and performs no write. A separate
+editing gate rejects archival extensions the selected tools might discard.
+The raw-current path requires an explicit collection profile. No implicit
+version inference, reverse migration, revision comparison or bulk writeback is
+implemented; deployment, backups and concurrency remain host responsibilities.
+
+The existing package atom extracts all six public files from the archive and
+compiles the four TypeScript files under NodeNext and Bundler with ES2022-only
+types. Both demonstrations run, followed by the existing ten persistence checks
+and thirteen new migration checks in each resolution mode. The migration checks
+exercise explicit destination equality, frozen-source immutability, preservation,
+current-content no-op, absent/future/exact-version policies, collisions, separate
+source/target/tune validation, size limits, unsupported editor fields,
+prototype-like keys and failed writes. Only assertions reside in test fixtures.
+
+Meta0015 review confirms the same 28 resolved core targets. No target or cache
+configuration changes are needed: `default` includes the guide and assertion
+fixture, source/dependency/configuration/runtime/environment inputs remain
+explicit, the package atom depends on build, and the existing packed snapshot
+fingerprint already includes this guide. Fresh installations/completeness remain
+uncached. Reuse #659's configuration/dependency/environment invalidation and
+failure-propagation evidence; this slice verifies changed-source execution and
+local cache reuse/restoration. No new remote reuse, DTE or browser-matrix claim.
+
+Community0007/Meta0013 release review found npm core still returns 404, no remote
+Editor.js release tags, and no Editor.js distribution among all 102 GitHub
+Releases. The exact project scope is `editorjs-core`, retaining non-bumping
+`init` intent and version 0.0.1. #76 retains publication and release-commit gates.
+
+Validation on Node 24.22.2/macOS arm64, TypeScript 6.0.3 and Nx 23.2.1 used
+`NX_NO_CLOUD=true`. All 271 core tests in eleven files passed; the six package
+tests include 26 new nested migration checks and 20 existing nested persistence
+checks. Build, typecheck and lint passed (one existing unused-variable warning).
+The package atom executed successfully after the source change, then produced
+a 2/2 local cache hit with its build directory removed; all restored build bytes
+matched. One earlier local Vite build stalled and was stopped; final checks
+passed after retry. No hosted monitoring or optional credit-consuming run was
+started, and unchanged Angular/Nest/browser compatibility cells were not rerun.
+
+The final 38-file core archive was packed after checks and inspected: README,
+license and both guides match source; JavaScript/declarations are present;
+source, test fixtures and build-info files are absent. The PR records its
+SHA-256. #661 remains unstarted pending explicit maintainer instruction after
+merge; no publication or production data migration is performed by this slice.
