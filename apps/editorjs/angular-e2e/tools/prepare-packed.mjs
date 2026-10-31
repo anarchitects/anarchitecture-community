@@ -20,6 +20,10 @@ import {
   checkAngularCustomImports,
 } from './angular-custom-consumer.mjs';
 import { prepareNestUpload } from './nest-upload.mjs';
+import {
+  prepareAngularPersistence,
+  checkAngularPersistenceImports,
+} from './angular-persistence.mjs';
 import { commandRunner } from './packed-process.mjs';
 import {
   pathsFor,
@@ -190,6 +194,7 @@ async function validate(name, versions, archives, sources) {
       join(root, 'server.mjs'),
     );
     await prepareAngularCustom({ root, report, workspace });
+    await prepareAngularPersistence({ root, workspace });
     const tsconfig = {
       compilerOptions: {
         target: 'ES2022',
@@ -265,12 +270,14 @@ async function validate(name, versions, archives, sources) {
         'examples/image-app.ts',
         'examples/upload-editor.ts',
         'examples/custom-page.ts',
+        'examples/notebook/notebook-editor.ts',
         'src/upload/upload-editor.ts',
       ],
     });
     await assertBoundaries(root, node, false);
     await run(node, [compiler, '-p', 'tsconfig.root.json'], root);
     await checkAngularCustomImports({ root, node, run });
+    await checkAngularPersistenceImports({ root, node, run });
     console.log(`Root declarations/imports without Forms passed: ${name}`);
     if (mode === 'csr') {
       if (name === 'angular22-reference')

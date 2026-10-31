@@ -75,6 +75,7 @@ export async function sourceFingerprint(workspace) {
     'packages/editorjs/core/custom-tools.md',
     'packages/editorjs/core/persistence.md',
     'packages/editorjs/core/service.md',
+    'packages/editorjs/angular/persistence.md',
     'packages/editorjs/core/LICENSE',
     'packages/editorjs/core/tsconfig.json',
     'packages/editorjs/core/tsconfig.lib.json',
@@ -146,6 +147,7 @@ export async function sourceFingerprint(workspace) {
     'apps/editorjs/angular-e2e/tools/readme-ssr.mjs',
     'apps/editorjs/angular-e2e/tools/nest-upload.mjs',
     'apps/editorjs/angular-e2e/tools/nest-persistence.mjs',
+    'apps/editorjs/angular-e2e/tools/angular-persistence.mjs',
     'apps/editorjs/angular-e2e/tools/compatibility-matrix.json',
     'apps/editorjs/angular-e2e/tools/serve-packed.mjs',
   ];

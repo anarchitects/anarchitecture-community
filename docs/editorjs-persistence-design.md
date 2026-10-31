@@ -501,3 +501,94 @@ identical to the core archive exercised by the Nest reference atom. Formatting
 and diff-whitespace checks passed. #662 remains unstarted pending explicit
 maintainer instruction after merge; no publication, CI monitoring or optional
 hosted run was started.
+
+## SI-74.5 Angular composition implementation (#662)
+
+The 31 October 2026 implementation starts from merged #661 (`f2ca1e3`). Before
+code generation, all eight local ADRs and all eighteen Meta ADRs were enumerated
+and read, including proposed, historical and superseded records. The clean Meta
+checkout matches the freshly fetched remote
+`823568eeadb56d848c32e8a3d3b4adfae7b2a1c5`. No additional ADR location or nested
+agent instructions were found. Modern Angular index, repository application,
+architecture, forms, reactivity, providers/routing/HTTP, rendering, SSR/build and
+testing guides were reviewed alongside the Angular skill and MCP guidance.
+
+Community0004 requires complete shipped examples and actual archived-source
+validation. A01/A02/A03/A05/A07/A09/A10 require existing Angular compatibility,
+neutral reuse, owner lifetime, explicit async state, native Signal Forms and
+real browser/hydration evidence. The accepted native Forms decision takes
+precedence over generic Reactive Forms advice. Meta0012 retains canonical HTTP
+contract ownership; this slice adds no HTTP API. Community0007/Meta0013 require
+fresh release history and exact independent scopes. Meta0015 retains uncached
+fresh installs, immutable source fingerprints and restorable atom outputs.
+No accepted-decision conflict or exception was identified.
+
+The Angular package ships `persistence.md`, with separate standalone and optional
+Signal Forms application components and a shared browser composition. Both copy
+the existing neutral codec, evolution policy, bounded memory repository and
+service unchanged. The application creates the repository and loads browser
+tools only after explicit activation. Its state belongs to one component; it is
+not durable storage, a singleton server store or a new library facade.
+
+Saving captures and validates an explicit editor snapshot. One capture/write
+may run at a time, while editing remains available. Acknowledgement advances
+the host revision but resets native Forms only if the captured snapshot still
+matches the displayed editor and native model without intervening interaction.
+A newer load or destroyed owner fences old completions. Failed/unsupported
+loads retain the previous draft and block writes until a supported load succeeds;
+legacy loading does not write back implicitly. Native validation/submission,
+editor errors and host persistence state remain distinct. Upload completion and
+Code's explicit-save limitation remain documented composition constraints.
+
+The existing packed CSR editor/Forms atoms and SSR hydration-registry atom
+exercise the archived recipes. Preparation extracts actual shipped guides,
+checks their bytes and compiles standalone consumption before Forms is installed.
+Browser-global traps cover the new standalone module evaluation. The guide and
+extraction helper participate in the immutable packed source fingerprint;
+downstream test sources remain included in the existing default atom inputs.
+No targets, worker capacity or hosted DTE behavior change.
+
+Fresh npm history returned 404 for Angular, remote tags contained no Editor.js
+release and all 102 GitHub Releases contained no Editor.js distribution. The
+affected exact scopes are `editorjs-angular` and `editorjs-angular-e2e`; Angular
+retains independent version 0.0.1 and non-bumping `init` intent. #76 retains
+publication and final release-commit authority.
+
+Local checks ran with Node 24.22.2/macOS arm64, TypeScript 6.0.3 and Nx 23.2.1,
+with `NX_NO_CLOUD=true`. All 196 Angular tests, Angular/e2e lint and typechecks,
+and seven packed-harness tests passed. Fresh CSR and SSR reference preparations
+installed the actual archives with Angular/Forms 22.1.4, Node 24.15.0,
+TypeScript 6.0.3 and Editor.js 2.31.7. Standalone compilation and trapped module
+evaluation passed before Forms installation; both recipes compiled afterward.
+
+The CSR atoms passed 19 standalone and 16 Forms browser cases, including eleven
+new notebook cases. They cover explicit save/reload, failed-write retry without
+editing, stale revision rejection, duplicate-save guards, edits during a held
+write, a newer load before acknowledgement, unsupported/migrated content and
+native async review. The hydration-registry atom passed 24 cases across
+production, diagnostic and full profiles, including six new notebook cases for
+pre-hydration click/Enter, retained server roots, real editing, held-write
+teardown and fresh owner state. Browser errors and hydration diagnostics fail
+these tests. This is reference-cell evidence, not a new claim for every
+Angular/Node/browser combination; #663 retains broader consolidation.
+
+The Forms atom then replayed from local cache: both it and its build prerequisite
+were cache hits, and all eight removed report files were restored byte-for-byte.
+Temporary changes to the new guide and extraction helper each caused the actual
+Nx runtime hash input to reject the stale snapshot; both files and the original
+hash output were restored exactly. Existing #659 configuration/dependency/env
+invalidation evidence is reused because those contracts are unchanged. The
+resolved graph remains 15 Angular and 105 e2e targets, including the existing
+89 packed validation atoms. This provides local cache evidence only; no hosted
+DTE experiment or CI monitoring was started.
+
+After package build/check writers finished, the final eleven-file Angular
+archive was inspected: README, license and both guides match source; public
+JavaScript/declarations are present; source/tests/build-info are absent. Exports,
+dependencies and the optional Forms peer are unchanged. Its SHA-256 is
+`3f5fdd69b8da16c5df5d1fda32c1bbb607787137946f04a31f9733cda4b13184`, identical
+to both exercised CSR/SSR archives. Local evidence is under
+`dist/editorjs-packed-inputs/si662-r3` and
+`dist/editorjs-packed-results/si662-r3`, not shipped or committed. #663 remains
+unstarted pending explicit instruction after merge; no version bump or
+publication is authorized by this slice.
