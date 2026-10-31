@@ -404,6 +404,9 @@ describe('published package', () => {
         'persistence.ts',
         'memory-store.ts',
         'main.mjs',
+        'evolution.ts',
+        'migration-fixtures.ts',
+        'migrate.mjs',
       ]);
       for (const [, file, source] of examples)
         writeFileSync(join(directory, file), source);
@@ -420,7 +423,12 @@ describe('published package', () => {
             skipLibCheck: false,
             outDir: 'compiled',
           },
-          files: ['persistence.ts', 'memory-store.ts'],
+          files: [
+            'persistence.ts',
+            'memory-store.ts',
+            'evolution.ts',
+            'migration-fixtures.ts',
+          ],
         }),
       );
       const env = { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' };
@@ -450,17 +458,40 @@ describe('published package', () => {
           'write rejected; previous raw content preserved',
         ].join('\n'),
       );
+      expect(
+        execFileSync(process.execPath, ['migrate.mjs'], {
+          cwd: directory,
+          encoding: 'utf8',
+          env,
+        }).trim(),
+      ).toBe(
+        [
+          'legacy: aside.message -> callout.text; stored source unchanged',
+          'current: no migration; extensions preserved',
+          'future: unsupported; stored source unchanged',
+        ].join('\n'),
+      );
       writeFileSync(
         join(directory, 'consumer.mjs'),
         readFileSync(
           resolve(import.meta.dirname, 'fixtures/persistence-consumer.mjs'),
         ),
       );
-      const checks = spawnSync(process.execPath, ['--test', 'consumer.mjs'], {
-        cwd: directory,
-        encoding: 'utf8',
-        env,
-      });
+      writeFileSync(
+        join(directory, 'migration-consumer.mjs'),
+        readFileSync(
+          resolve(import.meta.dirname, 'fixtures/migration-consumer.mjs'),
+        ),
+      );
+      const checks = spawnSync(
+        process.execPath,
+        ['--test', 'consumer.mjs', 'migration-consumer.mjs'],
+        {
+          cwd: directory,
+          encoding: 'utf8',
+          env,
+        },
+      );
       expect(checks.error).toBeUndefined();
       expect(checks.status, checks.stdout + checks.stderr).toBe(0);
     },
