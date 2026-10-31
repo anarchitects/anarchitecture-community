@@ -16,6 +16,7 @@ import {
   sourceFingerprint,
   readSnapshot,
   sha256,
+  artifactManifest,
 } from './packed-artifacts.mjs';
 
 const project = resolve(import.meta.dirname, '..');
@@ -249,6 +250,114 @@ test('failed validation evidence survives collection and fails the uncached gate
   await assert.rejects(readSnapshot(input, runId, mode, cell), /modified/);
 });
 
+test('the required gate rejects lost or changed artifacts despite passing task records', async (t) => {
+  const workspace = resolve(project, '../../..');
+  const runId = `artifact-test-${process.pid}-${Date.now()}`;
+  const mode = 'csr',
+    cell = 'angular22-minimum';
+  const { input, output } = pathsFor(workspace, runId, mode, cell);
+  t.after(async () => {
+    for (const directory of [input, output])
+      await rm(resolve(directory, '../../..', runId), {
+        recursive: true,
+        force: true,
+      });
+  });
+  await mkdir(join(input, 'evidence'), { recursive: true });
+  await writeFile(
+    join(input, 'consumer.tar.gz'),
+    'collection does not extract the snapshot',
+  );
+  const snapshot = {
+    version: 1,
+    runId,
+    mode,
+    cell,
+    platform: platformIdentity(),
+    sha256: await sha256(join(input, 'consumer.tar.gz')),
+    sources: await sourceFingerprint(workspace),
+  };
+  await writeFile(join(input, 'snapshot.json'), JSON.stringify(snapshot));
+  for (const phase of phasesFor(mode, cell)) {
+    const directory = join(output, phase);
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+      join(directory, 'command-1.log'),
+      'Validation completed\nExit: 0\n',
+    );
+    await writeFile(join(directory, 'behavior.json'), '{"status":"passed"}');
+    await writeFile(
+      join(directory, 'result.json'),
+      JSON.stringify({
+        runId,
+        mode,
+        cell,
+        phase,
+        snapshot: snapshot.sha256,
+        status: 'passed',
+        artifacts: await artifactManifest(directory),
+      }),
+    );
+  }
+  const collect = () =>
+    new Promise((resolve, reject) => {
+      const child = spawn(
+        process.execPath,
+        [join(import.meta.dirname, 'packed-results.mjs'), runId, mode, cell],
+        { stdio: 'ignore' },
+      );
+      child.once('error', reject);
+      child.once('close', resolve);
+    });
+  assert.equal(await collect(), 0);
+  const file = join(output, 'portable/behavior.json');
+  const original = await readFile(file);
+  await rm(file);
+  assert.equal(
+    await collect(),
+    1,
+    'Missing reports must fail the required gate',
+  );
+  await writeFile(file, '{"status":"failed"}');
+  assert.equal(
+    await collect(),
+    1,
+    'Changed reports must fail the required gate',
+  );
+  await writeFile(file, original);
+  assert.equal(await collect(), 0, 'Byte-identical restoration must recover');
+  const recordPath = join(output, 'portable/result.json');
+  const record = JSON.parse(await readFile(recordPath, 'utf8'));
+  await writeFile(
+    recordPath,
+    JSON.stringify({
+      ...record,
+      status: 'failed',
+      error: 'Behavior assertion failed',
+    }),
+  );
+  assert.equal(
+    await collect(),
+    1,
+    'Failed validation must still fail with intact artifacts',
+  );
+  const collected = JSON.parse(
+    await readFile(join(output, 'collect/result.json'), 'utf8'),
+  );
+  assert(
+    collected.errors.some((error) =>
+      error.includes('Behavior assertion failed'),
+    ),
+  );
+  assert.equal(
+    await readFile(
+      join(output, 'collect/phases/portable/behavior.json'),
+      'utf8',
+    ),
+    original.toString(),
+  );
+});
+
 test('command failures and spawn errors retain timings and reject', async (t) => {
   const root = await temporary(t);
   const runner = commandRunner({ report: root, cache: join(root, 'cache') });
@@ -269,6 +378,10 @@ test('command failures and spawn errors retain timings and reject', async (t) =>
     commands.every(
       ({ status, durationMs }) => status === 'failed' && durationMs >= 0,
     ),
+  );
+  assert.match(
+    await readFile(join(root, 'command-1.log'), 'utf8'),
+    /Exit: 3\n$/,
   );
 });
 

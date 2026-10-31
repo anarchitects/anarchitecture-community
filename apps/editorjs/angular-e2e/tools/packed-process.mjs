@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { finished } from 'node:stream/promises';
 
 /** Each command owns a process group, including servers started by its launcher. */
 export function commandRunner({ report, cache, ownerPid }) {
@@ -122,6 +123,11 @@ export function commandRunner({ report, cache, ownerPid }) {
         status = 'passed';
         return output;
       } finally {
+        // Hashable/restorable evidence requires the final bytes, including Exit.
+        if (log) {
+          if (!log.writableEnded) log.end();
+          await finished(log);
+        }
         timings.push({
           id,
           command,

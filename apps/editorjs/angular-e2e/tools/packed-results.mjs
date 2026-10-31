@@ -5,6 +5,7 @@ import {
   pathsFor,
   readSnapshot,
   sourceFingerprint,
+  verifyArtifacts,
 } from './packed-artifacts.mjs';
 import { phasesFor } from './packed-phases.mjs';
 
@@ -63,6 +64,7 @@ for (const mode of modes)
         assert.equal(result.phase, phase);
         assert.equal(result.snapshot, snapshot?.sha256);
         assert.equal(result.status, 'passed', result.error);
+        await verifyArtifacts(join(output, 'phases', phase), result.artifacts);
       } catch (error) {
         errors.push(`${phase}: ${error}`);
       }

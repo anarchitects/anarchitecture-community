@@ -1238,6 +1238,9 @@ including version policy, collision checks and a separate editing gate.
 Continue with the [portable service and optional Nest composition](service.md)
 for unknown DTO validation, server authorization, revision conflicts and a
 bounded repository using the same codec and migration policy.
+For browser authoring, the companion Angular package's
+[standalone and native Signal Forms recipes](https://github.com/anarchitects/anarchitecture-community/blob/main/packages/editorjs/angular/persistence.md)
+reuse those same application helpers for load, edit, save and reload.
 
 Keep application-specific records outside the core. Extract the raw document from
 your record, apply your version policy and any explicit migration, then validate

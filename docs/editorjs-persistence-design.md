@@ -6,6 +6,9 @@ Baseline: merged #73 at `0398b1cee713cf36231a0990d783fa9195ada25f`.
 The decisions below guide the subsequent examples; they do not claim that those
 examples, storage adapters or migration tests already exist.
 
+The subsequent [packed persistence validation record](editorjs-persistence-validation.md)
+consolidates #663's compatibility cells, archive identities and cache evidence.
+
 ## Decision and ownership
 
 Use existing core contracts to demonstrate two equally valid persistence choices:

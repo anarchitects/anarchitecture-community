@@ -20,6 +20,7 @@ import {
   checkAngularCustomImports,
 } from './angular-custom-consumer.mjs';
 import { prepareNestUpload } from './nest-upload.mjs';
+import { prepareNeutralPersistence } from './neutral-persistence.mjs';
 import {
   prepareAngularPersistence,
   checkAngularPersistenceImports,
@@ -294,6 +295,15 @@ async function validate(name, versions, archives, sources) {
         archives,
         versions,
         node,
+        report,
+        run,
+      });
+      await prepareNeutralPersistence({
+        root: join(scratch, `${name}-neutral-persistence`),
+        destination: join(root, 'neutral-persistence.tar.gz'),
+        archive: archives['@anarchitects/editorjs-core'],
+        versions,
+        workspace,
         report,
         run,
       });

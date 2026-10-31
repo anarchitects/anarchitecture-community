@@ -825,10 +825,19 @@ Do not put credentials or a mutable singleton repository in module scope. This
 guide does not provide a public renderer or authorize HTML/URL handling. Preserve
 authored, missing and decorative alt intent when extending the tool profile.
 
-The reference check uses Angular 22.1.4, matching Forms, Node 24.15.0,
-TypeScript 6.0.3 and Editor.js 2.31.7 in Chromium. The standalone path compiles
-without Forms installed. Broader package support in the README does not imply
-every persistence recipe/version/browser combination has been exercised.
+The recipes are checked with these exact Angular/Node pairs, TypeScript 6.0.3
+and Editor.js 2.31.7:
+
+| Angular and optional Forms | Node    |
+| -------------------------- | ------- |
+| 22.0.0                     | 22.22.3 |
+| 22.1.4                     | 24.15.0 |
+| 22.2.2                     | 26.0.0  |
+
+Each standalone path compiles without Forms installed. Matching Forms is then
+checked separately. Browser save/reload, failure recovery, newer-edit preservation
+and SSR hydration behavior are exercised in Chromium. These checks do not
+certify every version/browser combination or an application's durable backend.
 
 If save is unavailable, check readiness, a pending load/write, validation pending
 and any unsupported-load message. If a write fails, retain the draft, inspect
