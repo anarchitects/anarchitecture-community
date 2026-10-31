@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { cp, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { basename, join, sep } from 'node:path';
+import {
+  prepareNestPersistence,
+  validateNestPersistence,
+} from './nest-persistence.mjs';
 
 export const nestUploadVersions = {
   '@nestjs/common': '12.3.2',
@@ -102,6 +106,22 @@ export async function prepareNestUpload({
     const backend = join(root, platform);
     await mkdir(backend);
     const dependencies = { ...nestUploadVersions, ...specific };
+    const coreName = '@anarchitects/editorjs-core';
+    let coreVersion;
+    if (platform === 'node') {
+      await mkdir(join(backend, 'archives'));
+      await cp(
+        archives[coreName],
+        join(backend, 'archives', basename(archives[coreName])),
+      );
+      dependencies[coreName] = `file:archives/${basename(archives[coreName])}`;
+      coreVersion = JSON.parse(
+        await readFile(
+          join(client, 'node_modules', coreName, 'package.json'),
+          'utf8',
+        ),
+      ).version;
+    }
     const devDependencies = { typescript: '6.0.3', '@types/node': '24.10.1' };
     await json(join(backend, 'package.json'), {
       name: `nest-upload-${platform}-consumer`,
@@ -144,10 +164,12 @@ export async function prepareNestUpload({
       const actual = JSON.parse(
         await readFile(join(packageRoot, 'package.json'), 'utf8'),
       ).version;
-      assert.equal(actual, version);
+      assert.equal(actual, name === coreName ? coreVersion : version);
       installed[name] = actual;
     }
     evidence.installed[platform] = installed;
+    if (platform === 'node')
+      await prepareNestPersistence({ backend, workspace });
     await cp(
       join(backend, 'package-lock.json'),
       join(report, `nest-upload-${platform}-package-lock.json`),
@@ -192,4 +214,6 @@ export async function validateNestUpload({
     ],
     root,
   );
+  if (platform === 'node')
+    await validateNestPersistence({ backend, node, report, run });
 }

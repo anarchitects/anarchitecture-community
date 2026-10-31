@@ -82,6 +82,10 @@ describe('published package', () => {
     expect(packedFiles).toContain('LICENSE');
     expect(packedFiles).toContain('custom-tools.md');
     expect(packedFiles).toContain('persistence.md');
+    expect(packedFiles).toContain('service.md');
+    expect(readFileSync(join(packageDirectory, 'service.md'), 'utf8')).toBe(
+      readFileSync(resolve(import.meta.dirname, '../service.md'), 'utf8'),
+    );
     expect(readFileSync(join(packageDirectory, 'persistence.md'), 'utf8')).toBe(
       readFileSync(resolve(import.meta.dirname, '../persistence.md'), 'utf8'),
     );
@@ -410,6 +414,17 @@ describe('published package', () => {
       ]);
       for (const [, file, source] of examples)
         writeFileSync(join(directory, file), source);
+      const serviceExamples = [
+        ...readFileSync(join(packageDirectory, 'service.md'), 'utf8').matchAll(
+          /<!-- service-neutral-file: ([\w.-]+) -->\s*```(?:ts|js)\n([\s\S]*?)```/g,
+        ),
+      ];
+      expect(serviceExamples.map(([, file]) => file)).toEqual([
+        'notebook-service.ts',
+        'service-main.mjs',
+      ]);
+      for (const [, file, source] of serviceExamples)
+        writeFileSync(join(directory, file), source);
       writeFileSync(
         join(directory, 'tsconfig.json'),
         JSON.stringify({
@@ -428,6 +443,7 @@ describe('published package', () => {
             'memory-store.ts',
             'evolution.ts',
             'migration-fixtures.ts',
+            'notebook-service.ts',
           ],
         }),
       );
@@ -472,6 +488,24 @@ describe('published package', () => {
         ].join('\n'),
       );
       writeFileSync(
+        join(directory, 'service-consumer.mjs'),
+        readFileSync(
+          resolve(import.meta.dirname, 'fixtures/service-consumer.mjs'),
+        ),
+      );
+      expect(
+        execFileSync(process.execPath, ['service-main.mjs'], {
+          cwd: directory,
+          encoding: 'utf8',
+          env,
+        }).trim(),
+      ).toBe(
+        [
+          'service: saved and reloaded r1',
+          'service: invalid, stale and failed writes preserve r2',
+        ].join('\n'),
+      );
+      writeFileSync(
         join(directory, 'consumer.mjs'),
         readFileSync(
           resolve(import.meta.dirname, 'fixtures/persistence-consumer.mjs'),
@@ -485,7 +519,12 @@ describe('published package', () => {
       );
       const checks = spawnSync(
         process.execPath,
-        ['--test', 'consumer.mjs', 'migration-consumer.mjs'],
+        [
+          '--test',
+          'consumer.mjs',
+          'migration-consumer.mjs',
+          'service-consumer.mjs',
+        ],
         {
           cwd: directory,
           encoding: 'utf8',

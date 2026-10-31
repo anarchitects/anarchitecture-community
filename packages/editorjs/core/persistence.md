@@ -13,6 +13,9 @@ There is no file, database, network request, credential or background resource.
 
 After the round trip, [apply an explicit content migration](#apply-an-explicit-content-migration)
 to see how application schema policy differs from storage and editing policy.
+Then use the [portable service and optional Nest composition](service.md) to
+apply the same helpers at an unknown-input boundary with authorization and
+repository-owned revision checks.
 
 ## Install and run
 
