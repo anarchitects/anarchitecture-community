@@ -366,7 +366,14 @@ assert.equal(
 console.log('service: invalid, stale and failed writes preserve r2');
 ```
 
-Expected output is the two `service:` lines above. On a failed save, retain the
+Expected output:
+
+```text
+service: saved and reloaded r1
+service: invalid, stale and failed writes preserve r2
+```
+
+On a failed save, retain the
 draft and last acknowledged revision. Never interpret a conflict as permission
 to overwrite; explicitly reload and reconcile. Do not reset an editor from a
 late acknowledgement if the user has made newer edits.
@@ -529,7 +536,13 @@ try {
 }
 ```
 
-Expected output is the `nest:` line above. The context owns the in-memory
+Expected output:
+
+```text
+nest: shared save/load, invalid, stale, forbidden and failed-write checks passed
+```
+
+The context owns the in-memory
 repository; a new context starts empty. A durable adapter with open connections
 must implement the appropriate host lifecycle and close them on shutdown.
 
@@ -560,3 +573,10 @@ must implement the appropriate host lifecycle and close them on shutdown.
 The [persistence guide](persistence.md) explains raw JSON, optional provenance and
 the exact schema/version policy reused here. This guide adds service and DTO
 ownership; it does not change core's JSON contract or package dependencies.
+
+For optional browser authoring, continue with the companion Angular package's
+[standalone and native Signal Forms notebook](https://github.com/anarchitects/anarchitecture-community/blob/main/packages/editorjs/angular/persistence.md).
+Use the guide shipped with the installed Angular version. It copies these shared
+helpers unchanged and adds editor ownership and acknowledgement handling. Its
+local principal and repository are demonstration controls; they do not replace
+the authoritative server boundary described here.

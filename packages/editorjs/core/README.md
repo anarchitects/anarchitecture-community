@@ -28,6 +28,23 @@ sections below are API references for adapting those recipes. Angular is never
 required by core. Read the guide shipped with your installed version; GitHub's
 default branch may describe newer examples.
 
+For persistence, choose the format and host boundary independently:
+
+| Goal                                          | Complete recipe                                                                                                                                 | Result                                                                              |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Store the original document shape             | [Raw JSON round trip](persistence.md#install-and-run)                                                                                           | Validate, save and reload with no required envelope.                                |
+| Keep application IDs, revisions or provenance | [Explicit record mapping](persistence.md#validate-and-map-explicitly)                                                                           | Use a consumer-owned record without inferring compatibility from its metadata.      |
+| Evolve a known schema                         | [Explicit migration](persistence.md#apply-an-explicit-content-migration)                                                                        | Preview a detached candidate, preserve the source and save only by explicit choice. |
+| Accept unknown service input                  | [Neutral service](service.md#install-and-run-the-neutral-service) and [optional Nest composition](service.md#optional-nest-dtoservice-boundary) | Share validation and migration, authorize the caller and reject stale writes.       |
+
+Each path supplies its application files, dependencies, commands and expected
+result. The stores are bounded in-memory demonstrations: restarting loses data.
+Use the service's repository boundary for a host-owned durable adapter, including
+atomic revision checks and recovery; the package does not supply a database.
+The [Angular notebook](https://github.com/anarchitects/anarchitecture-community/blob/main/packages/editorjs/angular/persistence.md)
+composes the same helpers for optional browser authoring. Read its guide from the
+matching installed Angular package.
+
 ## Installation
 
 When a release is available in your registry, install it with your package manager:
