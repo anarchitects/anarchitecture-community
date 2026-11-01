@@ -1,0 +1,205 @@
+[
+  {
+    "name": "paragraph-inline",
+    "block": {
+      "type": "paragraph",
+      "data": {
+        "text": "Hello <b>bold</b> <i>italic</i> <mark>marked</mark> <a href=\"https://example.invalid/read\">link</a>"
+      }
+    }
+  },
+  {
+    "name": "heading",
+    "block": { "type": "header", "data": { "text": "Heading", "level": 2 } }
+  },
+  {
+    "name": "invalid-heading",
+    "block": { "type": "header", "data": { "text": "Heading", "level": 99 } }
+  },
+  {
+    "name": "quote",
+    "block": {
+      "type": "quote",
+      "data": {
+        "text": "Quote",
+        "caption": "Author <b>name</b>",
+        "alignment": "center"
+      }
+    }
+  },
+  {
+    "name": "list-v2-ordered",
+    "block": {
+      "type": "list",
+      "data": {
+        "style": "ordered",
+        "meta": { "start": 3, "counterType": "upper-roman" },
+        "items": [
+          {
+            "content": "Parent",
+            "meta": {},
+            "items": [
+              {
+                "content": "Child",
+                "meta": { "start": 2, "counterType": "lower-alpha" },
+                "items": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "list-v2-checklist",
+    "block": {
+      "type": "list",
+      "data": {
+        "style": "checklist",
+        "meta": {},
+        "items": [
+          { "content": "Done", "meta": { "checked": true }, "items": [] },
+          { "content": "Todo", "meta": { "checked": false }, "items": [] }
+        ]
+      }
+    }
+  },
+  {
+    "name": "legacy-flat-list",
+    "block": {
+      "type": "list",
+      "data": { "style": "unordered", "items": ["Legacy one", "Legacy two"] }
+    }
+  },
+  {
+    "name": "image-authored",
+    "block": {
+      "type": "image",
+      "data": {
+        "file": { "url": "https://example.invalid/photo.png" },
+        "caption": "Visible caption",
+        "alt": "Authored description",
+        "withBorder": false,
+        "withBackground": false,
+        "stretched": false
+      }
+    }
+  },
+  {
+    "name": "image-decorative",
+    "block": {
+      "type": "image",
+      "data": {
+        "file": { "url": "https://example.invalid/photo.png" },
+        "caption": "Visible caption",
+        "alt": "",
+        "withBorder": false,
+        "withBackground": false,
+        "stretched": false
+      }
+    }
+  },
+  {
+    "name": "image-unset",
+    "block": {
+      "type": "image",
+      "data": {
+        "file": { "url": "https://example.invalid/photo.png" },
+        "caption": "Visible caption",
+        "withBorder": false,
+        "withBackground": false,
+        "stretched": false
+      }
+    }
+  },
+  {
+    "name": "configured-alias",
+    "block": {
+      "type": "heading",
+      "data": { "text": "Configured heading", "level": 2 }
+    }
+  },
+  {
+    "name": "callout-and-flag",
+    "block": {
+      "type": "callout",
+      "data": { "text": "Notice <mark>important</mark>", "tone": "info" },
+      "tunes": { "flag": { "flagged": true } }
+    }
+  },
+  {
+    "name": "unknown-tune",
+    "block": {
+      "type": "paragraph",
+      "data": { "text": "Paragraph" },
+      "tunes": { "unrecognised": { "value": true } }
+    }
+  },
+  {
+    "name": "literal-code",
+    "block": {
+      "type": "code",
+      "data": {
+        "code": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">"
+      }
+    }
+  },
+  {
+    "name": "unsafe-inline",
+    "block": {
+      "type": "paragraph",
+      "data": {
+        "text": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\"><a href=\"jav&#x61;script:globalThis.__spikeExecuted=true\">click</a>"
+      }
+    }
+  },
+  {
+    "name": "unsafe-image-attribute",
+    "block": {
+      "type": "image",
+      "data": {
+        "file": { "url": "x\" onerror=\"globalThis.__spikeExecuted=true" },
+        "caption": "Caption",
+        "alt": "Description",
+        "withBorder": false,
+        "withBackground": false,
+        "stretched": false
+      }
+    }
+  },
+  {
+    "name": "unsafe-custom",
+    "custom": true,
+    "block": {
+      "type": "callout",
+      "data": {
+        "text": "<img src=\"https://example.invalid/x\" onerror=\"globalThis.__spikeExecuted=true\">",
+        "tone": "warning"
+      },
+      "tunes": { "flag": { "flagged": true } }
+    }
+  },
+  {
+    "name": "unknown-block",
+    "block": {
+      "type": "unknown",
+      "data": { "text": "Do not silently lose me" }
+    }
+  },
+  { "name": "malformed-data", "block": { "type": "paragraph", "data": null } },
+  {
+    "name": "prototype-name",
+    "block": {
+      "type": "toString",
+      "data": { "text": "Unknown own registration" }
+    }
+  },
+  {
+    "name": "mixed-unknown-document",
+    "blocks": [
+      { "type": "paragraph", "data": { "text": "Before" } },
+      { "type": "unknown", "data": {} },
+      { "type": "paragraph", "data": { "text": "After" } }
+    ]
+  }
+]
