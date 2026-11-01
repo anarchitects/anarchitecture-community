@@ -132,7 +132,8 @@
       "editorjs-tool-list",
       "editorjs-tool-quote",
       "editorjs-tool-image",
-      "editorjs-upload-fetch"
+      "editorjs-upload-fetch",
+      "editorjs-html"
     ],
     "version": {
       "preVersionCommand": "UV_CACHE_DIR=.cache/uv yarn nx run-many -t build",

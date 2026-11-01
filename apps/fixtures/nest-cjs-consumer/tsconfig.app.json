@@ -21,9 +21,5 @@
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../../../packages/nest/angular-ssr/tsconfig.lib.json"
-    }
-  ]
+  "references": []
 }
