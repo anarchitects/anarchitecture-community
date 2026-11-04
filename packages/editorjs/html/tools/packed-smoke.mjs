@@ -15,6 +15,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from '@playwright/test';
+import { adversarialBrowser } from './adversarial-browser.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const temporary = realpathSync(
@@ -104,8 +105,12 @@ try {
   const source = `
     import assert from 'node:assert/strict';
     for(const name of ['window','document','HTMLElement','navigator','EditorJS']) Object.defineProperty(globalThis,name,{get(){throw Error('Unexpected browser global '+name)}});
+    for (const name of ['fetch', 'XMLHttpRequest', 'WebSocket']) Object.defineProperty(globalThis,name,{get(){throw Error('Unexpected I/O '+name)}});
+    const http=await import('node:http');const https=await import('node:https');
+    for(const module of [http.default,https.default]) for(const name of ['request','get']) module[name]=()=>{throw Error('Unexpected network call')};
     const {renderEditorJsHtml,createEditorJsHtmlRenderer}=await import('@anarchitects/editorjs-html');
     assert.equal(typeof createEditorJsHtmlRenderer,'function');
+    assert.equal(renderEditorJsHtml({blocks:[{type:'image',data:{file:{url:'https://assets.invalid/not-fetched.png'},alt:'Authored',caption:'',withBorder:false,withBackground:false,stretched:false}}]}).status,'success');
     assert.deepEqual(renderEditorJsHtml({blocks:[{type:'paragraph',data:{text:'Hello <b>world</b>'}}]}),{status:'success',html:'<p>Hello <b>world</b></p>',diagnostics:[]});
     const failure=renderEditorJsHtml({blocks:[{type:'paragraph',data:{text:'<img src=x onerror=alert(1)>'}}]});
     assert.equal(failure.status,'failure');assert.equal('html' in failure,false);
@@ -229,6 +234,7 @@ try {
     false,
   );
   let browserVersion = null;
+  let adversarialEvidence = null;
   if (process.argv.includes('--browser')) {
     const browser = await chromium.launch({ headless: true });
     try {
@@ -438,6 +444,7 @@ try {
       );
       await page.waitForFunction(() => globalThis.__executed === true);
       assert.equal(requests, 2);
+      adversarialEvidence = await adversarialBrowser(page);
     } finally {
       await browser.close();
     }
@@ -453,6 +460,12 @@ try {
         lockSha256: sha(readFileSync(join(temporary, 'package-lock.json'))),
         browserBundleBytes: bundle.outputFiles[0].contents.length,
         chromium: browserVersion,
+        adversarialEvidence,
+        runtimeVersions: Object.fromEntries(
+          Object.entries(lock.packages)
+            .filter(([name]) => name)
+            .map(([name, value]) => [name, value.version]),
+        ),
         readmeExamples: examples.length,
         installedPackages: Object.keys(lock.packages).filter(Boolean),
       },
