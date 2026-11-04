@@ -148,6 +148,7 @@ function render(input: unknown, config: Configuration): HtmlRenderResult {
     let callbackPath: readonly (string | number)[] = [...path, 'data'];
     let callbackTune: string | undefined;
     let helperBytes = 0;
+    let invalidFragment = false;
     const checkHelper = (text: string) => {
       if (!active || typeof text !== 'string') throw new CallbackProblem();
       if (byteLength(text) > config.limits.maxStringBytes)
@@ -160,7 +161,14 @@ function render(input: unknown, config: Configuration): HtmlRenderResult {
       return text;
     };
     const inline = (text: string, at: readonly (string | number)[]) => {
-      const clean = sanitize(text, config, true);
+      let clean: ReturnType<typeof sanitize>;
+      try {
+        clean = sanitize(text, config, true);
+      } catch (error) {
+        if (error instanceof InputProblem)
+          throw new InputProblem(error.kind, at);
+        throw error;
+      }
       if (clean.rejected) report('unsafe_html', 'safety', at, callbackTune);
       return clean.html;
     };
@@ -183,7 +191,15 @@ function render(input: unknown, config: Configuration): HtmlRenderResult {
       outputBytes += byteLength(fragment);
       if (outputBytes > config.limits.maxOutputBytes)
         throw new InputProblem('limit_exceeded', callbackPath);
-      const clean = sanitize(fragment, config, false);
+      let clean: ReturnType<typeof sanitize>;
+      try {
+        clean = sanitize(fragment, config, false);
+      } catch (error) {
+        if (error instanceof InputProblem)
+          throw new InputProblem(error.kind, callbackPath);
+        throw error;
+      }
+      invalidFragment ||= clean.invalidStructure;
       if (clean.rejected)
         report('unsafe_html', 'safety', callbackPath, callbackTune);
       if (clean.missingAlt)
@@ -254,7 +270,10 @@ function render(input: unknown, config: Configuration): HtmlRenderResult {
         );
       }
       // Missing alt in callback output cannot silently become decorative or partial publication.
-      if (!local.some((item) => item.code === 'missing_alt'))
+      if (
+        !invalidFragment &&
+        !local.some((item) => item.code === 'missing_alt')
+      )
         output.push(fragment);
     } catch (error) {
       if (error instanceof InputProblem)

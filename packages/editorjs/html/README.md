@@ -77,7 +77,7 @@ export const previewHtml = result.status === 'preview' ? result.html : '';
 Preview always returns `status: 'preview'` when output is available, even if nothing
 was omitted. It skips whole unknown/invalid blocks, missing-alt images, blocks with
 unknown/invalid tunes, and blocks whose registered callbacks fail. It returns
-sanitized remainders for unsafe markup with diagnostics. Invalid
+sanitized remainders for unsafe markup with diagnostics. Invalid saved-document
 structure, resource limits or an unexpected rendering failure return failure
 without HTML in either mode. Never treat preview as complete publishable output.
 Diagnostics provide a stable code, stage and path, plus block index, saved ID/type
@@ -215,7 +215,9 @@ except `allowRelative`, which defaults to true. Images use the same HTTPS/origin
 restrictions, but only absolute http(s) sources by default. Set
 `allowRelativeImages: true` explicitly for relative asset sources; this is separate
 from link `allowRelative`. Mailto never applies to images. The renderer makes no
-requests, but inserting successful image output in a browser can load those assets.
+requests, but inserting strict or preview image output in a browser can load those assets.
+For example, preview may retain a permitted HTTP image after removing its unsafe
+event handler. Diagnostics do not mean all remote resources were removed.
 Hosts own image privacy, authorization and reachability. Protocol-relative URLs, credentials,
 backslashes, control/space characters and encoded control/protocol-separator tricks
 are rejected. Host policy can narrow this boundary; it cannot enable script/data/
@@ -346,7 +348,13 @@ Custom output permits the standard semantic tags plus `aside`, `section`, `div`,
 `span` and `pre`. Classes must be in trusted configuration; no styles, IDs, event
 attributes or arbitrary data/ARIA attributes pass through. Images need allowed
 URLs and explicit valid alt even in callback output; missing-alt output omits the
-whole custom block in preview. All fragments pass the common policy before the
+whole custom block in preview. Final fragments must also obey the supported content
+models: list children are `li` (plus whitespace), `li` belongs to a list,
+`figcaption` is the single first/last caption directly within its figure, and
+phrasing containers cannot contain block elements. Malformed final nesting or
+content models produce `unsafe_html` and omit the whole block in preview; a later
+tune cannot hide that omission. This is a bounded check of the supported vocabulary,
+not a general HTML validator. All fragments pass the common policy before the
 next tune and at final output. Callback JavaScript is trusted application code,
 not sandboxed plugin code: never load arbitrary user-authored functions. There is
 no trusted-HTML option, sanitizer override or implicit custom fallback.
@@ -363,8 +371,9 @@ no trusted-HTML option, sanitizer override or implicit custom fallback.
 | `maxOutputBytes` | 2,097,152 accumulated formatted and sanitized UTF-8 bytes               |
 | `maxDiagnostics` | 100 detailed diagnostics, then one truncation diagnostic                |
 
-Limits accept positive integers no higher than these ceilings. Inline HTML has a
-separate fixed nesting ceiling of 32 elements. The JSON-depth ceiling can be
+Limits accept positive integers no higher than these ceilings. Inline and final HTML
+have a separate fixed nesting ceiling of 32 elements; exceeding it returns
+`limit_exceeded` without HTML in either mode. The JSON-depth ceiling can be
 reached before 16 list levels because each list contains nested objects/arrays. Limits protect library work, not
 transport parsing performed earlier by your server or arbitrary work/allocations
 inside trusted callbacks. Each callback result and bounded helper call is checked;
@@ -397,6 +406,15 @@ Types: `EditorJsHtmlRenderer`, `HtmlRendererOptions`, `HtmlRenderResult`,
 - `render_failed`: fail closed and report a minimal non-sensitive reproduction.
 - Browser import failures: use a supported bundler and ensure package dependencies
   are installed. Node globals and editor/browser tool classes are not required.
+
+Validation includes an adversarial corpus across built-ins, aliases, overrides,
+custom blocks and tunes, plus parsed Chromium DOM, execution/request controls and
+accessibility snapshots. This does not establish other browsers or Angular binding
+compatibility; those need their own integration proof. Sanitizer upgrades require
+rerunning the corpus. Use a normal flow container such as `div`, `article` or
+`section`; never insert rendered output into scripts, styles, attributes, tables,
+selects, paragraphs or interactive hosts. Output safety does not cover later DOM
+mutation, host CSS, redirects or the contents/privacy of allowed external assets.
 
 This package does not enforce meaningful headings, link text, authorization,
 storage schemas, migrations or complete accessibility. It is not a complete

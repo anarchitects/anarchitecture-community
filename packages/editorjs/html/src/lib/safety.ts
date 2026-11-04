@@ -2,6 +2,7 @@ import sanitizeHtml from 'sanitize-html';
 import type { Configuration } from './options.js';
 import { permitsUrl } from './options.js';
 import { validStart } from './standard.js';
+import { InputProblem } from './limits.js';
 
 const inlineTags = [
   'b',
@@ -42,11 +43,48 @@ export function sanitize(
   fragment: string,
   config: Configuration,
   inline: boolean,
-): { html: string; rejected: boolean; missingAlt: boolean } {
+): {
+  html: string;
+  rejected: boolean;
+  missingAlt: boolean;
+  invalidStructure: boolean;
+} {
   const tags = inline ? inlineTags : [...inlineTags, ...blockTags];
   let rejected = false;
   let missingAlt = false;
   let depth = 0;
+  let invalidStructure = false;
+  // Bounded parser-hook state, not a second parser or an HTML tree. The finite
+  // output vocabulary still needs content models: an allowlist alone permits
+  // orphan list items, duplicate captions and block content inside phrasing.
+  const stack: { name: string; children: number; caption?: number }[] = [];
+  const phrasing = new Set([
+    ...inlineTags.filter((tag) => tag !== 'a'),
+    'span',
+    'p',
+    'pre',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+  ]);
+  const content = (name?: string) => {
+    const parent = stack.at(-1);
+    if (!parent || inline) return;
+    if (['ul', 'ol'].includes(parent.name) && name !== 'li')
+      invalidStructure = true;
+    if (parent.name === 'figure') {
+      if (name === 'figcaption') {
+        if (parent.caption !== undefined) invalidStructure = true;
+        parent.caption = parent.children;
+      } else if (parent.caption !== undefined && parent.caption > 0) {
+        invalidStructure = true;
+      }
+    }
+    parent.children++;
+  };
   const originals = new WeakMap<object, Record<string, string>>();
   const classes = [...new Set(Object.values(config.classes).flat())];
   const html = sanitizeHtml(fragment, {
@@ -68,7 +106,22 @@ export function sanitize(
     nestingLimit: 32,
     onOpenTag(name, attributes) {
       depth++;
-      if (depth > 32 || !tags.includes(name)) rejected = true;
+      if (depth > 32) throw new InputProblem('limit_exceeded', []);
+      if (!tags.includes(name)) rejected = true;
+      if (!inline) {
+        const parent = stack.at(-1)?.name;
+        if (
+          (name === 'li' && parent !== 'ul' && parent !== 'ol') ||
+          (name === 'figcaption' && parent !== 'figure') ||
+          (!inlineTags.includes(name) &&
+            name !== 'span' &&
+            name !== 'img' &&
+            stack.some((frame) => phrasing.has(frame.name)))
+        )
+          invalidStructure = true;
+        content(name);
+      }
+      stack.push({ name, children: 0 });
       if (
         !inline &&
         name === 'img' &&
@@ -119,7 +172,15 @@ export function sanitize(
     },
     onCloseTag(name, implied) {
       depth--;
-      if (implied && name !== 'br' && name !== 'img') rejected = true;
+      stack.pop();
+      if (implied && name !== 'br' && name !== 'img') {
+        rejected = true;
+        if (!inline) invalidStructure = true;
+      }
+    },
+    textFilter(text) {
+      if (text.trim()) content();
+      return text;
     },
     exclusiveFilter(frame) {
       const before = originals.get(frame.attribs);
@@ -137,5 +198,10 @@ export function sanitize(
       return false;
     },
   });
-  return { html, rejected, missingAlt };
+  return {
+    html,
+    rejected: rejected || invalidStructure,
+    missingAlt,
+    invalidStructure,
+  };
 }
