@@ -16,7 +16,12 @@ export default (context: BootstrapContext) =>
         provideRouter(routes),
         provideEditorJsHtml({ classes: { paragraph: ['application'] } }),
         provideServerRendering(
-          withRoutes([{ path: '**', renderMode: RenderMode.Server }]),
+          withRoutes([
+            { path: 'csr', renderMode: RenderMode.Client },
+            { path: 'corpus', renderMode: RenderMode.Client },
+            { path: 'static', renderMode: RenderMode.Prerender },
+            { path: '**', renderMode: RenderMode.Server },
+          ]),
         ),
       ],
     },

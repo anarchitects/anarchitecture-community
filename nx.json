@@ -100,6 +100,9 @@
     },
     {
       "plugin": "./apps/editorjs/angular-e2e/tools/packed-plugin.mjs"
+    },
+    {
+      "plugin": "./packages/editorjs/html-angular/tools/packed/plugin.mjs"
     }
   ],
   "generators": {

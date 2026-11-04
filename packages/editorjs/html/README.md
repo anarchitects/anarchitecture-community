@@ -21,7 +21,7 @@ It exposes ESM JavaScript and TypeScript declarations at its package root, plus
 `/package.json` metadata. Private subpaths are unsupported. There is no advertised
 native CommonJS entry point.
 
-Node **22.12.0+** is the runtime floor. Declarations use ES2022 types and are checked
+Node **22.12.0+** is the runtime floor. Actual packed ESM and bundled-browser consumers are verified with Node **22.12.0**, **22.22.3**, **24.15.0** and **26.0.0**; native CommonJS `require` is not a supported entry point. Declarations use ES2022 types and are checked
 with TypeScript **6.0.3** under NodeNext and Bundler resolution, without DOM/Node
 ambient declarations. Browser use requires a bundler; Chromium is the current
 verified browser engine. Angular component/directive and framework hydration

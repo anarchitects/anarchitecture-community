@@ -252,6 +252,26 @@
       "options": {
         "env": {}
       }
+    },
+    "packed-collect": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "node packages/editorjs/html-angular/tools/packed/run.mjs collect"
+      }
+    },
+    "packed-harness-test": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "default",
+        {
+          "runtime": "node --version"
+        }
+      ],
+      "options": {
+        "command": "node --test packages/editorjs/html-angular/tools/packed/artifacts.test.mjs"
+      }
     }
   }
 }
