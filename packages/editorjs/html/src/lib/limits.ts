@@ -5,6 +5,7 @@ export const ceilings: Readonly<Required<HtmlRenderLimits>> = Object.freeze({
   maxInputBytes: 1024 * 1024,
   maxBlocks: 1000,
   maxDepth: 32,
+  maxListDepth: 16,
   maxStringBytes: 100 * 1024,
   maxOutputBytes: 2 * 1024 * 1024,
   maxDiagnostics: 100,

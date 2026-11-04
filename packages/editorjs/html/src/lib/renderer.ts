@@ -1,16 +1,18 @@
 import {
   validateOutputData,
   type JsonObject,
-  type ToolDataValidator,
 } from '@anarchitects/editorjs-core';
 import type {
   EditorJsHtmlRenderer,
   HtmlDiagnostic,
   HtmlRendererOptions,
   HtmlRenderResult,
+  HtmlRenderContext,
 } from './contracts.js';
 import { boundedInput, byteLength, InputProblem } from './limits.js';
 import { configuration, type Configuration } from './options.js';
+import { deepFreeze } from './registrations.js';
+import { escapeText, formatStandard, validateStandard } from './standard.js';
 import { sanitize } from './safety.js';
 
 const messages = {
@@ -18,6 +20,10 @@ const messages = {
   invalid_document:
     'Expected a valid JSON Editor.js document with valid, unique IDs.',
   invalid_block_data: 'Saved data does not match the supported block profile.',
+  invalid_tune_data: 'Saved data does not match the registered tune.',
+  missing_alt:
+    'Image requires authored alt text or explicit decorative empty alt.',
+  callback_failed: 'A registered callback failed its synchronous contract.',
   unknown_block: 'No renderer is available for this saved block type.',
   unknown_tune: 'No renderer is available for this saved tune.',
   unsafe_html:
@@ -26,46 +32,6 @@ const messages = {
   diagnostics_truncated: 'Additional diagnostics were omitted.',
   render_failed: 'Rendering could not be completed.',
 } as const;
-const validators = new Map<string, ToolDataValidator>([
-  ['paragraph', (data) => validateFields(data, 'paragraph')],
-  ['header', (data) => validateFields(data, 'header')],
-  ['quote', (data) => validateFields(data, 'quote')],
-]);
-function validateFields(
-  value: unknown,
-  type: string,
-): ReturnType<ToolDataValidator> {
-  const data = value as JsonObject;
-  if (typeof data['text'] !== 'string')
-    return {
-      ok: false,
-      errors: [{ path: ['text'], message: messages.invalid_block_data }],
-    };
-  if (
-    type === 'header' &&
-    (typeof data['level'] !== 'number' ||
-      !Number.isInteger(data['level']) ||
-      data['level'] < 1 ||
-      data['level'] > 6)
-  )
-    return {
-      ok: false,
-      errors: [{ path: ['level'], message: messages.invalid_block_data }],
-    };
-  if (type === 'quote') {
-    if (typeof data['caption'] !== 'string')
-      return {
-        ok: false,
-        errors: [{ path: ['caption'], message: messages.invalid_block_data }],
-      };
-    if (data['alignment'] !== 'left' && data['alignment'] !== 'center')
-      return {
-        ok: false,
-        errors: [{ path: ['alignment'], message: messages.invalid_block_data }],
-      };
-  }
-  return { ok: true };
-}
 function failure(
   code: HtmlDiagnostic['code'],
   stage: HtmlDiagnostic['stage'],
@@ -76,9 +42,45 @@ function failure(
     diagnostics: [{ code, stage, path, message: messages[code] }],
   };
 }
-function classAttribute(classes: readonly string[]): string {
-  // Tokens were validated and detached from trusted configuration.
-  return classes.length ? ` class="${classes.join(' ')}"` : '';
+class CallbackProblem extends Error {}
+function invoke(run: () => unknown): unknown {
+  try {
+    return run();
+  } catch (error) {
+    if (error instanceof InputProblem) throw error;
+    throw new CallbackProblem();
+  }
+}
+function synchronous(value: unknown): unknown {
+  // Observe native rejected async returns without adopting arbitrary thenables.
+  if (value instanceof Promise) {
+    void value.catch(() => undefined);
+    throw new CallbackProblem();
+  }
+  return value;
+}
+function guard(run: (data: unknown) => boolean, data: unknown): boolean {
+  try {
+    const result = synchronous(run(data));
+    if (typeof result !== 'boolean') throw new CallbackProblem();
+    return result;
+  } catch {
+    throw new CallbackProblem();
+  }
+}
+function comparePaths(a: HtmlDiagnostic, b: HtmlDiagnostic): number {
+  for (let index = 0; index < Math.min(a.path.length, b.path.length); index++) {
+    const left = a.path[index],
+      right = b.path[index];
+    if (left === right) continue;
+    if (typeof left === 'number' && typeof right === 'number')
+      return left - right;
+    return String(left) < String(right) ? -1 : 1;
+  }
+  return (
+    a.path.length - b.path.length ||
+    (a.stage < b.stage ? -1 : a.stage > b.stage ? 1 : 0)
+  );
 }
 function render(input: unknown, config: Configuration): HtmlRenderResult {
   let bounded: unknown;
@@ -96,17 +98,20 @@ function render(input: unknown, config: Configuration): HtmlRenderResult {
   const parsed = validateOutputData(bounded);
   if (!parsed.ok)
     return failure('invalid_document', 'structure', parsed.errors[0]?.path);
+  deepFreeze(parsed.data);
   const diagnostics: HtmlDiagnostic[] = [];
-  const add = (item: Omit<HtmlDiagnostic, 'message'>) => {
-    if (diagnostics.length < config.limits.maxDiagnostics)
-      diagnostics.push({ ...item, message: messages[item.code] });
-    else if (diagnostics.length === config.limits.maxDiagnostics)
-      diagnostics.push({
-        code: 'diagnostics_truncated',
-        stage: 'limits',
-        path: [],
-        message: messages.diagnostics_truncated,
-      });
+  const add = (items: HtmlDiagnostic[]) => {
+    for (const item of items.sort(comparePaths)) {
+      if (diagnostics.length < config.limits.maxDiagnostics)
+        diagnostics.push(item);
+      else if (diagnostics.length === config.limits.maxDiagnostics)
+        diagnostics.push({
+          code: 'diagnostics_truncated',
+          stage: 'limits',
+          path: [],
+          message: messages.diagnostics_truncated,
+        });
+    }
   };
   const output: string[] = [];
   let outputBytes = 0;
@@ -117,80 +122,157 @@ function render(input: unknown, config: Configuration): HtmlRenderResult {
       type: block.type,
       ...(block.id === undefined ? {} : { id: block.id }),
     };
-    const validator = validators.get(block.type);
-    if (!validator) {
-      add({
+    const local: HtmlDiagnostic[] = [];
+    const report = (
+      code: HtmlDiagnostic['code'],
+      stage: HtmlDiagnostic['stage'],
+      at: readonly (string | number)[],
+      tune?: string,
+    ) => {
+      local.push({
         ...context,
-        code: 'unknown_block',
-        stage: 'profile',
-        path: [...path, 'type'],
+        code,
+        stage,
+        path: at,
+        message: messages[code],
+        ...(tune === undefined ? {} : { tune }),
       });
+    };
+    const registration = config.registrations.blocks.get(block.type);
+    if (!registration) {
+      report('unknown_block', 'profile', [...path, 'type']);
+      add(local);
       continue;
     }
-    const tunes = Object.keys(block.tunes ?? {});
-    if (tunes.length) {
-      for (const tune of tunes.sort())
-        add({
-          ...context,
-          code: 'unknown_tune',
-          stage: 'profile',
-          tune,
-          path: [...path, 'tunes', tune],
-        });
-      continue;
-    }
-    const valid = validator(block.data, context);
-    if (!valid.ok) {
-      for (const issue of valid.errors)
-        add({
-          ...context,
-          code: 'invalid_block_data',
-          stage: 'profile',
-          path: [...path, 'data', ...(issue.path ?? [])],
-        });
-      continue;
-    }
-    try {
-      const data = block.data as JsonObject;
-      const field = (key: string) => {
-        const clean = sanitize(data[key] as string, config, true);
-        if (clean.rejected)
-          add({
-            ...context,
-            code: 'unsafe_html',
-            stage: 'safety',
-            path: [...path, 'data', key],
-          });
-        return clean.html;
-      };
-      // Inspect fields in path order so diagnostics remain stable before truncation.
-      const caption = block.type === 'quote' ? field('caption') : '';
-      const text = field('text');
-      let fragment: string;
-      if (block.type === 'paragraph')
-        fragment = `<p${classAttribute(config.classes.paragraph)}>${text}</p>`;
-      else if (block.type === 'header')
-        fragment = `<h${data['level']}${classAttribute(config.classes.heading)}>${text}</h${data['level']}>`;
-      else {
-        const alignment =
-          data['alignment'] === 'center'
-            ? config.classes.quoteCenter
-            : config.classes.quoteLeft;
-        fragment = `<figure${classAttribute(config.classes.quote)}><blockquote${classAttribute(alignment)}><p>${text}</p></blockquote>${caption ? `<figcaption${classAttribute(config.classes.quoteCaption)}>${caption}</figcaption>` : ''}</figure>`;
-      }
-      // Formatting cannot create an escape hatch around the final common boundary.
+    let active = true;
+    let callbackPath: readonly (string | number)[] = [...path, 'data'];
+    let callbackTune: string | undefined;
+    let helperBytes = 0;
+    const checkHelper = (text: string) => {
+      if (!active || typeof text !== 'string') throw new CallbackProblem();
+      if (byteLength(text) > config.limits.maxStringBytes)
+        throw new InputProblem('limit_exceeded', callbackPath);
+    };
+    const trackHelper = (text: string) => {
+      helperBytes += byteLength(text);
+      if (helperBytes > config.limits.maxOutputBytes)
+        throw new InputProblem('limit_exceeded', callbackPath);
+      return text;
+    };
+    const inline = (text: string, at: readonly (string | number)[]) => {
+      const clean = sanitize(text, config, true);
+      if (clean.rejected) report('unsafe_html', 'safety', at, callbackTune);
+      return clean.html;
+    };
+    const callbackContext: HtmlRenderContext = Object.freeze({
+      blockIndex,
+      // boundedInput and core validation established JSON before this readonly view.
+      block: block as HtmlRenderContext['block'],
+      escapeText: (text: string) => {
+        checkHelper(text);
+        return trackHelper(escapeText(text));
+      },
+      inline: (text: string) => {
+        checkHelper(text);
+        return trackHelper(inline(text, callbackPath));
+      },
+    });
+    const cleanFragment = (value: unknown): string => {
+      const fragment = synchronous(value);
+      if (typeof fragment !== 'string') throw new CallbackProblem();
       outputBytes += byteLength(fragment);
       if (outputBytes > config.limits.maxOutputBytes)
-        return failure('limit_exceeded', 'limits', path);
+        throw new InputProblem('limit_exceeded', callbackPath);
       const clean = sanitize(fragment, config, false);
       if (clean.rejected)
-        add({ ...context, code: 'unsafe_html', stage: 'safety', path });
+        report('unsafe_html', 'safety', callbackPath, callbackTune);
+      if (clean.missingAlt)
+        report('missing_alt', 'profile', callbackPath, callbackTune);
       if (byteLength(clean.html) > config.limits.maxOutputBytes)
-        return failure('limit_exceeded', 'limits', path);
-      output.push(clean.html);
-    } catch {
-      return failure('render_failed', 'safety', path);
+        throw new InputProblem('limit_exceeded', callbackPath);
+      return clean.html;
+    };
+    try {
+      const data = block.data as JsonObject;
+      let valid = true;
+      if ('profile' in registration) {
+        const validation = validateStandard(data, registration.profile, config);
+        if (!validation.ok) {
+          valid = false;
+          for (const issue of validation.errors)
+            report('invalid_block_data', 'profile', [
+              ...path,
+              'data',
+              ...(issue.path ?? []),
+            ]);
+        } else if (
+          registration.profile === 'image' &&
+          (data['alt'] === undefined ||
+            (data['alt'] !== '' && !(data['alt'] as string).trim()))
+        ) {
+          valid = false;
+          report('missing_alt', 'profile', [...path, 'data', 'alt']);
+        }
+      } else if (!guard(registration.validate, data)) {
+        valid = false;
+        report('invalid_block_data', 'profile', callbackPath);
+      }
+      // Validate all saved tunes before invoking any formatting callback.
+      for (const name of Object.keys(block.tunes ?? {}).sort()) {
+        callbackTune = name;
+        callbackPath = [...path, 'tunes', name];
+        const tune = config.registrations.tunes.get(name);
+        if (!tune) {
+          valid = false;
+          report('unknown_tune', 'profile', callbackPath, name);
+        } else if (!guard(tune.validate, block.tunes?.[name])) {
+          valid = false;
+          report('invalid_tune_data', 'profile', callbackPath, name);
+        }
+      }
+      if (!valid) {
+        add(local);
+        continue;
+      }
+      callbackPath = [...path, 'data'];
+      callbackTune = undefined;
+      let fragment = cleanFragment(
+        'profile' in registration
+          ? formatStandard(data, registration.profile, config, (text, at) =>
+              inline(text, [...path, 'data', ...at]),
+            )
+          : invoke(() => registration.render(data, callbackContext)),
+      );
+      for (const [name, tune] of config.registrations.tunes) {
+        if (!Object.hasOwn(block.tunes ?? {}, name) || tune.ignore) continue;
+        callbackPath = [...path, 'tunes', name];
+        callbackTune = name;
+        fragment = cleanFragment(
+          invoke(() =>
+            tune.render(fragment, block.tunes?.[name], callbackContext),
+          ),
+        );
+      }
+      // Missing alt in callback output cannot silently become decorative or partial publication.
+      if (!local.some((item) => item.code === 'missing_alt'))
+        output.push(fragment);
+    } catch (error) {
+      if (error instanceof InputProblem)
+        return failure(
+          'limit_exceeded',
+          'limits',
+          error.path[0] === 'blocks'
+            ? error.path
+            : [...path, 'data', ...error.path],
+        );
+      if (!(error instanceof CallbackProblem))
+        return failure('render_failed', 'safety', path);
+      // No exception text or successful partial block is exposed.
+      report('callback_failed', 'profile', callbackPath, callbackTune);
+    } finally {
+      active = false;
     }
+    add(local);
   }
   if (config.mode === 'strict' && diagnostics.length)
     return { status: 'failure', diagnostics };
@@ -205,9 +287,10 @@ function render(input: unknown, config: Configuration): HtmlRenderResult {
 }
 
 /** Capture immutable per-instance options; no global or request-owned state. */
-export function createEditorJsHtmlRenderer(
-  options?: HtmlRendererOptions,
-): EditorJsHtmlRenderer {
+export function createEditorJsHtmlRenderer<
+  Blocks extends object = Record<string, unknown>,
+  Tunes extends object = Record<string, unknown>,
+>(options?: HtmlRendererOptions<Blocks, Tunes>): EditorJsHtmlRenderer {
   let config: Configuration;
   try {
     config = configuration(options);
@@ -220,9 +303,12 @@ export function createEditorJsHtmlRenderer(
 }
 
 /** Render supported saved JSON; only a strict success contains complete HTML. */
-export function renderEditorJsHtml(
+export function renderEditorJsHtml<
+  Blocks extends object = Record<string, unknown>,
+  Tunes extends object = Record<string, unknown>,
+>(
   input: unknown,
-  options?: HtmlRendererOptions,
+  options?: HtmlRendererOptions<Blocks, Tunes>,
 ): HtmlRenderResult {
   return createEditorJsHtmlRenderer(options).render(input);
 }

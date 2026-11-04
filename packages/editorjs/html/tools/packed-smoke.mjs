@@ -128,6 +128,9 @@ try {
     `import type {
       EditorJsHtmlRenderer, HtmlRendererOptions, HtmlRenderResult,
       HtmlDiagnostic, HtmlDiagnosticCode, HtmlRenderLimits, HtmlUrlPolicy, HtmlClasses,
+      HtmlReadonly, HtmlReadonlyJson, HtmlDataGuard, HtmlRenderContext,
+      HtmlStandardProfile, HtmlProfileRegistration, HtmlBlockRegistration,
+      HtmlTuneRegistration, HtmlBlockRegistrations, HtmlTuneRegistrations,
     } from '@anarchitects/editorjs-html';
     export function check(renderer: EditorJsHtmlRenderer, input: unknown) {
       const result: HtmlRenderResult = renderer.render(input);
@@ -141,6 +144,35 @@ try {
       const html: string = result.html;
       return html;
     }
+    type Data = { code: string; nested: { text: string } };
+    const guard: HtmlDataGuard<Data> = (input): input is Data => {
+      if (!input || typeof input !== 'object' || !('code' in input) || typeof input.code !== 'string' || !('nested' in input)) return false;
+      return !!input.nested && typeof input.nested === 'object' && 'text' in input.nested && typeof input.nested.text === 'string';
+    };
+    const block: HtmlBlockRegistration<'code', Data> = {
+      name: 'code', validate: guard, render: (data, context) => {
+        const readonlyData: HtmlReadonly<Data> = data;
+        const ctx: HtmlRenderContext = context;
+        const json: HtmlReadonlyJson = ctx.block.data;
+        // @ts-expect-error Data is deeply readonly.
+        data.nested.text = 'forbidden';
+        // @ts-expect-error Saved type has code, not callout text.
+        const text: string = data.text;
+        return ctx.escapeText(readonlyData.code);
+      },
+    };
+    const tune: HtmlTuneRegistration<'flag', { flagged: boolean }> = {
+      name: 'flag', validate: (data): data is { flagged: boolean } => !!data && typeof data === 'object' && 'flagged' in data && typeof data.flagged === 'boolean', ignore: true,
+    };
+    const profile: HtmlStandardProfile = 'image';
+    const alias: HtmlProfileRegistration = { name: 'photo', profile };
+    const blocks: HtmlBlockRegistrations<{ code: Data }>[] = [block];
+    const tunes: HtmlTuneRegistrations<{ flag: { flagged: boolean } }>[] = [tune];
+    export const registered: HtmlRendererOptions<{ code: Data }, { flag: { flagged: boolean } }> = { blocks, tunes, profiles: [alias] };
+    // @ts-expect-error Async rendering is not supported.
+    const asyncBlock: HtmlBlockRegistration = { name: 'bad', validate: (data): data is unknown => true, render: async () => '' };
+    // @ts-expect-error Guard data and saved-name map must agree.
+    const wrong: HtmlBlockRegistrations<{ code: Data }> = { name: 'code', validate: (data): data is string => typeof data === 'string', render: () => '' };
     const limits: HtmlRenderLimits = { maxBlocks: 2 };
     const urls: HtmlUrlPolicy = { httpsOnly: true };
     const classes: HtmlClasses = { paragraph: ['content'] };
@@ -238,12 +270,174 @@ try {
         { text: 'Safelink', images: 0, href: null, executed: false },
       );
       assert.equal(requests, 0);
+      // New profiles and extension callbacks execute from the installed archive.
+      const profiles = await page.evaluate(() => {
+        const input = {
+          blocks: [
+            {
+              type: 'list',
+              data: {
+                style: 'ordered',
+                meta: { start: 3, counterType: 'upper-roman' },
+                items: [
+                  {
+                    content: 'Parent',
+                    meta: { start: 2, counterType: 'lower-alpha' },
+                    items: [{ content: 'Child', meta: {}, items: [] }],
+                  },
+                ],
+              },
+            },
+            {
+              type: 'list',
+              data: {
+                style: 'checklist',
+                meta: {},
+                items: [
+                  {
+                    content: 'Done task',
+                    meta: { checked: true },
+                    items: [
+                      {
+                        content: 'Pending task',
+                        meta: { checked: false },
+                        items: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+            {
+              type: 'image',
+              data: {
+                file: { url: 'https://example.invalid/allowed.png' },
+                alt: '" onerror="globalThis.__executed=true',
+                caption: '<b>Caption</b>',
+                withBorder: true,
+                withBackground: false,
+                stretched: false,
+              },
+            },
+            {
+              type: 'code',
+              data: { code: '<script>globalThis.__executed=true</script>' },
+              tunes: { flag: { flagged: true } },
+            },
+          ],
+        };
+        const result = globalThis.renderer.renderEditorJsHtml(input, {
+          blocks: [
+            {
+              name: 'code',
+              validate: (data) => typeof data.code === 'string',
+              render: (data, ctx) =>
+                '<pre><code>' + ctx.escapeText(data.code) + '</code></pre>',
+            },
+          ],
+          tunes: [
+            {
+              name: 'flag',
+              validate: (data) => typeof data.flagged === 'boolean',
+              render: (html) => '<aside>' + html + '</aside>',
+            },
+          ],
+        });
+        if (result.status !== 'success')
+          throw Error(JSON.stringify(result.diagnostics));
+        return result.html;
+      });
+      await page.setContent(profiles);
+      assert.deepEqual(
+        await page.evaluate(() => ({
+          rootStart: document.querySelector('ol').start,
+          rootType: document.querySelector('ol').type,
+          childStart: document.querySelector('ol ol').start,
+          childType: document.querySelector('ol ol').type,
+          alt: document.querySelector('img').alt,
+          event: document.querySelector('img').getAttribute('onerror'),
+          caption: document.querySelector('figcaption').textContent,
+          code: document.querySelector('pre code').textContent,
+          controls: document.querySelectorAll('input,button,[contenteditable]')
+            .length,
+          executed: !!globalThis.__executed,
+        })),
+        {
+          rootStart: 3,
+          rootType: 'I',
+          childStart: 2,
+          childType: 'a',
+          alt: '" onerror="globalThis.__executed=true',
+          event: null,
+          caption: 'Caption',
+          code: '<script>globalThis.__executed=true</script>',
+          controls: 0,
+          executed: false,
+        },
+      );
+      const accessibility = await page.locator('body').ariaSnapshot();
+      assert.ok(accessibility.includes('[Completed]'));
+      assert.ok(accessibility.includes('[Not completed]'));
+      assert.equal(requests, 1); // Only the deliberately permitted image.
+      for (const route of ['custom', 'override', 'tune']) {
+        const safe = await page.evaluate((route) => {
+          const malicious =
+            '<p style="color:red" onclick="globalThis.__executed=true">Safe</p><img src="javascript:alert(1)" alt=""><script>globalThis.__executed=true</script>';
+          const result = globalThis.renderer.renderEditorJsHtml(
+            {
+              blocks: [
+                {
+                  type: route === 'override' ? 'paragraph' : 'custom',
+                  data: {},
+                  ...(route === 'tune' ? { tunes: { flag: {} } } : {}),
+                },
+              ],
+            },
+            {
+              mode: 'preview',
+              blocks: [
+                {
+                  name: route === 'override' ? 'paragraph' : 'custom',
+                  ...(route === 'override' ? { override: true } : {}),
+                  validate: () => true,
+                  render: () =>
+                    route === 'tune' ? '<p>Original</p>' : malicious,
+                },
+              ],
+              ...(route === 'tune'
+                ? {
+                    tunes: [
+                      {
+                        name: 'flag',
+                        validate: () => true,
+                        render: () => malicious,
+                      },
+                    ],
+                  }
+                : {}),
+            },
+          );
+          if (
+            result.status !== 'preview' ||
+            !result.diagnostics.some((item) => item.code === 'unsafe_html')
+          )
+            throw Error('Missing callback safety diagnostics');
+          return result.html;
+        }, route);
+        await page.setContent(safe);
+        assert.equal(
+          await page.locator('img,script,[onclick],[style]').count(),
+          0,
+        );
+        assert.equal(await page.evaluate(() => !!globalThis.__executed), false);
+      }
+      assert.equal(requests, 1);
       // Positive control: the harness must observe unsafe raw output executing.
       await page.setContent(
         '<img src="https://example.invalid/control" onerror="globalThis.__executed=true">',
       );
       await page.waitForFunction(() => globalThis.__executed === true);
-      assert.equal(requests, 1);
+      assert.equal(requests, 2);
     } finally {
       await browser.close();
     }

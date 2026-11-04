@@ -21,6 +21,12 @@
       "path": "../tool-paragraph/tsconfig.lib.json"
     },
     {
+      "path": "../tool-list/tsconfig.lib.json"
+    },
+    {
+      "path": "../tool-image/tsconfig.lib.json"
+    },
+    {
       "path": "../tool-header/tsconfig.lib.json"
     }
   ],

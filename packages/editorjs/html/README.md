@@ -4,9 +4,10 @@ Render supported Editor.js saved documents as safe, semantic HTML in Node or a
 bundled browser application. Use it for public content and explicit previews
 without loading an editor, browser tools, Angular or a CMS integration.
 
-The current profile supports **paragraph**, **header** and **quote** saved names.
-List, image, Code, custom blocks, configured aliases and tunes are not yet
-supported; they produce diagnostics rather than disappearing silently.
+The standard profile supports **paragraph**, **header**, **quote**, **list** and
+**image** saved names. Register explicit aliases, custom block renderers and tunes
+when your saved document uses other names or schemas. Code and Callout are
+opt-in examples below, not built-in tools.
 
 ## Installation and compatibility
 
@@ -74,8 +75,9 @@ export const previewHtml = result.status === 'preview' ? result.html : '';
 ```
 
 Preview always returns `status: 'preview'` when output is available, even if nothing
-was omitted. It skips whole unknown/invalid blocks and blocks with tunes, and
-returns sanitized remainders for unsafe inline fields with diagnostics. Invalid
+was omitted. It skips whole unknown/invalid blocks, missing-alt images, blocks with
+unknown/invalid tunes, and blocks whose registered callbacks fail. It returns
+sanitized remainders for unsafe markup with diagnostics. Invalid
 structure, resource limits or an unexpected rendering failure return failure
 without HTML in either mode. Never treat preview as complete publishable output.
 Diagnostics provide a stable code, stage and path, plus block index, saved ID/type
@@ -90,6 +92,65 @@ identifiers are still host-controlled data; handle them safely when displaying/l
 | `header`    | `text: string`, integer `level: 1–6`                               | exact h1–h6, without clamping                                     |
 | `quote`     | `text: string`, `caption: string`, `alignment: 'left' \| 'center'` | figure containing blockquote/p and a separate nonempty figcaption |
 
+The paragraph/header/quote contracts match the Community adapters exercised with
+paragraph 2.11.7, header 2.8.9 and quote 2.7.6. The additional profiles are:
+
+| Saved name | Versioned contract                                                                                                                                  | Output                             |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `list`     | List 2.0.9: `style: 'ordered' \| 'unordered' \| 'checklist'`, `meta: object`, recursive `items: { content: string; meta: object; items: Item[] }[]` | ol/ul and nested li                |
+| `image`    | Image 2.10.3 plus Community's top-level `alt`: `file: { url: string }`, string `caption`, boolean `withBorder`, `withBackground`, `stretched`       | figure/img and nonempty figcaption |
+
+Lists inherit their root style. Ordered metadata permits positive integer `start`
+(up to 2,147,483,647, the HTML counter range) and `counterType`: `numeric`,
+`upper-roman`, `lower-roman`, `upper-alpha`, `lower-alpha`. These map to ol `start`
+and `type`. Root metadata configures the root list; an item's metadata configures
+its child list, inheriting the parent counter type when absent. A child list starts
+at 1 unless explicitly configured. Leaf metadata has no child list to configure.
+Checklist items require boolean `meta.checked`; visible `[Completed]` or
+`[Not completed]` text precedes each item, including nested items. This exposes
+state without adding focusable/editable form controls. These English status labels
+are fixed in the standard profile; register an explicit replacement for localization.
+Legacy flat strings, legacy checklist objects and mixed item-level styles require
+an explicit host migration or custom registration; they are never guessed.
+
+Image `alt` has three distinct states: authored nonblank **plain text**, explicit
+empty `''` for a decorative image, and absent/unset. Missing or whitespace-only
+alt produces `missing_alt`: strict rendering fails and preview skips the image
+block. Caption/file-name/metadata never supplies alt implicitly. Attribute-looking
+alt remains literal text. Additional JSON file metadata is preserved in the source
+and omitted from HTML. Visual flags map to configured classes, not inline styles.
+You own the accuracy of alt text and whether an image is meaningfully decorative.
+
+```ts
+import { renderEditorJsHtml } from '@anarchitects/editorjs-html';
+
+export const result = renderEditorJsHtml({
+  blocks: [
+    {
+      type: 'list',
+      data: {
+        style: 'ordered',
+        meta: { start: 3, counterType: 'upper-roman' },
+        items: [{ content: 'Prepare <b>ingredients</b>', meta: {}, items: [] }],
+      },
+    },
+    {
+      type: 'image',
+      data: {
+        file: { url: 'https://example.com/cake.jpg' },
+        alt: 'A chocolate cake on a blue plate',
+        caption: 'The finished cake',
+        withBorder: false,
+        withBackground: false,
+        stretched: false,
+      },
+    },
+  ],
+});
+if (result.status !== 'success')
+  throw new Error('Review list/image diagnostics');
+```
+
 Text/caption fields allow `b`, `strong`, `i`, `em`, `u`, `s`, `mark`, `code`, `br`
 and `a`. Anchors permit `href` and nonempty `title`. Plain text and entities are
 serialized safely. Other tags/attributes, including saved classes, inline styles,
@@ -99,8 +160,8 @@ diagnosed. Harmless tag case, quote/entity spelling and br serialization normali
 without errors. HTML comments are non-rendering metadata and are omitted.
 
 The same maintained sanitizer/policy handles inline fields and final formatted
-output. There is no trusted-HTML bypass. No arbitrary renderer callback API is
-exposed in this profile. Saved-shape validity alone does not prove HTML safety.
+output. There is no trusted-HTML bypass. Custom and overridden output passes this same policy before tune composition
+and after each tune. A later tune cannot erase an earlier safety diagnostic. Saved-shape validity alone does not prove HTML safety.
 
 ## Configuration, isolation and styling
 
@@ -135,11 +196,13 @@ configuration for a single call. Configuration errors return `invalid_configurat
 without throwing or output. There is no global configuration or retained document.
 
 Available class keys are `paragraph`, `heading`, `quote`, `quoteLeft`, `quoteCenter`
-and `quoteCaption`. Each accepts at most 16 unique tokens, each starting with an
+and `quoteCaption`, plus `list`, `listItem`, `checklist`, `image`, `imageCaption`,
+`imageBorder`, `imageBackground`, `imageStretched` and `custom`. Each accepts at most 16 unique tokens, each starting with an
 ASCII letter/underscore and continuing with letters, digits, underscore or hyphen
 (up to 64 characters). The default quote alignment classes are
-`editorjs-quote-left` and `editorjs-quote-center`; all other class lists default to
-empty. An explicit list replaces its default, including `[]`. Supply host CSS for
+`editorjs-quote-left` and `editorjs-quote-center`. Image flag defaults are
+`editorjs-image-border`, `editorjs-image-background` and `editorjs-image-stretched`;
+other class lists default to empty. An explicit list replaces its default, including `[]`. Supply host CSS for
 these classes; no stylesheet or arbitrary inline-style option is shipped.
 
 Links allow http(s) and relative/fragment URLs by default. `httpsOnly` restricts
@@ -148,12 +211,145 @@ absolute HTTP links; `allowRelative: false` rejects relative/fragment links.
 adds no origin restriction. Relative links retain the host document/base URL's
 meaning, so disable them when an absolute-origin restriction must be exhaustive.
 `allowMailto: true` explicitly permits mailto links. All controls default to false
-except `allowRelative`, which defaults to true. Protocol-relative URLs, credentials,
+except `allowRelative`, which defaults to true. Images use the same HTTPS/origin
+restrictions, but only absolute http(s) sources by default. Set
+`allowRelativeImages: true` explicitly for relative asset sources; this is separate
+from link `allowRelative`. Mailto never applies to images. The renderer makes no
+requests, but inserting successful image output in a browser can load those assets.
+Hosts own image privacy, authorization and reachability. Protocol-relative URLs, credentials,
 backslashes, control/space characters and encoded control/protocol-separator tricks
 are rejected. Host policy can narrow this boundary; it cannot enable script/data/
 file/blob URLs. Link target/rel customization is not available; links do not
 request new tabs. Hosts own navigation, CSP, privacy and rendering into an
 appropriate block container; never concatenate untrusted HTML after rendering.
+
+## Typed custom blocks, aliases and tunes
+
+The headless registry is independent of authoring registries and tool constructors.
+`profiles` explicitly maps saved names to immutable standard profiles. A profile
+alias always uses the original built-in implementation, even when that built-in's
+saved name is overridden. `blocks` registers a guard and synchronous HTML callback
+for each custom name. Names use exact own-key lookup, including prototype-like
+names; no inference from browser classes or document version occurs.
+
+```ts
+import { renderEditorJsHtml } from '@anarchitects/editorjs-html';
+
+export const aliased = renderEditorJsHtml(
+  { blocks: [{ type: 'title', data: { text: 'A title', level: 2 } }] },
+  { profiles: [{ name: 'title', profile: 'header' }] },
+);
+if (aliased.status !== 'success') throw new Error('Alias validation failed');
+```
+
+Duplicate configured block names (including across `profiles` and `blocks`) or
+tune names fail configuration. Replacing a built-in saved name requires
+`override: true`; that flag on a new name is an error. There is no last-entry-wins
+rule or process-global mutation. Each list allows at most 1,000 entries, and names
+are nonblank strings of at most 128 characters. Compose arrays explicitly in your
+host; options replace complete arrays rather than merging registries implicitly.
+
+The following complete example uses the saved contracts from the core
+[custom-tool guide](https://github.com/anarchitects/anarchitecture-community/blob/main/packages/editorjs/core/custom-tools.md):
+Callout (`text`, `tone`), inline Marker (`mark` inside text), FlagTune (`flagged`)
+and Code 2.9.4 (`code`). It requires no browser-tool imports or installation.
+
+```ts
+import {
+  createEditorJsHtmlRenderer,
+  type HtmlRendererOptions,
+} from '@anarchitects/editorjs-html';
+
+type Callout = { text: string; tone: 'info' | 'warning' };
+type Code = { code: string };
+type Flag = { flagged: boolean };
+const object = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+const isCallout = (value: unknown): value is Callout =>
+  object(value) &&
+  typeof value['text'] === 'string' &&
+  (value['tone'] === 'info' || value['tone'] === 'warning');
+const isCode = (value: unknown): value is Code =>
+  object(value) && typeof value['code'] === 'string';
+const isFlag = (value: unknown): value is Flag =>
+  object(value) && typeof value['flagged'] === 'boolean';
+
+const options: HtmlRendererOptions<
+  { callout: Callout; code: Code },
+  { flag: Flag }
+> = {
+  classes: { custom: ['callout-info', 'callout-warning', 'flagged'] },
+  blocks: [
+    {
+      name: 'callout',
+      validate: isCallout,
+      render: (data, context) =>
+        `<aside class="callout-${data.tone}">${context.inline(data.text)}</aside>`,
+    },
+    {
+      name: 'code',
+      validate: isCode,
+      render: (data, context) =>
+        `<pre><code>${context.escapeText(data.code)}</code></pre>`,
+    },
+  ],
+  tunes: [
+    {
+      name: 'flag',
+      validate: isFlag,
+      render: (html, data) =>
+        data.flagged ? `<div class="flagged">${html}</div>` : html,
+    },
+  ],
+};
+const renderer = createEditorJsHtmlRenderer(options);
+export const rendered = renderer.render({
+  blocks: [
+    {
+      type: 'callout',
+      data: { text: 'A <mark>marked</mark> warning', tone: 'warning' },
+      tunes: { flag: { flagged: true } },
+    },
+    { type: 'code', data: { code: '<script>literalExample()</script>' } },
+  ],
+});
+if (rendered.status !== 'success')
+  throw new Error('Custom content failed validation');
+```
+
+The generic saved-name maps connect each guard and callback to its data type.
+A type annotation alone does not validate persistence: guards must actually check
+the expected shape. Guards run on detached, deeply frozen JSON after core envelope
+validation and must return a synchronous boolean. You can wrap a neutral public
+tool validator's `.ok` result in a correctly typed predicate, but its package may
+install authoring dependencies; the renderer does not import one automatically.
+
+Callbacks receive frozen data and a frozen context with `blockIndex`, saved `block`,
+`escapeText` and `inline`. Context exposes no editor, DOM or framework service.
+`escapeText` encodes literal text/attribute values; use it for Code and plain text.
+`inline` interprets only the documented inline subset and records safety violations.
+Helpers accept strings within the configured string/output ceilings and are valid
+only during the current render. Input/source data is neither mutated nor frozen.
+Configuration containers are copied, but callback function identity is retained:
+use pure callbacks and immutable captures for deterministic output.
+
+Saved tunes validate independently before any block rendering. They compose only
+when present, in **registration order**, regardless of saved property order. An
+absent tune invokes nothing. Register `{ name, validate, ignore: true }` explicitly
+for nonvisual metadata; it still validates and cannot also supply a renderer.
+Unknown or invalid tunes skip the whole block in preview and fail strict rendering.
+Returning a Promise/non-string, a nonboolean guard result, or throwing yields
+`callback_failed`; the affected block is omitted in preview. Later calls recover
+independently. Error messages never copy callback exception text.
+
+Custom output permits the standard semantic tags plus `aside`, `section`, `div`,
+`span` and `pre`. Classes must be in trusted configuration; no styles, IDs, event
+attributes or arbitrary data/ARIA attributes pass through. Images need allowed
+URLs and explicit valid alt even in callback output; missing-alt output omits the
+whole custom block in preview. All fragments pass the common policy before the
+next tune and at final output. Callback JavaScript is trusted application code,
+not sandboxed plugin code: never load arbitrary user-authored functions. There is
+no trusted-HTML option, sanitizer override or implicit custom fallback.
 
 ## Resource limits
 
@@ -162,13 +358,17 @@ appropriate block container; never concatenate untrusted HTML after rendering.
 | `maxInputBytes`  | 1,048,576 UTF-8 bytes, for raw JSON and its decoded JSON representation |
 | `maxBlocks`      | 1,000                                                                   |
 | `maxDepth`       | 32 JSON property/index levels from root                                 |
+| `maxListDepth`   | 16 list levels (also subject to the JSON-depth ceiling)                 |
 | `maxStringBytes` | 102,400 UTF-8 bytes per key or string                                   |
 | `maxOutputBytes` | 2,097,152 accumulated formatted and sanitized UTF-8 bytes               |
 | `maxDiagnostics` | 100 detailed diagnostics, then one truncation diagnostic                |
 
 Limits accept positive integers no higher than these ceilings. Inline HTML has a
-separate fixed nesting ceiling of 32 elements. Limits protect library work, not
-transport parsing performed earlier by your server. Enforce request limits there
+separate fixed nesting ceiling of 32 elements. The JSON-depth ceiling can be
+reached before 16 list levels because each list contains nested objects/arrays. Limits protect library work, not
+transport parsing performed earlier by your server or arbitrary work/allocations
+inside trusted callbacks. Each callback result and bounded helper call is checked;
+intermediate tune output counts toward the accumulated output ceiling. Enforce request limits there
 too. A lowered JSON-depth limit can exclude otherwise valid documents.
 
 ## Public exports and troubleshooting
@@ -176,13 +376,20 @@ too. A lowered JSON-depth limit can exclude otherwise valid documents.
 Functions: `renderEditorJsHtml`, `createEditorJsHtmlRenderer`.
 Types: `EditorJsHtmlRenderer`, `HtmlRendererOptions`, `HtmlRenderResult`,
 `HtmlDiagnostic`, `HtmlDiagnosticCode`, `HtmlRenderLimits`, `HtmlUrlPolicy`,
-`HtmlClasses`.
+`HtmlClasses`, `HtmlReadonly`, `HtmlReadonlyJson`, `HtmlDataGuard`,
+`HtmlRenderContext`, `HtmlStandardProfile`, `HtmlProfileRegistration`,
+`HtmlBlockRegistration`, `HtmlTuneRegistration`, `HtmlBlockRegistrations`,
+`HtmlTuneRegistrations`.
 
 - `invalid_document`: check the raw envelope, JSON values and unique IDs; remove
   your application envelope before rendering.
 - `invalid_block_data`: inspect the diagnostic path and the profile table.
-- `unknown_block` / `unknown_tune`: use a supported saved profile or explicit
-  preview. Do not rename a tool without migrating and validating its data.
+- `unknown_block` / `unknown_tune`: configure the exact saved name with a supported
+  profile/registration, or use explicit preview. Do not rename a tool without migrating and validating its data.
+- `invalid_tune_data`: correct the saved tune payload to match its registered guard.
+- `missing_alt`: author meaningful plain alt or deliberately choose decorative `''`.
+- `callback_failed`: check guard/renderer exceptions and synchronous boolean/string
+  returns; callback exception details are deliberately not included in diagnostics.
 - `unsafe_html`: remove disallowed markup/URLs or repair unclosed inline elements;
   inspect preview diagnostics without using the preview for publication.
 - `limit_exceeded`: reduce content or choose a limit within the documented maximum.
