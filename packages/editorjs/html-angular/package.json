@@ -1,0 +1,34 @@
+{
+  "name": "@anarchitects/editorjs-html-angular",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/core": "22.1.4"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "description": "Standalone Angular presentation of safely rendered Editor.js documents.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || ^26.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/editorjs/html-angular"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/html-angular#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "@anarchitecture-community/source": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@anarchitects/editorjs-html": "^0.0.1"
+  }
+}
