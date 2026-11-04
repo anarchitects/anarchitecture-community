@@ -18,9 +18,11 @@ import { chromium } from '@playwright/test';
 import { adversarialBrowser } from './adversarial-browser.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const temporary = realpathSync(
-  mkdtempSync(join(tmpdir(), 'editorjs-html-packed-')),
-);
+const prepared = process.env.EDITORJS_RENDERER_CONSUMER;
+const phase = process.env.EDITORJS_RENDERER_PHASE;
+const temporary =
+  prepared ??
+  realpathSync(mkdtempSync(join(tmpdir(), 'editorjs-html-packed-')));
 const require = createRequire(import.meta.url);
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const environment = {
@@ -37,26 +39,29 @@ const run = (command, args, cwd = temporary) =>
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 try {
-  for (const project of ['core', 'html'])
-    run(
-      'yarn',
-      ['pack', '--out', join(temporary, `${project}.tgz`)],
-      join(root, project),
+  if (!prepared || phase === 'prepare') {
+    for (const project of ['core', 'html'])
+      run(
+        'yarn',
+        ['pack', '--out', join(temporary, `${project}.tgz`)],
+        join(root, project),
+      );
+    writeFileSync(
+      join(temporary, 'package.json'),
+      JSON.stringify({
+        name: 'editorjs-html-packed-consumer',
+        version: '0.0.0',
+        private: true,
+        type: 'module',
+        dependencies: {
+          '@anarchitects/editorjs-core': 'file:./core.tgz',
+          '@anarchitects/editorjs-html': 'file:./html.tgz',
+        },
+      }),
     );
-  writeFileSync(
-    join(temporary, 'package.json'),
-    JSON.stringify({
-      name: 'editorjs-html-packed-consumer',
-      version: '0.0.0',
-      private: true,
-      type: 'module',
-      dependencies: {
-        '@anarchitects/editorjs-core': 'file:./core.tgz',
-        '@anarchitects/editorjs-html': 'file:./html.tgz',
-      },
-    }),
-  );
-  run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund']);
+    run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund']);
+  }
+  if (phase === 'prepare') process.exit(0);
   const packageRoot = join(
     temporary,
     'node_modules/@anarchitects/editorjs-html',
@@ -449,30 +454,35 @@ try {
       await browser.close();
     }
   }
-  console.log(
-    JSON.stringify(
-      {
-        node: process.version,
-        platform: process.platform,
-        arch: process.arch,
-        coreSha256: sha(readFileSync(join(temporary, 'core.tgz'))),
-        htmlSha256: sha(readFileSync(join(temporary, 'html.tgz'))),
-        lockSha256: sha(readFileSync(join(temporary, 'package-lock.json'))),
-        browserBundleBytes: bundle.outputFiles[0].contents.length,
-        chromium: browserVersion,
-        adversarialEvidence,
-        runtimeVersions: Object.fromEntries(
-          Object.entries(lock.packages)
-            .filter(([name]) => name)
-            .map(([name, value]) => [name, value.version]),
-        ),
-        readmeExamples: examples.length,
-        installedPackages: Object.keys(lock.packages).filter(Boolean),
-      },
-      null,
-      2,
+  const summary = {
+    node: process.version,
+    platform: process.platform,
+    arch: process.arch,
+    coreSha256: sha(readFileSync(join(temporary, 'core.tgz'))),
+    htmlSha256: sha(readFileSync(join(temporary, 'html.tgz'))),
+    lockSha256: sha(readFileSync(join(temporary, 'package-lock.json'))),
+    browserBundleBytes: bundle.outputFiles[0].contents.length,
+    chromium: browserVersion,
+    adversarialEvidence,
+    runtimeVersions: Object.fromEntries(
+      Object.entries(lock.packages)
+        .filter(([name]) => name)
+        .map(([name, value]) => [name, value.version]),
     ),
-  );
+    readmeExamples: examples.length,
+    installedPackages: Object.keys(lock.packages).filter(Boolean),
+  };
+  if (process.env.EDITORJS_RENDERER_REPORT) {
+    writeFileSync(
+      join(process.env.EDITORJS_RENDERER_REPORT, 'summary.json'),
+      JSON.stringify(summary, null, 2),
+    );
+    writeFileSync(
+      join(process.env.EDITORJS_RENDERER_REPORT, 'package-lock.json'),
+      JSON.stringify(lock, null, 2),
+    );
+  }
+  console.log(JSON.stringify(summary, null, 2));
 } finally {
-  rmSync(temporary, { recursive: true, force: true });
+  if (!prepared) rmSync(temporary, { recursive: true, force: true });
 }
