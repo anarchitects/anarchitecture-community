@@ -168,7 +168,7 @@ try {
   const examples = [
     ...readme.matchAll(/<!-- example: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g),
   ];
-  assert.equal(examples.length, 4);
+  assert.equal(examples.length, 7);
   for (const [, name, source] of examples)
     write(`src/examples/${name}`, source);
   const compilerOptions = {
@@ -296,9 +296,11 @@ try {
   );
   await ssr.goto(`${origin}/first`);
   await expect(
-    ssr.getByRole('heading', { name: 'Article first' }),
+    ssr.locator('#directive').getByRole('heading', { name: 'Article first' }),
   ).toBeVisible();
-  await expect(ssr.getByRole('img', { name: 'Blue boat' })).toHaveCount(1);
+  await expect(
+    ssr.locator('#directive').getByRole('img', { name: 'Blue boat' }),
+  ).toHaveCount(1);
   await expect(ssr.locator('main')).toHaveAttribute('data-hydrated', 'false');
   await noJs.close();
   const context = await browser.newContext();
@@ -333,6 +335,8 @@ try {
   await expect(page.locator('#primary h2')).toHaveText('Article first');
   await page.evaluate(() => {
     globalThis.__before = {
+      directive: document.querySelector('#directive'),
+      directiveHtml: document.querySelector('#directive').innerHTML,
       host: document.querySelector('#primary'),
       container: document.querySelector('#primary .editorjs-html'),
       heading: document.querySelector('#primary h2'),
@@ -342,6 +346,11 @@ try {
   release();
   await expect(page.locator('main')).toHaveAttribute('data-hydrated', 'true');
   const hydration = await page.evaluate(() => ({
+    directiveReused:
+      globalThis.__before.directive === document.querySelector('#directive'),
+    directiveHtmlIdentical:
+      globalThis.__before.directiveHtml ===
+      document.querySelector('#directive').innerHTML,
     hostReused: globalThis.__before.host === document.querySelector('#primary'),
     containerReused:
       globalThis.__before.container ===
@@ -352,9 +361,53 @@ try {
     headingReused:
       globalThis.__before.heading === document.querySelector('#primary h2'),
   }));
+  assert.equal(hydration.directiveReused, true);
+  assert.equal(hydration.directiveHtmlIdentical, true);
   assert.equal(hydration.hostReused, true);
   assert.equal(hydration.containerReused, true);
   assert.equal(hydration.htmlIdentical, true);
+  const parity = async () => {
+    assert.equal(
+      await page.locator('#directive').innerHTML(),
+      await page.locator('#primary .editorjs-html').innerHTML(),
+    );
+    await expect(page.locator('#directive-result')).toHaveText(
+      await page.locator('#component-result').innerText(),
+    );
+    await expect(page.locator('#directive')).toHaveAttribute(
+      'class',
+      'host-owned',
+    );
+    await expect(page.locator('#directive')).toHaveAttribute(
+      'aria-label',
+      'Directive article',
+    );
+    await expect(page.locator('#directive')).toHaveAttribute(
+      'data-owner',
+      'consumer',
+    );
+  };
+  await parity();
+  for (const [scope, css] of [
+    ['root', 'application'],
+    ['route', 'route-first'],
+    ['element', 'element'],
+  ]) {
+    await expect(page.locator(`#${scope}-directive p`)).toHaveAttribute(
+      'class',
+      css,
+    );
+    await expect(page.locator(`#${scope}-component p`)).toHaveAttribute(
+      'class',
+      css,
+    );
+  }
+  await expect(
+    page.locator('app-scoped-article aa-editorjs-html p'),
+  ).toHaveClass('element-text');
+  await expect(page.locator('app-scoped-article article p')).toHaveClass(
+    'element-text',
+  );
   await expect(page.locator('#primary ol')).toHaveAttribute('start', '3');
   await expect(page.locator('#primary ol')).toHaveAttribute('type', 'I');
   await expect(page.locator('#primary figcaption')).toHaveText('At sea');
@@ -365,9 +418,11 @@ try {
   await expect(page.locator('#secondary p.secondary')).toHaveText(
     'Independent',
   );
+  await parity();
   await page.getByRole('button', { name: 'Invalid', exact: true }).click();
   await expect(page.locator('#primary .editorjs-html')).toBeEmpty();
-  await expect(page.locator('output')).toHaveText('failure');
+  await expect(page.locator('#component-result')).toHaveText('failure');
+  await parity();
   assert.equal(await page.evaluate(() => globalThis.__attack === true), false);
   assert.equal(
     requests.some((url) => url.endsWith('/x')),
@@ -375,15 +430,62 @@ try {
   );
   await page.getByRole('button', { name: 'Recover', exact: true }).click();
   await expect(page.locator('#primary p')).toHaveText('Recovered');
-  await expect(page.locator('output')).toHaveText('success');
+  await expect(page.locator('#component-result')).toHaveText('success');
+  await parity();
   await page.getByRole('button', { name: 'Preview', exact: true }).click();
   await expect(page.locator('#primary p')).toHaveText('Preview kept');
-  await expect(page.locator('output')).toHaveText('preview');
+  await expect(page.locator('#component-result')).toHaveText('preview');
+  await parity();
   await page.getByRole('button', { name: 'Empty', exact: true }).click();
   await expect(page.locator('#primary .editorjs-html')).toBeEmpty();
   await expect(page.locator('#secondary p.secondary')).toHaveText(
     'Independent',
   );
+  await parity();
+  // Positive control: this browser would execute an unsanitized inline handler.
+  assert.equal(
+    await page.evaluate(() => {
+      const button = document.createElement('button');
+      button.setAttribute('onclick', 'globalThis.__probe=true');
+      document.body.append(button);
+      button.click();
+      button.remove();
+      return globalThis.__probe;
+    }),
+    true,
+  );
+  await page
+    .getByRole('button', { name: 'Unsafe preview', exact: true })
+    .click();
+  await expect(page.locator('#directive-result')).toHaveText('preview');
+  await expect(page.locator('#directive b')).toHaveText('Safe text');
+  await parity();
+  await expect(
+    page.locator(
+      '#directive [onclick], #directive [onerror], #directive img, #directive [href]',
+    ),
+  ).toHaveCount(0);
+  const beforeClick = page.url();
+  await page.locator('#directive a').click();
+  assert.equal(page.url(), beforeClick);
+  await page
+    .getByRole('button', { name: 'Unsafe custom', exact: true })
+    .click();
+  await expect(page.locator('#directive-result')).toHaveText('failure');
+  await expect(page.locator('#directive')).toBeEmpty();
+  await parity();
+  assert.equal(await page.evaluate(() => globalThis.__attack === true), false);
+  assert.equal(
+    requests.some((url) => new URL(url).pathname === '/x'),
+    false,
+  );
+  await page.goto(`${origin}/second`);
+  await expect(page.locator('main')).toHaveAttribute('data-hydrated', 'true');
+  await expect(page.locator('#directive h2')).toHaveText('Article second');
+  await expect(page.locator('#route-directive p')).toHaveClass('route-second');
+  await expect(page.locator('#root-directive p')).toHaveClass('application');
+  await expect(page.locator('#element-directive p')).toHaveClass('element');
+  await parity();
   assert.deepEqual(errors, []);
   const summary = {
     node: process.version,
@@ -395,6 +497,14 @@ try {
     readmeExamples: examples.length,
     ssrRequests: 2,
     hydration,
+    scopes: [
+      'application',
+      'route-first',
+      'route-second',
+      'element',
+      'instance',
+    ],
+    directiveSecurityNegativeControls: true,
     errors,
   };
   writeFileSync(

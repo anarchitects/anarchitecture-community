@@ -1,17 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
-  effect,
   input,
   output,
-  untracked,
 } from '@angular/core';
-import {
-  createEditorJsHtmlRenderer,
-  type HtmlRendererOptions,
-  type HtmlRenderResult,
+import type {
+  HtmlRendererOptions,
+  HtmlRenderResult,
 } from '@anarchitects/editorjs-html';
+import { createHtmlView } from './html-view';
 
 /** A display-only owner of one normally sanitized Angular HTML binding. */
 @Component({
@@ -26,32 +23,15 @@ export class EditorJsHtmlComponent<
 > {
   /** Raw Editor.js JSON or decoded data. Replace identity to recompute. */
   readonly data = input.required<unknown>();
-  /** Complete per-instance options, snapshotted when their identity changes. */
+  /** Per-instance overrides, snapshotted when their identity changes. */
   readonly options = input<HtmlRendererOptions<Blocks, Tunes>>();
   readonly resultChange = output<HtmlRenderResult>();
 
-  private readonly renderer = computed(() => {
-    const options = this.options();
-    return untracked(() => createEditorJsHtmlRenderer(options));
-  });
+  private readonly view = createHtmlView(this.data, this.options, (result) =>
+    this.resultChange.emit(result),
+  );
 
   /** The current headless result, including diagnostics for failure or preview. */
-  readonly result = computed(() => {
-    const renderer = this.renderer();
-    const data = this.data();
-    return untracked(() => renderer.render(data));
-  });
-
-  protected readonly html = computed(() => {
-    const result = this.result();
-    return result.status === 'failure' ? '' : result.html;
-  });
-
-  constructor() {
-    effect(() => {
-      const result = this.result();
-      // Output subscribers must not become render dependencies.
-      untracked(() => this.resultChange.emit(result));
-    });
-  }
+  readonly result = this.view.result;
+  protected readonly html = this.view.html;
 }

@@ -1,9 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, expectTypeOf } from 'vitest';
-import type { InputSignal, OutputEmitterRef, Signal } from '@angular/core';
+import type {
+  InputSignal,
+  OutputEmitterRef,
+  Signal,
+  Provider,
+  InjectionToken,
+} from '@angular/core';
 import type {
   EditorJsHtmlComponent,
+  EditorJsHtmlDirective,
+  provideEditorJsHtml,
+  EDITOR_JS_HTML_CONFIG,
   HtmlRendererOptions,
   HtmlRenderResult,
   HtmlDiagnostic,
@@ -33,6 +42,33 @@ describe('published Angular boundary', () => {
     expectTypeOf<Custom['options']>().toEqualTypeOf<
       InputSignal<HtmlRendererOptions<{ code: { text: string } }> | undefined>
     >();
+  });
+  it('types the directive and ordinary providers without exposing internal helpers', () => {
+    expectTypeOf<EditorJsHtmlDirective['data']>().toEqualTypeOf<
+      InputSignal<unknown>
+    >();
+    expectTypeOf<EditorJsHtmlDirective['options']>().toEqualTypeOf<
+      InputSignal<HtmlRendererOptions | undefined>
+    >();
+    expectTypeOf<EditorJsHtmlDirective['result']>().toEqualTypeOf<
+      Signal<HtmlRenderResult>
+    >();
+    expectTypeOf<EditorJsHtmlDirective['resultChange']>().toEqualTypeOf<
+      OutputEmitterRef<HtmlRenderResult>
+    >();
+    expectTypeOf<ReturnType<typeof provideEditorJsHtml>>().toEqualTypeOf<
+      Provider[]
+    >();
+    expectTypeOf<typeof EDITOR_JS_HTML_CONFIG>().toEqualTypeOf<
+      InjectionToken<HtmlRendererOptions>
+    >();
+    const declarations = readFileSync(
+      resolve(root, 'types/anarchitects-editorjs-html-angular.d.ts'),
+      'utf8',
+    );
+    expect(declarations).not.toMatch(
+      /export.*(?:snapshotOptions|resolveOptions|createHtmlView)/,
+    );
   });
   it('ships an APF entry with no authoring, Forms or platform dependency', () => {
     const manifest = JSON.parse(

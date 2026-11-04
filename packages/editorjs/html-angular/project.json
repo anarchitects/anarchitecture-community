@@ -135,7 +135,10 @@
         {
           "env": "CI"
         }
-      ]
+      ],
+      "options": {
+        "env": {}
+      }
     },
     "test-ci--tests/package.spec.ts": {
       "dependsOn": ["build"],
@@ -154,7 +157,10 @@
         {
           "env": "CI"
         }
-      ]
+      ],
+      "options": {
+        "env": {}
+      }
     },
     "packed-smoke": {
       "executor": "nx:run-commands",
@@ -202,6 +208,50 @@
           "env": "CI"
         }
       ]
+    },
+    "test-ci--tests/directive.spec.ts": {
+      "dependsOn": ["build"],
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/tsconfig.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        {
+          "env": "CI"
+        }
+      ],
+      "options": {
+        "env": {}
+      }
+    },
+    "test-ci--tests/providers.spec.ts": {
+      "dependsOn": ["build"],
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/tsconfig.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        {
+          "env": "CI"
+        }
+      ],
+      "options": {
+        "env": {}
+      }
     }
   }
 }

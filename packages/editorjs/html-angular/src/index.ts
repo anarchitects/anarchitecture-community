@@ -4,3 +4,8 @@ export type {
   HtmlRenderResult,
   HtmlDiagnostic,
 } from '@anarchitects/editorjs-html';
+export { EditorJsHtmlDirective } from './lib/editorjs-html.directive';
+export {
+  EDITOR_JS_HTML_CONFIG,
+  provideEditorJsHtml,
+} from './lib/configuration';
