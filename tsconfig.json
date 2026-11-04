@@ -53,6 +53,9 @@
     },
     {
       "path": "./packages/editorjs/upload-fetch"
+    },
+    {
+      "path": "./packages/editorjs/html"
     }
   ],
   "compilerOptions": {

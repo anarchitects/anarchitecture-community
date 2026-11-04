@@ -29,7 +29,9 @@ jobs:
           cache: 'yarn'
       - run: yarn install --immutable
       # Runtime-specific inputs keep Node 22 and Node 24 cache results separate.
-      - run: yarn nx run-many -p editorjs-core editorjs-tool-paragraph editorjs-tool-header editorjs-tool-list editorjs-tool-quote editorjs-tool-image editorjs-upload-fetch -t build typecheck test lint
+      - run: yarn nx run-many -p editorjs-core editorjs-tool-paragraph editorjs-tool-header editorjs-tool-list editorjs-tool-quote editorjs-tool-image editorjs-upload-fetch editorjs-html -t build typecheck test lint
+      # Fresh archive installation stays uncached and outside the distributed invocation.
+      - run: yarn nx run editorjs-html:packed-smoke
 
   better-auth-typeorm-adapter-compatibility:
     name: better-auth-typeorm-adapter (Node ${{ matrix.node }}, TypeORM ${{ matrix.typeorm }})

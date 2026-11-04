@@ -1,0 +1,272 @@
+{
+  "name": "@anarchitects/editorjs-html",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@anarchitecture-community/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "name": "editorjs-html",
+    "targets": {
+      "test": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{options.reportsDirectory}"
+        ],
+        "options": {
+          "reportsDirectory": "coverage/packages/editorjs/html"
+        },
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          {
+            "env": "CI"
+          }
+        ]
+      },
+      "build": {
+        "inputs": [
+          "production",
+          "^production",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json"
+        ]
+      },
+      "typecheck": {
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json"
+        ],
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/out-tsc/typecheck"
+        ],
+        "options": {
+          "cwd": "packages/editorjs/html",
+          "commands": [
+            "tsc --project tsconfig.lib.json --noEmit --tsBuildInfoFile out-tsc/typecheck/lib.tsbuildinfo",
+            "tsc --project tsconfig.spec.json --noEmit --tsBuildInfoFile out-tsc/typecheck/spec.tsbuildinfo"
+          ],
+          "parallel": false
+        },
+        "dependsOn": [
+          "build",
+          "^typecheck"
+        ],
+        "cache": true
+      },
+      "lint": {
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          "{workspaceRoot}/eslint.config.mjs",
+          "{workspaceRoot}/tools/eslint-rules/**/*"
+        ]
+      },
+      "vite:test": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          {
+            "env": "CI"
+          }
+        ]
+      },
+      "vitest:test": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          {
+            "env": "CI"
+          }
+        ]
+      },
+      "test-ci--tests/renderer.spec.ts": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          {
+            "env": "CI"
+          }
+        ]
+      },
+      "test-ci--tests/security.spec.ts": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          {
+            "env": "CI"
+          }
+        ]
+      },
+      "packed-smoke": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "node packages/editorjs/html/tools/packed-smoke.mjs"
+        },
+        "configurations": {
+          "browser": {
+            "command": "node packages/editorjs/html/tools/packed-smoke.mjs --browser"
+          }
+        }
+      },
+      "test-ci--tests/conformance.spec.ts": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          {
+            "env": "CI"
+          }
+        ]
+      }
+    }
+  },
+  "dependencies": {
+    "@anarchitects/editorjs-core": "workspace:^",
+    "sanitize-html": "2.18.1"
+  },
+  "devDependencies": {
+    "@anarchitects/editorjs-tool-header": "workspace:^",
+    "@anarchitects/editorjs-tool-paragraph": "workspace:^",
+    "@anarchitects/editorjs-tool-quote": "workspace:^",
+    "@editorjs/editorjs": "2.31.7",
+    "@types/sanitize-html": "2.16.2"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "bugs": {
+    "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Safe, semantic HTML rendering for supported Editor.js saved documents.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+    "directory": "packages/editorjs/html"
+  },
+  "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/editorjs/html#readme",
+  "keywords": [
+    "editorjs",
+    "html",
+    "sanitize"
+  ]
+}
