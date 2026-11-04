@@ -2,7 +2,7 @@
   "name": "@anarchitects/editorjs-html-angular",
   "version": "0.0.1",
   "peerDependencies": {
-    "@angular/core": "22.1.4"
+    "@angular/core": "22.0.0 || 22.1.4 || 22.2.2"
   },
   "sideEffects": false,
   "type": "module",

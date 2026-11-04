@@ -8,7 +8,15 @@ Standalone, display-only Angular component and host directive for Editor.js docu
 npm install @anarchitects/editorjs-html-angular@0.0.1 @anarchitects/editorjs-html@0.0.1 @anarchitects/editorjs-core@0.0.1
 ```
 
-Use Angular **22.1.4** (the exact peer baseline). This initial release is verified with Node **24.22.2**, TypeScript **6.0.3**, Angular compiler **22.1.4**, CLI/build **22.1.6**, and ng-packagr **22.1.1**. Production SSR and hydration are tested using those versions and Playwright Chromium **156.0.8078.4**. The declared Node engine follows Angular's supported floors; other Node/Angular combinations are not yet verified by this package. Other Angular versions are outside the verified peer contract.
+Supported Angular versions are **22.0.0**, **22.1.4** and **22.2.2** (the explicit peer alternatives). Each has packed CSR, SSR, prerender and hydration coverage with its matching compiler/CLI/build/SSR version and TypeScript **6.0.3**:
+
+| Angular | Node    |
+| ------- | ------- |
+| 22.0.0  | 22.22.3 |
+| 22.1.4  | 24.15.0 |
+| 22.2.2  | 26.0.0  |
+
+The APF is built with ng-packagr **22.1.1**. Browser evidence uses Playwright **1.64.0** / Chromium **156.0.8078.4**. The declared Node engine follows Angular's supported floors; other exact Node/Angular combinations and other browsers are not verified by this package. No continuous Angular minor range is implied.
 
 The published artifact is an Angular Package Format library with partial compilation. Its runtime dependencies are the headless renderer and ng-packagr's `tslib`; Angular core is a peer. The headless package privately uses `sanitize-html`. No authoring package or `@editorjs/*` dependency is required.
 
@@ -255,7 +263,7 @@ The owned DOM is `<aa-editorjs-html><div class="editorjs-html">…</div></aa-edi
 
 The root exports `EditorJsHtmlComponent`, `EditorJsHtmlDirective`, `provideEditorJsHtml`, `EDITOR_JS_HTML_CONFIG` and the `HtmlRendererOptions`, `HtmlRenderResult`, `HtmlDiagnostic` types. Import additional headless contracts from `@anarchitects/editorjs-html`. There are no supported deep imports.
 
-For contributor checks and exact package/SSR evidence, see the [validation record](https://github.com/anarchitects/anarchitecture-community/blob/main/docs/editorjs-html-angular-directive-validation.md).
+For contributor checks and exact package/SSR evidence, see the [validation record](https://github.com/anarchitects/anarchitecture-community/blob/main/docs/editorjs-html-packed-validation.md).
 
 ## Troubleshooting
 

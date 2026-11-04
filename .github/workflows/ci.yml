@@ -30,8 +30,7 @@ jobs:
       - run: yarn install --immutable
       # Runtime-specific inputs keep Node 22 and Node 24 cache results separate.
       - run: yarn nx run-many -p editorjs-core editorjs-tool-paragraph editorjs-tool-header editorjs-tool-list editorjs-tool-quote editorjs-tool-image editorjs-upload-fetch editorjs-html -t build typecheck test lint
-      # Fresh archive installation stays uncached and outside the distributed invocation.
-      - run: yarn nx run editorjs-html:packed-smoke
+      # Renderer packed cells run once in the existing SSR job below.
 
   better-auth-typeorm-adapter-compatibility:
     name: better-auth-typeorm-adapter (Node ${{ matrix.node }}, TypeORM ${{ matrix.typeorm }})
@@ -133,6 +132,8 @@ jobs:
 
   editorjs-angular-ssr:
     name: editorjs-angular SSR (Chromium)
+    env:
+      EDITORJS_RENDERER_RUN_ID: renderer-${{ github.run_id }}-${{ github.run_attempt }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -149,6 +150,13 @@ jobs:
       - run: yarn nx run editorjs-angular-e2e:test-ssr
       - run: yarn nx run editorjs-angular-e2e:e2e-hydration
       - run: yarn nx run editorjs-angular-e2e:e2e-isolation
+      # Fresh installs are uncached; Nx schedules independently cached renderer atoms.
+      - run: yarn nx run editorjs-html-angular:packed-prepare
+      - name: Validate packed renderer cells
+        run: yarn nx run-many -p editorjs-html-angular -t "$(node packages/editorjs/html-angular/tools/packed/run.mjs targets)" --runId="$EDITORJS_RENDERER_RUN_ID" --parallel=2
+      - name: Require complete renderer evidence
+        if: always()
+        run: yarn nx run editorjs-html-angular:packed-collect
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -157,6 +165,9 @@ jobs:
             apps/editorjs/angular-e2e/test-output/ssr
             apps/editorjs/angular-e2e/test-output/hydration
             apps/editorjs/angular-e2e/test-output/isolation
+            dist/editorjs-renderer-results
+            dist/editorjs-renderer-inputs/**/evidence
+            dist/editorjs-renderer-inputs/**/snapshot.json
           retention-days: 7
           if-no-files-found: ignore
 

@@ -189,6 +189,12 @@ export class Shell {
 }
 export const routes: Routes = [
   {
+    path: 'corpus',
+    loadComponent: () => import('./corpus').then((m) => m.Corpus),
+  },
+  { path: 'csr', component: App },
+  { path: 'static', component: App },
+  {
     path: 'first',
     component: App,
     providers: provideEditorJsHtml({ classes: { paragraph: ['route-first'] } }),
