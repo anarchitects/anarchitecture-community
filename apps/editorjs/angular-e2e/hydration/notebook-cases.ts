@@ -48,6 +48,9 @@ export function notebookHydrationCases() {
         await open.click();
         const paragraph = page.locator('.ce-paragraph');
         await expect(paragraph).toHaveText('First notebook');
+        // Editor.js inserts blocks before isReady enables change observation.
+        // The recipe enables Save only after readiness and form validation settle.
+        await expect(save).toBeEnabled();
         await paragraph.fill('Hydrated notebook draft');
         if (forms)
           await expect(

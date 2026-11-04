@@ -161,3 +161,35 @@ corpus is #684. Angular display components, directives, SSR/hydration and the
 broader compatibility matrix remain #685–#687. This increment advertises neither
 native CommonJS nor untested browser/framework cells and is not a full security
 audit. Publication and version release remain separate work.
+
+## CI follow-up — 4 November 2026
+
+The [PR #690 run](https://github.com/anarchitects/anarchitecture-community/actions/runs/41297693627)
+passed the renderer baseline and general checks. Its sole failing job was the
+existing packed SSR reference cell: the Forms notebook case in
+`hydration/notebook-cases.ts` edited the visible paragraph before checking editor
+readiness, then timed out waiting for the form draft to change. Editor.js 2.31.7
+inserts blocks before its idle callback completes rendering, enables modification
+observation and resolves `isReady`. Visible initial text is therefore insufficient
+as a readiness condition. The coordinator deliberately ignores pre-ready changes.
+
+The test now waits for the recipe's Save button to become enabled before filling
+the paragraph, matching the existing CSR notebook test. This observes the public
+ready/validation state without increasing timeouts, adding retries or weakening
+draft/persistence assertions. Package runtime and public contracts are unchanged.
+
+Re-enumerated and reread all nine Community and eighteen Meta ADRs for the fixture
+scope; Meta remains at the commit recorded above. Reviewed the Modern Angular
+index, repository application, architecture, forms, reactivity, SSR and testing
+guides. Modern Angular A07/A09/A10 require actual Forms/hydration behavior;
+Community0004 preserves the tested public recipe; Meta0015 preserves isolated
+packed evidence and cache inputs. No conflicts or policy exceptions were found.
+
+Local validation used a fresh packed `angular22-reference` consumer (Angular
+22.1.4, Node 24.15.0, Editor.js 2.31.7), invocation `pr690-hydration-fix`, with
+Nx Cloud disabled. All **24 hydration-registry cases** passed across production,
+diagnostic and full hydration, including both notebook variants. All three
+prerequisite SSR builds passed. The e2e project's lint and typecheck passed
+(lint retains existing warnings), along with formatting and diff checks. The
+existing atom's `default` source input includes the changed test. This is local
+verification of the correction; no hosted rerun or ongoing monitoring was started.
