@@ -29,7 +29,11 @@
           "watchDepsName": "watch-deps"
         }
       },
-      "exclude": ["packages/editorjs/angular/**", "apps/editorjs/**"]
+      "exclude": [
+        "packages/editorjs/angular/**",
+        "apps/editorjs/**",
+        "packages/editorjs/html-angular/**"
+      ]
     },
     {
       "plugin": "@nx/vite/plugin",
@@ -133,7 +137,8 @@
       "editorjs-tool-quote",
       "editorjs-tool-image",
       "editorjs-upload-fetch",
-      "editorjs-html"
+      "editorjs-html",
+      "editorjs-html-angular"
     ],
     "version": {
       "preVersionCommand": "UV_CACHE_DIR=.cache/uv yarn nx run-many -t build",
