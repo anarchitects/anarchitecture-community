@@ -76,7 +76,7 @@ consumer. Files/ports are isolated; servers bind ephemeral loopback ports.
 
 Preparation and required-evidence collection are uncached. Runtime inputs verify
 source/configuration identity, selected versions, archive/lock identity, snapshot
-integrity, actual Chromium binary, coordinator Node, OS/architecture/libc and
+integrity, the actual Chromium headless-shell installation, coordinator Node, OS/architecture/libc and
 workspace location. Environment inputs include CI, NODE_OPTIONS, browser location,
 build workers and run ID. Results include content manifests; the collector rejects
 missing, extra, corrupt, failed, wrong-cell, wrong-phase or stale evidence. A prior
@@ -183,6 +183,46 @@ tests additionally reject failed, stale, empty, wrong-cell/phase and extra evide
 Production browser bundle totals (including lazy corpus code) were 475,701 bytes /
 159,880 gzip for Angular 22.0.0, 483,666 / 163,218 for 22.1.4 and 483,874 /
 163,369 for 22.2.2. Per-file measurements remain in each isolation summary.
+
+## CI headless-shell correction — 4 November 2026
+
+[Run 41882030053](https://github.com/anarchitects/anarchitecture-community/actions/runs/41882030053/job/126756676051)
+passed fresh installation but all seven initially runnable renderer atoms failed
+before browser execution. The identity helper read `chromium.executablePath()`,
+which points to full Chrome; CI intentionally installs `chromium --only-shell`.
+The collector failed for the same reason. Other jobs in that run passed.
+
+Repeated the complete nine-Community/18-Meta ADR review for this correction against
+clean Meta checkout `47e75544673037d25665c8c9305c809802b58261`, including proposed
+and historical records, and the relevant Angular testing/SSR guides. Community0008,
+Angular A09/A10 and Meta0015 require real browser evidence and correct cache inputs;
+Community0004 keeps this diagnosis in contributor documentation. No decision
+conflict or package compatibility change is introduced.
+
+The helper now obtains the selected headless-shell directory from the installed
+Playwright CLI's read-only install plan and hashes its files, including executable
+and runtime resources. It respects `PLAYWRIGHT_BROWSERS_PATH` and fails on missing,
+empty or ambiguous installation evidence. It requires neither the full Chrome
+installation nor private Playwright registry APIs. Existing CI installation and
+browser launch settings remain unchanged.
+
+Regression coverage checks shell-only layouts, executable/resource invalidation,
+missing/empty installations and malformed/duplicate install plans. Local validation
+uses a separate browser cache exposing only the installed headless shell; the old
+full-Chrome read reproduces ENOENT there while headless launch succeeds.
+
+Local run `si697-shell-fix` passed all seven fresh preparations and all 16 atoms
+(16 cache misses, 1m41s), followed by the uncached completeness gate and a 16/16
+cache-hit replay. The four harness tests and owning-project lint passed. Actual
+Chromium remained 156.0.8078.4; no full Chrome executable existed in the selected
+browser cache. Source/configuration digest:
+`969b0bc161e75900e39dd68e77eb236f438d617946dfaf3d43f988a84a933973`.
+Headless-shell installation digest:
+`6a9517498194b18386aa1cd72e8efe5a774e313c739ccb77d4b5d9db0e828940`.
+Per-cell snapshots, locks and results use the same artifact layout under this new
+run ID. This is a local macOS reproduction of the installation layout; a successful
+corrected Linux hosted run has not yet been claimed. No hosted rerun or monitoring
+was initiated.
 
 ## Remaining hosted evidence
 

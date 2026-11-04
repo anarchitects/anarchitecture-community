@@ -5,6 +5,38 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { files, verifyResult, phases, matrix } from './artifacts.mjs';
 import { assertDisplayInputs } from './browser-checks.mjs';
+import { headlessBrowserIdentity } from './browser-identity.mjs';
+
+test('browser identity supports shell-only installs and invalidates changed runtime files', () => {
+  const root = mkdtempSync(join(tmpdir(), 'renderer-shell-only-'));
+  const plan = `Chrome Headless Shell 156.0.8078.4 (playwright chromium-headless-shell v1248)\n  Install location:    ${root}\n\nFFmpeg (playwright ffmpeg v1013)\n  Install location:    /unused-ffmpeg\n`;
+  try {
+    assert.throws(() => headlessBrowserIdentity(plan), /Empty headless-shell/);
+    writeFileSync(join(root, 'chrome-headless-shell'), 'shell binary');
+    writeFileSync(join(root, 'icudtl.dat'), 'runtime resource');
+    const original = headlessBrowserIdentity(plan);
+    assert.equal(original.directory, root);
+    assert.deepEqual(
+      headlessBrowserIdentity(plan.replaceAll('\n', '\r\n')),
+      original,
+    );
+    for (const file of ['chrome-headless-shell', 'icudtl.dat']) {
+      const originalBytes =
+        file === 'icudtl.dat' ? 'runtime resource' : 'shell binary';
+      writeFileSync(join(root, file), 'changed');
+      assert.notEqual(headlessBrowserIdentity(plan).digest, original.digest);
+      writeFileSync(join(root, file), originalBytes);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  assert.throws(() => headlessBrowserIdentity(plan), /ENOENT/);
+  assert.throws(
+    () => headlessBrowserIdentity('unexpected CLI output'),
+    /Expected one/,
+  );
+  assert.throws(() => headlessBrowserIdentity(plan + plan), /Expected one/);
+});
 
 test('completeness rejects missing, corrupt, stale and failed required evidence after replay', () => {
   const root = mkdtempSync(join(tmpdir(), 'renderer-evidence-test-'));

@@ -12,8 +12,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { chromium } from '@playwright/test';
 import { build } from 'esbuild';
+import { headlessBrowserIdentity } from './browser-identity.mjs';
 import {
   files,
   matrix,
@@ -32,7 +32,7 @@ const [phase, cell] = process.argv.slice(2);
 const execution = (cell) => ({
   snapshot: snapshot(cell),
   coordinator: process.version,
-  browser: sha(readFileSync(chromium.executablePath())),
+  browser: headlessBrowserIdentity(),
   workspace,
   environment: Object.fromEntries(
     [
