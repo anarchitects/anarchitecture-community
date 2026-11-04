@@ -53,15 +53,7 @@ describe('semantic rendering and result ownership', () => {
     expect(renderEditorJsHtml(before)).toEqual(first);
     expect(JSON.stringify(input)).toBe(before);
   });
-  it.each([
-    'image',
-    'list',
-    'code',
-    'heading',
-    'toString',
-    'constructor',
-    '__proto__',
-  ])(
+  it.each(['code', 'heading', 'toString', 'constructor', '__proto__'])(
     'diagnoses unsupported saved name %s with no successful prefix',
     (type) => {
       const result = renderEditorJsHtml(

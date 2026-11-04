@@ -68,6 +68,8 @@ __metadata:
   dependencies:
     "@anarchitects/editorjs-core": "workspace:^"
     "@anarchitects/editorjs-tool-header": "workspace:^"
+    "@anarchitects/editorjs-tool-image": "workspace:^"
+    "@anarchitects/editorjs-tool-list": "workspace:^"
     "@anarchitects/editorjs-tool-paragraph": "workspace:^"
     "@anarchitects/editorjs-tool-quote": "workspace:^"
     "@editorjs/editorjs": "npm:2.31.7"
@@ -87,7 +89,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@anarchitects/editorjs-tool-image@workspace:*, @anarchitects/editorjs-tool-image@workspace:packages/editorjs/tool-image":
+"@anarchitects/editorjs-tool-image@workspace:*, @anarchitects/editorjs-tool-image@workspace:^, @anarchitects/editorjs-tool-image@workspace:packages/editorjs/tool-image":
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-tool-image@workspace:packages/editorjs/tool-image"
   dependencies:
@@ -98,7 +100,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@anarchitects/editorjs-tool-list@workspace:*, @anarchitects/editorjs-tool-list@workspace:packages/editorjs/tool-list":
+"@anarchitects/editorjs-tool-list@workspace:*, @anarchitects/editorjs-tool-list@workspace:^, @anarchitects/editorjs-tool-list@workspace:packages/editorjs/tool-list":
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-tool-list@workspace:packages/editorjs/tool-list"
   dependencies:

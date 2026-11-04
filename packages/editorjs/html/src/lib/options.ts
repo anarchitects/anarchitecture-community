@@ -1,15 +1,13 @@
-import type {
-  HtmlClasses,
-  HtmlRendererOptions,
-  HtmlUrlPolicy,
-} from './contracts.js';
+import type { HtmlClasses, HtmlUrlPolicy } from './contracts.js';
 import { ceilings, type Limits } from './limits.js';
+import { registrations, type Registrations } from './registrations.js';
 
 export interface Configuration {
   readonly mode: 'strict' | 'preview';
   readonly limits: Limits;
   readonly urls: Readonly<Required<HtmlUrlPolicy>>;
   readonly classes: Readonly<Required<HtmlClasses>>;
+  readonly registrations: Registrations;
 }
 const classKeys = [
   'paragraph',
@@ -18,6 +16,15 @@ const classKeys = [
   'quoteLeft',
   'quoteCenter',
   'quoteCaption',
+  'list',
+  'listItem',
+  'checklist',
+  'image',
+  'imageCaption',
+  'imageBorder',
+  'imageBackground',
+  'imageStretched',
+  'custom',
 ] as const;
 interface ParsedUrl {
   readonly protocol: string;
@@ -34,7 +41,7 @@ export function parseUrl(value: string, base?: string): ParsedUrl {
   ).URL;
   return new Constructor(value, base);
 }
-function record(
+export function record(
   value: unknown,
   keys: readonly string[],
 ): Record<string, unknown> {
@@ -60,10 +67,16 @@ function bool(value: unknown, fallback: boolean): boolean {
   if (typeof value !== 'boolean') throw Error('configuration');
   return value;
 }
-export function configuration(
-  options: HtmlRendererOptions = {},
-): Configuration {
-  const raw = record(options, ['mode', 'limits', 'urls', 'classes']);
+export function configuration(options: unknown = {}): Configuration {
+  const raw = record(options, [
+    'mode',
+    'limits',
+    'urls',
+    'classes',
+    'profiles',
+    'blocks',
+    'tunes',
+  ]);
   const mode = raw['mode'] ?? 'strict';
   if (mode !== 'strict' && mode !== 'preview') throw Error('configuration');
   const configuredLimits = record(raw['limits'] ?? {}, Object.keys(ceilings));
@@ -81,6 +94,7 @@ export function configuration(
   }
   const rawUrls = record(raw['urls'] ?? {}, [
     'allowRelative',
+    'allowRelativeImages',
     'allowMailto',
     'httpsOnly',
     'allowedOrigins',
@@ -110,7 +124,13 @@ export function configuration(
           ? ['editorjs-quote-left']
           : key === 'quoteCenter'
             ? ['editorjs-quote-center']
-            : []);
+            : key === 'imageBorder'
+              ? ['editorjs-image-border']
+              : key === 'imageBackground'
+                ? ['editorjs-image-background']
+                : key === 'imageStretched'
+                  ? ['editorjs-image-stretched']
+                  : []);
       if (
         !Array.isArray(values) ||
         values.length > 16 ||
@@ -128,8 +148,10 @@ export function configuration(
     mode,
     limits: Object.freeze(limits),
     classes: Object.freeze(classSnapshot),
+    registrations: registrations(raw),
     urls: Object.freeze({
       allowRelative: bool(rawUrls['allowRelative'], true),
+      allowRelativeImages: bool(rawUrls['allowRelativeImages'], false),
       allowMailto: bool(rawUrls['allowMailto'], false),
       httpsOnly: bool(rawUrls['httpsOnly'], false),
       allowedOrigins: Object.freeze([...origins]),
@@ -140,6 +162,7 @@ export function configuration(
 export function permitsUrl(
   value: string,
   policy: Configuration['urls'],
+  image = false,
 ): boolean {
   // Controls, backslashes and encoded protocol separators are never normalization shortcuts.
   if (
@@ -158,8 +181,11 @@ export function permitsUrl(
   const parsed = parseUrl(value, 'https://editorjs.invalid/');
   const absolute = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(value);
   if (!absolute)
-    return policy.allowRelative && parsed.origin === 'https://editorjs.invalid';
-  if (parsed.protocol === 'mailto:') return policy.allowMailto;
+    return (
+      (image ? policy.allowRelativeImages : policy.allowRelative) &&
+      parsed.origin === 'https://editorjs.invalid'
+    );
+  if (parsed.protocol === 'mailto:') return !image && policy.allowMailto;
   if (
     !['http:', 'https:'].includes(parsed.protocol) ||
     (policy.httpsOnly && parsed.protocol !== 'https:') ||

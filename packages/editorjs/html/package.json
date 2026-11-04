@@ -232,6 +232,48 @@
             "env": "CI"
           }
         ]
+      },
+      "test-ci--tests/profiles.spec.ts": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          {
+            "env": "CI"
+          }
+        ]
+      },
+      "test-ci--tests/extensions.spec.ts": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          "{workspaceRoot}/tsconfig.json",
+          {
+            "env": "CI"
+          }
+        ]
       }
     }
   },
@@ -241,6 +283,8 @@
   },
   "devDependencies": {
     "@anarchitects/editorjs-tool-header": "workspace:^",
+    "@anarchitects/editorjs-tool-image": "workspace:^",
+    "@anarchitects/editorjs-tool-list": "workspace:^",
     "@anarchitects/editorjs-tool-paragraph": "workspace:^",
     "@anarchitects/editorjs-tool-quote": "workspace:^",
     "@editorjs/editorjs": "2.31.7",
