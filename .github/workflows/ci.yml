@@ -8,13 +8,39 @@ on:
     branches:
       - main
   pull_request:
+  merge_group:
 
 permissions:
   actions: read
   contents: read
 
 jobs:
+  selection:
+    name: Select affected CI work
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.admission.outputs.plan }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          filter: tree:0
+          fetch-depth: 0
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'yarn'
+      - run: yarn install --immutable
+      - run: yarn nx run @anarchitecture-community/source:test-ci-selection
+        env:
+          NX_NO_CLOUD: 'true'
+      - name: Resolve revisions and select work from Nx
+        id: admission
+        run: node tools/ci/selection.mjs select
+
   editorjs-core-runtime-baseline:
+    needs: selection
+    if: ${{ fromJSON(needs.selection.outputs.plan).selected['editorjs-core-runtime-baseline'] }}
     name: Editor.js neutral packages (Node 22.12.0)
     runs-on: ubuntu-latest
     steps:
@@ -33,6 +59,8 @@ jobs:
       # Renderer packed cells run once in the existing SSR job below.
 
   better-auth-typeorm-adapter-compatibility:
+    needs: selection
+    if: ${{ fromJSON(needs.selection.outputs.plan).selected['better-auth-typeorm-adapter-compatibility'] }}
     name: better-auth-typeorm-adapter (Node ${{ matrix.node }}, TypeORM ${{ matrix.typeorm }})
     runs-on: ubuntu-latest
     strategy:
@@ -63,6 +91,8 @@ jobs:
       - run: yarn nx run better-auth-typeorm-adapter:test-better-auth
 
   nest-angular-ssr-consumers:
+    needs: selection
+    if: ${{ fromJSON(needs.selection.outputs.plan).selected['nest-angular-ssr-consumers'] }}
     name: nest-angular-ssr consumers (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -81,6 +111,8 @@ jobs:
       - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-consumers
 
   nest-angular-ssr-compatibility:
+    needs: selection
+    if: ${{ fromJSON(needs.selection.outputs.plan).selected['nest-angular-ssr-compatibility'] }}
     name: nest-angular-ssr (${{ matrix.cell }})
     runs-on: ubuntu-latest
     strategy:
@@ -104,6 +136,8 @@ jobs:
       - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-matrix --cell=${{ matrix.cell }}
 
   editorjs-angular-browser:
+    needs: selection
+    if: ${{ fromJSON(needs.selection.outputs.plan).selected['editorjs-angular-browser'] }}
     name: editorjs-angular (Chromium)
     runs-on: ubuntu-latest
     steps:
@@ -131,6 +165,8 @@ jobs:
           if-no-files-found: ignore
 
   editorjs-angular-ssr:
+    needs: selection
+    if: ${{ fromJSON(needs.selection.outputs.plan).selected['editorjs-angular-ssr'] }}
     name: editorjs-angular SSR (Chromium)
     env:
       EDITORJS_RENDERER_RUN_ID: renderer-${{ github.run_id }}-${{ github.run_attempt }}
@@ -172,6 +208,8 @@ jobs:
           if-no-files-found: ignore
 
   editorjs-angular-packed:
+    needs: selection
+    if: ${{ fromJSON(needs.selection.outputs.plan).selected['editorjs-angular-packed'] }}
     name: editorjs-angular packed (Nx DTE)
     runs-on: ubuntu-22.04
     timeout-minutes: 45
@@ -249,7 +287,9 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  main:
+  workspace:
+    needs: selection
+    if: ${{ fromJSON(needs.selection.outputs.plan).selected.workspace }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -283,10 +323,38 @@ jobs:
 
       # Prepend any command with "nx record --" to record its logs to Nx Cloud
       # - run: yarn nx record -- echo Hello World
-      - run: yarn nx run-many -t lint test build typecheck
+      - name: Validate selected workspace projects
+        run: node tools/ci/selection.mjs workspace
+        env:
+          CI_PLAN: ${{ needs.selection.outputs.plan }}
       - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-split
+        if: ${{ fromJSON(needs.selection.outputs.plan).selected['nest-angular-ssr-consumers'] }}
       - run: yarn nx run better-auth-typeorm-adapter:test-postgres
+        if: ${{ fromJSON(needs.selection.outputs.plan).selected['better-auth-typeorm-adapter-compatibility'] }}
       - run: yarn nx run better-auth-typeorm-adapter:test-better-auth
+        if: ${{ fromJSON(needs.selection.outputs.plan).selected['better-auth-typeorm-adapter-compatibility'] }}
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
       - run: yarn nx fix-ci
         if: always()
+
+  # Keep the existing required check identity. A skipped workload is successful
+  # only when a successful selection explicitly declared it unaffected.
+  main:
+    if: ${{ always() }}
+    needs:
+      - selection
+      - editorjs-core-runtime-baseline
+      - better-auth-typeorm-adapter-compatibility
+      - nest-angular-ssr-consumers
+      - nest-angular-ssr-compatibility
+      - editorjs-angular-browser
+      - editorjs-angular-ssr
+      - editorjs-angular-packed
+      - workspace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require every selected CI job
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: node tools/ci/selection.mjs check

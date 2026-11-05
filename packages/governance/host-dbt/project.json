@@ -61,6 +61,7 @@
     },
     "test": {
       "executor": "@nxlv/python:run-commands",
+      "inputs": ["default", "^default"],
       "outputs": [
         "{workspaceRoot}/reports/{projectRoot}/unittests",
         "{workspaceRoot}/coverage/{projectRoot}"
