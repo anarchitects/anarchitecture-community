@@ -203,6 +203,7 @@ export async function sourceFingerprint(workspace) {
     'apps/editorjs/angular-e2e/tools/angular-persistence.mjs',
     'apps/editorjs/angular-e2e/tools/angular-display.mjs',
     'apps/editorjs/angular-e2e/tools/composed-display.txt',
+    'apps/editorjs/angular-e2e/tools/display-page.txt',
     'apps/editorjs/angular-e2e/tools/compatibility-matrix.json',
     'apps/editorjs/angular-e2e/tools/serve-packed.mjs',
   ];

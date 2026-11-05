@@ -10,6 +10,8 @@ interface Snapshot {
   runtimeHints: string[];
   eagerRoots: string[];
   sessions: { owner: string; events: string[] }[];
+  authoringRequests: string[];
+  authoringEvaluated: string[];
 }
 interface Delivery {
   checkpoint(label: string): Promise<Snapshot>;
@@ -125,6 +127,16 @@ export const test = lifetimeTest.extend<{
       );
       const snapshot = {
         label,
+        authoringRequests: requests
+          .map((r) => r.url)
+          .filter((url) =>
+            graph.authoring.includes(new URL(url).pathname.slice(1)),
+          ),
+        authoringEvaluated: [...evaluated].filter(
+          (url) =>
+            url.startsWith('http') &&
+            graph.authoring.includes(new URL(url).pathname.slice(1)),
+        ),
         runtimeRequests: requests.map((r) => r.url).filter(runtime),
         runtimeResponses: responses
           .filter((r) => r.status === 200)

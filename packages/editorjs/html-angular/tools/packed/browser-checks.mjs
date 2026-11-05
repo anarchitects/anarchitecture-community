@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { expect } from '@playwright/test';
@@ -35,10 +35,86 @@ async function observedPage(browser) {
   );
   return { page, errors, requests };
 }
-export async function corpusCheck(browser, origin) {
+async function corpusRoute(browser, origin, route, evidence) {
   const { page, errors, requests } = await observedPage(browser);
+  await page.context().tracing.start({ snapshots: true, screenshots: true });
   try {
-    await page.goto(`${origin}/corpus`);
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/*.js', async (request) => {
+      await gate;
+      await request.continue();
+    });
+    const response = await page.goto(`${origin}/${route}`, {
+      waitUntil: 'commit',
+    });
+    assert.equal(response.status(), 200);
+    writeFileSync(join(evidence, `${route}.html`), await response.text());
+    const inspect = () =>
+      page.evaluate(() => {
+        const rows = [...document.querySelectorAll('.case')];
+        for (const row of rows) {
+          const expected = document.createElement('div');
+          expected.innerHTML = row.getAttribute('data-html') ?? '';
+          const status = row.getAttribute('data-status');
+          const name = row.getAttribute('data-name');
+          if (
+            row.querySelector('output')?.textContent?.trim() !==
+            `${status}/${status}`
+          )
+            throw Error(`${name}: result mismatch`);
+          for (const actual of [
+            row.querySelector('.editorjs-html'),
+            row.querySelector('article'),
+          ]) {
+            if (actual?.innerHTML !== expected.innerHTML)
+              throw Error(`${name}: semantic HTML mismatch`);
+            if (
+              actual.querySelector(
+                'script,svg,math,iframe,object,embed,style,[onclick],[onerror],[style]',
+              )
+            )
+              throw Error(`${name}: unsafe DOM`);
+          }
+        }
+        return {
+          count: rows.length,
+          html: rows.map((row) => [
+            row.getAttribute('data-name'),
+            row.querySelector('article').innerHTML,
+          ]),
+          expectedRequests: [
+            ...new Set([...document.images].map((image) => image.src)),
+          ].sort(),
+        };
+      });
+    let before;
+    try {
+      if (route === 'corpus-server') {
+        await expect(page.locator('#corpus')).toHaveAttribute(
+          'data-ready',
+          'false',
+        );
+        await expect(page.locator('.case')).toHaveCount(1169);
+        before = await inspect();
+        await page.evaluate(() => {
+          globalThis.__corpusHosts = [
+            ...document.querySelectorAll(
+              '.case aa-editorjs-html, .case .editorjs-html, .case article',
+            ),
+          ];
+        });
+      } else {
+        assert(
+          !(await response.text()).includes('id="corpus"'),
+          'CSR corpus unexpectedly server rendered',
+        );
+      }
+    } finally {
+      release();
+    }
     await expect(page.locator('#corpus'))
       .toHaveAttribute('data-ready', 'true', { timeout: 60_000 })
       .catch((error) => {
@@ -46,39 +122,28 @@ export async function corpusCheck(browser, origin) {
           `${error.message}\nBrowser errors: ${JSON.stringify(errors)}`,
         );
       });
-    const { count, expectedRequests } = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('.case')];
-      for (const row of rows) {
-        const expected = document.createElement('div');
-        expected.innerHTML = row.getAttribute('data-html') ?? '';
-        const status = row.getAttribute('data-status');
-        const name = row.getAttribute('data-name');
-        if (
-          row.querySelector('output')?.textContent?.trim() !==
-          `${status}/${status}`
-        )
-          throw Error(`${name}: result mismatch`);
-        for (const actual of [
-          row.querySelector('.editorjs-html'),
-          row.querySelector('article'),
-        ]) {
-          if (actual?.innerHTML !== expected.innerHTML)
-            throw Error(`${name}: semantic HTML mismatch`);
-          if (
-            actual.querySelector(
-              'script,svg,math,iframe,object,embed,style,[onclick],[onerror],[style]',
-            )
-          )
-            throw Error(`${name}: unsafe DOM`);
-        }
-      }
-      return {
-        count: rows.length,
-        expectedRequests: [
-          ...new Set([...document.images].map((image) => image.src)),
-        ].sort(),
-      };
-    });
+    const after = await inspect();
+    const { count, expectedRequests } = after;
+    if (before) {
+      assert.deepEqual(
+        after,
+        before,
+        'Corpus meaning changed during hydration',
+      );
+      assert.equal(
+        await page.evaluate(() =>
+          globalThis.__corpusHosts.every(
+            (node, index) =>
+              node ===
+              document.querySelectorAll(
+                '.case aa-editorjs-html, .case .editorjs-html, .case article',
+              )[index],
+          ),
+        ),
+        true,
+        'Renderer hosts must be hydrated, not recreated',
+      );
+    }
     assert.equal(count, 1169); // 14 routes × 27 attacks × 3 modes + 30 fragments + 4 alt states + semantics.
     await expect(
       page
@@ -115,10 +180,29 @@ export async function corpusCheck(browser, origin) {
       ),
     );
     assert.deepEqual(errors, []);
-    return { cases: count, presentations: 2, errors };
+    return {
+      route,
+      cases: count,
+      presentations: 2,
+      serverParity: !!before,
+      errors,
+    };
   } finally {
+    writeFileSync(
+      join(evidence, `${route}-browser.json`),
+      JSON.stringify({ errors, requests }, null, 2),
+    );
+    await page
+      .context()
+      .tracing.stop({ path: join(evidence, `${route}-trace.zip`) });
     await page.close();
   }
+}
+export async function corpusCheck(browser, origin, evidence) {
+  const results = [];
+  for (const route of ['corpus', 'corpus-server'])
+    results.push(await corpusRoute(browser, origin, route, evidence));
+  return { routes: results };
 }
 export async function isolationCheck(browser, origin, consumer) {
   const output = join(consumer, 'dist/consumer');

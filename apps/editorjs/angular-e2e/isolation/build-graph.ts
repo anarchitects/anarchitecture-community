@@ -43,6 +43,22 @@ export async function buildGraph(eager = false) {
       ),
     )
     .map(([name]) => name);
+  const authoring = Object.entries(outputs)
+    .filter(([, output]) =>
+      Object.entries(output.inputs).some(
+        ([input, value]) =>
+          value.bytesInOutput > 0 &&
+          /(?:@anarchitects\/editorjs-angular\/|packages\/editorjs\/angular\/)/.test(
+            input,
+          ),
+      ),
+    )
+    .map(([name]) => name);
+  const displayPage = packed
+    ? emittedFrom('apps/editorjs/angular-host/src/ssr/display-page.ts')
+    : [];
+  if (packed)
+    assert.equal(displayPage.length, 1, 'Expected the packed display route');
   assert.equal(main.length, 1, 'Expected one production browser entry');
   assert.equal(publicPage.length, 1, 'Expected the lazy public route entry');
   assert(
@@ -146,6 +162,8 @@ export async function buildGraph(eager = false) {
     main,
     publicPage,
     runtime,
+    authoring,
+    displayPage,
     tools,
     initial,
     publicClosure,
@@ -162,6 +180,15 @@ export async function buildGraph(eager = false) {
       `Editor.js runtime enters the public eager dependency closure: ${leaks.join(', ')}`,
     );
   }
-  return { ...report, report, assertIsolated };
+  function assertDisplayIsolated() {
+    const reached = closure([...main, ...displayPage]);
+    assertIsolated(displayPage);
+    assert.deepEqual(
+      authoring.filter((asset) => reached.includes(asset)),
+      [],
+      'Authoring Angular entered the display closure',
+    );
+  }
+  return { ...report, report, assertIsolated, assertDisplayIsolated };
 }
 export type BuildGraph = Awaited<ReturnType<typeof buildGraph>>;
