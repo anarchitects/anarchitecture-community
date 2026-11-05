@@ -1,4 +1,5 @@
 import { test as base, expect, type Page } from '@playwright/test';
+import { displayText } from './display.js';
 
 const test = base.extend<{ diagnostics: void }>({
   diagnostics: [
@@ -32,6 +33,7 @@ export function notebookCases(forms: boolean) {
       await button(page, 'Open notebook').click();
       await expect(text(page)).toHaveText('First notebook');
       await expect(button(page, 'Save notebook')).toBeEnabled();
+      await displayText(page, 'First notebook');
     });
     async function edit(page: Page, value: string) {
       await text(page).fill(value);
@@ -66,6 +68,7 @@ export function notebookCases(forms: boolean) {
         await expect(output(page, 'Touched')).toHaveText('false');
       }
       await edit(page, 'Discard this local draft');
+      await displayText(page, 'Acknowledged notebook');
       await button(page, 'Reload notebook').click();
       await expect(text(page)).toHaveText('Acknowledged notebook');
       await expect(output(page, 'Revision')).toHaveText(record.revision);
@@ -83,6 +86,7 @@ export function notebookCases(forms: boolean) {
       await expect(text(page)).toHaveText('Retain on failure');
       await expect(output(page, 'Revision')).toHaveText(revision);
       await expect(output(page, 'Acknowledged record')).toBeEmpty();
+      await displayText(page, 'First notebook');
       if (forms) {
         await expect(output(page, 'Dirty')).toHaveText('true');
         await expect(output(page, 'Touched')).toHaveText('true');
@@ -104,8 +108,10 @@ export function notebookCases(forms: boolean) {
       );
       await expect(text(page)).toHaveText('Retain on conflict');
       await expect(output(page, 'Revision')).toHaveText(acknowledgedRevision);
+      await displayText(page, 'Retain on failure');
       await button(page, 'Reload notebook').click();
       await expect(text(page)).toHaveText('Another writer');
+      await displayText(page, 'Another writer');
     });
     test('late acknowledgement preserves newer edits and advances only the stored revision', async ({
       page,
@@ -119,6 +125,7 @@ export function notebookCases(forms: boolean) {
       // Dispatch bypasses the disabled UI to exercise the host's duplicate guard.
       await button(page, 'Save notebook').dispatchEvent('click');
       await edit(page, 'Newer draft survives');
+      await displayText(page, 'First notebook');
       await button(page, 'Complete held save').click();
       await expect(page.getByRole('status')).toHaveText(
         'Saved snapshot; newer edits retained',
@@ -130,6 +137,7 @@ export function notebookCases(forms: boolean) {
         'Newer draft survives',
       );
       await expect(text(page)).toHaveText('Newer draft survives');
+      await displayText(page, 'Captured first');
       const first = await output(page, 'Revision').innerText();
       if (forms) await expect(output(page, 'Dirty')).toHaveText('true');
       await button(page, 'Save notebook').click();
@@ -142,6 +150,7 @@ export function notebookCases(forms: boolean) {
       await expect(output(page, 'Revision')).toHaveText(
         `r${Number(first.slice(1)) + 1}`,
       );
+      await displayText(page, 'Newer draft survives');
     });
     test('a new load fences a pending acknowledgement', async ({ page }) => {
       await edit(page, 'Old notebook snapshot');
@@ -159,6 +168,7 @@ export function notebookCases(forms: boolean) {
       await expect(output(page, 'Loaded notebook')).toHaveText('note-2');
       await expect(output(page, 'Revision')).toHaveText(revision);
       await expect(output(page, 'Acknowledged record')).toBeEmpty();
+      await displayText(page, 'Second notebook');
       await expect(page.getByRole('status')).toHaveText(
         'Loaded note-2 (current)',
       );
@@ -169,6 +179,21 @@ export function notebookCases(forms: boolean) {
         'Second owner draft',
       );
     });
+    test('destroying a page with held persistence cannot populate its fresh owner', async ({
+      page,
+    }) => {
+      await edit(page, 'Disposed snapshot');
+      await button(page, 'Hold next save').click();
+      await button(page, 'Save notebook').click();
+      await expect(page.getByRole('status')).toHaveText('Persisting snapshot');
+      await displayText(page, 'First notebook');
+      await page.reload();
+      await button(page, 'Open notebook').click();
+      await expect(text(page)).toHaveText('First notebook');
+      await expect(output(page, 'Acknowledged record')).toBeEmpty();
+      await expect(output(page, 'Persistence pending')).toHaveText('false');
+      await displayText(page, 'First notebook');
+    });
     test('unsupported loads retain content and legacy loads migrate before explicit editing', async ({
       page,
     }) => {
@@ -178,12 +203,14 @@ export function notebookCases(forms: boolean) {
         'previous draft retained',
       );
       await expect(text(page)).toHaveText('Do not replace with empty');
+      await displayText(page, 'First notebook');
       await expect(button(page, 'Save notebook')).toBeDisabled();
       await button(page, 'Load legacy notebook').click();
       await expect(page.getByRole('status')).toHaveText(
         'Loaded legacy (migrated)',
       );
       await expect(page.locator('.callout-text')).toHaveText('Legacy notebook');
+      await displayText(page, 'Legacy notebook');
       await expect(output(page, 'Acknowledged record')).toBeEmpty();
       await page.locator('.callout-text').fill('Edited migrated notebook');
       if (forms)
@@ -200,6 +227,7 @@ export function notebookCases(forms: boolean) {
       );
       expect(record.provenance.schema.version).toBe('2');
       expect(record.document.blocks[0].type).toBe('callout');
+      await displayText(page, 'Edited migrated notebook');
     });
     if (forms)
       test('async review pending and rejection are independent of persistence', async ({
@@ -225,6 +253,7 @@ export function notebookCases(forms: boolean) {
           await expect(page.getByRole('alert')).toHaveText(
             'Review rejected the document',
           );
+          await displayText(page, 'First notebook');
           await expect(text(page)).toHaveText('First notebook');
           await expect(output(page, 'Acknowledged record')).toBeEmpty();
         } finally {

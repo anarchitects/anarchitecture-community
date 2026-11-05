@@ -14,6 +14,24 @@ export async function preparePackedSsr({ root, report, workspace, tsconfig }) {
   await cp(join(root, '..', 'public'), join(root, host, 'public'), {
     recursive: true,
   });
+  // The CSR composition observer moves with the host into this nested workspace.
+  for (const file of [
+    'app/editor-card.ts',
+    'app/forms-card.ts',
+    'upload/upload-editor.ts',
+    'upload/forms-upload-editor.ts',
+  ]) {
+    const path = join(root, host, 'src', file);
+    const source = await readFile(path, 'utf8');
+    assert(source.includes("'../../examples/composed-display.js'"));
+    await writeFile(
+      path,
+      source.replace(
+        "'../../examples/composed-display.js'",
+        "'../../../../../examples/composed-display.js'",
+      ),
+    );
+  }
   await prepareAngularCustomSsr(root);
   await prepareAngularPersistenceSsr(root);
   const { targets } = JSON.parse(

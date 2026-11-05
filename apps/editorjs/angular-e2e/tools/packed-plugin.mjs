@@ -40,6 +40,7 @@ export const createNodesV2 = [
             {
               projects: [
                 'editorjs-angular',
+                'editorjs-html-angular',
                 'editorjs-tool-paragraph',
                 'editorjs-tool-header',
                 'editorjs-tool-list',

@@ -12,6 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
 import { prepareIndependentTools } from './independent-tools.mjs';
+import { prepareAngularDisplay } from './angular-display.mjs';
 import { preparePortable } from './portable-consumer.mjs';
 import { preparePackedSsr } from './packed-ssr.mjs';
 import { prepareReadmeSsr } from './readme-ssr.mjs';
@@ -76,6 +77,11 @@ try {
       'packages/editorjs/tool-paragraph',
     ],
     ['@anarchitects/editorjs-angular', 'dist/packages/editorjs/angular'],
+    ['@anarchitects/editorjs-html', 'packages/editorjs/html'],
+    [
+      '@anarchitects/editorjs-html-angular',
+      'dist/packages/editorjs/html-angular',
+    ],
     ...(mode === 'csr' && names.includes('angular22-reference')
       ? [
           [
@@ -85,6 +91,14 @@ try {
         ]
       : []),
   ]) {
+    if (name === '@anarchitects/editorjs-html') {
+      // Yarn resolves the headless package's workspace dependency, as in the
+      // existing renderer consumer. npm pack would ship an uninstallable range.
+      const archive = join(scratch, 'editorjs-html.tgz');
+      await run('yarn', ['pack', '--out', archive], join(workspace, directory));
+      archives[name] = archive;
+      continue;
+    }
     const output = await run(
       'npm',
       ['pack', '--ignore-scripts', '--json', '--pack-destination', scratch],
@@ -196,6 +210,7 @@ async function validate(name, versions, archives, sources) {
     );
     await prepareAngularCustom({ root, report, workspace });
     await prepareAngularPersistence({ root, workspace });
+    await prepareAngularDisplay(root);
     const tsconfig = {
       compilerOptions: {
         target: 'ES2022',

@@ -10,6 +10,7 @@ import { leasePorts } from './packed-ports.mjs';
 import { prepareReadmeSsr } from './readme-ssr.mjs';
 import { parallelism, phasesFor, targetFor } from './packed-phases.mjs';
 import { createNodesV2 } from './packed-plugin.mjs';
+import { editorServerOutputs } from './ssr-editor-outputs.mjs';
 import {
   pathsFor,
   platformIdentity,
@@ -20,6 +21,48 @@ import {
 } from './packed-artifacts.mjs';
 
 const project = resolve(import.meta.dirname, '..');
+test('SSR import isolation allows neutral notebook/display code but rejects emitted tools in either recipe', () => {
+  const chunk = (inputs) => ({
+    inputs: Object.fromEntries(
+      inputs.map((input) => [input, { bytesInOutput: 10 }]),
+    ),
+  });
+  const stats = {
+    outputs: {
+      'neutral.mjs': chunk([
+        'examples/notebook/persistence.ts',
+        'examples/notebook/custom/callout-data.ts',
+        'examples/composed-display.ts',
+      ]),
+      'notebook-tool.mjs': chunk([
+        'examples/notebook/custom/callout-tool.ts',
+        'examples/notebook/persistence.ts',
+      ]),
+      'notebook-tune.mjs': chunk(['examples/notebook/custom/flag-tune.ts']),
+      'custom-tool.mjs': chunk(['examples/custom/marker-tool.ts']),
+      'upstream.mjs': chunk([
+        'node_modules/@editorjs/editorjs/dist/editorjs.mjs',
+      ]),
+      'code.mjs': chunk(['node_modules/@editorjs/code/dist/code.mjs']),
+      'eliminated.mjs': {
+        inputs: {
+          'examples/notebook/custom/flag-tune.ts': { bytesInOutput: 0 },
+        },
+      },
+    },
+  };
+  assert.deepEqual(
+    editorServerOutputs(stats, '/build'),
+    [
+      'notebook-tool.mjs',
+      'notebook-tune.mjs',
+      'custom-tool.mjs',
+      'upstream.mjs',
+      'code.mjs',
+    ].map((name) => join('/build/server', name)),
+  );
+});
+
 async function temporary(t) {
   const root = await mkdtemp(join(tmpdir(), 'editorjs-harness-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -68,6 +111,14 @@ test('distributed graphs contain only cacheable tasks with isolated outputs and 
       for (const phase of phasesFor(mode, cell))
         visit(targetFor(mode, cell, phase));
       assert.equal(targets[targetFor(mode, cell, 'prepare')].cache, false);
+      assert(
+        targets[targetFor(mode, cell, 'prepare')].dependsOn.some(
+          (dependency) =>
+            dependency.target === 'build' &&
+            dependency.projects.includes('editorjs-html-angular'),
+        ),
+        'Composed authoring snapshots require the built public display archives',
+      );
     }
   assert.equal(visited.size, 89); // (7 CSR atoms + 22 SSR atoms) × 3 + 2 Nest adapters
   for (const mode of ['csr', 'ssr'])

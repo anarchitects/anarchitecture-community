@@ -6,6 +6,7 @@ import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { JSDOM } from 'jsdom';
+import { editorServerOutputs } from './ssr-editor-outputs.mjs';
 import {
   fixtureRoot,
   fixtureNode,
@@ -39,24 +40,7 @@ await writeFile(
   ),
 );
 const stats = JSON.parse(await readFile(join(output, 'stats.json'), 'utf8'));
-const editorOutputs = Object.entries(stats.outputs)
-  .filter(
-    ([file, details]) =>
-      file.endsWith('.mjs') &&
-      Object.keys(details.inputs).some(
-        (input) =>
-          input.includes('@editorjs/editorjs/') ||
-          input.includes('/registry/tools/') ||
-          input.includes('/common/tools/') ||
-          input.includes('examples/custom/callout-tool.ts') ||
-          input.includes('examples/custom/marker-tool.ts') ||
-          input.includes('examples/custom/flag-tune.ts') ||
-          input.includes('examples/notebook/') ||
-          input.includes('@editorjs/code/') ||
-          /@editorjs\/(paragraph|header|list|quote|image)\//.test(input),
-      ),
-  )
-  .map(([file]) => join(output, 'server', basename(file)));
+const editorOutputs = editorServerOutputs(stats, output);
 assert(
   editorOutputs.length > 0,
   'Build graph must identify the real Editor.js server output',
@@ -97,22 +81,25 @@ if (packed) {
       files.length > 0,
       `Missing archived custom server provenance: ${source}`,
     );
-    const file = join(output, 'server', basename(files[0][0]));
-    assert(editorOutputs.includes(file));
-    const result = await childResult([
-      '--import',
-      guard,
-      '--input-type=module',
-      '-e',
-      `await import(${JSON.stringify(pathToFileURL(file).href)})`,
-    ]);
-    assert.notEqual(result.code, 0);
-    assert.match(result.stderr, /Editor.js server evaluation forbidden/);
-    controls[source] = {
-      file: basename(file),
-      code: result.code,
-      stderr: result.stderr,
-    };
+    controls[source] = [];
+    for (const [name] of files) {
+      const file = join(output, 'server', basename(name));
+      assert(editorOutputs.includes(file));
+      const result = await childResult([
+        '--import',
+        guard,
+        '--input-type=module',
+        '-e',
+        `await import(${JSON.stringify(pathToFileURL(file).href)})`,
+      ]);
+      assert.notEqual(result.code, 0);
+      assert.match(result.stderr, /Editor.js server evaluation forbidden/);
+      controls[source].push({
+        file: basename(file),
+        code: result.code,
+        stderr: result.stderr,
+      });
+    }
   }
   await writeFile(
     join(report, 'custom-import-negative-controls.json'),
