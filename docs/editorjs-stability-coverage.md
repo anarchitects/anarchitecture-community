@@ -1106,3 +1106,34 @@ protection; #680 owns the integrated candidate. No hosted CI inspection,
 monitoring, rerun or paid capacity experiment was performed. Selection startup,
 total duration and runner/worker consumption must be measured separately from
 cache hits and DTE gains when that evidence is authorized.
+
+### CI follow-up: wait for README editor readiness before typing
+
+At the maintainer's request, a bounded inspection of
+[run 42084692672](https://github.com/anarchitects/anarchitecture-community/actions/runs/42084692672)
+found 87/89 packed atoms passed. Only minimum SSR `readme-default` and `readme-full`
+failed: `/sample/edit` expected “Edited” but observed “Loading editor”, then
+“Ready”. All other workload jobs passed. Selection succeeded and the `main`
+aggregate correctly rejected `editorjs-angular-packed: expected success, received
+failure`. This supplies hosted failure-propagation evidence for the initial
+candidate, not green evidence for the corrected candidate or unaffected-job skips.
+
+The README test filled the paragraph as soon as its DOM existed. Editor.js renders
+blocks before enabling change observation and resolving `isReady`; the component
+then emits its public `ready` event. The README explicitly instructs consumers to
+wait for “Ready” before editing. The test now observes that state before its first
+edit on the standalone editor routes, then still requires “Edited”, hydration
+holder identity, clean browser diagnostics and disposal on navigation. Runtime
+code, Forms behavior, retries and assertion timeouts are unchanged.
+
+The preflight re-enumerated both ADR sources: the 24 Meta records at `09d4fc8` and
+nine local records remain unchanged from their full readings. Local0004 and the
+accepted Modern Angular decision require truthful packed-recipe/hydration proof;
+Meta0015 requires preserving verification. The Angular repository application,
+SSR and testing guides were rechecked; no decision conflict was found.
+
+Fresh local preparation `si695-readme-ready` used Angular22.0.0, Editor.js2.31.7
+and Node22.22.3. Both README production builds and all **13 browser tests** passed
+(seven default, six full), with no retries or atom cache hits. E2e lint/typecheck
+also passed. Evidence is under `dist/editorjs-packed-results/si695-readme-ready`.
+No hosted rerun, ongoing monitoring or capacity change was performed.

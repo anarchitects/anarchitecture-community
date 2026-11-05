@@ -40,6 +40,11 @@ for (const path of ['/edit', '/form', '/sample/edit', '/sample/form']) {
     const paragraph = page.locator('.ce-paragraph[contenteditable="true"]');
     await expect(paragraph).toHaveCount(1);
     expect(await original.evaluate((node) => node.isConnected)).toBe(true);
+    if (!path.endsWith('form')) {
+      // Editor.js renders the paragraph before enabling change observation.
+      // Follow the README's readiness contract before making the first edit.
+      await expect(page.getByRole('status')).toHaveText('Ready');
+    }
     await paragraph.fill('README hydrated edit');
     if (path.endsWith('form')) {
       await page.getByRole('button', { name: 'Toggle disabled' }).click();
