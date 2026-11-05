@@ -402,7 +402,12 @@ export class FormsUploadEditor implements OnInit {
     try {
       const snapshot = await editor.save();
       if (!current()) return;
-      this.model.update((value) => ({ ...value, body: snapshot }));
+      // Native Forms may attach tracking metadata to its model. Keep the
+      // explicit persistence snapshot detached from that model's ownership.
+      this.model.update((value) => ({
+        ...value,
+        body: structuredClone(snapshot),
+      }));
       const accepted = await submit(this.fields, {
         ignoreValidators: 'none',
         action: async () => {

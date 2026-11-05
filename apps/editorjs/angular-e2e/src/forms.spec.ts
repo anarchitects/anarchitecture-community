@@ -1,9 +1,11 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { customFormCases } from '../custom/cases.js';
 import { notebookCases } from '../persistence/cases.js';
+import { formsDisplayCases } from '../persistence/display-cases.js';
 
 customFormCases();
 notebookCases(true);
+formsDisplayCases();
 
 const card = (page: Page, name = 'First') =>
   page.getByRole('region', { name: `${name} form`, exact: true });

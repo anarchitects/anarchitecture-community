@@ -443,6 +443,9 @@ The form model owns only the editable body. Revision and provenance stay in the
 loaded host record. Its validator delegates to the shared editing gate. Only
 the Forms model boundary omits Angular's symbol-keyed tracking metadata; raw
 editor snapshots and the service keep strict JSON validation.
+Each reset receives a detached document from the shared editing helper, so Forms
+tracking metadata cannot mutate the loaded or acknowledged record. That record
+remains suitable for strict serialization and display independently of the draft.
 
 <!-- persistence-angular-file: notebook-form.ts -->
 
@@ -674,7 +677,9 @@ export class NotebookForm {
       return;
     }
     this.record.set(result.value.record);
-    this.fields().reset({ body: result.value.record.document });
+    this.fields().reset({
+      body: editingSnapshot(result.value.record.document, result.value.record),
+    });
     this.blocked.set(false);
     this.operationError.set('');
     this.acknowledged.set('');
@@ -752,7 +757,12 @@ export class NotebookForm {
             sameBlocks(snapshot, displayed) &&
             sameBlocks(snapshot, this.modelSnapshot(this.model().body));
           if (unchanged)
-            this.fields().reset({ body: result.value.record.document });
+            this.fields().reset({
+              body: editingSnapshot(
+                result.value.record.document,
+                result.value.record,
+              ),
+            });
           this.status.set(
             unchanged
               ? 'Saved snapshot; form reset'

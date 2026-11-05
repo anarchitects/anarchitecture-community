@@ -68,6 +68,14 @@ test('distributed graphs contain only cacheable tasks with isolated outputs and 
       for (const phase of phasesFor(mode, cell))
         visit(targetFor(mode, cell, phase));
       assert.equal(targets[targetFor(mode, cell, 'prepare')].cache, false);
+      assert(
+        targets[targetFor(mode, cell, 'prepare')].dependsOn.some(
+          (dependency) =>
+            dependency.target === 'build' &&
+            dependency.projects.includes('editorjs-html-angular'),
+        ),
+        'Composed authoring snapshots require the built public display archives',
+      );
     }
   assert.equal(visited.size, 89); // (7 CSR atoms + 22 SSR atoms) × 3 + 2 Nest adapters
   for (const mode of ['csr', 'ssr'])

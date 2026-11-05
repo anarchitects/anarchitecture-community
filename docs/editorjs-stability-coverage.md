@@ -10,6 +10,7 @@ new integrated candidate, change runtime behavior or start the later slices.
 The [#675 neutral contract record](#675-neutral-contract-validation) below updates
 G01 after this inventory; the original baseline and historical evidence retain
 their stated scope.
+The [#676 browser composition record](#676-browser-composition) updates G02.
 
 ## Decisions and evidence rules
 
@@ -474,3 +475,134 @@ DOM results. Existing complete-file hashing protects these reports. The full
 sixteen-atom collector is not a partial-neutral-matrix acceptance gate.
 No CI results were inspected, no hosted run/monitoring was started, and no remote
 cache/DTE or integrated-candidate acceptance is claimed. G02–G09 remain open.
+
+## #676 browser composition
+
+5 November 2026, starting from merged #675 at
+`131522cf80a1ea3a68ea80059bbfb4f52ba84913`. The full nine-record Community and
+eighteen-record Meta ADR inventories reviewed for #675 were re-enumerated and
+verified unchanged; Meta still matches remote
+`47e75544673037d25665c8c9305c809802b58261`. The Modern Angular provider, reactivity,
+Forms, rendering and SSR guides supplement the preceding architecture/testing
+review. Community0004/0008, the accepted native Forms decision,
+Community0007/Meta0013 and Meta0015 apply without conflict. No new parser,
+sanitizer, Forms facade, compatibility cell or public export is introduced.
+
+### Joined browser proof and reproduced defect
+
+The [composition observer](../apps/editorjs/angular-e2e/tools/composed-display.txt)
+is a private packed fixture. It is compiled against installed public archives
+and the actual extracted neutral codec. Guarded additions to copied hosts bind
+explicit snapshots or loaded/acknowledged service records, never the live draft.
+The observer keeps storage and display reload separate and compares component,
+directive and headless results. It is not a newly shipped application recipe;
+#678 still owns that deliverable.
+
+The new Forms journey reproduced a shipped recipe defect: both load and successful
+save reset the native form with the very same document object held by the
+acknowledged record. Native tracking metadata then made that record fail strict
+encoding. [The recipe](../packages/editorjs/angular/persistence.md#optional-native-signal-forms)
+now passes a detached document from its existing neutral editing helper into
+both resets. Raw editor snapshots, service records and renderer input retain
+strict JSON validation; symbol omission remains limited to the native model
+boundary. The browser checks fail before this fix and exercise both reset paths.
+The same journey exposed a shared-reference error in the private Forms upload
+host: it assigned its explicit persistence snapshot directly to the native model.
+The model now receives a clone, leaving the captured snapshot strict-JSON-safe.
+The new upload round trip reproduces the failure before that change in all three
+Angular cells.
+
+| Journey               | New joined observation                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1/S2 common          | Real paragraph, heading, list and quote edits reach both Angular surfaces after explicit save, codec storage and reload. Later unsaved input and a sibling editor do not change that display. A stored paragraph alias uses the configured public profile.                                                                                                                                                        |
+| S2 custom             | Direct/provider Callout with Marker and FlagTune, plus literal Code, survives explicit save/storage/display. Both surfaces retain semantic markup and escaped Code. Reload/read-only/remount and module-delivery fencing reuse the existing cases. Native Forms also preserves Code's silent-edit refresh and explicit second-save requirement.                                                                   |
+| S3 upload/alt         | Both standalone and native Forms owners distinguish pending upload, completed upload, explicit capture/submission, storage and display reload. Missing alt fails strict rendering and is omitted in preview; deliberate empty and authored literal alt recover while captions stay separate. Upload failure retains acknowledged display; held work after destruction cannot populate the fresh owner or sibling. |
+| S4 persistence/safety | Existing failed writes, revision conflicts, retry, reload and async review now compose with display. Structurally valid stored unsafe markup produces diagnostics and no strict HTML; preview, corrupt reads and later valid replacements clear/recover both surfaces without stale success. Actual browser DOM and an execution sentinel accompany result equality.                                              |
+| S5 ownership          | Held acknowledgement renders the captured snapshot while preserving the newer draft/dirty state. A new load fences the old acknowledgement. Destruction with held persistence produces a fresh owner with its own initial record. Native model replacement does not overwrite the explicit stored display or leak to a sibling.                                                                                   |
+
+The existing Angular component/Forms/upload-owner suites remain authoritative for
+creation, readiness, queues, operational versus validation errors and disposal.
+The existing HTML Angular component/directive/provider suites cover signal
+identity, nearest provider and explicit-input precedence, per-instance isolation
+and notification teardown. The unchanged independent renderer consumer supplies
+display-only dependency isolation and DOM/security negative controls. These are
+reused proofs, not newly duplicated case matrices.
+
+### Packaging, graph and remaining ownership
+
+The four existing CSR phases carry the joined tests in all existing compatibility
+cells, including the CSR phases of SSR snapshots. Preparations build and install
+HTML/HTML Angular archives alongside authoring. The headless archive uses Yarn
+packing to resolve its workspace dependency, matching the existing renderer
+consumer. Neither production package gains a dependency on the other Angular
+surface. The test project has an explicit renderer dependency and preparation
+build prerequisite; shipped renderer inputs and observer sources join snapshot
+identity. Fresh installs stay uncached, atoms keep their isolated outputs, and
+the 105-target/89-atom authoring inventory is unchanged.
+
+The fixture serves a real SVG asset with its correct content type rather than
+using a data URL, which the renderer deliberately rejects. Nested packed SSR
+copies relocate observer imports alongside the already extracted examples.
+This preserves existing SSR preparation; #677 still owns the joined
+SSR/hydration gap, including its idle-stall investigation. #678 owns the shipped
+joined recipe, #695/#679/#696 retain admission/cache/protection work, and #680
+retains the exact integrated-candidate gate. Local results do not establish
+remote cache/DTE or CI acceptance.
+
+### Local validation
+
+With Nx Cloud disabled, Angular and HTML Angular build/typecheck/test/lint pass;
+the affected authoring host build/typecheck/lint and e2e typecheck/lint/harness
+checks also pass. The existing unrelated Nest reference-sync discrepancy remains
+handled by scoped `--skipSync` locally, with no workspace or CI bypass change.
+
+Run `si676-final2` prepared fresh CSR consumers for Angular 22.0.0/Node22.22.3,
+22.1.4/Node24.15.0 and 22.2.2/Node26.0.0, plus the existing reference SSR consumer.
+Each passed Forms-absent compilation/guarded imports before matched Forms
+installation, followed by archived example compilation. All three CSR cells
+passed `build-csr`, `interop` (40 tests), `csr-editor` (25), `csr-forms` (18),
+`csr-upload` (10) and `csr-forms-upload` (18): 213 real-browser executions and
+120 native interop executions across the cells. The reference SSR production,
+diagnostic and full builds plus `hydration-registry` passed (24 tests). This is
+focused regression evidence, not the complete 89-atom collector or new S6 proof.
+
+The existing `editorjs-html-angular:packed-smoke` also passed, including seven
+archived README examples, two server requests, both presentation APIs, scoped
+providers and security negative controls. Run `si676-display` then passed a fresh
+exact reference-cell preparation, build, corpus and isolation: the corpus reports
+1,169 cases with two presentations and no errors; all four isolation routes and
+the deliberate runtime-delivery negative control pass. Chromium was 156.0.8078.4
+on macOS arm64. No timeouts, retries, security checks or compatibility cells were
+relaxed to obtain these results.
+
+All final authoring snapshots share source identity
+`13ea87c9daea84f1c4eb48be3387a3be087953c8a989a4ffea4b1b461b27eacc`.
+After build writers finished, every archive hash was checked, both Angular APF
+archives were compared with final build files/manifests, and their README/license
+plus the revised persistence guide were compared with source bytes.
+
+| Archive      | SHA-256                                                            |
+| ------------ | ------------------------------------------------------------------ |
+| Angular      | `73768ba732a4f4ac84cb672d3333104f8d8ad6c3ebd39931318a06faa215a6b3` |
+| HTML         | `78bde900a0211b3c04ad7985daedbf57b4b6c8853424969285d43429afae35e8` |
+| HTML Angular | `ed72a5697a06367fbeb6022a288415ed81f1d93a36a42155aaf245f743bf7ab1` |
+
+Artifacts remain under `dist/editorjs-packed-{inputs,results}/si676-final2`,
+`dist/editorjs-renderer-{inputs,results}/si676-display` and
+`dist/test-results/editorjs-html-angular`. Final result manifests were verified.
+Fresh npm lookups returned 404 for Angular/HTML Angular, there are no remote
+Editor.js tags, and none of the 102 GitHub Releases distributes Editor.js.
+The exact public project scope is `editorjs-angular`, with non-bumping `init`
+intent; manifests remain 0.0.1. No CI was inspected or monitored, no hosted job
+was requested, and #677 has not been started. G02 is implemented; G03–G09 and
+their separately authorized evidence gates retain their owners.
+
+Reproduce the focused authoring matrix with a new run ID:
+
+```sh
+export NX_NO_CLOUD=true EDITORJS_PACKED_RUN_ID=your-new-run-id
+for cell in angular22-minimum angular22-reference angular22-current; do
+  yarn nx run "editorjs-angular-e2e:packed-csr-$cell-prepare" --runId="$EDITORJS_PACKED_RUN_ID" --skipSync
+  yarn nx run-many -p editorjs-angular-e2e -t "packed-csr-$cell-interop,packed-csr-$cell-csr-editor,packed-csr-$cell-csr-forms,packed-csr-$cell-csr-upload,packed-csr-$cell-csr-forms-upload" --runId="$EDITORJS_PACKED_RUN_ID" --parallel=2 --skipSync
+done
+```

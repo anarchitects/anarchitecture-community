@@ -1,0 +1,80 @@
+// Private packed-consumer fixture, compiled against installed public archives.
+import { ChangeDetectionStrategy, Component, computed, effect, input, signal } from '@angular/core';
+import { JsonPipe } from '@angular/common';
+import { renderEditorJsHtml, type HtmlRendererOptions } from '@anarchitects/editorjs-html';
+import { EditorJsHtmlComponent, EditorJsHtmlDirective, provideEditorJsHtml } from '@anarchitects/editorjs-html-angular';
+import { encodeRaw, decodeRaw } from './notebook/persistence.js';
+
+type Blocks = { callout: { text: string; tone: string }; code: { code: string } };
+type Tunes = { flag: { flagged: boolean } };
+const object = (data: unknown): data is Record<string, unknown> =>
+  !!data && typeof data === 'object' && !Array.isArray(data);
+const policy: HtmlRendererOptions<Blocks, Tunes> = {
+  urls: { allowRelativeImages: true },
+  profiles: [{ name: 'copy', profile: 'paragraph' }, { name: 'photo', profile: 'image' }],
+  blocks: [
+    { name: 'callout', validate: (data): data is Blocks['callout'] => object(data) && typeof data['text'] === 'string' && ['info', 'warning'].includes(String(data['tone'])),
+      render: (data, context) => `<aside>${context.inline(data.text)}</aside>` },
+    { name: 'code', validate: (data): data is Blocks['code'] => object(data) && typeof data['code'] === 'string',
+      render: (data, context) => `<pre><code>${context.escapeText(data.code)}</code></pre>` },
+  ],
+  tunes: [{ name: 'flag', validate: (data): data is Tunes['flag'] => object(data) && typeof data['flagged'] === 'boolean',
+    render: (html, data) => data.flagged ? `<section>${html}</section>` : html }],
+};
+
+@Component({
+  selector: 'packed-display',
+  imports: [JsonPipe, EditorJsHtmlComponent, EditorJsHtmlDirective],
+  providers: [provideEditorJsHtml(policy)],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <button type="button" [disabled]="!snapshot()" (click)="persist()">Persist snapshot</button>
+    <button type="button" [disabled]="!stored()" (click)="reload()">Load stored display</button>
+    <button type="button" (click)="options.set({ mode: 'preview' })">Preview display</button>
+    <button type="button" (click)="options.set({ mode: 'strict' })">Strict display</button>
+    <label>Stored bytes<textarea #bytes [value]="stored()" (input)="stored.set(bytes.value)"></textarea></label>
+    <p aria-label="Display receipt">{{ receipt() }}</p>
+    <aa-editorjs-html #component [data]="document()" [options]="options()" />
+    <article #directive="aaEditorjsHtml" [aaEditorjsHtml]="document()" [aaEditorjsHtmlOptions]="options()"></article>
+    <pre aria-label="Component result">{{ component.result() | json }}</pre>
+    <pre aria-label="Directive result">{{ directive.result() | json }}</pre>
+    <pre aria-label="Headless result">{{ headless() | json }}</pre>
+  `,
+})
+export class PackedDisplay {
+  readonly snapshot = input<unknown>();
+  // A service acknowledgement/load is already persisted. Never bind the live draft.
+  readonly loaded = input<unknown>();
+  readonly stored = signal('');
+  readonly document = signal<unknown>({ blocks: [] });
+  readonly receipt = signal('No stored snapshot');
+  readonly options = signal<HtmlRendererOptions<Blocks, Tunes>>({});
+  readonly headless = computed(() => renderEditorJsHtml(this.document(), { ...policy, ...this.options() }));
+  constructor() {
+    effect(() => {
+      const loaded = this.loaded();
+      if (loaded !== undefined) {
+        this.stored.set(encodeRaw(loaded));
+        this.document.set(decodeRaw(encodeRaw(loaded)));
+        this.receipt.set('Service record loaded');
+      }
+    });
+  }
+  persist() {
+    try {
+      const snapshot = this.snapshot();
+      // Some archived hosts expose their explicit save as JSON text.
+      this.stored.set(encodeRaw(typeof snapshot === 'string' ? decodeRaw(snapshot) : snapshot));
+      this.receipt.set('Snapshot stored; display not loaded');
+    } catch { this.receipt.set('Snapshot rejected; stored bytes retained'); }
+  }
+  reload() {
+    try {
+      this.document.set(decodeRaw(this.stored()));
+      this.receipt.set('Stored snapshot loaded');
+    } catch {
+      this.document.set(null);
+      this.receipt.set('Invalid stored data');
+    }
+  }
+}

@@ -1,4 +1,9 @@
 import { test as base, expect, type Locator } from '@playwright/test';
+import {
+  displayText,
+  persistDisplay,
+  surfaces,
+} from '../persistence/display.js';
 
 const test = base.extend<{ diagnostics: void }>({
   diagnostics: [
@@ -72,6 +77,17 @@ export function customEditorCases() {
         expect(doc.blocks[0].data.text).toContain('<mark>');
         expect(doc.blocks[0].tunes.flag).toEqual({ flagged: true });
         expect(doc.blocks[1].data.code).toBe('<script>literal</script>');
+        await persistDisplay(owner);
+        for (const surface of surfaces(owner)) {
+          await expect(surface.locator('section aside mark')).toHaveText(
+            `${mode} changed`,
+          );
+          await expect(surface.locator('pre code')).toHaveText(
+            '<script>literal</script>',
+          );
+          await expect(surface.locator('script')).toHaveCount(0);
+        }
+        await displayText(other, '');
         await code.fill('Temporary');
         await owner
           .getByRole('button', { name: 'Reload', exact: true })
@@ -110,6 +126,7 @@ export function customEditorCases() {
           'data-flagged',
           'false',
         );
+        await displayText(owner, '');
       });
     }
 
@@ -307,6 +324,11 @@ export function customFormCases() {
       expect(
         JSON.parse(await saved(owner).innerText()).blocks[1].data.code,
       ).toBe('const submitted = 1;  ');
+      await persistDisplay(owner);
+      for (const surface of surfaces(owner))
+        await expect(surface.locator('pre code')).toHaveText(
+          'const submitted = 1;  ',
+        );
     });
   });
 }
