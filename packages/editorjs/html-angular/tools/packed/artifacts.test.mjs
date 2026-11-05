@@ -1,11 +1,66 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { files, verifyResult, phases, matrix } from './artifacts.mjs';
 import { assertDisplayInputs } from './browser-checks.mjs';
 import { headlessBrowserIdentity } from './browser-identity.mjs';
+import { angularRecipes, angularReadmeExamples } from '../readme-examples.mjs';
+import {
+  headlessRecipes,
+  readmeExamples,
+} from '../../../html/tools/readme-examples.mjs';
+
+for (const [name, url, required, extract] of [
+  [
+    'headless',
+    '../../../html/README.md',
+    headlessRecipes,
+    (readme) => readmeExamples(readme, headlessRecipes),
+  ],
+  ['Angular', '../../README.md', angularRecipes, angularReadmeExamples],
+]) {
+  test(`${name} recipes reject missing, duplicate, renamed, empty and unmarked sources`, () => {
+    const readme = readFileSync(new URL(url, import.meta.url), 'utf8');
+    const examples = extract(readme);
+    assert.equal(examples.size, required.length);
+    for (const file of required) {
+      const marker = `<!-- example: ${file} -->`;
+      assert.throws(() => extract(readme.replace(marker, '')), /Missing/);
+      assert.throws(
+        () =>
+          extract(readme.replace(marker, '<!-- example: unexpected.ts -->')),
+        /Missing or unexpected/,
+      );
+      const source = examples.get(file);
+      assert.throws(
+        () => extract(readme.replace(source, '\n')),
+        /Empty README recipe/,
+      );
+      assert.throws(
+        () => extract(`${readme}\n${marker}\n\`\`\`ts\n${source}\`\`\``),
+        /Duplicate README recipe/,
+      );
+    }
+    // Same count used to allow a duplicated file to silently overwrite another.
+    assert.throws(
+      () =>
+        extract(
+          readme.replace(`example: ${required[0]}`, `example: ${required[1]}`),
+        ),
+      /Duplicate README recipe/,
+    );
+    assert.throws(
+      () => extract(`${readme}\n\`\`\`ts\nexport const missed = true;\n\`\`\``),
+      /Unmarked/,
+    );
+    assert.deepEqual(
+      [...extract(readme.replaceAll('\n', '\r\n')).keys()],
+      [...examples.keys()],
+    );
+  });
+}
 
 test('browser identity supports shell-only installs and invalidates changed runtime files', () => {
   const root = mkdtempSync(join(tmpdir(), 'renderer-shell-only-'));

@@ -150,15 +150,15 @@ The other application entries in the graph are Nest SSR fixtures and the workspa
 root metadata project. Generated packed consumers are real independent
 installations but are not deployable showcases.
 
-| Existing surface                                | Location / supported paths                                                                                                                                                                     | Existing gate and required outcome                                                                                                                                                                                                                      |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Workspace CSR authoring                         | `apps/editorjs/angular-host/src/app`; `/`, `/?forms`, `/?upload`, `/?forms-upload`                                                                                                             | Host build/typecheck/lint via main; `editorjs-angular-e2e:e2e` in browser job starts production `serve-static`, edits/focuses/saves/disposes real editors and controls. Port 4317 must be free; no reuse of an existing server.                         |
-| Workspace SSR/hydration                         | Host `src/ssr`; public `/` and `/sample/public`; registry/tools/upload/forms-upload; standalone/forms/deferred/incremental variants; `/sample/standalone` and `/sample/forms` prerender routes | SSR job runs server, hydration and isolation targets with production/diagnostic/full/eager-control builds. Assert server output, actual hydration behavior, request separation and public-route delivery, not HTTP 200 alone.                           |
-| Archived authoring/custom/persistence consumers | Core/Angular READMEs, `custom-tools.md`, core `persistence.md`/`service.md`, Angular `persistence.md`; generated `?notebook=editor                                                             | forms` and SSR notebook/custom routes                                                                                                                                                                                                                   | Packed preparation extracts exact shipped files and checks Forms-absent imports; portable/interop/CSR/hydration/isolation/readme phases compile and execute them. Missing source markers or failed notebook actions must fail the relevant gate. These routes do not exist in the unmodified workspace host. |
-| Upload browser and optional backend references  | `packages/editorjs/upload-fetch/README.md`, `nest-example.md`; generated neutral/browser and Nest consumers                                                                                    | `test-browser` in browser job plus reference CSR `nest-upload-fastify`/`nest-upload-node` in packed job. Assert actual controlled HTTP/abort/mapping behavior. Existing Nest persistence DI composition proves service injection, not an HTTP endpoint. |
-| Headless renderer recipes                       | Six complete public-import examples extracted by `html/tools/packed-smoke.mjs` from its packed README                                                                                          | Four renderer headless atoms: declarations, execution, guarded Node imports, browser semantics/security and dependency isolation.                                                                                                                       |
-| Angular renderer reference/recipes              | Seven README source files; `html-angular/tools/consumer/{app,corpus,server,main,main.server}.ts` and generated scoped/directive routes                                                         | Three build/behavior/corpus/isolation sets in SSR job: compile recipes, real CSR/SSR/prerender/hydration, strict/preview/DI behavior and authoring absence.                                                                                             |
-| Joined author/save/load/render example          | Private packed observers from #676 and the stored display/SSR fixture from #677                                                                                                                | #678 must gate the minimal composed fixture or recipe delivered with #676/#677; no extra showcase application is needed for proof.                                                                                                                      |
+| Existing surface                                | Location / supported paths                                                                                                                                                                     | Existing gate and required outcome                                                                                                                                                                                                                                                                      |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace CSR authoring                         | `apps/editorjs/angular-host/src/app`; `/`, `/?forms`, `/?upload`, `/?forms-upload`                                                                                                             | Host build/typecheck/lint via main; `editorjs-angular-e2e:e2e` in browser job starts production `serve-static`, edits/focuses/saves/disposes real editors and controls. Port 4317 must be free; no reuse of an existing server.                                                                         |
+| Workspace SSR/hydration                         | Host `src/ssr`; public `/` and `/sample/public`; registry/tools/upload/forms-upload; standalone/forms/deferred/incremental variants; `/sample/standalone` and `/sample/forms` prerender routes | SSR job runs server, hydration and isolation targets with production/diagnostic/full/eager-control builds. Assert server output, actual hydration behavior, request separation and public-route delivery, not HTTP 200 alone.                                                                           |
+| Archived authoring/custom/persistence consumers | Core/Angular READMEs, `custom-tools.md`, core `persistence.md`/`service.md`, Angular `persistence.md`; generated `?notebook=editor` and `?notebook=forms`, plus SSR notebook/custom routes     | Packed preparation extracts exact shipped files and checks Forms-absent imports; portable/interop/CSR/hydration/isolation/readme phases compile and execute them. Missing source markers or failed notebook actions fail the relevant gate. These routes do not exist in the unmodified workspace host. |
+| Upload browser and optional backend references  | `packages/editorjs/upload-fetch/README.md`, `nest-example.md`; generated neutral/browser and Nest consumers                                                                                    | `test-browser` in browser job plus reference CSR `nest-upload-fastify`/`nest-upload-node` in packed job. Assert actual controlled HTTP/abort/mapping behavior. Existing Nest persistence DI composition proves service injection, not an HTTP endpoint.                                                 |
+| Headless renderer recipes                       | Six complete public-import examples extracted by `html/tools/packed-smoke.mjs` from its packed README                                                                                          | Four renderer headless atoms: declarations, execution, guarded Node imports, browser semantics/security and dependency isolation.                                                                                                                                                                       |
+| Angular renderer reference/recipes              | Seven README source files; `html-angular/tools/consumer/{app,corpus,server,main,main.server}.ts` and generated scoped/directive routes                                                         | Three build/behavior/corpus/isolation sets in SSR job: compile recipes, real CSR/SSR/prerender/hydration, strict/preview/DI behavior and authoring absence.                                                                                                                                             |
+| Joined author/save/load/render example          | Private packed observers from #676 and the stored display/SSR fixture from #677                                                                                                                | Existing CSR file atoms, SSR/hydration/isolation atoms and renderer corpus atoms select these fixtures; see the SI-75.5 mapping below. No extra showcase application is needed.                                                                                                                         |
 
 [#78](https://github.com/anarchitects/anarchitecture-community/issues/78) still
 owns new public basic-editor, Forms, SSR and Nest-backed-upload showcases and
@@ -315,7 +315,7 @@ and remaining limits. None needs a test-count quota.
 | G02 / P1 — browser composition                 | #676: S1–S5 using existing authoring/Forms/notebook fixtures and both renderer surfaces; preserve absent/present Forms and owner scope.                                                                                                                                    | Angular/HTML Angular tests, real browser and affected packed CSR/behavior/corpus cells. Assert acknowledged versus newer draft, disposal/late-result fencing, diagnostics, invalid-display clearing and recovery. Do not count independent fixture passes as the joined journey.                               |
 | G03 / P1 — composed SSR/delivery               | #677: implemented S6 in the SI-75.4 record below, reusing the existing matrix and negative controls.                                                                                                                                                                       | Workspace SSR/hydration/isolation and affected packed SSR/renderer atoms. Concurrent request/policy isolation, initial DOM parity, no hydration errors and no public authoring delivery. Keep host/browser controls meaningful.                                                                                |
 | G03a / P2 — cold-route timing lead             | #677: bounded local investigation completed; historical 30s stall not reproduced. Retain the existing deadline/window and new start evidence; maintainer-owned hosted diagnosis remains unresolved (SI-75.4 below).                                                        | Reproduce under controlled cold conditions or retain owner/needed evidence. Distinguish page event-loop delay from SSR success; no blanket timeout/retry/skip changes. Hosted evidence needs separate authorization.                                                                                           |
-| G04 / P1 — recipe/host gate coverage           | #678: wire the minimal joined S1–S6 fixture/recipe into existing validation, reconcile every host row above, fail on missing extracted assets. Existing separate recipes can be reused.                                                                                    | Build/typecheck plus relevant packed public-import, browser/SSR behavior and collector outcomes. Document current-versus-future #78 hosts honestly; no new showcase product required.                                                                                                                          |
+| G04 / P1 — recipe/host gate coverage           | #678: implemented the SI-75.5 mapping and exact renderer recipe inventory/output checks below; the existing graph already gates joined S1–S6 fixtures.                                                                                                                     | Build/typecheck plus relevant packed public-import, browser/SSR behavior and collector outcomes. Future #78 showcases remain outside this proof.                                                                                                                                                               |
 | G05 / P1 — affected admission                  | #695: graph-derived base/head selection before runner/worker allocation, especially root Nest/macOS jobs; conservative fallback and shared-config handling.                                                                                                                | Local representative selection cases from the admission contract, followed by separately permitted hosted evidence if needed. Selected missing/failed/cancelled work must fail; intentional unaffected skips must not deadlock protection.                                                                     |
 | G06 / P1 — whole-family cache/failure contract | #679: reconcile all 105 atoms after preceding changes, workspace/browser inputs and shared outputs, required collectors, restore/invalidate and failure/cancellation behavior.                                                                                             | Local cold/warm, clean output restoration, changed source/lock/runtime/env invalidation; absent/corrupt/stale/failed records fail collection. Reuse still-valid #687 evidence and fix demonstrated omissions; retain explicit uncached exclusions.                                                             |
 | G07 / P1 — remote/DTE exceptions               | Community maintainers through #679: current authoring custom/persistence remote restoration/scheduling/failure evidence; renderer transport/relocation and actual distribution. Same-run source/path/platform limits and cold/warm/resource-cost evidence remain explicit. | Separately authorized existing-run inspection or bounded validation must prove worker prerequisites/order, failure propagation, equivalent complete artifacts and remote reuse. Otherwise retain reason, owner, revisit condition and unresolved acceptance gate. No capacity increase or paid run is implied. |
@@ -811,3 +811,129 @@ success does not classify the earlier failure as fixed, environmental or flaky.
 G03 is implemented; G03a has this bounded unresolved disposition. #678 and the
 remaining cache/admission/protection/candidate gates stay in their established
 sequence.
+
+## SI-75.5 existing host and recipe gates (#678)
+
+Reviewed on 5 November 2026 from #677's merged baseline `4a4c166`. The resolved
+Nx graph and checked-in CI commands already select every existing host above,
+including the minimal joined fixtures. This slice strengthens recipe validation;
+it does not add a duplicate matrix or a new showcase. Hosted CI was not inspected
+or rerun. CI wiring below describes checked-in execution, not a green hosted run.
+
+### Install-to-result mapping
+
+Packed target names use `editorjs-angular-e2e:packed-<mode>-angular22-<cell>-<phase>`
+for authoring (`cell`: minimum/reference/current). Renderer names use
+`editorjs-html-angular:packed--<cell>--<phase>` (`cell`: four `headless-*` and three
+`angular-*` cells). The existing target selectors request every required atom;
+build dependencies are supplied by Nx, not duplicated by this table.
+
+| Consumer path                                                                                      | Build/type/dependency proof                                                                                                                                                                              | Interaction proof and CI owner                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace editor and optional native Signal Forms; upload variants                                 | Host `build` and `typecheck` in `main`; `e2e` depends on package/host builds                                                                                                                             | `editorjs-angular-e2e:e2e` and `editorjs-upload-fetch:test-browser` in browser job; real edit/save/focus/dispose and controlled HTTP/abort behavior                                                                                                                                                                                                               |
+| Workspace public/authoring SSR, prerender, deferred/full/incremental Forms/upload routes           | `build-ssr` compiles server/browser templates; `build-hydration` and `build-isolation` supply matching variants                                                                                          | SSR job's `test-ssr`, `e2e-hydration`, `e2e-isolation`; serial workspace ownership, request isolation, pre-hydration and delivery controls                                                                                                                                                                                                                        |
+| Core README and custom Callout/Marker/Flag/Code recipes                                            | Packed `prepare` checks archived assets; `portable` compiles public imports in an Angular-free consumer, `interop` verifies Angular consumption                                                          | All CSR cells in packed DTE job; real browser interactions and literal Code/alias/tune behavior                                                                                                                                                                                                                                                                   |
+| Neutral raw/envelope persistence, migrations and service composition                               | Core `test` in main/neutral-floor jobs checks installed guides; packed preparation requires the eight named persistence/service sources; `portable` compiles NodeNext/Bundler with no ambient frameworks | Packed `portable` runs saved-data/service behavior, including Node 22.12.0 in reference cell; the independent Nest application-context test is DI proof only, not an HTTP persistence endpoint                                                                                                                                                                    |
+| Angular README default/full recipes and optional Forms                                             | Packed extraction checks shipped sources and Forms-absent module evaluation; SSR `readme-default` and `readme-full` compile independent consumers                                                        | All three packed SSR cells run real server/browser recipe checks; ordinary/full hydration remain distinct                                                                                                                                                                                                                                                         |
+| Notebook editor and Forms save/load plus private joined display                                    | Packed `build-csr` includes exact installed core/Angular persistence sources and private `PackedDisplay`; SSR builds include notebook/display routes                                                     | `csr-editor`, `csr-forms`, `csr-upload`, `csr-forms-upload` select `persistence/cases.ts` and `display-cases.ts`; SSR `ssr`, `hydration-*`, `isolation` select stored display and notebook cases from #677. Invalid/unsafe replacement clears display, draft edits do not replace acknowledged stored content, informative/decorative/missing alt remain distinct |
+| Native Node and Fastify upload references                                                          | Installed `upload-fetch/nest-example.md`, exact Nest 12.3.2 dependencies and independent build                                                                                                           | Reference CSR `nest-upload-node` and `nest-upload-fastify` in packed DTE job; controlled local HTTP reference hosts, no deployed service or credentials                                                                                                                                                                                                           |
+| Headless README quick start, preview, list/image, configuration, alias, custom block/tune          | Four renderer `headless` atoms compile all six exact named files under NodeNext and Bundler; installed README/LICENSE/dependencies/exports compared with intended artifacts                              | Execute every example and assert its observable result, including escaped Code and image alt. Existing guarded imports, browser corpus and dependency checks prove authoring/Angular absence. SSR job selects all four cells                                                                                                                                      |
+| Angular renderer component, preview, directive, element/route configuration, browser/SSR bootstrap | Each renderer `build` compiles all seven exact named README files with strict Angular templates, then builds the independent application                                                                 | Each cell's `behavior` exercises component/directive/provider states and CSR/SSR/prerender/hydration; `corpus` checks both surfaces against headless on CSR and server routes; `isolation` rejects authoring delivery with a real negative control. SSR job selects all three cells                                                                               |
+
+The composed fixture is intentionally private. It combines archived public-import
+recipes with a test observer, rather than advertising a newly shipped blog/demo.
+The existing headless persistence consumer also extracts the installed core codec;
+renderer SSR uses that same archived codec. No source alias replaces a package
+inside these independent installations.
+
+The optional Nest service recipe in core's `service.md` is extracted by
+`nest-persistence.mjs` and executed by the reference CSR `nest-upload-node` atom
+after its HTTP upload checks. Its separate application context proves DI and
+service behavior; only the upload reference exposes a tested HTTP endpoint.
+
+### Missing-asset and failure enforcement
+
+Headless extraction previously accepted any nonempty set of TypeScript fences;
+Angular extraction accepted seven matches even when a duplicate silently replaced
+a file. Both now require the exact named inventory before writing sources. Empty,
+missing, renamed, duplicate and unmarked recipes fail. The renderer harness tests
+mutate every required file and include the duplicate-at-the-same-count case.
+`packed-harness-test` is already a dependency of every fresh renderer preparation;
+its inputs now include the shared headless extractor and README it reads.
+
+The six headless examples additionally check expected rendered values in both
+module-resolution modes, rather than treating a successful Node exit alone as
+proof of their documented result. Packed reports retain recipe filenames alongside
+the existing count. Strict rejection/preview, URL/HTML safety, alt policy and
+custom callback sanitization remain covered by the existing adversarial/corpus
+and joined behavior suites; no safety relaxation or compatibility change is made.
+
+A failed compile/assertion makes its Nx atom fail. Authoring `packed-results.mjs`
+and renderer `packed-collect` require complete, matching file manifests and reject
+missing, failed or corrupted evidence; the ordinary job result also preserves
+failed prerequisite/worker outcomes. Existing seven-day artifact uploads retain
+build/process logs, SSR HTML, browser diagnostics and traces. Fresh installation
+stays uncached, deterministic outputs stay isolated by run/cell/phase, and local
+cache success is not evidence of hosted restoration or DTE equivalence.
+
+All future public basic-editor, Forms, SSR and Nest-upload showcases remain #78.
+Before advertising one, provide its own owner, public imports/assets, exact
+compatibility cells, Nx build/typecheck and appropriate interaction/SSR gate,
+failure artifacts, isolated resources and graph dependencies for admission. No
+nonexistent route or future Bricks/FitOverForty adoption is reported as tested.
+
+### Architecture and local validation
+
+Preflight enumerated/read all 18 canonical Meta ADRs at `47e7554` and all nine
+Community ADRs, plus the Modern Angular index, repository application and relevant
+architecture/provider/reactivity/forms/rendering/SSR/testing/validation guides.
+The adjacent Meta branch `d465ea1` adds 0016–0020; these were also read, with their
+“effective when the adopting PR is merged” condition respected. They were not on
+canonical main during review. No accepted decision conflict was found.
+Community0004/0008 govern packed documentation and safe neutral/Angular rendering;
+Modern Angular preserves native Forms and SSR ownership. Meta0008–0012 and local
+0005/0006 preserve explicit HTTP/neutral boundaries. Meta0013/local0007 require
+fresh release history and non-bumping initialization; Meta0015 requires complete
+inputs and honest local/remote evidence. Proposed governance models remain proposals.
+
+Focused local reproduction (use a new run ID; preparation is immutable):
+
+```sh
+export NX_NO_CLOUD=true NX_MAX_CACHE_SIZE=10GB NG_BUILD_MAX_WORKERS=2 CI=true
+export EDITORJS_RENDERER_RUN_ID=si678-recipes
+# The harness runs automatically before each prepare; it can also run alone.
+yarn nx run editorjs-html-angular:packed-harness-test
+yarn nx run-many -p editorjs-html-angular -t packed--headless-floor--prepare,packed--headless-reference--prepare,packed--angular-reference--prepare --parallel=2
+yarn nx run-many -p editorjs-html-angular -t packed--headless-floor--headless,packed--headless-reference--headless,packed--angular-reference--behavior,packed--angular-reference--corpus,packed--angular-reference--isolation --runId="$EDITORJS_RENDERER_RUN_ID" --parallel=2
+```
+
+The full CI renderer entrypoint remains `packed-prepare`, all targets emitted by
+`tools/packed/run.mjs targets`, then `packed-collect`. The focused command above
+intentionally does not satisfy that all-sixteen completeness gate. See preceding
+SI-75.3/4 records for the unchanged composed fixture's full-matrix evidence.
+
+Local results for `si678-recipes`: three fresh preparations and all **six selected
+atoms passed** (two headless plus Angular reference build/behavior/corpus/isolation),
+with no atom cache hits. The six harness tests passed, including recipe mutation
+controls; both renderer lint/typecheck targets passed. Actual browser was Chromium
+156.0.8078.4. Each headless cell ran all six archived examples in both resolution
+modes, 756 attack cases, 30 omission cases and 22 neutral persistence checks.
+Angular reference compiled all seven recipes and passed CSR/SSR/hydration and
+provider checks with no errors, both 1,169-case corpus routes and isolation with
+its authoring negative control.
+
+Source identity: `c348ddaf6962baafe525245bed1f58f29297d48841f9841b6ee1b506c09022bf`.
+Evidence is retained under `dist/editorjs-renderer-inputs/si678-recipes` and
+`dist/editorjs-renderer-results/si678-recipes`, including exact archive/lock hashes,
+recipe inventories, build logs, HTML, traces and result manifests. Local validation
+used `NX_DAEMON=false`, `NX_ISOLATE_PLUGINS=false` and the existing narrowly scoped
+`--skipSync` exception for unrelated Nest references. No workspace/authoring matrix,
+additional platform, full renderer collector or hosted DTE outcome is newly claimed.
+
+Fresh release-history checks on 5 November returned npm E404 for core, Angular,
+HTML and HTML Angular; remote Editor.js tags and all 102 GitHub Releases contained
+no Editor.js release. The two affected exact Nx projects remain in non-bumping
+`init` development. No package version, dependency, public API or support claim
+changes. #695 owns affected admission, #679 caching/DTE optimization, #696 main
+protection, and #680 integrated acceptance; their remaining work is not completed
+by this recipe gate review.

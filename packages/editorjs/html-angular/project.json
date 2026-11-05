@@ -265,6 +265,8 @@
       "cache": true,
       "inputs": [
         "default",
+        "{workspaceRoot}/packages/editorjs/html/README.md",
+        "{workspaceRoot}/packages/editorjs/html/tools/readme-examples.mjs",
         {
           "runtime": "node --version"
         }

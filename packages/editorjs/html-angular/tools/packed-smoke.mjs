@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { once } from 'node:events';
 import { chromium, expect } from '@playwright/test';
 import { corpusCheck, isolationCheck } from './packed/browser-checks.mjs';
+import { angularReadmeExamples } from './readme-examples.mjs';
 
 const project = fileURLToPath(new URL('../', import.meta.url));
 const workspace = resolve(project, '../../..');
@@ -204,11 +205,8 @@ try {
     ];
     assert.equal(codec.length, 1, 'Expected the archived persistence codec');
     write('src/examples/persistence.ts', codec[0][1]);
-    const examples = [
-      ...readme.matchAll(/<!-- example: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g),
-    ];
-    assert.equal(examples.length, 7);
-    for (const [, name, source] of examples)
+    const examples = angularReadmeExamples(readme);
+    for (const [name, source] of examples)
       write(`src/examples/${name}`, source);
     const compilerOptions = {
       target: 'ES2022',
@@ -266,7 +264,8 @@ try {
     });
     write('packed-metadata.json', {
       archives,
-      readmeExamples: examples.length,
+      readmeExamples: examples.size,
+      readmeFiles: [...examples.keys()],
       angular,
       cli,
     });
@@ -583,6 +582,7 @@ try {
       chromium: browser.version(),
       archives,
       readmeExamples: metadata.readmeExamples,
+      readmeFiles: metadata.readmeFiles,
       ssrRequests: 2,
       hydration,
       scopes: [
