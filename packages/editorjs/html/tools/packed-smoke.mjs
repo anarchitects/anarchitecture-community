@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from '@playwright/test';
 import { adversarialBrowser } from './adversarial-browser.mjs';
+import { persistenceContracts, persistenceDom } from './persistence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const prepared = process.env.EDITORJS_RENDERER_CONSUMER;
@@ -218,6 +219,13 @@ try {
     for (let index = 0; index < files.length; index++)
       run(process.execPath, [`compiled/example-${index}.mjs`]);
   }
+  const persistence = persistenceContracts({
+    temporary,
+    root,
+    run,
+    compiler: require.resolve('typescript/bin/tsc'),
+    sha,
+  });
   const bundle = await build({
     stdin: {
       contents: "export * from '@anarchitects/editorjs-html';",
@@ -240,6 +248,7 @@ try {
   );
   let browserVersion = null;
   let adversarialEvidence = null;
+  let persistenceDomEvidence = null;
   if (process.argv.includes('--browser')) {
     const browser = await chromium.launch({ headless: true });
     try {
@@ -450,6 +459,7 @@ try {
       await page.waitForFunction(() => globalThis.__executed === true);
       assert.equal(requests, 2);
       adversarialEvidence = await adversarialBrowser(page);
+      persistenceDomEvidence = await persistenceDom(page, persistence.rendered);
     } finally {
       await browser.close();
     }
@@ -464,6 +474,11 @@ try {
     browserBundleBytes: bundle.outputFiles[0].contents.length,
     chromium: browserVersion,
     adversarialEvidence,
+    persistenceEvidence: {
+      guides: persistence.guides,
+      results: persistence.results,
+      dom: persistenceDomEvidence,
+    },
     runtimeVersions: Object.fromEntries(
       Object.entries(lock.packages)
         .filter(([name]) => name)
