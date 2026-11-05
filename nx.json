@@ -13,7 +13,23 @@
       "!{projectRoot}/jest.config.[jt]s",
       "!{projectRoot}/test-setup.[jt]s"
     ],
-    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
+    "sharedGlobals": [
+      "{workspaceRoot}/.github/workflows/ci.yml",
+      "{workspaceRoot}/.nx/workflows/**/*",
+      "{workspaceRoot}/tools/ci/**/*",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/yarn.lock",
+      "{workspaceRoot}/.yarnrc.yml",
+      "{workspaceRoot}/.yarn/releases/**/*",
+      "{workspaceRoot}/.yarn/patches/**/*",
+      "{workspaceRoot}/tsconfig*.json",
+      "{workspaceRoot}/eslint.config.mjs",
+      "{workspaceRoot}/jest.config.ts",
+      "{workspaceRoot}/jest.preset.js",
+      "{workspaceRoot}/vitest.config.ts",
+      "{workspaceRoot}/.gitignore",
+      "{workspaceRoot}/.nxignore"
+    ]
   },
   "plugins": [
     {

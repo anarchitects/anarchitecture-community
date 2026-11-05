@@ -152,7 +152,21 @@
           "config": ".verdaccio/config.yml",
           "storage": "tmp/local-registry/storage"
         }
+      },
+      "test-ci-selection": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node --test tools/ci/*.test.mjs"
+        }
       }
-    }
+    },
+    "implicitDependencies": [
+      "nest-angular-ssr",
+      "nest-cjs-consumer",
+      "nest-esm-consumer",
+      "nest-angular-split-backend",
+      "nest-angular-split-frontend"
+    ]
   }
 }

@@ -194,6 +194,9 @@ work; the main job currently invokes aggregate `test`, not `test-ci`.
 | Upload browser                  | Cached; `uploadTests`, dependency inputs, image sources, Playwright version and browser-path environment; build and image build prerequisites; browser reports declared.                                                                                                                                                                                      | Reuse existing controlled transport tests; #679 audits effective runtime/browser inputs with the other browser tasks.                                                                                                                                                                                                    |
 | Fresh/external/long-lived work  | Browser installation, packed preparation, packed convenience wrappers, workspace servers and completeness checks remain uncached. Root Nest validation targets have no explicit cache enablement.                                                                                                                                                             | Keep fresh resolution and side effects uncached. Assess deterministic workspace SSR eligibility in #679 with reason/owner/revisit, not blanket cache disabling.                                                                                                                                                          |
 
+> The following topology is the #674 baseline. The SI-75.8 evidence below records
+> the #695 admission and aggregate changes; this inventory is retained for comparison.
+
 `sharedGlobals` currently includes `.github/workflows/ci.yml`. Graph dependencies
 include e2e → host/upload-fetch → core/tools/Angular; renderer Angular → headless
 → core plus dev-conformance tool dependencies. These development edges do not
@@ -973,3 +976,164 @@ is now `09d4fc8` with 24 records: 0016–0020 have merged, 0016/0018 were refine
 and new 0021 defines consumer applications/public upstream reuse. The changed
 records were read in full and the testing guide rechecked. No policy conflict or
 new application/shared-package boundary is introduced by this private test fix.
+
+## SI-75.8 evidence: affected admission before runner allocation (#695)
+
+Implemented against merged #678 (`8500efd`) on 5 November 2026. Preflight
+enumerated both ADR sources and confirmed the full readings remain current:
+24 canonical Meta records at `09d4fc8` and all nine Community records. Meta0015
+governs affected admission, caching and DTE; Meta0008–0012 and local0005/0006
+preserve Nest adapter/security/compatibility boundaries. Local0004/0008 preserve
+the published Editor.js validation contract. No accepted decision conflicts were
+found. Proposed records do not override accepted decisions. This changes private
+CI configuration, not package versions, public APIs or advertised support.
+
+### Admission and dependency ownership
+
+The workflow now has ten job definitions: the original eight workloads (the old
+`main` workload is named `workspace`), an initial Ubuntu `selection` job, and a
+final Ubuntu `main` aggregate. Full admission expands to fourteen runners, versus
+the previous twelve. Selection runs before any workload job or packed DTE worker
+is allocated. Job-level `if` conditions also gate both existing Nest matrices;
+the macOS case-insensitive guard-bypass proof and all compatibility cells remain.
+
+`tools/ci/selection.mjs` maps job IDs to Nx project owners, not package-path
+filters. Neutral baseline owns its eight neutral packages; Better Auth owns its
+adapter; browser owns authoring e2e/upload-fetch; SSR owns authoring e2e/Angular
+renderer; packed owns authoring e2e. Nx follows the actual dependency graph to
+select consumers. The general workspace job runs `nx affected -t lint test build
+typecheck` for a verified PR comparison, and retains the complete existing
+`run-many` invocation for broad runs. Its Nest split and Better Auth integration
+steps follow the same family admission as their compatibility jobs.
+
+The root project owns all four Nest consumer-lifecycle/consumer/matrix/split
+targets and the aggregate release wrappers. It now explicitly depends on the
+Nest package, CJS/ESM consumers and both split fixture projects. This models the
+files copied by the root validators, including the frontend without a package
+import. Root-owned security scripts, compatibility JSON and split shared config
+therefore select Nest verification. Root release/governance wrappers remain
+explicit manual release gates, outside the ordinary workflow.
+
+Root ownership is deliberately conservative: unrelated root documentation/tooling
+can also select Nest checks. It does not propagate unrelated Editor.js package
+changes into that family. #679 owns revisiting finer target ownership if measured
+overhead warrants it; narrowing must preserve the tested fixture dependencies.
+
+Nx `sharedGlobals` now includes CI and worker configuration, admission tooling,
+root package/lock/package-manager files, root TypeScript/lint/test configuration
+and Git/Nx ignore rules. These are real common validation inputs and select broad
+verification. Nx still handles project definitions, source ownership and transitive
+dependencies. No separate package-path matrix is maintained in the selector.
+
+The Python governance host's test target makes its existing default/dependency
+inputs explicit. Nx's affected locator only expands declared target inputs; that
+project previously missed shared CI changes even though task hashing used default
+inputs. The graph regression requires **all 28 projects**, including the Python
+host, for shared configuration changes. Local0001/0003 governance boundaries are
+unchanged; this is validation metadata, not a package or runtime change.
+
+### Git comparison and fail-closed result
+
+Selection checks out full history. PR base is the event's exact base SHA; head is
+`GITHUB_SHA`, the actual checked-out candidate merge commit. Both base and PR
+source head must be valid, available commits ancestral to that checkout. Shallow,
+missing, zero/invalid or unrelated revisions and checkout mismatch fall back to
+all required jobs. A failed affected query also selects all when the complete
+project inventory is available. Broken graphs, missing expected projects and
+invalid output fail selection; they never produce a green empty result.
+
+Main pushes verify `event.before`/`GITHUB_SHA` when available but retain full
+integration validation: the previous push is not proof of a successful baseline.
+This avoids silently omitting earlier failures or querying hosted run history.
+First pushes and unavailable history use the same broad fallback. `merge_group`
+is supported with full validation if a merge queue is enabled later; no repository
+queue setting is changed. Release workflows and release gates are unchanged.
+
+The required check identity remains **`main`**. It runs with `always()` and needs
+selection plus every workload, including both complete matrix results. A valid
+selection and success for every selected job are required. An unselected job must
+be `skipped`; selected skipped/failed/cancelled/missing jobs, failed selection,
+malformed plans and incomplete dependency lists fail the aggregate. Missing the
+aggregate itself cannot supply a successful required context. The workflow tests
+also require every workload to have an admission condition and an aggregate edge.
+
+#696 must reconcile this exact check identity with effective protection and its
+integration ID, then apply/read back any authorized settings changes. The dated
+#674 protection inventory above is unchanged; no new protection inspection or
+mutation was performed here. This implementation addresses the earlier G08
+independent-success problem but does not complete #696.
+
+### Local verification and remaining evidence
+
+Run the focused gate through Nx:
+
+```sh
+NX_NO_CLOUD=true NX_DAEMON=false NX_MAX_CACHE_SIZE=10GB \
+  yarn nx run @anarchitecture-community/source:test-ci-selection
+```
+
+The gate exercises actual installed Nx graph selection, temporary Git histories,
+fallback paths, aggregate outcomes and workflow wiring/YAML syntax. It is uncached
+because it verifies the current graph and Git environment; no hosted cache/DTE
+claim follows from it. #679 owns reviewing that exclusion if selection overhead
+becomes material. The selector prints exact projects, SHAs, mode and reason; the
+Actions summary records required versus intentionally skipped jobs.
+
+All seven local tests passed, including 23 graph scenarios; lint and formatting
+checks also passed. The full graph/test gate took approximately 31 seconds locally,
+excluding dependency installation and hosted runner startup. This duration is
+selection-validation overhead, not a hosted pipeline benchmark.
+
+Local graph scenarios cover unrelated Angular/headless source; Nest source,
+CJS/ESM and both split fixtures, shared fixture config, security harness and matrix
+data; package/lock/toolchain/CI/worker configuration; and deleted project metadata.
+Unrelated Angular source selected four workload jobs and skipped eight expanded
+runners, including all five Nest cells. With selection and aggregate, that is six
+planned runners versus the prior twelve. Headless changes also selected the
+neutral runtime floor. Shared configuration selected every family. These are
+graph-derived admission counts, not measured hosted savings.
+
+Local tests also require rejection of every missing/failed/cancelled selected job,
+unexpected skip/success, invalid plan and failed selection. Real temporary Git
+histories test checkout mismatch, missing revisions, unrelated history, PR
+ancestry and the full main/queue baseline. No product tests, timeouts, existing
+packed atom lists, DTE capacity or supported matrices were changed.
+
+G05 now has implementation and local evidence; hosted runner admission, aggregate
+identity and matrix-result behavior still need separately permitted evidence.
+#679 follows this slice for cache/restoration and full-family review; #696 owns
+protection; #680 owns the integrated candidate. No hosted CI inspection,
+monitoring, rerun or paid capacity experiment was performed. Selection startup,
+total duration and runner/worker consumption must be measured separately from
+cache hits and DTE gains when that evidence is authorized.
+
+### CI follow-up: wait for README editor readiness before typing
+
+At the maintainer's request, a bounded inspection of
+[run 42084692672](https://github.com/anarchitects/anarchitecture-community/actions/runs/42084692672)
+found 87/89 packed atoms passed. Only minimum SSR `readme-default` and `readme-full`
+failed: `/sample/edit` expected “Edited” but observed “Loading editor”, then
+“Ready”. All other workload jobs passed. Selection succeeded and the `main`
+aggregate correctly rejected `editorjs-angular-packed: expected success, received
+failure`. This supplies hosted failure-propagation evidence for the initial
+candidate, not green evidence for the corrected candidate or unaffected-job skips.
+
+The README test filled the paragraph as soon as its DOM existed. Editor.js renders
+blocks before enabling change observation and resolving `isReady`; the component
+then emits its public `ready` event. The README explicitly instructs consumers to
+wait for “Ready” before editing. The test now observes that state before its first
+edit on the standalone editor routes, then still requires “Edited”, hydration
+holder identity, clean browser diagnostics and disposal on navigation. Runtime
+code, Forms behavior, retries and assertion timeouts are unchanged.
+
+The preflight re-enumerated both ADR sources: the 24 Meta records at `09d4fc8` and
+nine local records remain unchanged from their full readings. Local0004 and the
+accepted Modern Angular decision require truthful packed-recipe/hydration proof;
+Meta0015 requires preserving verification. The Angular repository application,
+SSR and testing guides were rechecked; no decision conflict was found.
+
+Fresh local preparation `si695-readme-ready` used Angular22.0.0, Editor.js2.31.7
+and Node22.22.3. Both README production builds and all **13 browser tests** passed
+(seven default, six full), with no retries or atom cache hits. E2e lint/typecheck
+also passed. Evidence is under `dist/editorjs-packed-results/si695-readme-ready`.
+No hosted rerun, ongoing monitoring or capacity change was performed.
