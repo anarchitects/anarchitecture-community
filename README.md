@@ -185,6 +185,9 @@ CI caches deterministic builds and checks with declared inputs and outputs.
 Browser, server, database and fresh packed-consumer checks retain their runtime
 validation. See the [CI cache contracts and performance findings](docs/editorjs-angular-ssr-fixture.md#ci-cache-implementation-2026-10-24)
 for the covered tasks, restoration evidence and remaining setup optimizations.
+The [Editor.js stability coverage plan](docs/editorjs-stability-coverage.md)
+maps authoring, persistence and HTML rendering to existing proof, validation gaps,
+CI selection and protection requirements.
 
 ## Relationship To Anarchitecture Bricks
 
