@@ -7,6 +7,10 @@ This is the contributor validation plan for [#75](https://github.com/anarchitect
 It inventories existing proof and assigns remaining work; it does not certify a
 new integrated candidate, change runtime behavior or start the later slices.
 
+The [#675 neutral contract record](#675-neutral-contract-validation) below updates
+G01 after this inventory; the original baseline and historical evidence retain
+their stated scope.
+
 ## Decisions and evidence rules
 
 Re-enumerated and read all nine Community ADRs and all eighteen Meta ADRs,
@@ -355,3 +359,118 @@ This inventory was checked against the resolved target counts, source paths,
 matrix/phase functions, workflow and effective rules. Formatting, local links and
 whitespace validation accompany the PR. No runtime/test/CI/settings change,
 publication, new compatibility claim or automatic next-slice work is included.
+
+## #675 neutral contract validation
+
+5 November 2026, starting from merged #674 at
+`df457e273c9b2cf869bbf9feca7c34a1d2f7db62`. G01 is implemented by the
+[packed persistence consumer](../packages/editorjs/html/tests/persistence-consumer.mjs)
+and its [archive/DOM harness](../packages/editorjs/html/tools/persistence.mjs),
+called by the existing renderer `packed-smoke` target and all four existing
+headless atoms. No new target, package, dependency, runtime behavior, supported
+version or public export is introduced.
+
+All nine local and eighteen Meta ADRs were enumerated and read again, including
+proposals and historical sections. The clean Meta checkout matches the fresh
+remote tree `47e75544673037d25665c8c9305c809802b58261`. Core development,
+persistence design/recipes, renderer contracts and Modern Angular index,
+repository application, architecture, testing/migration and validation guidance
+were reviewed for neutral composition and packed evidence. Community0004/0008,
+Community0007/Meta0013 and Meta0015 remain the relevant constraints; no conflict
+or policy exception was identified. No Angular implementation is changed.
+
+### Observable regressions covered
+
+| Scenario  | New joined proof                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1/S2     | Explicit save through the public neutral coordinator with a deterministic driver; actual archived raw/record codec writes and reloads; detached common blocks, nested ordered/check lists, quote, configured aliases, Callout/Marker, FlagTune and literal Code reach the installed renderer. Unknown JSON and optional provenance survive; input mutation cannot alter stored bytes. Chromium checks the resulting semantic DOM, ordered counters, checklist accessibility, attribution, image alt/caption and escaped Code. |
+| S2        | Unknown third-party blocks/tunes survive permissive structural storage but fail strict rendering without HTML; preview omits the whole offending block with diagnostics. Core block validation does not implicitly validate tunes. Archived migration data retains its unknown `review` tune, requiring explicit validated nonvisual registration.                                                                                                                                                                            |
+| S3        | Missing/blank alt remains valid saved data but fails strict rendering; preview retains other blocks and omits the image. Repeated writes with deliberate empty or authored literal alt recover rendering. Chromium checks actual alt attributes separately from captions.                                                                                                                                                                                                                                                     |
+| S4        | Invalid structural values fail before storage invocation; corrupt reads reject. Unsupported schema, migration collision, unauthorized save, stale revision and failed write preserve the acknowledged record and its renderability. Retry recovers without consuming a failed revision. Legacy service load renders the migrated candidate without writeback.                                                                                                                                                                 |
+| S4 safety | Successfully stored inline script content still fails strict rendering without HTML. Preview exposes diagnostics and safe DOM without leaking payload text through diagnostics. Stored third-party callback output enters the same safety boundary. A restricted renderer instance remains restricted after a separate permissive call.                                                                                                                                                                                       |
+
+The general codec owns the common/alias/image round trips. The shipped Notebook
+service deliberately admits only its documented paragraph/Callout editing profile;
+tests do not broaden it into a universal storage API. The migration checks reuse
+the archive's explicit source/destination fixtures. All eight neutral recipe
+files are extracted with duplicate/missing-file assertions, and declarations are
+compiled with strict NodeNext and Bundler resolution, ES2022-only libraries and
+no framework/DOM ambient types. Runtime imports occur after browser-global traps
+are installed; Angular, Forms, Nest, Nx and Editor.js cannot resolve in that
+consumer. Only core and HTML are installed as direct runtime packages.
+
+This is neutral save-driver and persistence composition, not real editor typing
+or Angular display recovery. #676 still owns the actual authoring/Forms and both
+Angular surfaces for S1–S5; #677 owns SSR/hydration S6. #678 owns a shipped joined
+recipe and its gate coverage. Existing core parser/registry/resolver, tool,
+upload cancellation/error and renderer security suites remain authoritative;
+this slice reuses them instead of duplicating their case matrices. The existing
+browser adversarial corpus and execution/network negative controls still run.
+
+### Validation and evidence identity
+
+Local Nx validation uses Cloud disabled. The eight neutral projects' build,
+typecheck, test and lint targets pass. `editorjs-html:packed-smoke:browser` passes
+on Node 24.22.2/macOS arm64 with Chromium 156.0.8078.4: eleven joined tests in each
+declaration mode, six resulting DOM cases, the existing 756 adversarial route
+executions and 30 semantic omissions. Those are executions of shared cases,
+not separate unique coverage claims.
+
+Run `si675-neutral` then passed four fresh preparations and all four cold
+headless atoms on Node 22.12.0, 22.22.3, 24.15.0 and 26.0.0. Each cell ran both
+declaration modes, all eleven joined cases, six resulting DOM cases and the
+unchanged adversarial corpus. Report file hashes were independently verified.
+The reference atom subsequently hit local cache (1/1), restoring all four removed
+report files byte-for-byte. Preparation and result artifacts are under
+`dist/editorjs-renderer-inputs/si675-neutral` and
+`dist/editorjs-renderer-results/si675-neutral`; they are not committed or shipped.
+
+| Evidence                  | SHA-256                                                            |
+| ------------------------- | ------------------------------------------------------------------ |
+| Renderer source identity  | `a1c2acc051b2965f10faa9e92607baf854b2829187cd9789f6897a706616cd19` |
+| Core archive (all cells)  | `af9c399df59a106dc03a03dca40c91a524afb2fc404b25a0f0ad9d0cb1867c22` |
+| HTML archive (all cells)  | `78bde900a0211b3c04ad7985daedbf57b4b6c8853424969285d43429afae35e8` |
+| Consumer lock (all cells) | `4f0d42ac31ca9a9ffc800bf545b6b9ac0223d5c480ff8d63da0f17f9fafd2559` |
+| Floor snapshot            | `cc41375027d3bdb3eb9a13ab10f736e51148c62399b29d5a8095a57886db0ce1` |
+| Minimum snapshot          | `ddda944bd03a69cf9f1cc1a0e8e168bb8d83cdea62c7f2f6c77c16c0511fa241` |
+| Reference snapshot        | `51e5b00890b08380c0cdf83a25bf3f95f31037473802434de83ed53cda53fe66` |
+| Current snapshot          | `021cd1b642f9074ec157b408e14e0b34813642278d23ca17daf785e1769d93b7` |
+
+The unchanged archive identities confirm that this increment changes validation,
+not the distributed package payload. Actual archive README/license equality,
+exports, absent source/tests, declaration modes and framework-free installation
+remain enforced by the existing packed harness; the joined harness additionally
+checks the two shipped core guides against source.
+
+The initial local sync check reproduced the documented unrelated Nest CJS/ESM
+reference discrepancy. Generated unrelated edits were reverted; the scoped
+commands use the existing `--skipSync` workaround after inspecting the affected
+Editor.js references. No bypass is added to CI or workspace configuration.
+One fixture import initially confused lazy-edge analysis, and the first DOM
+selector incorrectly selected quote attribution as image caption; both test
+harness defects were corrected before final validation. No product defect was
+reproduced.
+
+Fresh release history returned npm 404 for HTML, no remote Editor.js release tags
+and no Editor.js distribution among all 102 GitHub Releases. The exact scope
+remains `editorjs-html` with non-bumping `init` intent and manifest 0.0.1. #76 owns
+publication and final release-commit gates.
+
+Reproduction (use a new run ID for every preparation):
+
+```sh
+export NX_NO_CLOUD=true
+export EDITORJS_RENDERER_RUN_ID=si675-neutral
+yarn nx run-many -p editorjs-core,editorjs-tool-paragraph,editorjs-tool-header,editorjs-tool-list,editorjs-tool-quote,editorjs-tool-image,editorjs-upload-fetch,editorjs-html -t build,typecheck,test,lint --parallel=3 --skipSync
+yarn nx run editorjs-html:packed-smoke:browser --skipSync
+yarn nx run-many -p editorjs-html-angular -t packed--headless-floor--prepare,packed--headless-minimum--prepare,packed--headless-reference--prepare,packed--headless-current--prepare --parallel=2 --skipSync
+yarn nx run-many -p editorjs-html-angular -t packed--headless-floor--headless,packed--headless-minimum--headless,packed--headless-reference--headless,packed--headless-current--headless --parallel=2 --skipSync --runId=si675-neutral
+```
+
+Fresh preparation stays uncached; deterministic atom inputs already include all
+core/HTML source, guides and test tooling in the snapshot identity and `default`
+inputs. Summary evidence now records recipe hashes, declaration-mode counts and
+DOM results. Existing complete-file hashing protects these reports. The full
+sixteen-atom collector is not a partial-neutral-matrix acceptance gate.
+No CI results were inspected, no hosted run/monitoring was started, and no remote
+cache/DTE or integrated-candidate acceptance is claimed. G02–G09 remain open.
