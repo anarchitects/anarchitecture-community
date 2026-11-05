@@ -226,6 +226,11 @@ was initiated.
 
 ## Remaining hosted evidence
 
+The subsequent [renderer readiness review](editorjs-html-release-readiness.md)
+records the authorized one-off inspection of the corrected green CI candidate,
+fresh packed evidence and the disposition of the remaining #679 exception. The
+earlier observations above remain dated evidence rather than current CI status.
+
 Remote restoration, actual worker scheduling/dependency ordering, failure
 propagation and cross-machine artifact equivalence are not certified by local
 atomization. Owner: Community maintainers; revisit when bounded hosted validation
