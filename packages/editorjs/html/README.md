@@ -30,6 +30,8 @@ material browser bundle cost; import this package only where rendering is needed
 
 ## Quick start
 
+<!-- example: quick-start.mts -->
+
 ```ts
 import { renderEditorJsHtml } from '@anarchitects/editorjs-html';
 
@@ -53,6 +55,8 @@ Strict mode is the default. Unsupported blocks/tunes, invalid saved data or unsa
 HTML cause `status: 'failure'` with **no HTML property**, including when other
 blocks rendered successfully. Success means the supported rendering checks passed;
 you still own publication authorization, editorial quality and accessibility.
+
+<!-- example: preview.mts -->
 
 ```ts
 import {
@@ -121,6 +125,8 @@ alt remains literal text. Additional JSON file metadata is preserved in the sour
 and omitted from HTML. Visual flags map to configured classes, not inline styles.
 You own the accuracy of alt text and whether an image is meaningfully decorative.
 
+<!-- example: list-image.mts -->
+
 ```ts
 import { renderEditorJsHtml } from '@anarchitects/editorjs-html';
 
@@ -164,6 +170,8 @@ output. There is no trusted-HTML bypass. Custom and overridden output passes thi
 and after each tune. A later tune cannot erase an earlier safety diagnostic. Saved-shape validity alone does not prove HTML safety.
 
 ## Configuration, isolation and styling
+
+<!-- example: configuration.mts -->
 
 ```ts
 import { createEditorJsHtmlRenderer } from '@anarchitects/editorjs-html';
@@ -234,6 +242,8 @@ saved name is overridden. `blocks` registers a guard and synchronous HTML callba
 for each custom name. Names use exact own-key lookup, including prototype-like
 names; no inference from browser classes or document version occurs.
 
+<!-- example: alias.mts -->
+
 ```ts
 import { renderEditorJsHtml } from '@anarchitects/editorjs-html';
 
@@ -255,6 +265,8 @@ The following complete example uses the saved contracts from the core
 [custom-tool guide](https://github.com/anarchitects/anarchitecture-community/blob/main/packages/editorjs/core/custom-tools.md):
 Callout (`text`, `tone`), inline Marker (`mark` inside text), FlagTune (`flagged`)
 and Code 2.9.4 (`code`). It requires no browser-tool imports or installation.
+
+<!-- example: custom.mts -->
 
 ```ts
 import {

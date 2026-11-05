@@ -17,6 +17,7 @@ import { build } from 'esbuild';
 import { chromium } from '@playwright/test';
 import { adversarialBrowser } from './adversarial-browser.mjs';
 import { persistenceContracts, persistenceDom } from './persistence.mjs';
+import { headlessRecipes, readmeExamples } from './readme-examples.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const prepared = process.env.EDITORJS_RENDERER_CONSUMER;
@@ -123,14 +124,11 @@ try {
     await assert.rejects(import('@anarchitects/editorjs-html/dist/lib/safety.js'),{code:'ERR_PACKAGE_PATH_NOT_EXPORTED'});
   `;
   run(process.execPath, ['--input-type=module', '-e', source]);
-  const examples = [
-    ...readFileSync(join(packageRoot, 'README.md'), 'utf8').matchAll(
-      /```ts\n([\s\S]*?)```/g,
-    ),
-  ].map((match) => match[1]);
-  assert.ok(examples.length > 0);
-  const files = examples.map((example, index) => {
-    const name = `example-${index}.mts`;
+  const examples = readmeExamples(
+    readFileSync(join(packageRoot, 'README.md'), 'utf8'),
+    headlessRecipes,
+  );
+  const files = [...examples].map(([name, example]) => {
     writeFileSync(join(temporary, name), example);
     return name;
   });
@@ -216,8 +214,33 @@ try {
       '-p',
       'tsconfig.json',
     ]);
-    for (let index = 0; index < files.length; index++)
-      run(process.execPath, [`compiled/example-${index}.mjs`]);
+    for (const file of files)
+      run(process.execPath, [`compiled/${file.replace(/\.mts$/, '.mjs')}`]);
+    run(process.execPath, [
+      '--input-type=module',
+      '-e',
+      `
+      import assert from 'node:assert/strict';
+      const quick = await import('./compiled/quick-start.mjs');
+      assert.equal(quick.html, '<p>Hello <b>world</b></p>');
+      const preview = await import('./compiled/preview.mjs');
+      assert.equal(preview.previewHtml, '<p>Visible preview</p>');
+      assert.ok(preview.diagnostics.length > 0);
+      const { result: profile } = await import('./compiled/list-image.mjs');
+      assert.equal(profile.status, 'success');
+      assert.match(profile.html, /<ol start="3" type="I">/);
+      assert.match(profile.html, /alt="A chocolate cake on a blue plate"/);
+      const { result: configured } = await import('./compiled/configuration.mjs');
+      assert.equal(configured.status, 'success');
+      assert.equal(configured.html, '<p class="article-paragraph"><a href="https://example.com/blog">Read</a></p>');
+      const { aliased } = await import('./compiled/alias.mjs');
+      assert.equal(aliased.html, '<h2>A title</h2>');
+      const { rendered } = await import('./compiled/custom.mjs');
+      assert.equal(rendered.status, 'success');
+      assert.match(rendered.html, /<div class="flagged"><aside class="callout-warning">A <mark>marked<\\/mark> warning<\\/aside><\\/div>/);
+      assert.ok(rendered.html.includes('<pre><code>&lt;script&gt;literalExample()&lt;/script&gt;</code></pre>'));
+    `,
+    ]);
   }
   const persistence = persistenceContracts({
     temporary,
@@ -484,7 +507,8 @@ try {
         .filter(([name]) => name)
         .map(([name, value]) => [name, value.version]),
     ),
-    readmeExamples: examples.length,
+    readmeExamples: examples.size,
+    readmeFiles: [...examples.keys()],
     installedPackages: Object.keys(lock.packages).filter(Boolean),
   };
   if (process.env.EDITORJS_RENDERER_REPORT) {
