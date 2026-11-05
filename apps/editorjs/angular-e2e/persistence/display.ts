@@ -8,22 +8,25 @@ export const surfaces = (owner: Locator | Page) => [
 ];
 export async function displayResult(owner: Locator | Page, status = 'success') {
   const fixture = display(owner);
-  await expect(fixture.getByLabel('Component result')).toContainText(
-    `"status": "${status}"`,
-  );
-  const headless = JSON.parse(
-    await fixture.getByLabel('Headless result').innerText(),
-  );
-  for (const name of ['Component result', 'Directive result']) {
-    await expect
-      .poll(async () => JSON.parse(await fixture.getByLabel(name).innerText()))
-      .toEqual(headless);
-  }
+  let headless: ReturnType<typeof JSON.parse>;
+  // All three results can advance between reads, even with the same status.
+  // Retry the complete comparison so the expected document advances with them.
+  await expect(async () => {
+    headless = JSON.parse(
+      await fixture.getByLabel('Headless result').innerText(),
+    );
+    expect(headless.status).toBe(status);
+    for (const name of ['Component result', 'Directive result']) {
+      expect(JSON.parse(await fixture.getByLabel(name).innerText())).toEqual(
+        headless,
+      );
+    }
+  }).toPass({ timeout: 5_000 });
   return headless;
 }
 export async function displayText(owner: Locator | Page, text: string) {
-  await displayResult(owner);
   for (const surface of surfaces(owner)) await expect(surface).toHaveText(text);
+  await displayResult(owner);
 }
 export async function persistDisplay(owner: Locator | Page) {
   const fixture = display(owner);

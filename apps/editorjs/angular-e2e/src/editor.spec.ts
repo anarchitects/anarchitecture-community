@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { customEditorCases } from '../custom/cases.js';
 import { notebookCases } from '../persistence/cases.js';
 import { commonDisplayCases } from '../persistence/display-cases.js';
+import { displayResult } from '../persistence/display.js';
 
 customEditorCases();
 notebookCases(false);
@@ -14,6 +15,52 @@ const saved = async (owner: Locator) =>
   JSON.parse(
     await owner.getByLabel('Saved document', { exact: true }).innerText(),
   );
+
+test('display assertions follow a result changing after the headless read', async ({
+  page,
+}) => {
+  const previous = {
+    status: 'success',
+    html: '<p>Retain on failure</p>',
+    diagnostics: [],
+  };
+  const current = { ...previous, html: '<p>Another writer</p>' };
+  await page.setContent(`<section><packed-display>
+    <pre aria-label="Headless result"></pre>
+    <pre aria-label="Component result"></pre>
+    <pre aria-label="Directive result"></pre>
+  </packed-display></section>`);
+  await page.locator('pre').evaluateAll(
+    (nodes, value) => {
+      for (const node of nodes) node.textContent = value;
+    },
+    JSON.stringify(previous, null, 2),
+  );
+  const owner = page.locator('section');
+  const fixture = owner.locator('packed-display');
+  const getByLabel = fixture.getByLabel.bind(fixture);
+  const headless = getByLabel('Headless result');
+  const innerText = headless.innerText.bind(headless);
+  let advanced = false;
+  // Use real browser locators, but force the reported interleaving without sleeps.
+  owner.locator = () => fixture;
+  fixture.getByLabel = (name, options) =>
+    name === 'Headless result' ? headless : getByLabel(name, options);
+  headless.innerText = async (options) => {
+    const captured = await innerText(options);
+    if (!advanced) {
+      advanced = true;
+      await page.locator('pre').evaluateAll(
+        (nodes, value) => {
+          for (const node of nodes) node.textContent = value;
+        },
+        JSON.stringify(current, null, 2),
+      );
+    }
+    return captured;
+  };
+  expect(await displayResult(owner)).toEqual(current);
+});
 
 test('activates packed quote in Angular with independent owners', async ({
   page,

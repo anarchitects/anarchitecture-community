@@ -937,3 +937,39 @@ no Editor.js release. The two affected exact Nx projects remain in non-bumping
 changes. #695 owns affected admission, #679 caching/DTE optimization, #696 main
 protection, and #680 integrated acceptance; their remaining work is not completed
 by this recipe gate review.
+
+### CI follow-up: a stale expected value in the display assertion
+
+The maintainer supplied a failure from
+`packed-ssr-angular22-minimum-csr-editor`: 24/25 passed, with a repeat failure in
+`persistence/cases.ts:114`. That line is **after Reload notebook**, where “Another
+writer” is the intended result. The failure arose inside `displayResult`, before
+its caller's text assertion: the helper captured the old headless “Retain on
+failure” once, then polled updated Angular results against that frozen object.
+The recipe awaits editor rendering before assigning its loaded record; observing
+the editor's new text does not guarantee the display effect has already run.
+
+A deterministic browser regression in `src/editor.spec.ts` uses real locators and
+advances all result elements immediately after the first headless read. Against
+the old helper it reproduced the same expected/received HTML and failure at
+`display.ts:20`, without relying on load or sleeps. The corrected helper refreshes
+all three results on each comparison attempt, within the existing five-second
+assertion allowance. `displayText` waits for the requested surface text before
+checking result parity. Draft/conflict expectations, product code, task retries
+and test timeouts are unchanged; a persistent result mismatch still fails.
+
+Local verification: regression failed before/passed after; e2e lint/typecheck
+passed. Fresh minimum SSR preparation `si678-display-race` and its CSR build,
+`csr-editor` (**26 tests**) and `csr-forms` (**18 tests**) passed, with no retries
+or atom cache hits. Both retain the original stale-write test. Snapshot SHA-256:
+`0ff8f9e196a1cfc8a6eba0e510b3db83dc220939eccfdac7a659487c6ad0f4dc`.
+Evidence is under `dist/editorjs-packed-results/si678-display-race/ssr/angular22-minimum`.
+This proves the assertion race and its correction locally; it does not claim a
+hosted rerun or classify every possible persistence failure.
+
+The follow-up preflight re-enumerated the ADR sources: all nine local records and
+the original Meta records are unchanged from the earlier reading. Canonical Meta
+is now `09d4fc8` with 24 records: 0016–0020 have merged, 0016/0018 were refined,
+and new 0021 defines consumer applications/public upstream reuse. The changed
+records were read in full and the testing guide rechecked. No policy conflict or
+new application/shared-package boundary is introduced by this private test fix.
