@@ -138,6 +138,11 @@ export function formsDisplayCases() {
       });
       await expect(owner.getByRole('status')).toHaveText('Ready');
       await owner.locator('.ce-paragraph').fill('Native form snapshot');
+      // Wait for the native field to observe the edit before testing retention.
+      await expect(owner.getByTestId('dirty')).toHaveText('true');
+      await expect(
+        owner.getByLabel('Model document', { exact: true }),
+      ).toContainText('Native form snapshot');
       await owner.getByRole('button', { name: 'Capture', exact: true }).click();
       await expect(owner.getByTestId('result')).toHaveText('Captured');
       await persistDisplay(owner);
@@ -148,11 +153,16 @@ export function formsDisplayCases() {
       await expect(owner.locator('.ce-paragraph')).toHaveText(
         'First replacement',
       );
-      await expect(owner.getByTestId('dirty')).toHaveText('false');
+      // A model write is not a form reset; interaction state must survive it.
+      await expect(owner.getByTestId('dirty')).toHaveText('true');
       await displayText(owner, 'Native form snapshot');
       await displayText(sibling, '');
       await owner.getByRole('button', { name: 'Capture', exact: true }).click();
       await persistDisplay(owner);
+      await displayText(owner, 'First replacement');
+      await owner.getByRole('button', { name: 'Reset', exact: true }).click();
+      await expect(owner.locator('.ce-paragraph')).toHaveText('First reset');
+      await expect(owner.getByTestId('dirty')).toHaveText('false');
       await displayText(owner, 'First replacement');
     });
   });

@@ -606,3 +606,44 @@ for cell in angular22-minimum angular22-reference angular22-current; do
   yarn nx run-many -p editorjs-angular-e2e -t "packed-csr-$cell-interop,packed-csr-$cell-csr-editor,packed-csr-$cell-csr-forms,packed-csr-$cell-csr-upload,packed-csr-$cell-csr-forms-upload" --runId="$EDITORJS_PACKED_RUN_ID" --parallel=2 --skipSync
 done
 ```
+
+### #676 packed CI follow-up
+
+The maintainer requested a one-off investigation of
+[CI run 42005176287](https://github.com/anarchitects/anarchitecture-community/actions/runs/42005176287)
+at `3468fc707ddcb16d5ff0b2cd7a0d533e2ce1bae7`. The packed DTE job executed all
+89 atoms: 84 passed and five failed. The failures were in the validation harness,
+not worker startup: two CSR Forms atoms in SSR snapshots and the three guarded
+SSR atoms. This inspection does not authorize monitoring or hosted retries.
+
+The Forms journey incorrectly expected a direct model replacement to clear an
+already-dirty field. It now waits for the edit to reach native state, checks that
+replacement preserves dirty state, then uses the actual reset action to prove
+that reset clears it. Stored display remains independent throughout. No timeout
+or retry change is involved.
+The old test could pass before the debounced editor notification marked the field
+dirty; observing both the field state and model removes that timing dependency.
+
+The guarded SSR failure reproduced locally as HTTP 500 on the upload route.
+The old provenance classifier forbade every `examples/notebook/` input,
+including the neutral codec now sharing a chunk with the display observer.
+The classifier now identifies emitted editor/tool implementations, including
+both archived custom-tool directories. A regression covers neutral/shared
+chunks, tool-bearing chunks and tree-shaken inputs. Negative import controls
+now attempt every emitted copy of Callout/Marker/FlagTune/Code, including both
+notebook and custom recipe copies, rather than only the first matching chunk.
+The runtime import hook, browser-global guards and request-isolation assertions
+remain enforced.
+
+The complete ADR inventories were checked again and remain unchanged from the
+review above; Meta0015 and the Forms/SSR/testing guides govern this correction.
+Only validator/test code and this evidence record change; consumer snapshots
+remain valid, while the project-default task inputs invalidate their test results.
+
+Local validation with Cloud disabled and `CI=true` passes the guarded `ssr` and
+`csr-forms` atoms in all three SSR cells (54 browser tests total), including all
+emitted custom-tool import negative controls. Minimum/current SSR snapshots were
+prepared fresh; reference reused its unchanged snapshot. The focused harness,
+lint and typecheck pass, and all six final atom evidence manifests were verified.
+No hosted rerun or ongoing monitoring was requested; this is a local correction
+on PR #702, not a claim that the subsequent CI run has passed.
