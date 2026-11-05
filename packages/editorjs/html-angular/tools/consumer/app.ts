@@ -19,6 +19,7 @@ import {
 } from '@anarchitects/editorjs-html-angular';
 import { ArticleComponent } from './examples/article.component';
 import { PreviewComponent } from './examples/preview.component';
+import { decodeRaw, encodeRaw } from './examples/persistence';
 @Component({
   selector: 'aa-element-policy',
   imports: [EditorJsHtmlComponent, EditorJsHtmlDirective],
@@ -93,7 +94,9 @@ export class App {
       : 'first',
   );
   readonly hydrated = signal(false);
-  readonly data = signal<unknown>({
+  // Exercise the same archived storage boundary used by the authoring notebook.
+  // Each request owns its bytes and decoded value; no live draft enters display.
+  readonly stored = encodeRaw({
     blocks: [
       { type: 'header', data: { text: `Article ${this.name}`, level: 2 } },
       {
@@ -121,6 +124,7 @@ export class App {
       },
     ],
   });
+  readonly data = signal<unknown>(decodeRaw(this.stored));
   readonly options = signal<HtmlRendererOptions>({
     classes: { paragraph: ['primary'] },
   });
@@ -190,6 +194,10 @@ export class Shell {
 export const routes: Routes = [
   {
     path: 'corpus',
+    loadComponent: () => import('./corpus').then((m) => m.Corpus),
+  },
+  {
+    path: 'corpus-server',
     loadComponent: () => import('./corpus').then((m) => m.Corpus),
   },
   { path: 'csr', component: App },

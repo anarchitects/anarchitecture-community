@@ -1,0 +1,28 @@
+// Private packed SSR consumer, using the archived codec through PackedDisplay.
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { PackedDisplay } from '../../../../../examples/composed-display';
+import { RequestState } from './request-state';
+
+@Component({
+  selector: 'aa-display-page',
+  imports: [PackedDisplay],
+  providers: [RequestState],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<h1>Stored article</h1><p data-testid="marker">{{ marker }}</p>
+    <packed-display [loaded]="storedDocument" />`,
+})
+export class DisplayPage {
+  readonly marker = inject(RequestState).initial.marker;
+  readonly storedDocument = {
+    blocks: [
+      { type: 'header', data: { text: this.marker, level: 2 } },
+      { type: 'copy', data: { text: 'Saved <mark>article</mark>' } },
+      { type: 'quote', data: { text: 'Quotation', caption: 'Attribution', alignment: 'left' } },
+      { type: 'list', data: { style: 'ordered', meta: { start: 3, counterType: 'upper-roman' }, items: [{ content: 'Third', meta: {}, items: [] }] } },
+      { type: 'callout', data: { text: 'Notice', tone: 'info' }, tunes: { flag: { flagged: true } } },
+      { type: 'code', data: { code: '<script>literal</script>' } },
+      { type: 'photo', data: { file: { url: '/packed-image.svg' }, alt: 'Red rectangle', withBorder: false, withBackground: false, stretched: false, caption: 'Separate caption' } },
+      { type: 'photo', data: { file: { url: '/packed-image.svg' }, alt: '', withBorder: false, withBackground: false, stretched: false, caption: '' } },
+    ],
+  };
+}

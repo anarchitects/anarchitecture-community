@@ -1,5 +1,6 @@
 import { test, expect, bootstrap } from './fixture.js';
 import { packed } from '../tools/ssr-environment.mjs';
+import { displayText, surfaces } from '../persistence/display.js';
 
 export function notebookHydrationCases() {
   test.describe('archived notebook hydration', () => {
@@ -29,6 +30,7 @@ export function notebookHydrationCases() {
           async () => {
             await expect(open).toBeDisabled();
             await expect(page.locator('form, .codex-editor')).toHaveCount(0);
+            await displayText(page, '');
             const box = await open.boundingBox();
             expect(box).not.toBeNull();
             await page.mouse.click(box!.x + 5, box!.y + 5);
@@ -39,6 +41,7 @@ export function notebookHydrationCases() {
           },
         );
         await expect(open).toBeEnabled();
+        await displayText(page, '');
         await expect(page.locator('.codex-editor')).toHaveCount(0);
         expect(
           await page.evaluate(() =>
@@ -51,16 +54,24 @@ export function notebookHydrationCases() {
         // Editor.js inserts blocks before isReady enables change observation.
         // The recipe enables Save only after readiness and form validation settle.
         await expect(save).toBeEnabled();
+        await displayText(page, 'First notebook');
         await paragraph.fill('Hydrated notebook draft');
         if (forms)
           await expect(
             page.getByLabel('Draft document', { exact: true }),
           ).toContainText('Hydrated notebook draft');
         await expect(save).toBeEnabled();
+        // A live draft must not replace the separately loaded persisted record.
+        await displayText(page, 'First notebook');
         await save.click();
         await expect(
           page.getByLabel('Acknowledged record', { exact: true }),
         ).toContainText('Hydrated notebook draft');
+        await displayText(page, 'Hydrated notebook draft');
+        for (const surface of surfaces(page))
+          await expect(
+            surface.locator('[contenteditable], .codex-editor'),
+          ).toHaveCount(0);
         await page
           .getByRole('button', { name: 'Hold next save', exact: true })
           .click();
@@ -77,8 +88,10 @@ export function notebookHydrationCases() {
           })
           .click();
         await expect(page.locator('.codex-editor')).toHaveCount(0);
+        await displayText(page, '');
         await open.click();
         await expect(paragraph).toHaveText('First notebook');
+        await displayText(page, 'First notebook');
         await expect(
           page.getByLabel('Acknowledged record', { exact: true }),
         ).toBeEmpty();

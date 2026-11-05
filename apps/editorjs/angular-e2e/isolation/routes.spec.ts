@@ -1,11 +1,18 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixture.js';
-import { arm, held, release, events } from '../hydration/fixture.js';
+import { arm, held, release, events, bootstrap } from '../hydration/fixture.js';
+import { displayResult, surfaces } from '../persistence/display.js';
 import { fixturePort, packed } from '../tools/ssr-environment.mjs';
 
 /** A bounded idle observation, not a timer-based application activation policy. */
 async function idleWindow(page: Page) {
   await expect(page.locator('main')).toHaveAttribute('data-rendered', 'true');
+  // This record survives a stalled evaluate; completion-only evidence cannot
+  // distinguish the historical cold-route stall from a completed idle window.
+  await test.info().attach('idle-start', {
+    body: JSON.stringify({ url: page.url(), at: new Date().toISOString() }),
+    contentType: 'application/json',
+  });
   const observation = await page.evaluate(async () => {
     const idle = () =>
       new Promise<{ timedOut: boolean; waitedMs: number }>((resolve) => {
@@ -533,4 +540,77 @@ test('real tool modules and embedded styles arrive only with authoring and remai
   expect(
     (await delivery.checkpoint('new packaged owners')).runtimeRequests,
   ).toEqual(active.runtimeRequests);
+});
+
+test.describe('stored display composition', () => {
+  test.skip(!packed, 'Requires the archived codec and renderer packages');
+  test('cold stored display hydrates without authoring, then survives authoring disposal', async ({
+    page,
+    graph,
+    delivery,
+  }) => {
+    graph.assertDisplayIsolated();
+    const initial: { html: string; handle: Awaited<ReturnType<Page['$']>> }[] =
+      [];
+    await bootstrap(page, '/display?marker=stored-request', [], 0, async () => {
+      await displayResult(page);
+      for (const surface of surfaces(page)) {
+        await expect(
+          surface.getByRole('heading', { name: 'stored-request' }),
+        ).toBeVisible();
+        await expect(surface.locator('pre code')).toHaveText(
+          '<script>literal</script>',
+        );
+        await expect(
+          surface.getByRole('img', { name: 'Red rectangle' }),
+        ).toHaveCount(1);
+        await expect(surface.locator('img[alt=""]')).toHaveCount(1);
+        initial.push({
+          html: await surface.innerHTML(),
+          handle: await surface.elementHandle(),
+        });
+      }
+    });
+    await idleWindow(page);
+    for (const [index, surface] of surfaces(page).entries()) {
+      await expect(surface).toHaveJSProperty('innerHTML', initial[index].html);
+      expect(
+        await initial[index].handle!.evaluate((node) => node.isConnected),
+      ).toBe(true);
+    }
+    const cold = await delivery.checkpoint('stored display hydrated');
+    delivery.assertPublic(cold);
+    expect(cold.authoringRequests).toEqual([]);
+    expect(cold.authoringEvaluated).toEqual([]);
+    expect(
+      (await page.locator('style').allTextContents()).some((css) =>
+        /\.ce-code__textarea|\.image-tool/.test(css),
+      ),
+    ).toBe(false);
+    await page.getByRole('link', { name: 'Standalone', exact: true }).click();
+    const editor = page.locator('aa-standalone-editor[data-owner="A"]');
+    await expect(editor.getByTestId('ready-count')).toHaveText('1');
+    await editor.locator('.ce-paragraph').fill('Unpersisted authoring draft');
+    await expect(editor.getByTestId('last-change')).toContainText(
+      'Unpersisted authoring draft',
+    );
+    const active = await delivery.checkpoint('authoring active after display');
+    expect(active.authoringEvaluated.length).toBeGreaterThan(0);
+    await page
+      .getByRole('link', { name: 'Stored display', exact: true })
+      .click();
+    await expect.poll(() => events(page)).toContain('destroyed');
+    await idleWindow(page);
+    await displayResult(page);
+    for (const surface of surfaces(page)) {
+      await expect(surface.locator('mark')).toHaveText('article');
+      await expect(surface).not.toContainText('Unpersisted authoring draft');
+    }
+    await expect(page.locator('.codex-editor')).toHaveCount(0);
+    const returned = await delivery.checkpoint(
+      'stored display after authoring disposal',
+    );
+    expect(returned.runtimeRequests).toEqual(active.runtimeRequests);
+    expect(returned.authoringRequests).toEqual(active.authoringRequests);
+  });
 });

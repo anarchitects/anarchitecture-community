@@ -158,7 +158,7 @@ installations but are not deployable showcases.
 | Upload browser and optional backend references  | `packages/editorjs/upload-fetch/README.md`, `nest-example.md`; generated neutral/browser and Nest consumers                                                                                    | `test-browser` in browser job plus reference CSR `nest-upload-fastify`/`nest-upload-node` in packed job. Assert actual controlled HTTP/abort/mapping behavior. Existing Nest persistence DI composition proves service injection, not an HTTP endpoint. |
 | Headless renderer recipes                       | Six complete public-import examples extracted by `html/tools/packed-smoke.mjs` from its packed README                                                                                          | Four renderer headless atoms: declarations, execution, guarded Node imports, browser semantics/security and dependency isolation.                                                                                                                       |
 | Angular renderer reference/recipes              | Seven README source files; `html-angular/tools/consumer/{app,corpus,server,main,main.server}.ts` and generated scoped/directive routes                                                         | Three build/behavior/corpus/isolation sets in SSR job: compile recipes, real CSR/SSR/prerender/hydration, strict/preview/DI behavior and authoring absence.                                                                                             |
-| Joined author/save/load/render example          | Not currently present in the inspected hosts/recipes                                                                                                                                           | #678 must gate the minimal composed fixture or recipe delivered with #676/#677; no extra showcase application is needed for proof.                                                                                                                      |
+| Joined author/save/load/render example          | Private packed observers from #676 and the stored display/SSR fixture from #677                                                                                                                | #678 must gate the minimal composed fixture or recipe delivered with #676/#677; no extra showcase application is needed for proof.                                                                                                                      |
 
 [#78](https://github.com/anarchitects/anarchitecture-community/issues/78) still
 owns new public basic-editor, Forms, SSR and Nest-backed-upload showcases and
@@ -313,8 +313,8 @@ and remaining limits. None needs a test-count quota.
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | G01 / P1 — neutral joined contract             | #675: S1–S4 through public codec/service/core and renderer APIs, reusing archived persistence and renderer fixtures. Add production changes only for reproduced defects.                                                                                                   | Owning core/HTML/tool/upload Nx checks plus appropriate packed neutral/portable atoms. Failures expose no HTML/no write as applicable; safe semantic data survives detached round trips, aliases/tunes/Code/alt. Record actual archives and locks.                                                             |
 | G02 / P1 — browser composition                 | #676: S1–S5 using existing authoring/Forms/notebook fixtures and both renderer surfaces; preserve absent/present Forms and owner scope.                                                                                                                                    | Angular/HTML Angular tests, real browser and affected packed CSR/behavior/corpus cells. Assert acknowledged versus newer draft, disposal/late-result fencing, diagnostics, invalid-display clearing and recovery. Do not count independent fixture passes as the joined journey.                               |
-| G03 / P1 — composed SSR/delivery               | #677: S6 and changed SSR seams, reusing current matrix and negative controls.                                                                                                                                                                                              | Workspace SSR/hydration/isolation and affected packed SSR/renderer atoms. Concurrent request/policy isolation, initial DOM parity, no hydration errors and no public authoring delivery. Keep host/browser controls meaningful.                                                                                |
-| G03a / P2 — cold-route timing lead             | #677: investigate reported first-route `idleWindow` stall. Current helper already sets a 1,000ms requestIdleCallback deadline, observes a further 1,000ms window and attaches timing evidence; do not assume it is the earlier unbounded helper.                           | Reproduce under controlled cold conditions or retain owner/needed evidence. Distinguish page event-loop delay from SSR success; no blanket timeout/retry/skip changes. Hosted evidence needs separate authorization.                                                                                           |
+| G03 / P1 — composed SSR/delivery               | #677: implemented S6 in the SI-75.4 record below, reusing the existing matrix and negative controls.                                                                                                                                                                       | Workspace SSR/hydration/isolation and affected packed SSR/renderer atoms. Concurrent request/policy isolation, initial DOM parity, no hydration errors and no public authoring delivery. Keep host/browser controls meaningful.                                                                                |
+| G03a / P2 — cold-route timing lead             | #677: bounded local investigation completed; historical 30s stall not reproduced. Retain the existing deadline/window and new start evidence; maintainer-owned hosted diagnosis remains unresolved (SI-75.4 below).                                                        | Reproduce under controlled cold conditions or retain owner/needed evidence. Distinguish page event-loop delay from SSR success; no blanket timeout/retry/skip changes. Hosted evidence needs separate authorization.                                                                                           |
 | G04 / P1 — recipe/host gate coverage           | #678: wire the minimal joined S1–S6 fixture/recipe into existing validation, reconcile every host row above, fail on missing extracted assets. Existing separate recipes can be reused.                                                                                    | Build/typecheck plus relevant packed public-import, browser/SSR behavior and collector outcomes. Document current-versus-future #78 hosts honestly; no new showcase product required.                                                                                                                          |
 | G05 / P1 — affected admission                  | #695: graph-derived base/head selection before runner/worker allocation, especially root Nest/macOS jobs; conservative fallback and shared-config handling.                                                                                                                | Local representative selection cases from the admission contract, followed by separately permitted hosted evidence if needed. Selected missing/failed/cancelled work must fail; intentional unaffected skips must not deadlock protection.                                                                     |
 | G06 / P1 — whole-family cache/failure contract | #679: reconcile all 105 atoms after preceding changes, workspace/browser inputs and shared outputs, required collectors, restore/invalidate and failure/cancellation behavior.                                                                                             | Local cold/warm, clean output restoration, changed source/lock/runtime/env invalidation; absent/corrupt/stale/failed records fail collection. Reuse still-valid #687 evidence and fix demonstrated omissions; retain explicit uncached exclusions.                                                             |
@@ -647,3 +647,167 @@ prepared fresh; reference reused its unchanged snapshot. The focused harness,
 lint and typecheck pass, and all six final atom evidence manifests were verified.
 No hosted rerun or ongoing monitoring was requested; this is a local correction
 on PR #702, not a claim that the subsequent CI run has passed.
+
+## SI-75.4 SSR, hydration and delivery composition (#677)
+
+Reviewed 2026-11-05 from merged baseline
+`19def4e5be20612ccaff818d68cc04f63cbb6967`. Re-enumerated and read all 18 Meta
+ADRs at `47e75544673037d25665c8c9305c809802b58261` and all nine local ADRs,
+including proposed and historical material. Read the Modern Angular index,
+repository application, architecture, providers, reactivity, Forms, rendering,
+SSR, testing and validation guides. Applicable constraints remain Community0008
+(normal Angular binding, independent renderer, strict/preview and alt semantics),
+Modern Angular A03/A07/A09/A10 (scoped state, native Forms, hydration and actual
+consumer evidence), Community0004/0007 and Meta0013/0015 (packed documentation,
+non-bumping initialization, accurate inputs/outputs). Meta0008/0009/0010 and
+Community0005/0006 preserve the existing Nest 12.3.2 native Node reference and
+Fastify support; no adapter or version changes are made. No accepted decision
+conflicts with this slice; governance proposals remain proposals.
+
+### Joined coverage
+
+- The existing packed SSR host gains a private lazy `/display` route. It passes
+  saved common/aliased/custom/Flag/Code/image data through the same archived
+  `encodeRaw`/`decodeRaw` codec and `PackedDisplay` used in #676. Both Angular
+  surfaces are checked before bootstrap and after hydration against headless
+  results, including literal Code, ordered-list metadata, separate caption and
+  authored/decorative alt. Server checks interleave request markers, verify
+  independent output and observe actual request-owner destruction with zero
+  editor loader/construction calls.
+- The display journey checks the emitted production closure, network requests,
+  executed modules, styles and owner probes before authoring. The fixture's
+  existing upload provider override now lives in its lazy upload route instead
+  of pulling the authoring Angular adapter into the public entry. Its override
+  behavior is retained. After actual authoring/edit/disposal, returning to the
+  display must show stored content, no unsaved draft and no new authoring fetch.
+  Existing runtime preload and eager runtime/tool/style controls remain active.
+  This fixture change is not a new public host or package API.
+- Archived standalone and native Forms notebook hydration now checks the empty
+  prehydration display, the loaded record, unchanged display during unsaved edits,
+  acknowledged save output and fresh record after owner disposal/re-entry.
+- The independent renderer consumer extracts the real shipped core persistence
+  codec, verifies its source against the guide and renders detached stored data
+  under its existing request/route/element/instance policies. It still installs
+  no authoring packages or Forms requirement. Existing CSR, SSR and prerender
+  behavior, updates and failure recovery remain in their original atoms.
+- The existing 1,169-case semantic/security corpus now also runs at
+  `/corpus-server`, without creating another compatibility matrix or copying the
+  corpus. Bootstrap scripts are held while the test compares both parsed SSR
+  surfaces with headless results, then released to check the same meaning and
+  retained renderer hosts/containers after hydration. Browser errors, hydration
+  warnings, execution sentinels and unexpected requests fail the check. Existing
+  semantic and missing/authored/decorative-alt controls remain. HTML, browser
+  request/error records and traces are retained for each CSR/SSR corpus route.
+
+### Local evidence and limits
+
+Renderer run `si677-ref` completed all **16 existing atoms** in all seven exact
+cells and the uncached completeness collector. Four headless cells cover Node
+22.12.0, 22.22.3, 24.15.0 and 26.0.0. Three Angular cells pair 22.0.0/22.22.3,
+22.1.4/24.15.0 and 22.2.2/26.0.0. Each Angular cell passed build, behavior, corpus
+and isolation, including the deliberately imported real authoring/runtime/tool
+negative control. Each corpus route checks 1,169 cases and two surfaces; SSR
+parity additionally compares prebootstrap and hydrated DOM. Actual Chromium was
+156.0.8078.4. Renderer source identity:
+`d0efda3f1d56a336dc3b928368adbbc7cd613917ef571d0623d39ed785d2f91d`.
+Evidence: `dist/editorjs-renderer-results/si677-ref/complete.json` and the per-cell
+records, locks and artifacts under `dist/editorjs-renderer-inputs/si677-ref`.
+
+The reference corpus output directory was moved aside, then restored by an Nx
+local cache hit, including both new traces and HTML records. The uncached
+collector subsequently verified all sixteen artifact manifests. This is local
+cache evidence, not remote reuse or hosted distribution proof. The new packed
+`display-page.txt` is explicitly included in authoring preparation's source
+fingerprint; normal task inputs include changed assertions and validators.
+Fresh preparations and collectors remain uncached; no task/worker count or
+hosted orchestration changes are introduced.
+
+Local lint, type checks and both packed-harness targets passed. Package builds
+used by preparation passed. Authoring's final three-cell SSR/hydration evidence is
+recorded below. Workspace browser/SSR runs are distinct from
+these actual packed consumers; neither the full 89-atom authoring collector nor
+new Nest/HTTP/browser support is claimed.
+
+The local Nx coordinator briefly stalled before task execution while its native
+`getDefaultMaxCacheSize` probed mounted volumes. A stack sample identified
+`sysinfo`/`CFURLCopyResourcePropertiesForKeys`/`getattrlist`, and the local system
+reported an unavailable SMB backup mount. Only this task's stalled processes
+were stopped. `NX_MAX_CACHE_SIZE=10GB`, verified against installed Nx 23.2.1,
+avoided that probe. This session-only setting does not disable caching, alter a
+test timeout or change repository/CI configuration. Keep it separate from the
+historical browser idle investigation.
+
+Fresh npm reads returned 404 for core, authoring Angular, HTML and HTML Angular;
+remote Editor.js tags were absent and none of 102 GitHub releases was Editor.js.
+Use non-bumping `init` with an exact Nx project scope. No publication, merge,
+CI inspection/monitoring, hosted retry or capacity change is authorized by this
+record. #678 remains the next maintainer-started slice.
+
+### Final authoring run and bounded idle disposition
+
+Run `si677-final` used three fresh SSR preparations. All **42 selected atoms**
+passed: four build profiles, guarded SSR, all eight hydration files and isolation
+in each existing cell. This includes **750 browser executions** (250 per cell),
+all existing eager/deferred/incremental Forms-absent/present journeys and their
+failure/disposal controls. The server import hook rejected all emitted custom
+Callout/Marker/Flag/Code copies used as negative controls, while the stored
+display and neutral codec remained importable. All 42 retained artifact
+manifests were independently verified. This is focused SSR/hydration evidence,
+not the whole authoring collector or a claim about subsequent hosted CI.
+
+Reproduction uses the existing `editorjs-angular-e2e:packed-ssr-angular22-<cell>-<phase>`
+targets with `--runId=si677-final`, `EDITORJS_PACKED_RUN_ID=si677-final`,
+`CI=true`, `NG_BUILD_MAX_WORKERS=2` and `NX_NO_CLOUD=true`. Prepare each of
+`minimum`, `reference`, `current` first. Selected phases are `ssr`, `isolation`,
+`hydration-common`, `hydration-registry`, `hydration-standalone`, `hydration-forms`,
+`hydration-upload`, `hydration-forms-upload`, `hydration-deferred` and
+`hydration-forms-deferred`; Nx adds their four build prerequisites. A future
+source change requires a fresh run ID/preparation. The existing unrelated Nest
+project-reference sync discrepancy was kept outside this slice with the scoped
+`--skipSync` used in preceding validation; no reference files were rewritten.
+
+Authoring source identity:
+`82c73b532d2f2116aeb23212f7620cd753ea12016e539c07f3e9c60780fa75f6`.
+Actual archives retain their #676 hashes, because this slice changes private
+consumers/assertions and contributor evidence, not shipped implementation:
+
+| Artifact                | SHA-256                                                            |
+| ----------------------- | ------------------------------------------------------------------ |
+| Authoring Angular       | `73768ba732a4f4ac84cb672d3333104f8d8ad6c3ebd39931318a06faa215a6b3` |
+| HTML                    | `78bde900a0211b3c04ad7985daedbf57b4b6c8853424969285d43429afae35e8` |
+| HTML Angular            | `ed72a5697a06367fbeb6022a288415ed81f1d93a36a42155aaf245f743bf7ab1` |
+| Minimum consumer lock   | `3a174643c87892098474ed1c6ca6f5142dd669d81df84a4f22909e6818f0a0c1` |
+| Reference consumer lock | `258484eea1c5b9a8d10977227e8aa5d545172d60cb3333e0109a809fcbf094ea` |
+| Current consumer lock   | `bbecd7c86790a4365fa5793f12bdde93c0ee7dda353a090593013204f82c84d3` |
+
+Evidence lives under `dist/editorjs-packed-inputs/si677-final/ssr` and
+`dist/editorjs-packed-results/si677-final/ssr`, including snapshot/archive/lock
+identities, server HTML/lifetime logs, build provenance, browser reports and
+attached delivery/execution/idle records. Preparations verified the actual packed
+READMEs/licenses and extracted recipes. No workspace-source substitution is used.
+
+**G03a disposition: not reproduced locally; hosted cause remains unresolved.**
+The current helper already supplies a 1,000ms idle deadline and retains a separate
+1,000ms observation window between callbacks. No timeout, retry, skip or
+activation-policy change was made. A new `idle-start` attachment records URL and
+wall-clock time before the awaited browser evaluation, so a future stall retains
+evidence even if its completion attachment cannot be produced.
+
+In the final run, `/` and `/sample/public` are still the first two tests of each
+isolated packed isolation worker. All six cold-load/client-navigation tests
+passed in **2.273–2.450s**. Across all three isolation suites, **138 idle callbacks**
+completed; three used the existing deadline (one in each new stored-display
+journey, **1000.5–1000.7ms**), and the other callbacks reported ordinary idle
+completion. This proves the current bounded path ran, not the cause of the
+historical 30s `page.evaluate` stall. The six original cold-route journeys,
+preload-without-evaluation and eager-evaluation negative controls all passed.
+
+Community maintainers retain ownership of the hosted lead. Reopen causal
+investigation if it recurs, using the exact commit/cell/worker/runtime, retained
+Playwright trace, `idle-start`/completion records and worker/event-loop evidence.
+Server `data-rendered=true` alone cannot prove browser scheduling health. A
+separately authorized inspection is still needed for hosted evidence; local
+success does not classify the earlier failure as fixed, environmental or flaky.
+G03 is implemented; G03a has this bounded unresolved disposition. #678 and the
+remaining cache/admission/protection/candidate gates stay in their established
+sequence.

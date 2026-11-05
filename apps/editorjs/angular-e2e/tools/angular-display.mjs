@@ -89,3 +89,47 @@ export async function prepareAngularDisplay(root) {
     '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="60"><rect width="80" height="60" fill="red"/></svg>',
   );
 }
+
+export async function prepareAngularDisplaySsr(root) {
+  const host = join(root, 'apps/editorjs/angular-host/src/ssr');
+  await copyFile(
+    new URL('./display-page.txt', import.meta.url),
+    join(host, 'display-page.ts'),
+  );
+  const config = join(host, 'app.config.ts');
+  let source = await readFile(config, 'utf8');
+  // The host's upload override currently puts the authoring provider in the
+  // public entry. Keep the override, but make its owning route lazy as well.
+  const start = source.indexOf("  {\n    path: 'upload',");
+  const end = source.indexOf("  {\n    path: 'tools',", start);
+  assert(start >= 0 && end > start, 'Expected the upload route boundary');
+  const upload = source.slice(start, end).replace("path: 'upload'", "path: ''");
+  await writeFile(
+    join(host, 'display-upload-routes.ts'),
+    `import { provideEditorJsTools } from '@anarchitects/editorjs-angular';\nimport type { Routes } from '@angular/router';\nexport const routes: Routes = [${upload}];\n`,
+  );
+  source =
+    source.slice(0, start) +
+    "  { path: 'upload', loadChildren: () => import('./display-upload-routes').then(m => m.routes) },\n" +
+    source.slice(end);
+  const providerImport =
+    "import { provideEditorJsTools } from '@anarchitects/editorjs-angular';\n";
+  assert(source.includes(providerImport));
+  source = source
+    .replace(providerImport, '')
+    .replace(
+      'const routes: Routes = [',
+      "const routes: Routes = [\n  { path: 'display', loadComponent: () => import('./display-page').then(m => m.DisplayPage) },",
+    );
+  await writeFile(config, source);
+  const app = join(host, 'app.ts');
+  const template = await readFile(app, 'utf8');
+  assert(template.includes('<nav aria-label="Fixture routes">'));
+  await writeFile(
+    app,
+    template.replace(
+      '<nav aria-label="Fixture routes">',
+      '<nav aria-label="Fixture routes"><a routerLink="/display">Stored display</a>',
+    ),
+  );
+}

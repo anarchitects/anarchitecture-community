@@ -186,6 +186,24 @@ try {
       ),
     );
     mkdirSync(join(temporary, 'src/examples'));
+    const persistence = readFileSync(
+      join(
+        temporary,
+        'node_modules/@anarchitects/editorjs-core/persistence.md',
+      ),
+      'utf8',
+    );
+    assert.equal(
+      persistence,
+      readFileSync(join(project, '../core/persistence.md'), 'utf8'),
+    );
+    const codec = [
+      ...persistence.matchAll(
+        /<!-- persistence-example-file: persistence.ts -->\s*```ts\n([\s\S]*?)```/g,
+      ),
+    ];
+    assert.equal(codec.length, 1, 'Expected the archived persistence codec');
+    write('src/examples/persistence.ts', codec[0][1]);
     const examples = [
       ...readme.matchAll(/<!-- example: ([\w.-]+) -->\s*```ts\n([\s\S]*?)```/g),
     ];
@@ -309,7 +327,7 @@ try {
     browser = await chromium.launch({ headless: true });
     const result =
       phase === 'corpus'
-        ? await corpusCheck(browser, origin)
+        ? await corpusCheck(browser, origin, evidence)
         : await isolationCheck(browser, origin, temporary);
     writeFileSync(
       join(evidence, 'summary.json'),

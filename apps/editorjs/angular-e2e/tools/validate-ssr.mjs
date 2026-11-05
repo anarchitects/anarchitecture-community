@@ -209,7 +209,7 @@ try {
     'tools/forms',
     'upload',
     'forms-upload',
-    ...(packed ? ['custom', 'custom-forms'] : []),
+    ...(packed ? ['custom', 'custom-forms', 'display'] : []),
   ]) {
     for (const concurrent of [false, true]) {
       const verify = async (marker) => {
@@ -224,9 +224,10 @@ try {
             dom.window.document.querySelectorAll('aa-editorjs > div');
           const uploads = route === 'upload' || route === 'forms-upload';
           const custom = route.startsWith('custom');
+          const display = route === 'display';
           assert.equal(
             holders.length,
-            uploads || custom ? 0 : route.endsWith('forms') ? 1 : 2,
+            uploads || custom || display ? 0 : route.endsWith('forms') ? 1 : 2,
           );
           for (const holder of holders)
             assert.equal(holder.childNodes.length, 0);
@@ -235,7 +236,47 @@ try {
               .textContent,
             marker,
           );
-          if (custom) {
+          if (display) {
+            const component = dom.window.document.querySelector(
+              'packed-display .editorjs-html',
+            );
+            const directive = dom.window.document.querySelector(
+              'packed-display article',
+            );
+            assert.equal(component.innerHTML, directive.innerHTML);
+            assert.equal(component.querySelector('h2').textContent, marker);
+            assert.equal(
+              component.querySelector('mark').textContent,
+              'article',
+            );
+            assert.equal(
+              component.querySelector('pre code').textContent,
+              '<script>literal</script>',
+            );
+            assert.equal(
+              component.querySelector('ol').getAttribute('start'),
+              '3',
+            );
+            assert.deepEqual(
+              [...component.querySelectorAll('img')].map((image) =>
+                image.getAttribute('alt'),
+              ),
+              ['Red rectangle', ''],
+            );
+            assert.equal(component.querySelector('script, [onerror]'), null);
+            for (const label of [
+              'Component result',
+              'Directive result',
+              'Headless result',
+            ])
+              assert.equal(
+                JSON.parse(
+                  dom.window.document.querySelector(`[aria-label="${label}"]`)
+                    .textContent,
+                ).status,
+                'success',
+              );
+          } else if (custom) {
             assert(
               dom.window.document.querySelector('aa-custom-ssr button')
                 .disabled,
@@ -383,26 +424,27 @@ async function request(path, name, wait = 0) {
     () => events().some((e) => e.event === 'finished' && e.id === id),
     'response body completion',
   );
-  const authoring =
+  const owned =
     path.startsWith('/standalone') ||
     path.startsWith('/forms') ||
     path.startsWith('/registry') ||
     path.startsWith('/upload') ||
     path.startsWith('/custom') ||
-    path.startsWith('/tools');
+    path.startsWith('/tools') ||
+    path.startsWith('/display');
   // Angular schedules platform destruction after rendering. Observe its actual
   // DestroyRef callbacks; do not force disposal or infer it from HTTP completion.
-  if (authoring)
+  if (owned)
     await until(
       () => events().some((e) => e.event === 'disposed' && e.id === id),
       'Angular owner disposal',
     );
   const lifetime = events().find(
-    (e) => e.event === (authoring ? 'disposed' : 'finished') && e.id === id,
+    (e) => e.event === (owned ? 'disposed' : 'finished') && e.id === id,
   ).lifetime;
   assert.deepEqual(lifetime, {
-    owners: authoring ? 1 : 0,
-    destroyed: authoring ? 1 : 0,
+    owners: owned ? 1 : 0,
+    destroyed: owned ? 1 : 0,
     loaders: /^\/(standalone|forms)(\?|$)/.test(path) ? 1 : 0,
     loadersDestroyed: /^\/(standalone|forms)(\?|$)/.test(path) ? 1 : 0,
     calls: 0,
