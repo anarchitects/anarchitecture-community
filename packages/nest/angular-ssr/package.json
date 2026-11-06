@@ -57,6 +57,65 @@
         "options": {
           "reportsDirectory": "coverage/packages/nest/angular-ssr"
         }
+      },
+      "test-consumer-lifecycle": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node --test tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs"
+        },
+        "inputs": [
+          "default",
+          "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+          "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+        ]
+      },
+      "validate-consumers": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "test-consumer-lifecycle"
+        ],
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
+        },
+        "cache": false,
+        "inputs": [
+          "default",
+          "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+          "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+        ]
+      },
+      "validate-matrix": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-matrix.mjs {args.cell}"
+        },
+        "cache": false,
+        "inputs": [
+          "default",
+          "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+          "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+        ]
+      },
+      "validate-split": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-split.mjs"
+        },
+        "cache": false,
+        "inputs": [
+          "default",
+          "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+          "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+        ]
       }
     }
   },

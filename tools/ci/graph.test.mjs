@@ -77,22 +77,58 @@ test('installed Nx graph admits actual fixture, source, dependency and shared co
     ['vitest.config.ts', true, 'all'],
     ['.gitignore', true, 'all'],
     ['.github/workflows/ci.yml', true, 'all'],
-    ['.nx/workflows/editorjs-packed.yaml', true, 'all'],
-    ['tools/ci/selection.mjs', true, 'all'],
+    ['.nx/workflows/editorjs-packed.yaml', false, ['editorjs-angular-packed']],
+    ['tools/ci/selection.mjs', false, []],
+    ['tools/ci/graph.test.mjs', false, []],
+    ['docs/editorjs-stability-coverage.md', false, []],
     // Nx conservatively affects all projects when a project definition is deleted.
     ['packages/deleted/project.json', true, 'all'],
   ];
   for (const [file, nest, required] of scenarios) {
     const projects = query(['--affected', `--files=${file}`]);
-    const selected = selectJobs(projects, allProjects, 'affected');
+    // Workflow admission is deliberately broad, independently of product hashes.
+    const selected = selectJobs(
+      projects,
+      allProjects,
+      file === '.github/workflows/ci.yml' ? 'all' : 'affected',
+    );
     assert.equal(selected['nest-angular-ssr-consumers'], nest, file);
     assert.equal(selected['nest-angular-ssr-compatibility'], nest, file);
     if (required === 'all') {
       assert.ok(Object.values(selected).every(Boolean), file);
-      assert.deepEqual([...projects].sort(), [...allProjects].sort(), file);
+      if (file !== '.github/workflows/ci.yml')
+        assert.deepEqual([...projects].sort(), [...allProjects].sort(), file);
     } else
       for (const job of required)
         assert.equal(selected[job], true, `${file}: ${job}`);
+    if (
+      [
+        'tools/ci/graph.test.mjs',
+        'tools/ci/selection.mjs',
+        'docs/editorjs-stability-coverage.md',
+      ].includes(file)
+    ) {
+      assert.deepEqual(projects, ['@anarchitecture-community/source']);
+      assert.ok(
+        Object.values(selected).every((value) => !value),
+        file,
+      );
+    }
+    if (file === '.nx/workflows/editorjs-packed.yaml') {
+      assert.ok(projects.includes('editorjs-angular-e2e'));
+      assert.ok(
+        projects.every((name) =>
+          ['editorjs-angular-e2e', '@anarchitecture-community/source'].includes(
+            name,
+          ),
+        ),
+      );
+      assert.equal(
+        selected['better-auth-typeorm-adapter-compatibility'],
+        false,
+      );
+      assert.equal(selected['editorjs-core-runtime-baseline'], false);
+    }
     console.log(JSON.stringify({ file, projects, selected }));
   }
 });
@@ -159,24 +195,21 @@ test('complete-family CI retains all proof atoms, cacheable prerequisites and un
     ].inputs.includes('editorjsBrowser'),
   );
   const workflow = readFileSync('.github/workflows/ci.yml', 'utf8');
+  const coordinator = readFileSync('tools/ci/workspace.mjs', 'utf8');
   assert.ok(
     workflow.includes(
       'node apps/editorjs/angular-e2e/tools/packed-targets.mjs',
     ),
   );
   assert.ok(
-    workflow.includes(
-      'node packages/editorjs/html-angular/tools/packed/run.mjs targets',
-    ),
+    coordinator.includes('packages/editorjs/html-angular/tools/packed/run.mjs'),
   );
   assert.ok(
     workflow.includes(
       'node apps/editorjs/angular-e2e/tools/packed-results.mjs',
     ),
   );
-  assert.ok(
-    workflow.includes('yarn nx run editorjs-html-angular:packed-collect'),
-  );
+  assert.ok(coordinator.includes('editorjs-html-angular:packed-collect'));
   const packed = workflow.slice(
     workflow.indexOf('  editorjs-angular-packed:'),
     workflow.indexOf('  workspace:'),
@@ -189,4 +222,28 @@ test('complete-family CI retains all proof atoms, cacheable prerequisites and un
   );
   assert.ok(packed.includes('always() && steps.workers.outcome'));
   assert.ok(packed.includes('yarn nx-cloud complete-ci-run'));
+  const root = graph.nodes['@anarchitecture-community/source'].data;
+  for (const name of ['lint', 'test', 'build', 'typecheck'])
+    assert.equal(
+      root.targets[name],
+      undefined,
+      'Root-only documentation must not hide a workspace task',
+    );
+  const nest = graph.nodes['nest-angular-ssr'].data;
+  for (const [legacy, target] of [
+    ['test-nest-angular-ssr-consumer-lifecycle', 'test-consumer-lifecycle'],
+    ['validate-nest-angular-ssr-consumers', 'validate-consumers'],
+    ['validate-nest-angular-ssr-matrix', 'validate-matrix'],
+    ['validate-nest-angular-ssr-split', 'validate-split'],
+  ]) {
+    assert.equal(nest.targets[target].cache, false);
+    assert.ok(
+      nest.targets[target].inputs.includes(
+        '{workspaceRoot}/tools/fixtures/*nest-angular-ssr*',
+      ),
+    );
+    assert.deepEqual(root.targets[legacy].dependsOn, [
+      { projects: ['nest-angular-ssr'], target, params: 'forward' },
+    ]);
+  }
 });

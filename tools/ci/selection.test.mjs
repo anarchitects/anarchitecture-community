@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -10,11 +16,18 @@ import {
   comparison,
   createPlan,
   jobProjects,
+  jobNames,
+  neutralArgs,
   selectJobs,
   workspaceArgs,
 } from './selection.mjs';
 
-const owners = [...new Set(Object.values(jobProjects).flat())];
+const owners = [
+  ...new Set([
+    ...Object.values(jobProjects).flat(),
+    '@anarchitecture-community/source',
+  ]),
+];
 const base = '1'.repeat(40);
 const head = '2'.repeat(40);
 const affected = { mode: 'affected', base, head, reason: 'test' };
@@ -29,9 +42,9 @@ function needsFor(plan) {
   return {
     selection: { result: 'success', outputs: { plan: JSON.stringify(plan) } },
     ...Object.fromEntries(
-      Object.entries(plan.selected).map(([job, selected]) => [
+      jobNames.map((job) => [
         job,
-        { result: selected ? 'success' : 'skipped' },
+        { result: plan.selected[job] ? 'success' : 'skipped' },
       ]),
     ),
   };
@@ -45,7 +58,7 @@ test('aggregate accepts only explicitly unaffected skips and complete successful
   ]) {
     const needs = needsFor(plan);
     assert.doesNotThrow(() => checkResults(needs));
-    for (const job of Object.keys(jobProjects)) {
+    for (const job of jobNames) {
       for (const result of [
         'failure',
         'cancelled',
@@ -166,6 +179,13 @@ test('workspace uses verified comparison arguments, or the complete baseline', (
     'typecheck',
   ]);
   assert.throws(() => workspaceArgs(planFor([])));
+  assert.throws(() =>
+    workspaceArgs(planFor(['@anarchitecture-community/source'])),
+  );
+  const upload = neutralArgs(planFor(['editorjs-upload-fetch']));
+  assert.equal(upload[upload.indexOf('-p') + 1], 'editorjs-upload-fetch');
+  assert.ok(!upload.includes('lint'), 'Lint has one coordinator owner');
+  assert.throws(() => neutralArgs(planFor(['editorjs-angular-e2e'])));
 });
 
 test('real Git comparisons verify checkout, both PR parents, ancestry and available history', () => {
@@ -280,6 +300,47 @@ test('real Git comparisons verify checkout, both PR parents, ancestry and availa
         reason: 'verified-pr-comparison',
       },
     );
+    mkdirSync(join(cwd, 'tools/ci'), { recursive: true });
+    writeFileSync(
+      join(cwd, 'tools/ci/selection.mjs'),
+      '// changed orchestration',
+    );
+    git(['add', '.']);
+    commit('orchestration');
+    const orchestration = git(['rev-parse', 'HEAD']).trim();
+    assert.equal(
+      comparison({
+        ...input,
+        sha: orchestration,
+        event: {
+          pull_request: {
+            base: { sha: candidate },
+            head: { sha: orchestration },
+          },
+        },
+      }).reason,
+      'ci-orchestration-changed',
+    );
+    writeFileSync(
+      join(cwd, 'tools/ci/graph.test.mjs'),
+      '// selection regression',
+    );
+    git(['add', '.']);
+    commit('test only');
+    const testHead = git(['rev-parse', 'HEAD']).trim();
+    assert.equal(
+      comparison({
+        ...input,
+        sha: testHead,
+        event: {
+          pull_request: {
+            base: { sha: orchestration },
+            head: { sha: testHead },
+          },
+        },
+      }).mode,
+      'affected',
+    );
     git(['checkout', '--orphan', 'unrelated']);
     commit();
     const unrelated = git(['rev-parse', 'HEAD']).trim();
@@ -303,13 +364,13 @@ test('workflow gates every workload before allocation and retains the required m
   ];
   assert.deepEqual(
     jobs.map((match) => match[1]).sort(),
-    ['selection', 'main', ...Object.keys(jobProjects)].sort(),
+    ['selection', 'main', ...jobNames].sort(),
   );
   const section = (job) => {
     const index = jobs.findIndex((match) => match[1] === job);
     return workflow.slice(jobs[index].index, jobs[index + 1]?.index);
   };
-  for (const job of Object.keys(jobProjects)) {
+  for (const job of jobNames) {
     const block = section(job);
     assert.match(block, /^ {4}needs: selection$/m);
     const access = job === 'workspace' ? '.workspace' : `['${job}']`;
@@ -325,7 +386,7 @@ test('workflow gates every workload before allocation and retains the required m
     [...main.matchAll(/^ {6}- ([a-z][a-z0-9-]*)$/gm)]
       .map((match) => match[1])
       .sort(),
-    ['selection', ...Object.keys(jobProjects)].sort(),
+    ['selection', ...jobNames].sort(),
   );
   assert.ok(main.includes('CI_NEEDS: ${{ toJSON(needs) }}'));
   assert.ok(main.includes('node tools/ci/selection.mjs check'));
@@ -338,4 +399,12 @@ test('workflow gates every workload before allocation and retains the required m
   for (const cell of ['angular21-nx22', 'angular21-nx23', 'angular22-nx23']) {
     assert.ok(section('nest-angular-ssr-compatibility').includes(`- ${cell}`));
   }
+  assert.ok(
+    section('workspace').includes('node tools/ci/selection.mjs workspace'),
+  );
+  assert.ok(
+    section('editorjs-core-runtime-baseline').includes(
+      'node tools/ci/selection.mjs neutral',
+    ),
+  );
 });

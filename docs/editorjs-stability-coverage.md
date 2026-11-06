@@ -1353,7 +1353,7 @@ These are run-reported durations and allocations, not billing or utilization dat
 No cost-per-run saving, optimal worker count or cold/warm cross-run comparison can
 be inferred. No monitoring loop, hosted rerun or capacity experiment was performed.
 
-### Handoff to #696 and #680
+### Original handoff to #696 and #680
 
 The final required aggregate identity remains **`main`**. It depends on successful
 selection and all eight workload jobs (14 expanded jobs including selection and
@@ -1367,3 +1367,113 @@ G06 now has implementation and local restoration/invalidation evidence; G07 is
 partially evidenced by the permitted predecessor inspection and remains open for
 the explicit renderer and candidate-identity gaps. These findings do not complete
 #696 or authorize release acceptance.
+
+## #679 reopened follow-up: affected selection and execution ownership (6 November 2026)
+
+This follow-up supersedes the original job topology above, while retaining its
+bounded cache/restoration evidence and outstanding G07 exceptions. The canonical
+Meta inventory at `09d4fc898ad49c177e3e4bbd6b6be160896262cc` (24 ADRs) and the nine
+repository ADRs were unchanged from the preceding complete review. Meta ADR 0015
+requires correct, narrow cache inputs and avoiding duplicate work; local ADRs
+0004–0006 retain the security, compatibility and packed-consumer gates. Contributor
+and applicable Angular repository/SSR/testing guidance were reviewed. There is no
+conflict or change to public runtime behavior or supported versions.
+
+### Observed problem and corrected ownership
+
+The already-authorized inspection of
+[run 42178263770](https://github.com/anarchitects/anarchitecture-community/actions/runs/42178263770)
+found a valid PR comparison (`89e3301…` to merge candidate `814fa59…`), but all
+28 projects and all 14 expanded jobs were selected. The workspace invocation ran
+100 tasks with one cache hit; core/Angular prerequisites also executed in separate
+browser and SSR jobs. Three orchestration globs in `sharedGlobals` made CI-only
+edits affect unrelated products. Separately, using the root project as Nest's owner
+made unrelated root documentation select Nest's platform and compatibility jobs.
+
+- Workflow, CI tooling and Nx worker configuration are no longer universal product
+  inputs. The authoring plugin retains its explicit packed-worker configuration
+  input. Genuine shared compiler, dependency, lock and lint configuration remain
+  covered. A workflow, selector or coordinator implementation change still requests
+  the full CI baseline through admission, independently of product cache hashes.
+- Nest consumer/lifecycle/matrix/split targets belong to `nest-angular-ssr`, with
+  explicit validator and fixture inputs. Existing root commands remain forwarding
+  aliases. The fresh consumer validations remain uncached.
+- Workspace validation, browser tests, upload browser tests, ordered SSR/hydration/
+  isolation checks and renderer preparation/atoms/collection share one Node 24
+  Ubuntu coordinator and local Nx cache. Each selected check remains mandatory.
+  A failed, interrupted or unstartable command cannot be masked by a later success;
+  independent checks and evidence collection still run, with a per-check summary.
+- The Node 22.12.0 neutral baseline requests only affected neutral projects, plus
+  prerequisites selected by Nx. Lint has one owner in the Node 24 workspace job.
+
+Actual Nx graph controls now give the following job allocation. Counts include
+selection and `main`; compatibility matrices are expanded. These are configuration
+counts, not measured hosted runtime or billing savings.
+
+| Change                                                  | Selection                      | Expanded jobs      |
+| ------------------------------------------------------- | ------------------------------ | ------------------ |
+| Coverage documentation or CI tests only                 | No product jobs                | 2                  |
+| Angular authoring source or packed worker configuration | Workspace and packed authoring | 4                  |
+| CI orchestration or genuine global configuration        | Full baseline                  | 12 (previously 14) |
+
+Affected admission remains project-based. A worker-file change affects the e2e
+owner, so its workspace browser/SSR checks are also selected; it does not select
+unrelated Nest, authentication or neutral-floor jobs. This change does not claim
+per-target admission within an affected project. This PR itself intentionally
+requests the full baseline because it changes orchestration and `nx.json`.
+
+### Retained distinct executions
+
+Node 22 floor checks remain separate from Node 24 validation. Authentication's
+locked workspace baseline differs from the Node 20 floor and Node 24 compatibility
+jobs, which freshly resolve their TypeORM versions. Nest's macOS security coverage
+and three framework compatibility cells remain distinct fresh-consumer checks.
+Their common builds may still appear across jobs and depend on remote cache reuse;
+this follow-up does not claim universal deduplication of independent environments.
+
+Authoring DTE retains its Ubuntu 22.04/Node 24.22.1 environment, worker configuration,
+89 requested atoms, fresh preparations, collectors and explicit worker completion.
+It is separate from the Ubuntu-latest/Node 24 workspace coordinator. The renderer
+retains all 16 atoms and uncached preparation/collection. No worker capacity changes
+are made. Consolidation removes competing equivalent workspace build owners, but
+serializing these checks may increase the critical path; hosted wall time has not
+been measured for this revision.
+
+### Local verification and current handoff
+
+The ten CI contract tests pass, including 29 real affected-graph scenarios,
+complete 89/16 atom reconciliation, revision validation, mandatory subcheck failure
+propagation and aggregate rejection of missing/failed/cancelled selected jobs.
+ESLint passes for the CI tooling. The legacy root lifecycle command successfully
+delegates to the uncached Nest lifecycle target; the resolved task graph also
+forwards `--cell=angular21-nx22` to the Nest matrix target.
+
+With cloud access disabled and an isolated local cache/database, the core build
+retained hash `13645625553830981072` and local cache hits when each of the CI-test,
+workflow and packed-worker files was independently changed. A source edit changed
+the hash to `2364637289366970880` and missed; a lockfile edit changed it to
+`17083481022624415753` and missed. Restoring each input restored the original hash
+and hit. Removing the core output directory restored all 33 files byte-for-byte
+from local cache. Temporary mutations were restored after every control. These
+are representative build-boundary controls, not remote or all-target evidence.
+
+After building the shared packages on the same local coordinator, the workspace
+browser check passed 45 tests (27 existing packed-only skips) and reported 10/12
+local task hits. The following SSR check passed its HTTP, HTML, prerender, escaped
+state, isolation and teardown assertions with 7/9 local task hits. Both reused core
+and Angular builds with identical hashes; browser checks also reused the HTML and
+Angular HTML builds. The host builds and checks themselves executed. This verifies
+the reuse boundary exercised by consolidation, without claiming a fresh rerun of
+every compatibility cell. Local checks used `--skipSync` to avoid the existing,
+unrelated Nest fixture TypeScript synchronization conflict; this follow-up does
+not change those configurations or CI sync behavior.
+
+The required aggregate identity remains **`main`**, now depending on selection and
+six physical workload jobs. Browser/SSR families are mandatory selected subchecks
+of `workspace`; any failed subcheck fails that job and therefore `main`. #696 must
+reconcile effective protection against this topology before #680's acceptance.
+No protection settings were changed here. The previous packed snapshot digests
+above remain historical evidence, not fresh snapshots for this changed revision.
+Renderer remote-restoration/DTE and integrated-candidate evidence remain owned G07
+gaps. No additional hosted inspection, CI monitoring, rerun or capacity experiment
+was performed for this implementation.
