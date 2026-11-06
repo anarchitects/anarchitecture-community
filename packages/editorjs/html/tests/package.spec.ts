@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { expect, it } from 'vitest';
 
-it('packs installable npm runtime dependencies without Yarn rewriting', () => {
+it('packs npm dependencies accepted by Nx Release without Yarn rewriting', () => {
   const directory = mkdtempSync(join(tmpdir(), 'editorjs-html-npm-'));
   const project = resolve(import.meta.dirname, '..');
   try {
@@ -39,6 +39,7 @@ it('packs installable npm runtime dependencies without Yarn rewriting', () => {
     expect(manifest.dependencies['sanitize-html']).toBe('2.18.1');
     for (const field of [
       'dependencies',
+      'devDependencies',
       'optionalDependencies',
       'peerDependencies',
     ]) {
@@ -59,3 +60,40 @@ it('packs installable npm runtime dependencies without Yarn rewriting', () => {
     rmSync(directory, { recursive: true, force: true });
   }
 }, 30_000);
+
+it('passes the actual Nx publish preflight without publishing', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'editorjs-html-publish-'));
+  try {
+    const output = execFileSync(
+      'yarn',
+      [
+        'nx',
+        'release',
+        'publish',
+        '--projects=editorjs-html',
+        '--dry-run',
+        '--yes',
+        '--skipSync',
+        '--outputStyle=static',
+      ],
+      {
+        cwd: resolve(import.meta.dirname, '../../../..'),
+        encoding: 'utf8',
+        timeout: 60_000,
+        env: {
+          ...process.env,
+          NX_DRY_RUN: 'true',
+          NX_NO_CLOUD: 'true',
+          NX_DAEMON: 'false',
+          NX_ISOLATE_PLUGINS: 'false',
+          NX_NATIVE_COMMAND_RUNNER: 'false',
+          npm_config_cache: join(directory, 'cache'),
+        },
+      },
+    );
+    expect(output).toContain('Would publish to');
+    expect(output).toContain('[dry-run]');
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}, 65_000);

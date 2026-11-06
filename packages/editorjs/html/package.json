@@ -324,11 +324,11 @@
     "sanitize-html": "2.18.1"
   },
   "devDependencies": {
-    "@anarchitects/editorjs-tool-header": "workspace:^",
-    "@anarchitects/editorjs-tool-image": "workspace:^",
-    "@anarchitects/editorjs-tool-list": "workspace:^",
-    "@anarchitects/editorjs-tool-paragraph": "workspace:^",
-    "@anarchitects/editorjs-tool-quote": "workspace:^",
+    "@anarchitects/editorjs-tool-header": "^0.0.1",
+    "@anarchitects/editorjs-tool-image": "^0.0.1",
+    "@anarchitects/editorjs-tool-list": "^0.0.1",
+    "@anarchitects/editorjs-tool-paragraph": "^0.0.1",
+    "@anarchitects/editorjs-tool-quote": "^0.0.1",
     "@editorjs/editorjs": "2.31.7",
     "@types/sanitize-html": "2.16.2"
   },

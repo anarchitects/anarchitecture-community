@@ -24,20 +24,38 @@ Otherwise a later build in the Publish workflow could recreate an old version
 and dependency range from unchanged source metadata. Package checks compare
 version/dependency metadata to the current source rather than requiring 0.0.1.
 
+## Renderer 0.0.2 publication failure
+
+Both 0.0.2 GitHub release tags exist, but the headless Publish workflow failed
+before invoking npm: Nx Release also rejects local protocols in development
+dependencies when publishing from a Yarn workspace. The five tool development
+dependencies still used `workspace:^`. Angular renderer 0.0.2 reached npm, but
+its `^0.0.2` headless dependency could not be installed while that version was
+absent. The original npm-pack regression missed this Nx-specific preflight.
+
+The follow-up uses ordinary semver ranges for all five development dependencies;
+Yarn continues to resolve the matching local workspaces. The archive regression
+now checks development dependencies as well. A second regression runs the actual
+`yarn nx release publish --projects=editorjs-html --dry-run --yes --skipSync`
+command and requires successful dry-run publication output. Both checks failed
+on the 0.0.2 manifest and pass with the correction. The publish regression sets
+`NX_DRY_RUN=true` in addition to the CLI flag and disables Nx Cloud. It tests the
+local publication path, not npm authentication, provenance or public availability.
+
 ## Corrective release
 
 After the fix is merged and its required CI passes, select both
 `editorjs-html,editorjs-html-angular` in the existing Release (Manual) workflow,
 with specifier `patch` and `first_release` false. Starting from the verified
-0.0.1 history, Nx proposes:
+0.0.2 tag history, the next patch versions are:
 
 | Package                               | New version | Internal runtime dependency |
 | ------------------------------------- | ----------- | --------------------------- |
-| `@anarchitects/editorjs-html`         | 0.0.2       | core `^0.0.1`               |
-| `@anarchitects/editorjs-html-angular` | 0.0.2       | headless `^0.0.2`           |
+| `@anarchitects/editorjs-html`         | 0.0.3       | core `^0.0.1`               |
+| `@anarchitects/editorjs-html-angular` | 0.0.3       | headless `^0.0.3`           |
 
-Both releases are necessary: the old Angular renderer's `^0.0.1` dependency
-excludes headless 0.0.2. Do not overwrite the old release or manually edit versions
+Both releases are necessary: Angular renderer 0.0.2's `^0.0.2` dependency
+excludes headless 0.0.3. Do not overwrite the old release or manually edit versions
 in a development fix. Nx owns source/dist versions and dependency updates.
 
 The release workflow creates tags and GitHub releases; their Publish workflows
