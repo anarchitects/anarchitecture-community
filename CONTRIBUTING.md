@@ -108,6 +108,11 @@ yarn nx run-many -t build
 
 If only one project is affected, prefer project-scoped runs.
 
+CI uses affected selection and a required `main` aggregate. See the
+[main branch protection and CI contract](docs/main-branch-protection.md) for
+intentional skips, required-check identity, current safeguards and the dated
+settings review. Reconcile protection whenever changing that contract.
+
 ## Releasing `@anarchitects/nest-angular-ssr`
 
 The package is intended to publish to the public npm registry through GitHub Actions using npm trusted publishing.

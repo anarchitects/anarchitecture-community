@@ -254,6 +254,11 @@ matrix, additional browser/OS or paid validation is introduced by this plan.
 
 ## Effective main protection: read-only inventory
 
+This historical inventory is superseded by the
+[6 November protection reconciliation](main-branch-protection.md) for #696.
+The existing settings now match #679's aggregate; the later record includes
+verified app identities, effective rules and independent read-back evidence.
+
 Read on 5 November 2026. Connector access to classic protection returned 403;
 the local CLI has admin/maintain/push/read access and returned **404 “Branch not
 protected”** from classic `/branches/main/protection`. This is absence of a
@@ -1477,3 +1482,15 @@ above remain historical evidence, not fresh snapshots for this changed revision.
 Renderer remote-restoration/DTE and integrated-candidate evidence remain owned G07
 gaps. No additional hosted inspection, CI monitoring, rerun or capacity experiment
 was performed for this implementation.
+
+## #696 protection reconciliation (6 November 2026)
+
+The [main protection record](main-branch-protection.md) and its dated API snapshot
+reconcile G08 with the merged #679 topology at `3c2ef29`. Effective protection
+already requires the correct `main` context from GitHub Actions `15368`; the
+settings diff is empty. The existing bot bypass is identified, safeguards are
+preserved, and independent read-back confirms the same effective rules. All ten
+local CI contract tests pass. This completes the technical protection review;
+#696 remains subject to maintainer acceptance. #680 still requires its exact
+candidate CI evidence and explicit G07 exception disposition. No hosted CI audit,
+settings write or release action was performed.

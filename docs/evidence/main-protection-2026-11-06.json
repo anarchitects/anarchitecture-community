@@ -1,0 +1,197 @@
+{
+  "observed_at": "2026-11-06T09:32:54.938439+00:00",
+  "repository": "anarchitects/anarchitecture-community",
+  "candidate_commit": "3c2ef2900c897a68c33e7eb298e599817c778d2c",
+  "repository_settings": {
+    "default_branch": "main",
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "allow_squash_merge": true,
+    "allow_merge_commit": true,
+    "allow_rebase_merge": true,
+    "allow_auto_merge": false,
+    "delete_branch_on_merge": false,
+    "allow_update_branch": false
+  },
+  "classic_protection": {
+    "http_status": 404,
+    "message": "Branch not protected"
+  },
+  "ruleset_inventory": [
+    {
+      "id": 14374927,
+      "name": "main",
+      "target": "branch",
+      "source_type": "Repository",
+      "source": "anarchitects/anarchitecture-community",
+      "enforcement": "active",
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5HBHr-zgDbWA8",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/anarchitects/anarchitecture-community/rulesets/14374927"
+        },
+        "html": {
+          "href": "https://github.com/anarchitects/anarchitecture-community/rules/14374927"
+        }
+      },
+      "created_at": "2026-03-26T15:46:07.236+01:00",
+      "updated_at": "2026-10-14T09:39:53.352+02:00"
+    }
+  ],
+  "ruleset": {
+    "id": 14374927,
+    "name": "main",
+    "target": "branch",
+    "source_type": "Repository",
+    "source": "anarchitects/anarchitecture-community",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "exclude": [],
+        "include": ["~DEFAULT_BRANCH"]
+      }
+    },
+    "rules": [
+      {
+        "type": "deletion"
+      },
+      {
+        "type": "non_fast_forward"
+      },
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 0,
+          "dismiss_stale_reviews_on_push": false,
+          "required_reviewers": [],
+          "require_code_owner_review": false,
+          "dismissal_restriction": {
+            "enabled": false,
+            "allowed_actors": []
+          },
+          "require_last_push_approval": false,
+          "required_review_thread_resolution": false,
+          "require_extra_approval_for_unattributed_changes": true,
+          "allowed_merge_methods": ["squash"]
+        }
+      },
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": true,
+          "do_not_enforce_on_create": false,
+          "required_status_checks": [
+            {
+              "context": "main",
+              "integration_id": 15368
+            }
+          ]
+        }
+      },
+      {
+        "type": "required_signatures"
+      }
+    ],
+    "node_id": "RRS_lACqUmVwb3NpdG9yec5HBHr-zgDbWA8",
+    "created_at": "2026-03-26T15:46:07.236+01:00",
+    "updated_at": "2026-10-14T09:39:53.352+02:00",
+    "bypass_actors": [
+      {
+        "actor_id": 3090882,
+        "actor_type": "Integration",
+        "bypass_mode": "always"
+      }
+    ],
+    "current_user_can_bypass": "never",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/anarchitects/anarchitecture-community/rulesets/14374927"
+      },
+      "html": {
+        "href": "https://github.com/anarchitects/anarchitecture-community/rules/14374927"
+      }
+    }
+  },
+  "effective_main_rules": [
+    {
+      "type": "deletion",
+      "ruleset_source_type": "Repository",
+      "ruleset_source": "anarchitects/anarchitecture-community",
+      "ruleset_id": 14374927
+    },
+    {
+      "type": "non_fast_forward",
+      "ruleset_source_type": "Repository",
+      "ruleset_source": "anarchitects/anarchitecture-community",
+      "ruleset_id": 14374927
+    },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": false,
+        "required_reviewers": [],
+        "require_code_owner_review": false,
+        "dismissal_restriction": {
+          "enabled": false,
+          "allowed_actors": []
+        },
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "require_extra_approval_for_unattributed_changes": true,
+        "allowed_merge_methods": ["squash"]
+      },
+      "ruleset_source_type": "Repository",
+      "ruleset_source": "anarchitects/anarchitecture-community",
+      "ruleset_id": 14374927
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          {
+            "context": "main",
+            "integration_id": 15368
+          }
+        ]
+      },
+      "ruleset_source_type": "Repository",
+      "ruleset_source": "anarchitects/anarchitecture-community",
+      "ruleset_id": 14374927
+    },
+    {
+      "type": "required_signatures",
+      "ruleset_source_type": "Repository",
+      "ruleset_source": "anarchitects/anarchitecture-community",
+      "ruleset_id": 14374927
+    }
+  ],
+  "apps": [
+    {
+      "id": 15368,
+      "slug": "github-actions",
+      "name": "GitHub Actions",
+      "html_url": "https://github.com/apps/github-actions"
+    },
+    {
+      "id": 3090882,
+      "slug": "anarchitects-bot",
+      "name": "Anarchitects Bot",
+      "html_url": "https://github.com/apps/anarchitects-bot"
+    }
+  ],
+  "initial_observed_at": "2026-11-06T09:30:31.197132+00:00",
+  "decision": {
+    "settings_changes": [],
+    "settings_writes": 0,
+    "read_back_matches_initial": true,
+    "reason": "The existing required main check is now the fail-closed aggregate delivered by #695/#679; preserve effective safeguards and existing bypass."
+  }
+}
