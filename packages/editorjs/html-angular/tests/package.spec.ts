@@ -17,10 +17,7 @@ import type {
   HtmlRenderResult,
   HtmlDiagnostic,
 } from '../src/index.js';
-const root = resolve(
-  import.meta.dirname,
-  '../../../../dist/packages/editorjs/html-angular',
-);
+const root = resolve(import.meta.dirname, '../dist');
 describe('published Angular boundary', () => {
   it('exposes signal inputs, readonly results and a typed output', () => {
     expectTypeOf<EditorJsHtmlComponent['data']>().toEqualTypeOf<

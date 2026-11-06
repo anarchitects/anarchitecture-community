@@ -243,7 +243,11 @@ yarn nx format:check --projects=editorjs-angular
 ```
 
 - `build` uses `@nx/angular:package` / ng-packagr in partial compilation mode and
-  produces `dist/packages/editorjs/angular` with FESM2022 and bundled declarations.
+  produces `packages/editorjs/angular/dist` with FESM2022 and bundled declarations.
+  All Editor.js libraries build into their package-local `dist` directory. Angular
+  libraries publish from that directory; neutral libraries publish from their
+  package root with `dist` included. Nx cache outputs and release roots follow
+  these layouts. Application and E2E evidence outputs remain workspace-level.
 - `typecheck` runs Angular compilation with no emit plus strict test typechecking.
 - `test` depends on build, packs the generated Angular artifact and core package,
   then unpacks them into an isolated temporary consumer without source aliases.
@@ -278,7 +282,7 @@ separate layers of evidence.
 
 `editorjs-angular-host` (`apps/editorjs/angular-host`) is a private standalone,
 OnPush, zoneless Angular application. It imports only public package entry points.
-Yarn links its Angular dependency to `dist/packages/editorjs/angular`; core resolves
+Yarn links its Angular dependency to `packages/editorjs/angular/dist`; core resolves
 its built `dist` export. No TypeScript source condition or path alias bypasses those
 artifacts. The application builder compiles the consumer and links the partial APF.
 The host's explicit `editorjs-angular` dependency makes the artifact relationship

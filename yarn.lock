@@ -31,9 +31,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@anarchitects/editorjs-angular@link:../../../dist/packages/editorjs/angular::locator=%40anarchitecture-community%2Feditorjs-angular-host%40workspace%3Aapps%2Feditorjs%2Fangular-host":
+"@anarchitects/editorjs-angular@link:../../../packages/editorjs/angular/dist::locator=%40anarchitecture-community%2Feditorjs-angular-host%40workspace%3Aapps%2Feditorjs%2Fangular-host":
   version: 0.0.0-use.local
-  resolution: "@anarchitects/editorjs-angular@link:../../../dist/packages/editorjs/angular::locator=%40anarchitecture-community%2Feditorjs-angular-host%40workspace%3Aapps%2Feditorjs%2Fangular-host"
+  resolution: "@anarchitects/editorjs-angular@link:../../../packages/editorjs/angular/dist::locator=%40anarchitecture-community%2Feditorjs-angular-host%40workspace%3Aapps%2Feditorjs%2Fangular-host"
   languageName: node
   linkType: soft
 
@@ -245,7 +245,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitecture-community/editorjs-angular-host@workspace:apps/editorjs/angular-host"
   dependencies:
-    "@anarchitects/editorjs-angular": "link:../../../dist/packages/editorjs/angular"
+    "@anarchitects/editorjs-angular": "link:../../../packages/editorjs/angular/dist"
     "@anarchitects/editorjs-core": "workspace:*"
     "@anarchitects/editorjs-tool-header": "workspace:*"
     "@anarchitects/editorjs-tool-image": "workspace:*"

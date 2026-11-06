@@ -76,11 +76,11 @@ try {
       '@anarchitects/editorjs-tool-paragraph',
       'packages/editorjs/tool-paragraph',
     ],
-    ['@anarchitects/editorjs-angular', 'dist/packages/editorjs/angular'],
+    ['@anarchitects/editorjs-angular', 'packages/editorjs/angular/dist'],
     ['@anarchitects/editorjs-html', 'packages/editorjs/html'],
     [
       '@anarchitects/editorjs-html-angular',
-      'dist/packages/editorjs/html-angular',
+      'packages/editorjs/html-angular/dist',
     ],
     ...(mode === 'csr' && names.includes('angular22-reference')
       ? [

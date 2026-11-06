@@ -35,7 +35,7 @@ import type {
 // Test ngc output: Vite alone does not compile Angular signal input/query metadata.
 const artifact = resolve(
   import.meta.dirname,
-  '../../../../dist/packages/editorjs/angular/fesm2022/anarchitects-editorjs-angular.mjs',
+  '../dist/fesm2022/anarchitects-editorjs-angular.mjs',
 );
 const {
   EditorJs,

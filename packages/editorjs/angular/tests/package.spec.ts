@@ -59,7 +59,7 @@ describe('published Angular contracts', () => {
   beforeAll(() => {
     temporaryDirectory = mkdtempSync(join(tmpdir(), 'editorjs-angular-'));
     packedFiles = unpackPackage(
-      resolve(workspaceRoot, 'dist/packages/editorjs/angular'),
+      resolve(workspaceRoot, 'packages/editorjs/angular/dist'),
       '@anarchitects/editorjs-angular',
     );
     unpackPackage(
