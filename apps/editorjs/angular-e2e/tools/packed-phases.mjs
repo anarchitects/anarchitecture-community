@@ -80,6 +80,12 @@ export const phasesFor = (mode, cell) =>
   );
 export const targetFor = (mode, cell, phase) =>
   `packed-${mode}-${cell}-${phase}`;
+export const usesBrowser = (phase) =>
+  phase === 'portable' ||
+  phase.startsWith('csr-') ||
+  phase.startsWith('hydration-') ||
+  phase === 'isolation' ||
+  phase.startsWith('readme-');
 export function parallelism(value = '2') {
   if (!/^[1-9]\d*$/.test(value) || Number(value) > 8)
     throw new Error('Packed phase parallelism must be an integer from 1 to 8');

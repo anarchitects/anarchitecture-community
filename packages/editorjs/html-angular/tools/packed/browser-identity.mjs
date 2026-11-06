@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, isAbsolute, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { files, sha } from './artifacts.mjs';
 
 const require = createRequire(import.meta.url);
@@ -38,4 +39,23 @@ export function headlessBrowserIdentity(plan) {
   assert(Object.keys(manifest).length > 0, 'Empty headless-shell installation');
   // Include the executable and its runtime resources, not another browser's binary.
   return { directory, digest: sha(JSON.stringify(manifest)) };
+}
+
+/** Portable identity for equal managed installations on coordinator and workers. */
+export function browserRuntimeIdentity(plan) {
+  return {
+    node: process.version,
+    os: process.platform,
+    arch: process.arch,
+    libc: process.report.getReport().header.glibcVersionRuntime ?? null,
+    playwright: require('playwright-core/package.json').version,
+    browser: headlessBrowserIdentity(plan).digest,
+  };
+}
+
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  console.log(JSON.stringify(browserRuntimeIdentity()));
 }

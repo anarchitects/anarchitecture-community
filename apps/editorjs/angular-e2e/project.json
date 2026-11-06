@@ -14,6 +14,7 @@
       "inputs": [
         "default",
         "^production",
+        "editorjsBrowser",
         {
           "env": "CI"
         },
@@ -130,6 +131,9 @@
         "{projectRoot}/tools/**/*.mjs",
         "{projectRoot}/tools/**/*.json",
         "{projectRoot}/project.json",
+        "{workspaceRoot}/packages/editorjs/html-angular/tools/packed/browser-identity.mjs",
+        "{workspaceRoot}/packages/editorjs/html-angular/tools/packed/artifacts.mjs",
+        "editorjsBrowser",
         {
           "runtime": "node -p \"process.platform + process.arch\""
         },

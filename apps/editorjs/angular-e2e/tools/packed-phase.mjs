@@ -13,7 +13,8 @@ import { buildPortable } from './portable-consumer.mjs';
 import { commandRunner } from './packed-process.mjs';
 import { buildPackedSsr, ssrProfiles } from './packed-ssr.mjs';
 import { validateReadmeSsr } from './readme-ssr.mjs';
-import { packedPhases, phasesFor } from './packed-phases.mjs';
+import { packedPhases, phasesFor, usesBrowser } from './packed-phases.mjs';
+import { executionIdentityReader } from './packed-execution.mjs';
 import {
   pathsFor,
   readSnapshot,
@@ -50,9 +51,12 @@ const started = Date.now();
 let status = 'failed';
 let failure;
 let buildSha;
+let execution;
+const executionIdentity = executionIdentityReader();
 try {
   await rm(report, { recursive: true, force: true });
   await mkdir(report);
+  execution = executionIdentity(phase);
   runner = commandRunner({
     report,
     cache: join(report, 'npm-cache'),
@@ -80,6 +84,11 @@ try {
     assert.equal(result.mode, mode);
     assert.equal(result.cell, cell);
     assert.equal(result.phase, dependency);
+    assert.equal(
+      result.execution,
+      executionIdentity(dependency),
+      'Stale prerequisite environment',
+    );
     await verifyArtifacts(output, result.artifacts);
   }
   {
@@ -125,12 +134,7 @@ try {
         ),
       );
     const ssrRoot = join(root, 'ssr');
-    const browser =
-      phase === 'portable' ||
-      phase.startsWith('csr-') ||
-      phase.startsWith('hydration-') ||
-      phase === 'isolation' ||
-      phase.startsWith('readme-');
+    const browser = usesBrowser(phase);
     if (browser) {
       lease = await leasePorts(8);
       await lease.handoff();
@@ -294,6 +298,7 @@ try {
         status,
         error: failure,
         snapshot: snapshot.sha256,
+        execution,
         buildSha,
         artifacts,
         started,

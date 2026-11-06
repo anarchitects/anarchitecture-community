@@ -1,6 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { packedPhases, phasesFor, targetFor } from './packed-phases.mjs';
+import {
+  packedPhases,
+  phasesFor,
+  targetFor,
+  usesBrowser,
+} from './packed-phases.mjs';
 
 const root = 'apps/editorjs/angular-e2e';
 const tools = `${root}/tools`;
@@ -26,6 +31,7 @@ export const createNodesV2 = [
           '{workspaceRoot}/packages/editorjs/angular/tests/fixtures/**/*',
           '{workspaceRoot}/packages/editorjs/angular/tests/forms-interop.spec.ts',
           { env: 'CI' },
+          { env: 'NODE_OPTIONS' },
           { env: 'EDITORJS_PACKED_RUN_ID' },
           { env: 'NG_BUILD_MAX_WORKERS' },
           { env: 'PLAYWRIGHT_BROWSERS_PATH' },
@@ -68,7 +74,10 @@ export const createNodesV2 = [
             executor: 'nx:run-commands',
             cache: true,
             parallelism: true,
-            inputs,
+            inputs: [
+              ...inputs,
+              ...(usesBrowser(phase) ? ['editorjsBrowser'] : []),
+            ],
             outputs: [
               `{workspaceRoot}/dist/editorjs-packed-results/{options.runId}/${mode}/${cell}/${phase}`,
             ],

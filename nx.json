@@ -3,6 +3,15 @@
   "analytics": true,
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "editorjsBrowser": [
+      "{workspaceRoot}/packages/editorjs/html-angular/tools/packed/browser-identity.mjs",
+      "{workspaceRoot}/packages/editorjs/html-angular/tools/packed/artifacts.mjs",
+      {
+        "runtime": "node packages/editorjs/html-angular/tools/packed/browser-identity.mjs"
+      },
+      { "env": "PLAYWRIGHT_BROWSERS_PATH" },
+      { "env": "NODE_OPTIONS" }
+    ],
     "production": [
       "default",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",

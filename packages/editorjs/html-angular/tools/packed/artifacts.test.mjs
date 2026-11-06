@@ -5,7 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { files, verifyResult, phases, matrix } from './artifacts.mjs';
 import { assertDisplayInputs } from './browser-checks.mjs';
-import { headlessBrowserIdentity } from './browser-identity.mjs';
+import {
+  headlessBrowserIdentity,
+  browserRuntimeIdentity,
+} from './browser-identity.mjs';
 import { angularRecipes, angularReadmeExamples } from '../readme-examples.mjs';
 import {
   headlessRecipes,
@@ -70,6 +73,14 @@ test('browser identity supports shell-only installs and invalidates changed runt
     writeFileSync(join(root, 'chrome-headless-shell'), 'shell binary');
     writeFileSync(join(root, 'icudtl.dat'), 'runtime resource');
     const original = headlessBrowserIdentity(plan);
+    const runtime = browserRuntimeIdentity(plan);
+    assert.equal(runtime.browser, original.digest);
+    assert.equal(runtime.node, process.version);
+    assert.equal(
+      'directory' in runtime,
+      false,
+      'Worker paths must not split otherwise equal cache keys',
+    );
     assert.equal(original.directory, root);
     assert.deepEqual(
       headlessBrowserIdentity(plan.replaceAll('\n', '\r\n')),
@@ -80,6 +91,7 @@ test('browser identity supports shell-only installs and invalidates changed runt
         file === 'icudtl.dat' ? 'runtime resource' : 'shell binary';
       writeFileSync(join(root, file), 'changed');
       assert.notEqual(headlessBrowserIdentity(plan).digest, original.digest);
+      assert.notEqual(browserRuntimeIdentity(plan).browser, runtime.browser);
       writeFileSync(join(root, file), originalBytes);
     }
   } finally {
