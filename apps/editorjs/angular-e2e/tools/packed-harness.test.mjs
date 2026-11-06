@@ -8,7 +8,13 @@ import { test } from 'node:test';
 import { commandRunner } from './packed-process.mjs';
 import { leasePorts } from './packed-ports.mjs';
 import { prepareReadmeSsr } from './readme-ssr.mjs';
-import { parallelism, phasesFor, targetFor } from './packed-phases.mjs';
+import {
+  parallelism,
+  phasesFor,
+  targetFor,
+  usesBrowser,
+} from './packed-phases.mjs';
+import { executionIdentityReader } from './packed-execution.mjs';
 import { createNodesV2 } from './packed-plugin.mjs';
 import { editorServerOutputs } from './ssr-editor-outputs.mjs';
 import {
@@ -108,8 +114,15 @@ test('distributed graphs contain only cacheable tasks with isolated outputs and 
       'angular22-reference',
       'angular22-current',
     ]) {
-      for (const phase of phasesFor(mode, cell))
+      for (const phase of phasesFor(mode, cell)) {
         visit(targetFor(mode, cell, phase));
+        assert.equal(
+          targets[targetFor(mode, cell, phase)].inputs.includes(
+            'editorjsBrowser',
+          ),
+          usesBrowser(phase),
+        );
+      }
       assert.equal(targets[targetFor(mode, cell, 'prepare')].cache, false);
       assert(
         targets[targetFor(mode, cell, 'prepare')].dependsOn.some(
@@ -238,13 +251,17 @@ test('failed validation evidence survives collection and fails the uncached gate
       }),
     );
   }
-  const invoke = (script, args) =>
+  const invoke = (script, args, environment = {}) =>
     new Promise((resolve, reject) => {
       const child = spawn(
         process.execPath,
         [join(import.meta.dirname, script), ...args],
         {
-          env: { ...process.env, EDITORJS_PACKED_RUN_ID: runId },
+          env: {
+            ...process.env,
+            EDITORJS_PACKED_RUN_ID: runId,
+            ...environment,
+          },
           stdio: 'ignore',
         },
       );
@@ -270,6 +287,18 @@ test('failed validation evidence survives collection and fails the uncached gate
     ).status,
     'failed',
   );
+  // A missing browser must retain a failed record and release the atom lock.
+  assert.equal(
+    await invoke('packed-phase.mjs', [mode, cell, 'csr-editor', runId], {
+      PLAYWRIGHT_BROWSERS_PATH: join(input, 'missing-browsers'),
+    }),
+    1,
+  );
+  const missingBrowser = JSON.parse(
+    await readFile(join(output, 'csr-editor/result.json'), 'utf8'),
+  );
+  assert.equal(missingBrowser.status, 'failed');
+  assert.match(missingBrowser.error, /ENOENT/);
   // Runtime input hashing must not be the only stale-snapshot guard.
   snapshot.sources = 'stale-source-fingerprint';
   await writeFile(join(input, 'snapshot.json'), JSON.stringify(snapshot));
@@ -302,6 +331,7 @@ test('failed validation evidence survives collection and fails the uncached gate
 });
 
 test('the required gate rejects lost or changed artifacts despite passing task records', async (t) => {
+  const executionIdentity = executionIdentityReader();
   const workspace = resolve(project, '../../..');
   const runId = `artifact-test-${process.pid}-${Date.now()}`;
   const mode = 'csr',
@@ -345,21 +375,28 @@ test('the required gate rejects lost or changed artifacts despite passing task r
         cell,
         phase,
         snapshot: snapshot.sha256,
+        execution: executionIdentity(phase),
         status: 'passed',
         artifacts: await artifactManifest(directory),
       }),
     );
   }
-  const collect = () =>
+  const collect = (environment = {}) =>
     new Promise((resolve, reject) => {
       const child = spawn(
         process.execPath,
         [join(import.meta.dirname, 'packed-results.mjs'), runId, mode, cell],
-        { stdio: 'ignore' },
+        { stdio: 'ignore', env: { ...process.env, ...environment } },
       );
       child.once('error', reject);
       child.once('close', resolve);
     });
+  assert.equal(await collect(), 0);
+  assert.equal(
+    await collect({ NG_BUILD_MAX_WORKERS: '679' }),
+    1,
+    'A complete cache replay from another execution environment must fail',
+  );
   assert.equal(await collect(), 0);
   const file = join(output, 'portable/behavior.json');
   const original = await readFile(file);

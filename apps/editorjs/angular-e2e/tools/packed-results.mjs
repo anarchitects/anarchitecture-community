@@ -8,6 +8,7 @@ import {
   verifyArtifacts,
 } from './packed-artifacts.mjs';
 import { phasesFor } from './packed-phases.mjs';
+import { executionIdentityReader } from './packed-execution.mjs';
 
 const [runId, selectedMode = 'all', selectedCell = 'all'] =
   process.argv.slice(2);
@@ -21,6 +22,7 @@ const matrix = JSON.parse(
 const modes = selectedMode === 'all' ? ['csr', 'ssr'] : [selectedMode];
 const cells = selectedCell === 'all' ? Object.keys(matrix) : [selectedCell];
 let failed = false;
+const executionIdentity = executionIdentityReader();
 for (const mode of modes)
   for (const cell of cells) {
     const { input, output } = pathsFor(workspace, runId, mode, cell, 'collect');
@@ -64,6 +66,11 @@ for (const mode of modes)
         assert.equal(result.phase, phase);
         assert.equal(result.snapshot, snapshot?.sha256);
         assert.equal(result.status, 'passed', result.error);
+        assert.equal(
+          result.execution,
+          executionIdentity(phase),
+          'Stale execution environment',
+        );
         await verifyArtifacts(join(output, 'phases', phase), result.artifacts);
       } catch (error) {
         errors.push(`${phase}: ${error}`);

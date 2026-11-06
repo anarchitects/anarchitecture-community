@@ -149,6 +149,7 @@
         "cache": true,
         "inputs": [
           "uploadTests",
+          "editorjsBrowser",
           "^default",
           "{workspaceRoot}/packages/editorjs/tool-image/**/*",
           {

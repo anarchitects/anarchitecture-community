@@ -1137,3 +1137,233 @@ and Node22.22.3. Both README production builds and all **13 browser tests** pass
 (seven default, six full), with no retries or atom cache hits. E2e lint/typecheck
 also passed. Evidence is under `dist/editorjs-packed-results/si695-readme-ready`.
 No hosted rerun, ongoing monitoring or capacity change was performed.
+
+## SI-75.6 — cache and distribution review (#679, 5–6 November 2026)
+
+This review follows #695/#705 merged at `89e33010e2b65ecea4cf5438e2f9d4fd6208dae0`.
+The complete preflight read all 24 Meta ADRs at
+`09d4fc898ad49c177e3e4bbd6b6be160896262cc` and all nine local ADRs, including
+proposed, historical and superseded records. Re-enumeration confirmed the inventories
+unchanged. Meta0015 requires complete cache inputs, restorable outputs, uncached
+external preparation and distinct local/remote/DTE evidence. Community0004 keeps
+verification guidance here; Community0008 and the accepted Modern Angular decision
+preserve the renderer security/semantic corpus, native Forms, real browser and SSR
+proofs. HTTP/Nest support and independent package versions remain unchanged. No
+accepted-decision conflict or public API change was identified.
+
+### Complete-family contract and corrections
+
+The installed Nx graph test now reconciles the actual target-list commands used by
+CI with all **105 required proof atoms**: 89 authoring atoms (CSR 7/9/7 and SSR
+22/22/22 for minimum/reference/current) and 16 renderer atoms (four neutral Node
+cells and build/behavior/corpus/isolation for each of three Angular cells). Each
+requested atom has disjoint declared outputs; every build prerequisite is itself
+requested and forwards the run ID. The two families retain their independent
+compatibility matrices. Renderer security, semantics, component/directive behavior
+and isolation remain mandatory; neither a skipped atom nor a cached subset can
+satisfy collection.
+
+All thirteen fresh preparations and the renderer preparation aggregate remain
+uncached. Both family collectors remain uncached and verify current immutable
+snapshot identity, required phases, success and complete artifact manifests.
+The existing validators reject missing, extra, corrupt, stale, failed and
+wrong-cell/phase evidence. Authoring results now also bind the execution environment;
+the collector and downstream build consumers reject otherwise complete results from
+a different Node/platform/build-worker/browser environment.
+
+The demonstrated input omission was the actual managed browser installation in
+authoring and workspace/upload browser tasks. The shared `editorjsBrowser` input
+now hashes Playwright's selected headless-shell executable **and runtime resources**,
+Playwright version, Node, OS/architecture/libc, browser-path environment and
+`NODE_OPTIONS`. It fails closed for missing/empty/ambiguous installations. The
+content identity excludes the absolute installation directory so matching authoring
+coordinator/worker installations can agree. Existing run/snapshot/source/lock/config
+inputs remain; authoring atoms also explicitly hash `NODE_OPTIONS`.
+
+The packed coordinator now installs the same managed headless shell before hashing
+or running harness tests. Workers already install it, its OS dependencies, pinned
+Node 24.22.1, immutable Yarn dependencies and `unzip`, then retrieve and verify the
+immutable input archive. Coordinator and workers both use Ubuntu 22.04 and the same
+Node pin. No worker image, count, matrix or hosted capacity was changed.
+
+The resolved browser inputs retain default external-dependency hashing (no narrowed
+`externalDependencies` filter), source/dependency inputs and relevant root configs.
+Upload browser validation packs already installed dependencies offline; it does not
+perform fresh registry resolution and remains cacheable. Workspace browser outputs
+and packed per-phase evidence remain declared and restorable.
+
+### Worker lifecycle, exclusions and ownership
+
+Authoring build/test dependencies enforce build-before-test and validate matching
+snapshot, execution and artifact manifests after restoration. Atoms extract separate
+temporary consumers and use isolated ports. The command runner owns process groups,
+retains logs, reports nonzero failures and cleans up on interruption or parent loss.
+Controlled harness tests exercise failed commands, interruption, child cleanup,
+distinct ports, and missing/corrupt/stale required records. Independent atoms finish
+after another atom fails so diagnostics survive; failed/skipped dependants cannot
+pass collection. CI explicitly completes workers with `always()` after successful
+startup, including failure/cancellation paths, and attempts artifact upload with
+`always()`. On cancellation, the authoring collector is intentionally skipped; the
+cancelled job cannot produce a successful aggregate. Artifact retention is one day
+for input transport and seven days for evidence.
+
+| Exclusion / remaining gate                                                                                                   | Reason, owner and revisit condition                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace `test-ssr`, `e2e-hydration`, `e2e-isolation` remain uncached and serial                                            | Shared SSR output directories and fixed ports make independent replay/distribution unsafe to assume. Community maintainers own isolation of build directories, inputs and server lifecycle before enabling caching/DTE. Their existing cached builders and required fresh checks are retained.                                                                 |
+| Browser installation, registry preparation, long-lived servers, convenience wrappers and completeness checks remain uncached | External state, side effects or fresh completeness are their purpose. Community maintainers revisit only if a deterministic boundary is extracted with independent inputs/outputs.                                                                                                                                                                             |
+| Affected-selection contract gate remains uncached                                                                            | It verifies the current Git history and installed graph. Community maintainers revisit if measured selection overhead becomes material; no correctness gate is removed to improve timing.                                                                                                                                                                      |
+| Renderer remote restoration and actual DTE remain unresolved (G07)                                                           | Renderer execution identity still includes workspace/browser paths, and its existing CI runs atoms on the coordinator. Community maintainers must establish transport/relocation and separately authorized remote restoration/distribution evidence before claiming parity. #680 must carry this unresolved gate; a successful local replay does not close it. |
+| Hosted verification of the new #679 execution/browser identity remains pending (G07)                                         | Existing-run evidence below predates this change. Community maintainers must supply candidate results or authorize a bounded inspection; no monitoring or rerun is implied.                                                                                                                                                                                    |
+
+### Local execution and restoration evidence
+
+Run ID `si679-cache` used Node 24.22.2, Yarn 4.18.0, Nx 23.2.1 and macOS arm64,
+with `CI=true`, `NG_BUILD_MAX_WORKERS=2`, Nx Cloud disabled, and a private local
+cache/database pair. Each installed consumer ran its matrix-selected Node binary.
+Fresh reference-CSR preparation took 1m48s including prerequisites; the final nine
+authoring atoms all passed with **0/9 hits** in 1m42s. The seven fresh renderer
+preparations plus prerequisites took 2m02s. Neither preparation was replayed from
+cache.
+
+The first renderer invocation passed 15/16 atoms in 3m21s. Angular-current isolation
+failed the existing five-second `data-hydrated="true"` assertion; its result was
+absent and the real collector failed. A focused rerun with unchanged inputs and
+assertions passed (10.7s including its cached build), completing all 16 results.
+This is a retained intermittent local observation, not an established root cause
+or a clean first-run pass. No timeout, retry or product behavior was changed.
+Community maintainers should investigate the hydration readiness path if it recurs
+in candidate evidence; #680 must not omit this observation.
+
+After moving the entire renderer result tree away, replay reported **16/16 local
+hits** in 3.49s wall time and restored **152 files byte-for-byte** (excluding the
+uncached aggregate report). The collector then checked all required results.
+This repeats the #687 method with fresh snapshots because the browser helper inputs
+changed; the older snapshot identities are not treated as current proof.
+
+The final authoring audit removed `build-csr`, `csr-upload`, `csr-editor` and
+`csr-forms`, then required **4/4 local hits** and restored **31 byte-identical files**
+in 2.056s. Both real collectors rejected a missing result and changed execution
+environment. Both runtime-input validators rejected modified core source, root
+lockfile and snapshot archive bytes; all temporary mutations were restored.
+Changing `NG_BUILD_MAX_WORKERS` from 2 to 1 caused actual authoring build/editor
+and renderer headless misses; restoring 2 produced hits and restored the original
+evidence. Both final collectors passed.
+
+Workspace and upload browser replay restored their two and one declared report
+files respectively, byte-for-byte, with owning-task local hits. A missing browser
+path could not reuse passing results and failed each owning task. Changing upload
+`NODE_OPTIONS` caused a miss; restoring the original environment produced a hit.
+To test browser **contents** independently of its path, a private copy of Chromium
+was used: its cold upload task missed, the unchanged copy hit, and changing an
+installation file at the same path changed the task hash from
+`8281449841485007560` to `6790431649203621727` and caused a miss. The installed
+browser was untouched; its original environment then hit again. Unit checks also
+exercise executable/resource invalidation and missing/ambiguous install plans.
+
+Workspace browser validation passed 45 tests in 30.9s, with 27 existing packed-only
+cases intentionally skipped in that workspace fixture. Their packed owners remain
+mandatory. Upload browser validation also passed using its offline installed
+consumer. Eight CI contract tests passed (36.9s initially, 2m37s on the final
+recheck), including 27 actual affected-graph
+scenarios and full-family target reconciliation. Both packed harness suites and the
+affected projects' lint/typecheck gates passed. The added missing-browser regression
+also verifies diagnostic retention and atom-lock release.
+
+Exact fresh consumer identities (SHA-256):
+
+| Cell                        | Immutable consumer archive                                         | Consumer package lock                                              |
+| --------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Authoring CSR reference     | `8fc47a9c3a32843267750e043b308539e75753f5bfef9a2d7cc75ae7f3b330e3` | `f2638c9558c2c38f7d8bcff997ac6f40e628c465eb7c11d4a015acfe0634d34d` |
+| Renderer headless floor     | `4f3fa267153194f68ade64b2672cfdb173b09b8e7aca0e00570709e36a02f47c` | `eccf16dd088f196a027e4e3b26391db48d1623d358abed3190622e054aa87ece` |
+| Renderer headless minimum   | `3ecc95b7e1c048c75e002bc157c324e4c0580f8669c98837e13e64ec2a92e7d4` | `eccf16dd088f196a027e4e3b26391db48d1623d358abed3190622e054aa87ece` |
+| Renderer headless reference | `d688e8d1f221a2d87f3b056b773d72be54de3d9913fad72e860d2fa1602ba9a3` | `eccf16dd088f196a027e4e3b26391db48d1623d358abed3190622e054aa87ece` |
+| Renderer headless current   | `9509251fdc81bd54486c2e7ed6f0f41bfda7410922cc792f9c916b87765db2a4` | `eccf16dd088f196a027e4e3b26391db48d1623d358abed3190622e054aa87ece` |
+| Renderer Angular minimum    | `07781dd464935986a5b799bd6d511a54bd5931017ac0a903c358e88d2c926101` | `1328258cbec1c0e5a3380b92407cba9519c020635e93ddf0e39eb0843ed715d8` |
+| Renderer Angular reference  | `cdd460be484352073d26eff93f11986bb7988364042eb099171ef6fccb7eac25` | `637b210d11818a61a66a4d64fb6a67966c5b51553588baa7b94f1ce12fe85a3b` |
+| Renderer Angular current    | `243416274df49f4b952c30fb96df4350b795bac9d959ca03ef478c42dfd54b5d` | `b1b001617ed845af1b76ce12b7a2c3cca0780da4c683fae5ad3e4fdf5ec32220` |
+
+Source/configuration digests: authoring
+`5b8334801e6cf064f3620f50c2d8cc220ab116e8dc52e82d78cb5d98564158c4`;
+renderer `815b97960b7e68f755b73388c94b75aa551d0cd5d82ece504678f36bcffeac08`.
+Snapshots retain additional runtime locks and package archive identities. Local
+artifacts live under `dist/editorjs-{packed,renderer}-{inputs,results}/si679-cache`;
+they are generated evidence, not committed fixtures.
+
+Reproduce against a new run ID using the normal workspace toolchain and installed
+Playwright headless shell. Keep the same `CI`, build-worker, Node and browser
+environment for preparation, atoms, replay and collection:
+
+```sh
+export EDITORJS_PACKED_RUN_ID=cache-review-unique
+export EDITORJS_RENDERER_RUN_ID=cache-review-unique
+export NX_NO_CLOUD=true CI=true NG_BUILD_MAX_WORKERS=2
+yarn nx run editorjs-angular-e2e:packed-csr-angular22-reference-prepare \
+  --runId="$EDITORJS_PACKED_RUN_ID"
+authoring_targets=$(node --input-type=module <<'JS'
+import { phasesFor, targetFor } from './apps/editorjs/angular-e2e/tools/packed-phases.mjs';
+console.log(phasesFor('csr', 'angular22-reference')
+  .map(phase => targetFor('csr', 'angular22-reference', phase)).join(','));
+JS
+)
+yarn nx run-many -p editorjs-angular-e2e -t "$authoring_targets" \
+  --runId="$EDITORJS_PACKED_RUN_ID" --parallel=2
+# packed-targets.mjs instead requests all 89 atoms; prepare all six cells first.
+yarn nx run editorjs-html-angular:packed-prepare
+yarn nx run-many -p editorjs-html-angular \
+  -t "$(node packages/editorjs/html-angular/tools/packed/run.mjs targets)" \
+  --runId="$EDITORJS_RENDERER_RUN_ID" --parallel=2
+yarn nx run editorjs-html-angular:packed-collect
+node apps/editorjs/angular-e2e/tools/packed-results.mjs \
+  "$EDITORJS_PACKED_RUN_ID" csr angular22-reference
+node apps/editorjs/angular-e2e/tools/packed-cache-audit.mjs \
+  "$EDITORJS_PACKED_RUN_ID" local
+```
+
+### Authorized existing hosted evidence
+
+The maintainer authorized a bounded read-only inspection of existing results.
+[CI run 42093959764](https://github.com/anarchitects/anarchitecture-community/actions/runs/42093959764)
+reviewed #705 head `301b7600a9c01f50e97db2bb2f436d651515ab55`; all 14 expanded
+jobs, including `main`, succeeded. This is predecessor evidence, not a green-CI
+claim for the new #679 candidate. The prior failed run documented above also proves
+that an authoring atom failure propagates through the family job to `main`.
+
+- [Authoring job](https://github.com/anarchitects/anarchitecture-community/actions/runs/42093959764/job/127480276677):
+  six fresh preparations took 3m32s. [Nx run VKe35TG3yx](https://cloud.nx.app/run-end/VKe35TG3yx)
+  reports 89 executed atoms, all successful, zero cache hits and **six workers**.
+  Every cell collector and explicit worker completion succeeded. The configured
+  distribution variable selected six workers; the checked-in fallback is three.
+  This review does not change either setting.
+- The same job's remote audit emptied its private local cache/database and removed
+  the four reference-CSR phase outputs. `build-csr`, `csr-upload`, `csr-editor` and
+  `csr-forms` all reported **remote-cache-hit**, restoring **31 byte-identical files**
+  in 8.145s under run ID `gh-42093959764-1`. The audit checks every file, including
+  result records, against the cold run. This supplies current successor evidence
+  for #663/#664 custom/persistence work, bounded to these four phases and this
+  snapshot/platform; it does not prove remote restoration of every atom or across
+  fresh preparations. Input artifact ID: `13447890345`; evidence: `13447726881`.
+- [Renderer/SSR job](https://github.com/anarchitects/anarchitecture-community/actions/runs/42093959764/job/127480276936):
+  seven fresh preparations plus prerequisites took 1m12s; all 16 proof atoms passed
+  in 1m37s and the uncached collector verified all 16. Evidence artifact:
+  `13446457895`, run ID `renderer-42093959764-1`. Those atoms ran on the coordinator;
+  observed prerequisite cache hits do not establish remote hits for renderer proof
+  atoms or DTE.
+
+These are run-reported durations and allocations, not billing or utilization data.
+No cost-per-run saving, optimal worker count or cold/warm cross-run comparison can
+be inferred. No monitoring loop, hosted rerun or capacity experiment was performed.
+
+### Handoff to #696 and #680
+
+The final required aggregate identity remains **`main`**. It depends on successful
+selection and all eight workload jobs (14 expanded jobs including selection and
+aggregate for a full run). Selected jobs must succeed; only explicitly unselected
+jobs may be skipped. Failure, cancellation, missing work, malformed selection or
+an unexpected skip/success fails the aggregate. #696 must inspect and reconcile
+effective protection and integration IDs against that exact identity; this review
+does not change settings. #680 must retain the owned G07 exceptions above and
+obtain evidence for its actual integrated candidate before release acceptance.
+G06 now has implementation and local restoration/invalidation evidence; G07 is
+partially evidenced by the permitted predecessor inspection and remains open for
+the explicit renderer and candidate-identity gaps. These findings do not complete
+#696 or authorize release acceptance.
