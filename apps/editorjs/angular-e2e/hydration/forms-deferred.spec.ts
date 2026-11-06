@@ -40,7 +40,9 @@ for (const mode of ['deferred', 'incremental']) {
       ).toEqual([]);
       await retained(page);
     } else await expect(page.locator('form')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Activate form' }).focus();
+    const activate = page.getByRole('button', { name: 'Activate form' });
+    await expect(activate).toBeEnabled();
+    await activate.focus();
     await page.keyboard.press('Enter');
     await held(page, 'ready');
     await expect(
@@ -96,6 +98,66 @@ for (const mode of ['deferred', 'incremental']) {
     );
   });
 }
+
+test('ordinary form activation stays disabled until its lazy route hydrates', async ({
+  page,
+}, testInfo) => {
+  const stats = JSON.parse(
+    await readFile(
+      `${testInfo.project.metadata['buildDirectory']}/stats.json`,
+      'utf8',
+    ),
+  ) as {
+    outputs: Record<string, { inputs: Record<string, unknown> }>;
+  };
+  const assets = Object.entries(stats.outputs)
+    .filter(
+      ([name, entry]) =>
+        name.endsWith('.js') &&
+        Object.keys(entry.inputs).some((input) =>
+          input.endsWith('/ssr/deferred-forms-page.ts'),
+        ),
+    )
+    .map(([name]) => name);
+  expect(assets).toHaveLength(1);
+  let resume!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    resume = resolve;
+  });
+  let requested = false;
+  await page.route(`**/${assets[0]}`, async (route) => {
+    requested = true;
+    await gate;
+    await route.fallback();
+  });
+  const activate = page.getByRole('button', { name: 'Activate form' });
+  try {
+    await bootstrap(
+      page,
+      '/forms-deferred?marker=held-route',
+      [{ owner: 'A', point: 'ready' }],
+      0,
+    );
+    await expect(page.locator('main')).toHaveAttribute('data-rendered', 'true');
+    await expect.poll(() => requested).toBe(true);
+    await expect(activate).toBeDisabled();
+    expect(await page.evaluate(() => window.hydrationTest.sessions)).toEqual(
+      [],
+    );
+    await expect(page.locator('form')).toHaveCount(0);
+  } finally {
+    resume();
+  }
+  await expect(activate).toBeEnabled();
+  await activate.focus();
+  await page.keyboard.press('Enter');
+  await held(page, 'ready');
+  await release(page);
+  await expect(page.getByTestId('ready-count')).toHaveText('1');
+  expect(
+    (await events(page)).filter((event) => event === 'created'),
+  ).toHaveLength(1);
+});
 
 test('incremental form stays safe during held view activation and replays its host click once', async ({
   page,
