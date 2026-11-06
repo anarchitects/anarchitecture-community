@@ -71,9 +71,13 @@ describe('published Angular boundary', () => {
     const manifest = JSON.parse(
       readFileSync(resolve(root, 'package.json'), 'utf8'),
     );
-    expect(manifest.version).toBe('0.0.1');
+    const source = JSON.parse(
+      readFileSync(resolve(import.meta.dirname, '../package.json'), 'utf8'),
+    );
+    expect(manifest.version).toBe(source.version);
     expect(manifest.dependencies).toEqual({
-      '@anarchitects/editorjs-html': '^0.0.1',
+      '@anarchitects/editorjs-html':
+        source.dependencies['@anarchitects/editorjs-html'],
       tslib: '^2.3.0',
     });
     expect(manifest.peerDependencies).toEqual({

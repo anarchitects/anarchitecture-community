@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import {
+  cpSync,
   mkdtempSync,
   readFileSync,
   writeFileSync,
@@ -42,12 +43,26 @@ const run = (command, args, cwd = temporary) =>
   });
 try {
   if (!prepared || phase === 'prepare') {
-    for (const project of ['core', 'html'])
-      run(
-        'yarn',
-        ['pack', '--out', join(temporary, `${project}.tgz`)],
-        join(root, project),
+    for (const project of ['core', 'html']) {
+      // Match npm publishing: do not let Yarn rewrite invalid runtime ranges.
+      const [archive] = JSON.parse(
+        run(
+          'npm',
+          [
+            'pack',
+            '--ignore-scripts',
+            '--json',
+            '--pack-destination',
+            temporary,
+          ],
+          join(root, project),
+        ),
       );
+      cpSync(
+        join(temporary, archive.filename),
+        join(temporary, `${project}.tgz`),
+      );
+    }
     writeFileSync(
       join(temporary, 'package.json'),
       JSON.stringify({
@@ -75,7 +90,11 @@ try {
     '@anarchitects/editorjs-core',
     'sanitize-html',
   ]);
-  assert.equal(manifest.dependencies['@anarchitects/editorjs-core'], '^0.0.1');
+  assert.equal(
+    manifest.dependencies['@anarchitects/editorjs-core'],
+    JSON.parse(readFileSync(join(root, 'html/package.json'), 'utf8'))
+      .dependencies['@anarchitects/editorjs-core'],
+  );
   assert.equal(manifest.dependencies['sanitize-html'], '2.18.1');
   assert.deepEqual(Object.keys(manifest.peerDependencies ?? {}), []);
   assert.equal(

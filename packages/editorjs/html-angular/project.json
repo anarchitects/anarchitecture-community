@@ -6,7 +6,13 @@
   "projectType": "library",
   "release": {
     "version": {
-      "manifestRootsToUpdate": ["{projectRoot}/dist"],
+      "manifestRootsToUpdate": [
+        "{projectRoot}",
+        {
+          "path": "{projectRoot}/dist",
+          "preserveLocalDependencyProtocols": false
+        }
+      ],
       "currentVersionResolver": "git-tag",
       "fallbackCurrentVersionResolver": "disk"
     }

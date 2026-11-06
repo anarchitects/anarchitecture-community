@@ -73,23 +73,21 @@ try {
         name === 'html-angular'
           ? join(project, 'dist')
           : join(project, '..', name);
-      if (name === 'html-angular') {
+      // Exercise the same manifest npm publishing ships, without Yarn rewriting.
+      const [packed] = JSON.parse(
         run(
           'npm',
-          ['pack', '--ignore-scripts', '--pack-destination', temporary],
+          [
+            'pack',
+            '--ignore-scripts',
+            '--json',
+            '--pack-destination',
+            temporary,
+          ],
           directory,
-        );
-        const packed = readdirSync(temporary).find(
-          (file) =>
-            file.startsWith('anarchitects-editorjs-html-angular-') &&
-            file.endsWith('.tgz'),
-        );
-        assert.ok(packed);
-        cpSync(join(temporary, packed), archive);
-      } else {
-        // Yarn rewrites workspace: ranges in the neutral packages' archives.
-        run('yarn', ['pack', '--out', archive], directory);
-      }
+        ),
+      );
+      cpSync(join(temporary, packed.filename), archive);
       archives[name] = createHash('sha256')
         .update(readFileSync(archive))
         .digest('hex');
@@ -135,7 +133,9 @@ try {
       readFileSync(join(installed, 'package.json'), 'utf8'),
     );
     assert.deepEqual(manifest.dependencies, {
-      '@anarchitects/editorjs-html': '^0.0.1',
+      '@anarchitects/editorjs-html': JSON.parse(
+        readFileSync(join(project, 'package.json'), 'utf8'),
+      ).dependencies['@anarchitects/editorjs-html'],
       tslib: '^2.3.0',
     });
     assert.deepEqual(manifest.peerDependencies, {
