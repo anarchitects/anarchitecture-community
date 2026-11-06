@@ -1,0 +1,811 @@
+{
+  "candidate": "f0a47cb579ae65028b4cc420d8dc56eb3aa11f27",
+  "reviewDate": "2026-11-06",
+  "status": "archive review complete; integrated CI acceptance open",
+  "method": "Build all ten packages through Nx; pack final artifacts after builds finish using existing authoring commands and renderer packaging under its selected Node runtimes. Verify documentation/source equality, default/import/types export files, archive and retained result-file hashes. No consumer suite rerun is claimed.",
+  "predecessorRunId": "si679-cache",
+  "packages": [
+    {
+      "project": "editorjs-core",
+      "name": "@anarchitects/editorjs-core",
+      "version": "0.0.1",
+      "archive": "anarchitects-editorjs-core-0.0.1.tgz",
+      "sha256": "0e9794cbf3ca2fa9356b93ede738b3e563077a39a7a8e9053eaa06a5755db644",
+      "fileCount": 39,
+      "payloadManifestSha256": "fc9b68078e948566e842d5c77e5083ecf4ab51bbaa79cb8125eef7ebadbf837b",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/custom-tools.md": "e06af60bdaa9e3c8e15a11cb5e8c752e60aae894266863eb81ae89871f63cafb",
+        "package/persistence.md": "e1106337996a7407f2bf774bf7fa9176667441fe51a6558bcd17ff45e78bb36b",
+        "package/README.md": "46d1f1740a36103b24e3c0b9e47e1b52bd372efb965dac1a8bcbe4f6390e6515",
+        "package/service.md": "860bc55ef3e02bccec101971b30df46ce30168244c46b2e0081c0fa5daba07b0"
+      },
+      "metadata": {
+        "types": "./dist/index.d.ts",
+        "exports": {
+          "./package.json": "./package.json",
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+          }
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": ">=22.12.0"
+        }
+      },
+      "matchesAuthoringPredecessorArchive": true
+    },
+    {
+      "project": "editorjs-tool-paragraph",
+      "name": "@anarchitects/editorjs-tool-paragraph",
+      "version": "0.0.1",
+      "archive": "anarchitects-editorjs-tool-paragraph-0.0.1.tgz",
+      "sha256": "5c504467baa6682a4693e57eedf12376f297bcb96838ee70dba76b7897c277ea",
+      "fileCount": 11,
+      "payloadManifestSha256": "431f3758d53fd1e699b473a2dd446e56e5679199ccc95c54b095c8b3c82e057a",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/README.md": "195487913280b07e1a56cb19112e7d9e81a24d5e535196e008260c6f84ee1e82"
+      },
+      "metadata": {
+        "types": "./dist/index.d.ts",
+        "exports": {
+          "./package.json": "./package.json",
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+          },
+          "./browser": {
+            "@anarchitecture-community/source": "./src/browser.ts",
+            "types": "./dist/browser.d.ts",
+            "import": "./dist/browser.js",
+            "default": "./dist/browser.js"
+          }
+        },
+        "dependencies": {
+          "@anarchitects/editorjs-core": "^0.0.1",
+          "@editorjs/paragraph": "2.11.7"
+        },
+        "peerDependencies": {
+          "@editorjs/editorjs": "2.31.7"
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": ">=22.12.0"
+        }
+      },
+      "matchesAuthoringPredecessorArchive": true
+    },
+    {
+      "project": "editorjs-tool-header",
+      "name": "@anarchitects/editorjs-tool-header",
+      "version": "0.0.1",
+      "archive": "anarchitects-editorjs-tool-header-0.0.1.tgz",
+      "sha256": "2a98929815b82b9f5216fa04f8b12bd3e8c5c9cc6426e002683bd0cf80471c03",
+      "fileCount": 11,
+      "payloadManifestSha256": "6a590119359d97f40402d4a2adbdae494a1bf4e084137781135e459233d3ab10",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/README.md": "4361cec1a100369e21a427a72e80b073a6c40519cc46cd35eca7144f10874c6c"
+      },
+      "metadata": {
+        "types": "./dist/index.d.ts",
+        "exports": {
+          "./package.json": "./package.json",
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+          },
+          "./browser": {
+            "@anarchitecture-community/source": "./src/browser.ts",
+            "types": "./dist/browser.d.ts",
+            "import": "./dist/browser.js",
+            "default": "./dist/browser.js"
+          }
+        },
+        "dependencies": {
+          "@anarchitects/editorjs-core": "^0.0.1",
+          "@editorjs/header": "2.8.9"
+        },
+        "peerDependencies": {
+          "@editorjs/editorjs": "2.31.7"
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": ">=22.12.0"
+        }
+      },
+      "matchesAuthoringPredecessorArchive": true
+    },
+    {
+      "project": "editorjs-tool-list",
+      "name": "@anarchitects/editorjs-tool-list",
+      "version": "0.0.1",
+      "archive": "anarchitects-editorjs-tool-list-0.0.1.tgz",
+      "sha256": "2fda3ac1801a20a39e89cfe8a14d04f360e55868ce7fe08a589cd2b97485dc3c",
+      "fileCount": 11,
+      "payloadManifestSha256": "874633a527176500c8613844aa4a24ccd501bf3dbbc6e4e976e3c5674f142253",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/README.md": "3183204185085acf318a3f35ae4dcdf5f1666b2b319b276746f57cc1f21da03b"
+      },
+      "metadata": {
+        "types": "./dist/index.d.ts",
+        "exports": {
+          "./package.json": "./package.json",
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+          },
+          "./browser": {
+            "@anarchitecture-community/source": "./src/browser.ts",
+            "types": "./dist/browser.d.ts",
+            "import": "./dist/browser.js",
+            "default": "./dist/browser.js"
+          }
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": ">=22.12.0"
+        },
+        "dependencies": {
+          "@anarchitects/editorjs-core": "^0.0.1",
+          "@editorjs/list": "2.0.9"
+        },
+        "peerDependencies": {
+          "@editorjs/editorjs": "2.31.7"
+        }
+      },
+      "matchesAuthoringPredecessorArchive": true
+    },
+    {
+      "project": "editorjs-tool-quote",
+      "name": "@anarchitects/editorjs-tool-quote",
+      "version": "0.0.1",
+      "archive": "anarchitects-editorjs-tool-quote-0.0.1.tgz",
+      "sha256": "4f6a775b9c1ed62bb26d8dd582c937f986a5eb208730b9982cc0f29e290b0428",
+      "fileCount": 11,
+      "payloadManifestSha256": "ff01f9a4ace512806d6aee5cf107305827f16e1c9a4f1c074dc419c276077657",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/README.md": "020f5b81090e53db593d6dee065816d653323385d9ac07c4ce54d2ff4b1aa79f"
+      },
+      "metadata": {
+        "types": "./dist/index.d.ts",
+        "exports": {
+          "./package.json": "./package.json",
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+          },
+          "./browser": {
+            "@anarchitecture-community/source": "./src/browser.ts",
+            "types": "./dist/browser.d.ts",
+            "import": "./dist/browser.js",
+            "default": "./dist/browser.js"
+          }
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": ">=22.12.0"
+        },
+        "dependencies": {
+          "@anarchitects/editorjs-core": "^0.0.1",
+          "@editorjs/quote": "2.7.6"
+        },
+        "peerDependencies": {
+          "@editorjs/editorjs": "2.31.7"
+        }
+      },
+      "matchesAuthoringPredecessorArchive": true
+    },
+    {
+      "project": "editorjs-tool-image",
+      "name": "@anarchitects/editorjs-tool-image",
+      "version": "0.0.1",
+      "archive": "anarchitects-editorjs-tool-image-0.0.1.tgz",
+      "sha256": "22bd9cafe4905cab6099fd4278f4ccf009f2c5ab0ca04293e873d95d480c0e84",
+      "fileCount": 12,
+      "payloadManifestSha256": "1c11669be5fad2e08cdd85ec6a3ba5304c33cebf855504269692302554b07b40",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/README.md": "715017f7ba181ec5093d50e9461a42837b6b97b3fa068feeae650ad2565caeb2"
+      },
+      "metadata": {
+        "types": "./dist/index.d.ts",
+        "exports": {
+          "./package.json": "./package.json",
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+          },
+          "./browser": {
+            "@anarchitecture-community/source": "./src/browser.ts",
+            "types": "./dist/browser.d.ts",
+            "import": "./dist/browser.js",
+            "default": "./dist/browser.js"
+          }
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": ">=22.12.0"
+        },
+        "dependencies": {
+          "@anarchitects/editorjs-core": "^0.0.1",
+          "@editorjs/image": "2.10.3"
+        },
+        "peerDependencies": {
+          "@editorjs/editorjs": "2.31.7"
+        }
+      },
+      "matchesAuthoringPredecessorArchive": true
+    },
+    {
+      "project": "editorjs-upload-fetch",
+      "name": "@anarchitects/editorjs-upload-fetch",
+      "version": "0.0.1",
+      "archive": "anarchitects-editorjs-upload-fetch-0.0.1.tgz",
+      "sha256": "af4171f1ceb327bc00999bf248f34adfdea7a7ad1824811fbbd66b31a7d269e0",
+      "fileCount": 11,
+      "payloadManifestSha256": "3ae5c2a08abdf78c058130025679dcb9bc7ee0867e40b137897504fa06910212",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/nest-example.md": "357c50e649c4bedc7303651267fba5fe30fec8b4bc1694fef9bdde5494279ddc",
+        "package/README.md": "876e5c9d6fb86034e3651f1dff7a5f838493234b19e337fed8a4a39974e965dd"
+      },
+      "metadata": {
+        "exports": {
+          "./package.json": "./package.json",
+          "./browser": {
+            "@anarchitecture-community/source": "./src/browser.ts",
+            "types": "./dist/browser.d.ts",
+            "import": "./dist/browser.js",
+            "default": "./dist/browser.js"
+          }
+        },
+        "dependencies": {
+          "@anarchitects/editorjs-core": "^0.0.1"
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": ">=22.12.0"
+        }
+      },
+      "matchesAuthoringPredecessorArchive": true
+    },
+    {
+      "project": "editorjs-angular",
+      "name": "@anarchitects/editorjs-angular",
+      "version": "0.0.1",
+      "archive": "anarchitects-editorjs-angular-0.0.1.tgz",
+      "sha256": "73768ba732a4f4ac84cb672d3333104f8d8ad6c3ebd39931318a06faa215a6b3",
+      "fileCount": 11,
+      "payloadManifestSha256": "74ffe584147e1d8dbe11f8a1fc1b31d881ff53258472428f2e5a0d1e9fe048f9",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/custom-tools.md": "024c7bb30ff687cf63bf4be9f44605453594e50d2fe9828f213a033328467078",
+        "package/persistence.md": "f5d33ff77728ee516962261708ffeccafdf0dc29d4cc6164f91c4079013df401",
+        "package/README.md": "3244110d4e595528d2b5ba469a6352a60e4b8b6199fe517f9819a7f9626ed125"
+      },
+      "metadata": {
+        "peerDependencies": {
+          "@angular/common": "^22.0.0",
+          "@angular/core": "^22.0.0",
+          "@angular/forms": "^22.0.0",
+          "@editorjs/editorjs": "^2.31.7"
+        },
+        "dependencies": {
+          "@anarchitects/editorjs-core": "^0.0.1",
+          "tslib": "^2.3.0"
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": "^22.22.3 || ^24.15.0 || ^26.0.0"
+        },
+        "exports": {
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./types/anarchitects-editorjs-angular.d.ts",
+            "default": "./fesm2022/anarchitects-editorjs-angular.mjs"
+          },
+          "./forms": {
+            "@anarchitecture-community/source": "./forms/src/index.ts",
+            "types": "./types/anarchitects-editorjs-angular-forms.d.ts",
+            "default": "./fesm2022/anarchitects-editorjs-angular-forms.mjs"
+          },
+          "./package.json": {
+            "default": "./package.json"
+          }
+        },
+        "peerDependenciesMeta": {
+          "@angular/forms": {
+            "optional": true
+          }
+        },
+        "typings": "types/anarchitects-editorjs-angular.d.ts"
+      },
+      "matchesAuthoringPredecessorArchive": true
+    },
+    {
+      "project": "editorjs-html",
+      "name": "@anarchitects/editorjs-html",
+      "version": "0.0.1",
+      "archive": "editorjs-html.tgz",
+      "sha256": "c4db9bae7b6f98bf2f60dd546a73d0d385a9735d559444a0bd272816aa6ce07f",
+      "fileCount": 20,
+      "payloadManifestSha256": "93d0b21f67acf3096042e12a0211b126c8b16b2b64f0816de96df8842275a8d1",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/README.md": "0fc633d916e3e5f6a39dd53bf5e571f9502fda9151e28be63cab7a5ff34ee576"
+      },
+      "metadata": {
+        "types": "./dist/index.d.ts",
+        "exports": {
+          "./package.json": "./package.json",
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+          }
+        },
+        "dependencies": {
+          "@anarchitects/editorjs-core": "^0.0.1",
+          "sanitize-html": "2.18.1"
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": ">=22.12.0"
+        }
+      },
+      "matchesAuthoringPredecessorArchive": true
+    },
+    {
+      "project": "editorjs-html-angular",
+      "name": "@anarchitects/editorjs-html-angular",
+      "version": "0.0.1",
+      "archive": "anarchitects-editorjs-html-angular-0.0.1.tgz",
+      "sha256": "ed72a5697a06367fbeb6022a288415ed81f1d93a36a42155aaf245f743bf7ab1",
+      "fileCount": 6,
+      "payloadManifestSha256": "f803d7de7027f33a1dabd1700df689e714da1b06b358fb1fff5d4cedc6e7e931",
+      "documentation": {
+        "package/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "package/README.md": "7359aaf292b39cfa7d485ac0df65c422b64ab7603d124a4d8475c7304fabedb1"
+      },
+      "metadata": {
+        "peerDependencies": {
+          "@angular/core": "22.0.0 || 22.1.4 || 22.2.2"
+        },
+        "license": "Apache-2.0",
+        "engines": {
+          "node": "^22.22.3 || ^24.15.0 || ^26.0.0"
+        },
+        "exports": {
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./types/anarchitects-editorjs-html-angular.d.ts",
+            "default": "./fesm2022/anarchitects-editorjs-html-angular.mjs"
+          },
+          "./package.json": {
+            "default": "./package.json"
+          }
+        },
+        "dependencies": {
+          "@anarchitects/editorjs-html": "^0.0.1",
+          "tslib": "^2.3.0"
+        },
+        "typings": "types/anarchitects-editorjs-html-angular.d.ts"
+      },
+      "matchesAuthoringPredecessorArchive": true
+    }
+  ],
+  "rendererArchiveVariants": {
+    "coreYarnSha256": "af9c399df59a106dc03a03dca40c91a524afb2fc404b25a0f0ad9d0cb1867c22",
+    "htmlAngularSelectedNodeSha256": "815efe3afb4d021a75ca4fa752a6be1db6e0b11f46a43c5ed3bdd7630f5fe9ef",
+    "htmlAngularCoordinatorSha256": "ed72a5697a06367fbeb6022a288415ed81f1d93a36a42155aaf245f743bf7ab1",
+    "selectedNodes": ["22.22.3", "24.15.0", "26.0.0"],
+    "explanation": "Packing under each selected Node runtime reproduces the predecessor renderer archive exactly. Coordinator Node 24.22.2 produces different gzip bytes with byte-identical decompressed tar and file contents; no payload change is inferred."
+  },
+  "authoringSnapshotSha256": "9a01a10a651f8ddd15b872a00d3c6b9f8915e61660d50621f60377945cf720ef",
+  "authoringConsumerLocks": {
+    "independent-header-package-lock.json": "4a06518e966181a7726937c0498b85b1619b486e593cf34a18405b34c8ab1fbc",
+    "independent-image-package-lock.json": "8144c18ec6b8e6fa5f8559d39c5e7b1fb1c65e9612258cabeacc9eb3e7e79259",
+    "independent-list-package-lock.json": "3f4c1306ed2a782941d1c3c6d782ae379d2792eb568bd030079cca6662f34331",
+    "independent-paragraph-package-lock.json": "b6385c6fe97dc7c2e5fc37bfaa131e16c5eb121319c0e9603d8526ec4bac3293",
+    "independent-quote-package-lock.json": "04ac677b6938d966b2c1da14d6748b319d6b69ffd3cd4054b6388c2eb81bc77f",
+    "nest-upload-client-package-lock.json": "c76fc7bc46090f4ff9bcec7d3e6b8256754c716942a71c75f9050a726e532942",
+    "nest-upload-fastify-package-lock.json": "87162469ad07c31f31dbfec7138c9c5c93a7c5633b9562a2ea2c86a9247a43d1",
+    "nest-upload-node-package-lock.json": "065934b907191b62ae8678e526f1091db55e1c31fbace882f055233c7740ac4f",
+    "neutral-persistence-package-lock.json": "fc2531e6d761477c1572a823793bf4e305f78a0378279098db9cca1c8b991b0e",
+    "package-lock.json": "f2638c9558c2c38f7d8bcff997ac6f40e628c465eb7c11d4a015acfe0634d34d",
+    "portable-package-lock.json": "8d003d9e9cb55fbdcc68e308d7360b3ef03b67c76cf2de329f1a13479f3b68ec",
+    "root-only-package-lock.json": "7fee9802e860bf4de77c58e6878f49ae29cbe5a7d06b81000d31efe919ce029b"
+  },
+  "rendererConsumers": [
+    {
+      "cell": "angular-current",
+      "versions": {
+        "node": "26.0.0",
+        "angular": "22.2.2"
+      },
+      "sourceIdentity": "815b97960b7e68f755b73388c94b75aa551d0cd5d82ece504678f36bcffeac08",
+      "consumerArchiveSha256": "243416274df49f4b952c30fb96df4350b795bac9d959ca03ef478c42dfd54b5d",
+      "packageLockSha256": "b1b001617ed845af1b76ce12b7a2c3cca0780da4c683fae5ad3e4fdf5ec32220",
+      "runtimeLockSha256": "6b787ebfc52452f0f54f59d9fb82b159ced864d76e1c3d08382b4ebd67b87558",
+      "packageArchives": {
+        "core": "af9c399df59a106dc03a03dca40c91a524afb2fc404b25a0f0ad9d0cb1867c22",
+        "html": "c4db9bae7b6f98bf2f60dd546a73d0d385a9735d559444a0bd272816aa6ce07f",
+        "html-angular": "815efe3afb4d021a75ca4fa752a6be1db6e0b11f46a43c5ed3bdd7630f5fe9ef"
+      },
+      "currentArchivesMatch": true
+    },
+    {
+      "cell": "angular-minimum",
+      "versions": {
+        "node": "22.22.3",
+        "angular": "22.0.0"
+      },
+      "sourceIdentity": "815b97960b7e68f755b73388c94b75aa551d0cd5d82ece504678f36bcffeac08",
+      "consumerArchiveSha256": "07781dd464935986a5b799bd6d511a54bd5931017ac0a903c358e88d2c926101",
+      "packageLockSha256": "1328258cbec1c0e5a3380b92407cba9519c020635e93ddf0e39eb0843ed715d8",
+      "runtimeLockSha256": "141f0d34e9f339bebd1c48b6f52a4f0c8876d45ea9ae01ac7069b81d1b5fc0b1",
+      "packageArchives": {
+        "core": "af9c399df59a106dc03a03dca40c91a524afb2fc404b25a0f0ad9d0cb1867c22",
+        "html": "c4db9bae7b6f98bf2f60dd546a73d0d385a9735d559444a0bd272816aa6ce07f",
+        "html-angular": "815efe3afb4d021a75ca4fa752a6be1db6e0b11f46a43c5ed3bdd7630f5fe9ef"
+      },
+      "currentArchivesMatch": true
+    },
+    {
+      "cell": "angular-reference",
+      "versions": {
+        "node": "24.15.0",
+        "angular": "22.1.4"
+      },
+      "sourceIdentity": "815b97960b7e68f755b73388c94b75aa551d0cd5d82ece504678f36bcffeac08",
+      "consumerArchiveSha256": "cdd460be484352073d26eff93f11986bb7988364042eb099171ef6fccb7eac25",
+      "packageLockSha256": "637b210d11818a61a66a4d64fb6a67966c5b51553588baa7b94f1ce12fe85a3b",
+      "runtimeLockSha256": "ee6652e2e799f5944c9a16d0f8c83d59e616c2dac8fdcde47da852954dbbfbb3",
+      "packageArchives": {
+        "core": "af9c399df59a106dc03a03dca40c91a524afb2fc404b25a0f0ad9d0cb1867c22",
+        "html": "c4db9bae7b6f98bf2f60dd546a73d0d385a9735d559444a0bd272816aa6ce07f",
+        "html-angular": "815efe3afb4d021a75ca4fa752a6be1db6e0b11f46a43c5ed3bdd7630f5fe9ef"
+      },
+      "currentArchivesMatch": true
+    },
+    {
+      "cell": "headless-current",
+      "versions": {
+        "node": "26.0.0"
+      },
+      "sourceIdentity": "815b97960b7e68f755b73388c94b75aa551d0cd5d82ece504678f36bcffeac08",
+      "consumerArchiveSha256": "9509251fdc81bd54486c2e7ed6f0f41bfda7410922cc792f9c916b87765db2a4",
+      "packageLockSha256": "eccf16dd088f196a027e4e3b26391db48d1623d358abed3190622e054aa87ece",
+      "runtimeLockSha256": "6b787ebfc52452f0f54f59d9fb82b159ced864d76e1c3d08382b4ebd67b87558",
+      "packageArchives": {
+        "core": "af9c399df59a106dc03a03dca40c91a524afb2fc404b25a0f0ad9d0cb1867c22",
+        "html": "c4db9bae7b6f98bf2f60dd546a73d0d385a9735d559444a0bd272816aa6ce07f"
+      },
+      "currentArchivesMatch": true
+    },
+    {
+      "cell": "headless-floor",
+      "versions": {
+        "node": "22.12.0"
+      },
+      "sourceIdentity": "815b97960b7e68f755b73388c94b75aa551d0cd5d82ece504678f36bcffeac08",
+      "consumerArchiveSha256": "4f3fa267153194f68ade64b2672cfdb173b09b8e7aca0e00570709e36a02f47c",
+      "packageLockSha256": "eccf16dd088f196a027e4e3b26391db48d1623d358abed3190622e054aa87ece",
+      "runtimeLockSha256": "5462b88e5b1b22009f9f397a5a17dcc8405334a956734c9b6f3c63b9ed8fd3e1",
+      "packageArchives": {
+        "core": "af9c399df59a106dc03a03dca40c91a524afb2fc404b25a0f0ad9d0cb1867c22",
+        "html": "c4db9bae7b6f98bf2f60dd546a73d0d385a9735d559444a0bd272816aa6ce07f"
+      },
+      "currentArchivesMatch": true
+    },
+    {
+      "cell": "headless-minimum",
+      "versions": {
+        "node": "22.22.3"
+      },
+      "sourceIdentity": "815b97960b7e68f755b73388c94b75aa551d0cd5d82ece504678f36bcffeac08",
+      "consumerArchiveSha256": "3ecc95b7e1c048c75e002bc157c324e4c0580f8669c98837e13e64ec2a92e7d4",
+      "packageLockSha256": "eccf16dd088f196a027e4e3b26391db48d1623d358abed3190622e054aa87ece",
+      "runtimeLockSha256": "141f0d34e9f339bebd1c48b6f52a4f0c8876d45ea9ae01ac7069b81d1b5fc0b1",
+      "packageArchives": {
+        "core": "af9c399df59a106dc03a03dca40c91a524afb2fc404b25a0f0ad9d0cb1867c22",
+        "html": "c4db9bae7b6f98bf2f60dd546a73d0d385a9735d559444a0bd272816aa6ce07f"
+      },
+      "currentArchivesMatch": true
+    },
+    {
+      "cell": "headless-reference",
+      "versions": {
+        "node": "24.15.0"
+      },
+      "sourceIdentity": "815b97960b7e68f755b73388c94b75aa551d0cd5d82ece504678f36bcffeac08",
+      "consumerArchiveSha256": "d688e8d1f221a2d87f3b056b773d72be54de3d9913fad72e860d2fa1602ba9a3",
+      "packageLockSha256": "eccf16dd088f196a027e4e3b26391db48d1623d358abed3190622e054aa87ece",
+      "runtimeLockSha256": "ee6652e2e799f5944c9a16d0f8c83d59e616c2dac8fdcde47da852954dbbfbb3",
+      "packageArchives": {
+        "core": "af9c399df59a106dc03a03dca40c91a524afb2fc404b25a0f0ad9d0cb1867c22",
+        "html": "c4db9bae7b6f98bf2f60dd546a73d0d385a9735d559444a0bd272816aa6ce07f"
+      },
+      "currentArchivesMatch": true
+    }
+  ],
+  "verifiedPredecessorResults": [
+    {
+      "family": "renderer",
+      "cell": "angular-current",
+      "phase": "behavior",
+      "status": "passed",
+      "resultSha256": "c6700c512c550160654d082d8426a02d53955d565369b5775600a3ad91e8b61a",
+      "verifiedOutputFiles": 6
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-current",
+      "phase": "build",
+      "status": "passed",
+      "resultSha256": "400db79436c2ac119ba4195bd311726b02e79de3bafc25512e4016707ae26554",
+      "verifiedOutputFiles": 26
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-current",
+      "phase": "corpus",
+      "status": "passed",
+      "resultSha256": "e315f5faa4c738c7bde304d11a6172d13358e8031d129c6f3e89e4e73b04c356",
+      "verifiedOutputFiles": 8
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-current",
+      "phase": "isolation",
+      "status": "passed",
+      "resultSha256": "a36a9bf250a510bb4449e8841d16bf890c66ff693b1cec6cde760dfaf1de3716",
+      "verifiedOutputFiles": 2
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-minimum",
+      "phase": "behavior",
+      "status": "passed",
+      "resultSha256": "65461ae2284d1681c545e7c277f4467defda1a200040194dd0ace5f74618a70c",
+      "verifiedOutputFiles": 6
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-minimum",
+      "phase": "build",
+      "status": "passed",
+      "resultSha256": "0b8e5b7f17865dcef82ed7c0507d7a117e8220799e9a99c61e3929bd7daf2d05",
+      "verifiedOutputFiles": 25
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-minimum",
+      "phase": "corpus",
+      "status": "passed",
+      "resultSha256": "980be8e1e84e9d00eab981147a4dd4395ae179cd90dfe3e73af4ba0cc44bde88",
+      "verifiedOutputFiles": 8
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-minimum",
+      "phase": "isolation",
+      "status": "passed",
+      "resultSha256": "aa52f759e7ccd34089877dbc3b9e1238a38e3e7a65a866134950de14f2e0ab6f",
+      "verifiedOutputFiles": 2
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-reference",
+      "phase": "behavior",
+      "status": "passed",
+      "resultSha256": "6777cf1dfce5b8e2ecc2ff2aaa1df48aea35bae6218a64e5a12db6b12d6c766a",
+      "verifiedOutputFiles": 6
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-reference",
+      "phase": "build",
+      "status": "passed",
+      "resultSha256": "dd939741aba6460bb56955d0f7c3d3c116d8c02f737882e6b1be98dbd630e9ce",
+      "verifiedOutputFiles": 25
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-reference",
+      "phase": "corpus",
+      "status": "passed",
+      "resultSha256": "ab3d65ac5f793dab3d9c696420fac0c3ebcbd0dfcaf4b8c6dc8ed46acc63657b",
+      "verifiedOutputFiles": 8
+    },
+    {
+      "family": "renderer",
+      "cell": "angular-reference",
+      "phase": "isolation",
+      "status": "passed",
+      "resultSha256": "c90ec745a5441c664df521833c7a30e0d3ccbac80ac34030682c4b4ffba801d7",
+      "verifiedOutputFiles": 2
+    },
+    {
+      "family": "renderer",
+      "cell": "headless-current",
+      "phase": "headless",
+      "status": "passed",
+      "resultSha256": "616a4eefd37bed3ff1d9e422c8de3bdcb4719ce9b92daa338b779f86bf6cfd0a",
+      "verifiedOutputFiles": 3
+    },
+    {
+      "family": "renderer",
+      "cell": "headless-floor",
+      "phase": "headless",
+      "status": "passed",
+      "resultSha256": "b973f8d07482c052dd67d3852befa4e2ba030e2b8a31bab7aaa708aa65a0ab52",
+      "verifiedOutputFiles": 3
+    },
+    {
+      "family": "renderer",
+      "cell": "headless-minimum",
+      "phase": "headless",
+      "status": "passed",
+      "resultSha256": "cc2abdbc41740975ba3005ccc0c9128a077aeaf7cff37e390aba91a6f4690631",
+      "verifiedOutputFiles": 3
+    },
+    {
+      "family": "renderer",
+      "cell": "headless-reference",
+      "phase": "headless",
+      "status": "passed",
+      "resultSha256": "db35d85aabaa069077269878658bf2daf858c11a89aafb661899a5c924773a2a",
+      "verifiedOutputFiles": 3
+    },
+    {
+      "family": "authoring",
+      "cell": "angular22-reference",
+      "phase": "build-csr",
+      "status": "passed",
+      "resultSha256": "533aaffe4a64e80999c938017d5cd90d4ccf8ef8052772bbb435b8462b12961e",
+      "verifiedOutputFiles": 6
+    },
+    {
+      "family": "authoring",
+      "cell": "angular22-reference",
+      "phase": "csr-editor",
+      "status": "passed",
+      "resultSha256": "74d93fb639bffb29918860ac91472307d67a6621941fa854faab1eafb77a72c8",
+      "verifiedOutputFiles": 7
+    },
+    {
+      "family": "authoring",
+      "cell": "angular22-reference",
+      "phase": "csr-forms",
+      "status": "passed",
+      "resultSha256": "9fcaa0c8f92215ccecd5b3701c6942dcec9041e72bd508d96d0c5dd523d6314d",
+      "verifiedOutputFiles": 7
+    },
+    {
+      "family": "authoring",
+      "cell": "angular22-reference",
+      "phase": "csr-forms-upload",
+      "status": "passed",
+      "resultSha256": "18c5453421e0f9eeba136d3aac3e740424665f0c12fc78eeadc0af665b83ad7a",
+      "verifiedOutputFiles": 7
+    },
+    {
+      "family": "authoring",
+      "cell": "angular22-reference",
+      "phase": "csr-upload",
+      "status": "passed",
+      "resultSha256": "33d0623099d7f1e8d961a2bfbe2b97282ef2ab1b4bf6bfa4e06f9d1b92058d19",
+      "verifiedOutputFiles": 7
+    },
+    {
+      "family": "authoring",
+      "cell": "angular22-reference",
+      "phase": "interop",
+      "status": "passed",
+      "resultSha256": "72f694deff98417f7144558566e822f7481e40d7c6907dacdcb80554261129a8",
+      "verifiedOutputFiles": 4
+    },
+    {
+      "family": "authoring",
+      "cell": "angular22-reference",
+      "phase": "nest-upload-fastify",
+      "status": "passed",
+      "resultSha256": "f2bf013e15d39a602cf5bf8ed53da35583fe7d854a51156c8ba24f730db5ddd9",
+      "verifiedOutputFiles": 9
+    },
+    {
+      "family": "authoring",
+      "cell": "angular22-reference",
+      "phase": "nest-upload-node",
+      "status": "passed",
+      "resultSha256": "a3f9d2258e2d27790a2c893fa5af5a35fd5fa8a4b857738ac364a2d3b90cfbef",
+      "verifiedOutputFiles": 13
+    },
+    {
+      "family": "authoring",
+      "cell": "angular22-reference",
+      "phase": "portable",
+      "status": "passed",
+      "resultSha256": "a2da0b3aa219a342d7739315df643b2b41e68182274caaf8cd77f0311ce0dff6",
+      "verifiedOutputFiles": 37
+    }
+  ],
+  "limits": [
+    "These are predecessor package-consumer results, not exact-candidate CI outcomes.",
+    "Old source identities differ after CI/cache changes; old preparations cannot be replayed as fresh candidate snapshots.",
+    "The recorded renderer angular-current hydration timing failure followed by an unchanged successful rerun remains historical; this review does not classify or fix it."
+  ],
+  "matrices": {
+    "apps/editorjs/angular-e2e/tools/compatibility-matrix.json": {
+      "sha256": "1257dfd828c16ceca3f7dc12a64cf524e0760b45b1460bbdbed53f7facf27322",
+      "contents": {
+        "angular22-minimum": {
+          "angular": "22.0.0",
+          "editorjs": "2.31.7",
+          "node": "22.22.3",
+          "typescript": "6.0.3"
+        },
+        "angular22-reference": {
+          "angular": "22.1.4",
+          "editorjs": "2.31.7",
+          "node": "24.15.0",
+          "typescript": "6.0.3"
+        },
+        "angular22-current": {
+          "angular": "22.2.2",
+          "editorjs": "2.31.7",
+          "node": "26.0.0",
+          "typescript": "6.0.3"
+        }
+      }
+    },
+    "packages/editorjs/html-angular/tools/packed/matrix.json": {
+      "sha256": "89e4480bb102c3573f134261411317d04657102388692d8663f35cdd87d7816f",
+      "contents": {
+        "headless-floor": {
+          "node": "22.12.0"
+        },
+        "headless-minimum": {
+          "node": "22.22.3"
+        },
+        "headless-reference": {
+          "node": "24.15.0"
+        },
+        "headless-current": {
+          "node": "26.0.0"
+        },
+        "angular-minimum": {
+          "node": "22.22.3",
+          "angular": "22.0.0"
+        },
+        "angular-reference": {
+          "node": "24.15.0",
+          "angular": "22.1.4"
+        },
+        "angular-current": {
+          "node": "26.0.0",
+          "angular": "22.2.2"
+        }
+      }
+    }
+  }
+}
