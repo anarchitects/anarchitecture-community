@@ -155,6 +155,27 @@
           }
         ]
       },
+      "test-ci--tests/package.spec.ts": {
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/tsconfig.base.json",
+          "{workspaceRoot}/tsconfig.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "env": "NODE_OPTIONS"
+          },
+          {
+            "env": "CI"
+          }
+        ]
+      },
       "test-ci--tests/renderer.spec.ts": {
         "dependsOn": [
           "build"
@@ -299,7 +320,7 @@
     }
   },
   "dependencies": {
-    "@anarchitects/editorjs-core": "workspace:^",
+    "@anarchitects/editorjs-core": "^0.0.1",
     "sanitize-html": "2.18.1"
   },
   "devDependencies": {

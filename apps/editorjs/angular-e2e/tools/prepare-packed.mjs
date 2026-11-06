@@ -91,14 +91,6 @@ try {
         ]
       : []),
   ]) {
-    if (name === '@anarchitects/editorjs-html') {
-      // Yarn resolves the headless package's workspace dependency, as in the
-      // existing renderer consumer. npm pack would ship an uninstallable range.
-      const archive = join(scratch, 'editorjs-html.tgz');
-      await run('yarn', ['pack', '--out', archive], join(workspace, directory));
-      archives[name] = archive;
-      continue;
-    }
     const output = await run(
       'npm',
       ['pack', '--ignore-scripts', '--json', '--pack-destination', scratch],

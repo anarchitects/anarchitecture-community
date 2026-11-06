@@ -54,7 +54,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@anarchitects/editorjs-core@npm:^0.0.1, @anarchitects/editorjs-core@workspace:*, @anarchitects/editorjs-core@workspace:^, @anarchitects/editorjs-core@workspace:packages/editorjs/core":
+"@anarchitects/editorjs-core@npm:^0.0.1, @anarchitects/editorjs-core@workspace:*, @anarchitects/editorjs-core@workspace:packages/editorjs/core":
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-core@workspace:packages/editorjs/core"
   dependencies:
@@ -76,7 +76,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-html@workspace:packages/editorjs/html"
   dependencies:
-    "@anarchitects/editorjs-core": "workspace:^"
+    "@anarchitects/editorjs-core": "npm:^0.0.1"
     "@anarchitects/editorjs-tool-header": "workspace:^"
     "@anarchitects/editorjs-tool-image": "workspace:^"
     "@anarchitects/editorjs-tool-list": "workspace:^"
