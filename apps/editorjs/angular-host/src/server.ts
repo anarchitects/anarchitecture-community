@@ -12,6 +12,7 @@ import type { RequestContext } from './ssr/request-context';
 const browserFolder = resolve(import.meta.dirname, '../browser');
 const angularApp = new AngularNodeAppEngine();
 let sequence = 0;
+let assetSequence = 0;
 const event = (value: object) => console.log(JSON.stringify(value));
 
 /** Private loopback fixture server; the engine owns Angular request rendering. */
@@ -28,6 +29,27 @@ export const reqHandler = createNodeRequestHandler(async (req, res) => {
   }
   // Only serve emitted assets. Route HTML goes through Angular's render-mode selection.
   if (/\.(?:js|css|map|ico|png|svg|woff2)$/.test(pathname)) {
+    // Correlate browser requests with server receipt, file reads and response
+    // completion when a lazy chunk stalls. Keep SSR lifetime IDs independent.
+    const assetId = ++assetSequence;
+    const started = performance.now();
+    const assetEvent = (stage: string, details: object = {}) =>
+      event({
+        event: 'asset',
+        assetId,
+        pathname,
+        stage,
+        at: Date.now(),
+        elapsedMs: performance.now() - started,
+        ...details,
+      });
+    assetEvent('received');
+    res.once('finish', () =>
+      assetEvent('finished', { status: res.statusCode }),
+    );
+    res.once('close', () => {
+      if (!res.writableFinished) assetEvent('closed-before-finish');
+    });
     const file = resolve(browserFolder, '.' + decodeURIComponent(pathname));
     if (!file.startsWith(browserFolder + sep)) {
       res.writeHead(400).end();
@@ -35,6 +57,7 @@ export const reqHandler = createNodeRequestHandler(async (req, res) => {
     }
     try {
       const body = await readFile(file);
+      assetEvent('read', { bytes: body.byteLength });
       const mime: Record<string, string> = {
         '.js': 'text/javascript',
         '.css': 'text/css',
@@ -46,6 +69,7 @@ export const reqHandler = createNodeRequestHandler(async (req, res) => {
         })
         .end(body);
     } catch {
+      assetEvent('read-failed');
       res.writeHead(404).end();
     }
     return;
