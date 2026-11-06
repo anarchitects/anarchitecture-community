@@ -92,32 +92,56 @@
     "includedScripts": [],
     "targets": {
       "test-nest-angular-ssr-consumer-lifecycle": {
-        "executor": "nx:run-commands",
+        "executor": "nx:noop",
         "cache": false,
-        "options": {
-          "command": "node --test tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs"
-        }
+        "dependsOn": [
+          {
+            "projects": [
+              "nest-angular-ssr"
+            ],
+            "target": "test-consumer-lifecycle",
+            "params": "forward"
+          }
+        ]
       },
       "validate-nest-angular-ssr-consumers": {
-        "executor": "nx:run-commands",
+        "executor": "nx:noop",
+        "cache": false,
         "dependsOn": [
-          "test-nest-angular-ssr-consumer-lifecycle"
-        ],
-        "options": {
-          "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
-        }
+          {
+            "projects": [
+              "nest-angular-ssr"
+            ],
+            "target": "validate-consumers",
+            "params": "forward"
+          }
+        ]
       },
       "validate-nest-angular-ssr-matrix": {
-        "executor": "nx:run-commands",
-        "options": {
-          "command": "node tools/fixtures/validate-nest-angular-ssr-matrix.mjs {args.cell}"
-        }
+        "executor": "nx:noop",
+        "cache": false,
+        "dependsOn": [
+          {
+            "projects": [
+              "nest-angular-ssr"
+            ],
+            "target": "validate-matrix",
+            "params": "forward"
+          }
+        ]
       },
       "validate-nest-angular-ssr-split": {
-        "executor": "nx:run-commands",
-        "options": {
-          "command": "node tools/fixtures/validate-nest-angular-ssr-split.mjs"
-        }
+        "executor": "nx:noop",
+        "cache": false,
+        "dependsOn": [
+          {
+            "projects": [
+              "nest-angular-ssr"
+            ],
+            "target": "validate-split",
+            "params": "forward"
+          }
+        ]
       },
       "validate-nest-angular-ssr-release-gate": {
         "executor": "nx:run-commands",

@@ -2,8 +2,15 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-// Job admission maps checks to Nx projects, never to package paths. Root owns
-// the Nest fixture validators and explicitly depends on their fixture projects.
+// Admission follows Nx project ownership. Root also owns unrelated documentation,
+// so it must not be used as a proxy for Nest validation.
+const nestProjects = [
+  'nest-angular-ssr',
+  'nest-cjs-consumer',
+  'nest-esm-consumer',
+  'nest-angular-split-backend',
+  'nest-angular-split-frontend',
+];
 export const jobProjects = {
   'editorjs-core-runtime-baseline': [
     'editorjs-core',
@@ -16,13 +23,23 @@ export const jobProjects = {
     'editorjs-html',
   ],
   'better-auth-typeorm-adapter-compatibility': ['better-auth-typeorm-adapter'],
-  'nest-angular-ssr-consumers': ['@anarchitecture-community/source'],
-  'nest-angular-ssr-compatibility': ['@anarchitecture-community/source'],
+  'nest-angular-ssr-consumers': nestProjects,
+  'nest-angular-ssr-compatibility': nestProjects,
   'editorjs-angular-browser': ['editorjs-angular-e2e', 'editorjs-upload-fetch'],
   'editorjs-angular-ssr': ['editorjs-angular-e2e', 'editorjs-html-angular'],
   'editorjs-angular-packed': ['editorjs-angular-e2e'],
   workspace: [],
 };
+
+// Browser and SSR are required subchecks on the same Node 24 coordinator as
+// workspace validation. Sharing its cache avoids racing identical prerequisites.
+export const workspaceChecks = [
+  'editorjs-angular-browser',
+  'editorjs-angular-ssr',
+];
+export const jobNames = Object.keys(jobProjects).filter(
+  (name) => !workspaceChecks.includes(name),
+);
 
 export function selectJobs(projects, allProjects, mode) {
   if (!['affected', 'all'].includes(mode))
@@ -39,7 +56,7 @@ export function selectJobs(projects, allProjects, mode) {
       job,
       mode === 'all' ||
         (job === 'workspace'
-          ? projects.length > 0
+          ? projects.some((name) => name !== '@anarchitecture-community/source')
           : owners.some((name) => projects.includes(name))),
     ]),
   );
@@ -74,6 +91,28 @@ export function comparison({ eventName, event, sha, git }) {
       const sourceHead = event.pull_request?.head?.sha;
       if (!validSha(sourceHead)) return fallback('invalid-pr-head');
       git(['merge-base', '--is-ancestor', sourceHead, sha]);
+      const changed = git(['diff', '--name-only', base, sha])
+        .trim()
+        .split('\n');
+      // Exercise changes to orchestration without making orchestration files
+      // inputs of unrelated product tasks. Selection tests themselves run here
+      // on every change and do not require a full product baseline.
+      if (
+        changed.some((file) =>
+          [
+            '.github/workflows/ci.yml',
+            'tools/ci/selection.mjs',
+            'tools/ci/workspace.mjs',
+          ].includes(file),
+        )
+      ) {
+        return {
+          mode: 'all',
+          base,
+          head: sha,
+          reason: 'ci-orchestration-changed',
+        };
+      }
       return {
         mode: 'affected',
         base,
@@ -140,13 +179,14 @@ export function checkResults(needs) {
   if (needs.selection?.result !== 'success')
     throw new Error('CI selection did not succeed');
   const plan = validatePlan(JSON.parse(needs.selection.outputs.plan));
-  const expectedJobs = ['selection', ...Object.keys(jobProjects)].sort();
+  const expectedJobs = ['selection', ...jobNames].sort();
   if (
     JSON.stringify(Object.keys(needs).sort()) !== JSON.stringify(expectedJobs)
   ) {
     throw new Error('Aggregate job dependencies are incomplete or unexpected');
   }
-  for (const [job, selected] of Object.entries(plan.selected)) {
+  for (const job of jobNames) {
+    const selected = plan.selected[job];
     const expected = selected ? 'success' : 'skipped';
     if (needs[job]?.result !== expected) {
       throw new Error(
@@ -218,6 +258,25 @@ export function workspaceArgs(plan) {
   ];
 }
 
+export function neutralArgs(plan) {
+  validatePlan(plan);
+  const projects = jobProjects['editorjs-core-runtime-baseline'].filter(
+    (name) => plan.mode === 'all' || plan.projects.includes(name),
+  );
+  if (!projects.length) throw new Error('Neutral baseline was not selected');
+  // Lint has one owner: workspace. The floor validates runtime/build/type support.
+  return [
+    'nx',
+    'run-many',
+    '-p',
+    projects.join(','),
+    '-t',
+    'build',
+    'typecheck',
+    'test',
+  ];
+}
+
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
@@ -257,10 +316,14 @@ if (
       'All selected CI jobs succeeded; unaffected jobs were skipped.',
     );
   } else if (command === 'workspace') {
-    execFileSync('yarn', workspaceArgs(JSON.parse(process.env.CI_PLAN)), {
+    execFileSync(process.execPath, ['tools/ci/workspace.mjs'], {
+      stdio: 'inherit',
+    });
+  } else if (command === 'neutral') {
+    execFileSync('yarn', neutralArgs(JSON.parse(process.env.CI_PLAN)), {
       stdio: 'inherit',
     });
   } else {
-    throw new Error('Expected select, check or workspace');
+    throw new Error('Expected select, check, workspace or neutral');
   }
 }

@@ -55,8 +55,10 @@ jobs:
           cache: 'yarn'
       - run: yarn install --immutable
       # Runtime-specific inputs keep Node 22 and Node 24 cache results separate.
-      - run: yarn nx run-many -p editorjs-core editorjs-tool-paragraph editorjs-tool-header editorjs-tool-list editorjs-tool-quote editorjs-tool-image editorjs-upload-fetch editorjs-html -t build typecheck test lint
-      # Renderer packed cells run once in the existing SSR job below.
+      - run: node tools/ci/selection.mjs neutral
+        env:
+          CI_PLAN: ${{ needs.selection.outputs.plan }}
+      # Runtime-floor checks retain their distinct Node environment; lint runs once in workspace.
 
   better-auth-typeorm-adapter-compatibility:
     needs: selection
@@ -108,7 +110,7 @@ jobs:
           cache: 'yarn'
       - run: yarn install --immutable
       # macOS exercises guard bypass on a case-insensitive filesystem.
-      - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-consumers
+      - run: yarn nx run nest-angular-ssr:validate-consumers
 
   nest-angular-ssr-compatibility:
     needs: selection
@@ -133,79 +135,7 @@ jobs:
           node-version: 24
           cache: 'yarn'
       - run: yarn install --immutable
-      - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-matrix --cell=${{ matrix.cell }}
-
-  editorjs-angular-browser:
-    needs: selection
-    if: ${{ fromJSON(needs.selection.outputs.plan).selected['editorjs-angular-browser'] }}
-    name: editorjs-angular (Chromium)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          filter: tree:0
-          fetch-depth: 0
-      - run: corepack enable
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'yarn'
-      - run: yarn install --immutable
-      - run: yarn nx run editorjs-angular-e2e:install-browsers:ci
-      - run: yarn nx run editorjs-angular-e2e:e2e
-      - run: yarn nx run editorjs-upload-fetch:test-browser
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: editorjs-angular-playwright
-          path: |
-            apps/editorjs/angular-e2e/test-output
-            packages/editorjs/upload-fetch/test-output/browser
-          retention-days: 7
-          if-no-files-found: ignore
-
-  editorjs-angular-ssr:
-    needs: selection
-    if: ${{ fromJSON(needs.selection.outputs.plan).selected['editorjs-angular-ssr'] }}
-    name: editorjs-angular SSR (Chromium)
-    env:
-      EDITORJS_RENDERER_RUN_ID: renderer-${{ github.run_id }}-${{ github.run_attempt }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          filter: tree:0
-          fetch-depth: 0
-      - run: corepack enable
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'yarn'
-      - run: yarn install --immutable
-      - run: yarn nx run editorjs-angular-e2e:install-browsers:ci
-      - run: yarn nx run editorjs-angular-e2e:test-ssr
-      - run: yarn nx run editorjs-angular-e2e:e2e-hydration
-      - run: yarn nx run editorjs-angular-e2e:e2e-isolation
-      # Fresh installs are uncached; Nx schedules independently cached renderer atoms.
-      - run: yarn nx run editorjs-html-angular:packed-prepare
-      - name: Validate packed renderer cells
-        run: yarn nx run-many -p editorjs-html-angular -t "$(node packages/editorjs/html-angular/tools/packed/run.mjs targets)" --runId="$EDITORJS_RENDERER_RUN_ID" --parallel=2
-      - name: Require complete renderer evidence
-        if: always()
-        run: yarn nx run editorjs-html-angular:packed-collect
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: editorjs-angular-ssr-workspace
-          path: |
-            apps/editorjs/angular-e2e/test-output/ssr
-            apps/editorjs/angular-e2e/test-output/hydration
-            apps/editorjs/angular-e2e/test-output/isolation
-            dist/editorjs-renderer-results
-            dist/editorjs-renderer-inputs/**/evidence
-            dist/editorjs-renderer-inputs/**/snapshot.json
-          retention-days: 7
-          if-no-files-found: ignore
+      - run: yarn nx run nest-angular-ssr:validate-matrix --cell=${{ matrix.cell }}
 
   editorjs-angular-packed:
     needs: selection
@@ -292,6 +222,8 @@ jobs:
   workspace:
     needs: selection
     if: ${{ fromJSON(needs.selection.outputs.plan).selected.workspace }}
+    env:
+      EDITORJS_RENDERER_RUN_ID: renderer-${{ github.run_id }}-${{ github.run_attempt }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -329,12 +261,18 @@ jobs:
         run: node tools/ci/selection.mjs workspace
         env:
           CI_PLAN: ${{ needs.selection.outputs.plan }}
-      - run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-split
-        if: ${{ fromJSON(needs.selection.outputs.plan).selected['nest-angular-ssr-consumers'] }}
-      - run: yarn nx run better-auth-typeorm-adapter:test-postgres
-        if: ${{ fromJSON(needs.selection.outputs.plan).selected['better-auth-typeorm-adapter-compatibility'] }}
-      - run: yarn nx run better-auth-typeorm-adapter:test-better-auth
-        if: ${{ fromJSON(needs.selection.outputs.plan).selected['better-auth-typeorm-adapter-compatibility'] }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: editorjs-workspace-evidence
+          path: |
+            apps/editorjs/angular-e2e/test-output
+            packages/editorjs/upload-fetch/test-output/browser
+            dist/editorjs-renderer-results
+            dist/editorjs-renderer-inputs/**/evidence
+            dist/editorjs-renderer-inputs/**/snapshot.json
+          retention-days: 7
+          if-no-files-found: ignore
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
       - run: yarn nx fix-ci
         if: always()
@@ -349,8 +287,6 @@ jobs:
       - better-auth-typeorm-adapter-compatibility
       - nest-angular-ssr-consumers
       - nest-angular-ssr-compatibility
-      - editorjs-angular-browser
-      - editorjs-angular-ssr
       - editorjs-angular-packed
       - workspace
     runs-on: ubuntu-latest

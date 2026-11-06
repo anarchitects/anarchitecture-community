@@ -23,9 +23,6 @@
       "!{projectRoot}/test-setup.[jt]s"
     ],
     "sharedGlobals": [
-      "{workspaceRoot}/.github/workflows/ci.yml",
-      "{workspaceRoot}/.nx/workflows/**/*",
-      "{workspaceRoot}/tools/ci/**/*",
       "{workspaceRoot}/package.json",
       "{workspaceRoot}/yarn.lock",
       "{workspaceRoot}/.yarnrc.yml",
