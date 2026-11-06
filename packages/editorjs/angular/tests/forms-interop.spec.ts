@@ -36,10 +36,7 @@ import type {
 // The same contract runs locally against APF and in each isolated packed consumer.
 const require = createRequire(import.meta.url);
 const packed = process.env['EDITORJS_INTEROP_PACKED'] === 'true';
-const artifacts = resolve(
-  import.meta.dirname,
-  '../../../../dist/packages/editorjs/angular/fesm2022',
-);
+const artifacts = resolve(import.meta.dirname, '../dist/fesm2022');
 const { EDITOR_JS_LOADER } = require(
   packed
     ? '@anarchitects/editorjs-angular'

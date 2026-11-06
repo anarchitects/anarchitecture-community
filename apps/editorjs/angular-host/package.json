@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@anarchitects/editorjs-angular": "link:../../../dist/packages/editorjs/angular",
+    "@anarchitects/editorjs-angular": "link:../../../packages/editorjs/angular/dist",
     "@anarchitects/editorjs-core": "workspace:*",
     "@anarchitects/editorjs-tool-header": "workspace:*",
     "@anarchitects/editorjs-tool-image": "workspace:*",

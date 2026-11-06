@@ -40,10 +40,7 @@ import type {
 } from '../src/index.js';
 
 const require = createRequire(import.meta.url);
-const artifacts = resolve(
-  import.meta.dirname,
-  '../../../../dist/packages/editorjs/angular/fesm2022',
-);
+const artifacts = resolve(import.meta.dirname, '../dist/fesm2022');
 const { EDITOR_JS_LOADER, provideEditorJsTools } = require(
   resolve(artifacts, 'anarchitects-editorjs-angular.mjs'),
 ) as typeof import('../src/index.js');

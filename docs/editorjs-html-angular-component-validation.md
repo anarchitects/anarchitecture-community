@@ -120,7 +120,7 @@ not the full headless attack corpus or a universal browser claim.
 ## Nx execution contract
 
 The APF build depends on upstream builds and restores
-`dist/packages/editorjs/html-angular`. Build/typecheck/lint/test inputs include
+`packages/editorjs/html-angular/dist`. Build/typecheck/lint/test inputs include
 project and dependency inputs, root TypeScript configuration, lockfile, exact
 Node/platform/architecture and NODE_OPTIONS; test inputs also include CI. Lint
 includes shared rules. All inferred Vitest aliases require the APF build.

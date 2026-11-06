@@ -161,7 +161,7 @@ if (phase === 'targets') {
       if (versions.angular) {
         const bundle = await build({
           stdin: {
-            contents: `import '@angular/compiler'; import EditorJS from '@editorjs/editorjs'; import Paragraph from '@editorjs/paragraph'; import { EditorJs } from './dist/packages/editorjs/angular/fesm2022/anarchitects-editorjs-angular.mjs'; globalThis.__authoringControl = {editor: typeof EditorJS, tool: typeof Paragraph, angular: typeof EditorJs};`,
+            contents: `import '@angular/compiler'; import EditorJS from '@editorjs/editorjs'; import Paragraph from '@editorjs/paragraph'; import { EditorJs } from './packages/editorjs/angular/dist/fesm2022/anarchitects-editorjs-angular.mjs'; globalThis.__authoringControl = {editor: typeof EditorJS, tool: typeof Paragraph, angular: typeof EditorJs};`,
             resolveDir: workspace,
           },
           bundle: true,

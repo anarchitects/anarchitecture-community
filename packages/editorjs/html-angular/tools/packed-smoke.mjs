@@ -71,7 +71,7 @@ try {
       // Core/headless packages export their own built dist; Angular publishes APF.
       const directory =
         name === 'html-angular'
-          ? join(workspace, 'dist/packages/editorjs/html-angular')
+          ? join(project, 'dist')
           : join(project, '..', name);
       if (name === 'html-angular') {
         run(

@@ -9,7 +9,7 @@
       "manifestRootsToUpdate": [
         "{projectRoot}",
         {
-          "path": "dist/{projectRoot}",
+          "path": "{projectRoot}/dist",
           "preserveLocalDependencyProtocols": false
         }
       ],
@@ -22,7 +22,7 @@
     "build": {
       "executor": "@nx/angular:package",
       "inputs": ["production", "^production", "{workspaceRoot}/LICENSE"],
-      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "outputs": ["{projectRoot}/dist"],
       "defaultConfiguration": "production",
       "options": {
         "project": "packages/editorjs/angular/ng-package.json",
@@ -37,7 +37,7 @@
     },
     "nx-release-publish": {
       "options": {
-        "packageRoot": "dist/{projectRoot}"
+        "packageRoot": "{projectRoot}/dist"
       }
     },
     "typecheck": {

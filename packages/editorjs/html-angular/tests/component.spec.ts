@@ -15,7 +15,7 @@ import type { HtmlRendererOptions, HtmlRenderResult } from '../src/index.js';
 const { EditorJsHtmlComponent } = createRequire(import.meta.url)(
   resolve(
     import.meta.dirname,
-    '../../../../dist/packages/editorjs/html-angular/fesm2022/anarchitects-editorjs-html-angular.mjs',
+    '../dist/fesm2022/anarchitects-editorjs-html-angular.mjs',
   ),
 ) as typeof import('../src/index.js');
 const paragraph = (text: string) => ({
