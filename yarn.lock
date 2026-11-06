@@ -66,13 +66,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-html-angular@workspace:packages/editorjs/html-angular"
   dependencies:
-    "@anarchitects/editorjs-html": "npm:^0.0.1"
+    "@anarchitects/editorjs-html": "npm:^0.0.2"
   peerDependencies:
     "@angular/core": 22.0.0 || 22.1.4 || 22.2.2
   languageName: unknown
   linkType: soft
 
-"@anarchitects/editorjs-html@npm:^0.0.1, @anarchitects/editorjs-html@workspace:packages/editorjs/html":
+"@anarchitects/editorjs-html@npm:^0.0.2, @anarchitects/editorjs-html@workspace:packages/editorjs/html":
   version: 0.0.0-use.local
   resolution: "@anarchitects/editorjs-html@workspace:packages/editorjs/html"
   dependencies:

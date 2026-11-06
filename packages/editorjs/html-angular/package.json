@@ -1,6 +1,6 @@
 {
   "name": "@anarchitects/editorjs-html-angular",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "peerDependencies": {
     "@angular/core": "22.0.0 || 22.1.4 || 22.2.2"
   },
@@ -29,6 +29,6 @@
     }
   },
   "dependencies": {
-    "@anarchitects/editorjs-html": "^0.0.1"
+    "@anarchitects/editorjs-html": "^0.0.2"
   }
 }
