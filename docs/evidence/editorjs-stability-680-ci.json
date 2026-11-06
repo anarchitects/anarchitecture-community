@@ -1,0 +1,123 @@
+{
+  "candidate": "f0a47cb579ae65028b4cc420d8dc56eb3aa11f27",
+  "reviewDate": "2026-11-06",
+  "acceptance": "open",
+  "authorization": "One bounded read-only inspection of existing results/artifacts; no monitoring, reruns or additional workers.",
+  "ci": {
+    "runId": 42197426434,
+    "url": "https://github.com/anarchitects/anarchitecture-community/actions/runs/42197426434",
+    "event": "push",
+    "attempt": 1,
+    "statusAtInspection": "in_progress",
+    "conclusionAtInspection": null,
+    "artifactsAtInspection": [],
+    "selection": {
+      "mode": "all",
+      "reason": "full-integration-baseline",
+      "base": "3c2ef2900c897a68c33e7eb298e599817c778d2c",
+      "head": "f0a47cb579ae65028b4cc420d8dc56eb3aa11f27",
+      "allWorkloadFamiliesSelected": true,
+      "contractTestsPassed": 10
+    },
+    "jobsAtInspection": [
+      {
+        "id": 127824061073,
+        "name": "Select affected CI work",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 127825028330,
+        "name": "nest-angular-ssr consumers (macos-latest)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 127825028371,
+        "name": "better-auth-typeorm-adapter (Node 24, TypeORM ^1.0.0)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 127825028407,
+        "name": "nest-angular-ssr consumers (ubuntu-latest)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 127825028427,
+        "name": "editorjs-angular packed (Nx DTE)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 127825028439,
+        "name": "better-auth-typeorm-adapter (Node 20, TypeORM 1.0.0)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 127825028465,
+        "name": "nest-angular-ssr (angular21-nx23)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 127825028480,
+        "name": "nest-angular-ssr (angular22-nx23)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 127825028492,
+        "name": "workspace",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 127825028557,
+        "name": "nest-angular-ssr (angular21-nx22)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 127825028709,
+        "name": "Editor.js neutral packages (Node 22.12.0)",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ],
+    "requiredCheck": {
+      "context": "main",
+      "integrationId": 15368,
+      "observedSuccessful": false
+    },
+    "remainingEvidence": "Completed selected jobs, successful main, workspace stage/renderer collector results, authoring 89-atom collector, remote audit and actual worker distribution for this candidate."
+  },
+  "rendererException": {
+    "id": "G07",
+    "disposition": "accepted by maintainer in this conversation on 2026-11-06",
+    "reason": "Renderer atoms run on the coordinator; execution identity includes workspace/browser paths. Local restoration is not remote or distributed proof.",
+    "owner": "Community renderer and CI maintainers",
+    "revisit": "Before claiming renderer remote restoration or Nx DTE support, establish transport/relocation and separately authorized restoration/distribution proof.",
+    "authorizesHostedWork": false
+  },
+  "preflight": {
+    "meta": "09d4fc898ad49c177e3e4bbd6b6be160896262cc",
+    "metaAdrCount": 24,
+    "localAdrCount": 9,
+    "inventoryUnchangedFromCompleted696Review": true
+  },
+  "local": {
+    "node": "24.22.2",
+    "yarn": "4.18.0",
+    "nx": "23.2.1",
+    "platform": "darwin/arm64",
+    "cloudDisabled": true,
+    "builds": "All ten package builds passed; a stalled initial Vite task was stopped and the remaining three projects retried serially (eight tasks including dependencies).",
+    "skipSync": "Existing unrelated Nest fixture TypeScript synchronization conflict; no configuration change.",
+    "authoringSourceFingerprint": "3f8fd61f675af1915fe89d8d1e07a7e026f63101dd816e65b10306223ef0efb7",
+    "rendererSourceFingerprint": "e924e1cdb9a8e1c8a858f9e431be38aa9c884167773f6fb8fceed18278bab600",
+    "reuseBoundary": "Archive-specific predecessor consumer proof only; old snapshot source identities differ and are not replayed or claimed as current-candidate CI."
+  }
+}

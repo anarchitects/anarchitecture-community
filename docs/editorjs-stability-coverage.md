@@ -7,6 +7,12 @@ This is the contributor validation plan for [#75](https://github.com/anarchitect
 It inventories existing proof and assigns remaining work; it does not certify a
 new integrated candidate, change runtime behavior or start the later slices.
 
+The [#680 integrated review](editorjs-integrated-stability-review.md) is the current
+acceptance record for `f0a47cb` (6 November 2026). All predecessors are integrated;
+final archive identities are verified and the maintainer accepted the bounded
+renderer remote-cache/DTE exception. Exact-candidate green CI remains an open
+gate. Earlier sections below retain their dated scope and historical topology.
+
 The [#675 neutral contract record](#675-neutral-contract-validation) below updates
 G01 after this inventory; the original baseline and historical evidence retain
 their stated scope.
@@ -1494,3 +1500,24 @@ local CI contract tests pass. This completes the technical protection review;
 #696 remains subject to maintainer acceptance. #680 still requires its exact
 candidate CI evidence and explicit G07 exception disposition. No hosted CI audit,
 settings write or release action was performed.
+
+## #680 integrated review (6 November 2026)
+
+#696 is now closed and merged in #708 at `f0a47cb`. The
+[integrated review](editorjs-integrated-stability-review.md) reconciles the final
+critical-flow/CI map, ten-package inventory, final archive and lock identities,
+protection read-back and #76 handoff. All ten final authoring-path archives and
+the renderer archives reproduced under their selected Node versions match the
+retained #679 consumer evidence exactly. All output-file hashes in 25 predecessor
+result records were reverified; this is artifact-specific reuse, not fresh suite
+execution or exact-candidate CI proof.
+
+The maintainer explicitly accepted G07's renderer remote-restoration/DTE
+exception, owned by Community renderer/CI maintainers and revisited before
+advertising that support. The existing intentional uncached boundaries and G03a
+timing lead retain their reasons and revisit conditions. Current-candidate hosted
+proof and G09 remain open: the permitted one-off read found run 42197426434 in
+progress with no artifacts. Selection passed all ten contract tests and selected
+the deliberate full main-push baseline. Completed mandatory jobs, `main`, collectors
+and matching hosted evidence must be supplied or separately inspected before
+#680/#75 acceptance. No monitoring, rerun, new workers or release was started.
