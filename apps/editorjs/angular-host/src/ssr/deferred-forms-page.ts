@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { EDITOR_JS_LOADER } from '@anarchitects/editorjs-angular';
 import { RequestState } from './request-state';
@@ -33,7 +39,9 @@ import { FormsEditor } from './forms-editor';
         <p role="alert">Form view failed. Navigate away and return to retry.</p>
       }
     } @else {
-      <button #activate type="button">Activate form</button>
+      <button #activate type="button" [disabled]="!rendered()">
+        Activate form
+      </button>
       @defer (on interaction(activate)) {
         <aa-forms-editor data-owner="A" />
       } @placeholder {
@@ -47,8 +55,14 @@ import { FormsEditor } from './forms-editor';
   `,
 })
 export class DeferredFormsPage {
+  readonly rendered = signal(false);
   readonly state = inject(RequestState);
   readonly incremental =
     inject(ActivatedRoute).snapshot.data['incremental'] === true;
   activations = 0;
+
+  constructor() {
+    // The shell can render before this lazy route's interaction listener exists.
+    afterNextRender(() => this.rendered.set(true));
+  }
 }

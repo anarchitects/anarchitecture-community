@@ -5,8 +5,12 @@ Standalone, display-only Angular component and host directive for Editor.js docu
 ## Install and compatibility
 
 ```sh
-npm install @anarchitects/editorjs-html-angular@0.0.1 @anarchitects/editorjs-html@0.0.1 @anarchitects/editorjs-core@0.0.1
+npm install @anarchitects/editorjs-html-angular
 ```
+
+The headless renderer and core are installed transitively. Use version **0.0.3 or
+later**; Angular renderer 0.0.1 and 0.0.2 are deprecated because their headless
+dependencies cannot be installed normally from npm.
 
 Supported Angular versions are **22.0.0**, **22.1.4** and **22.2.2** (the explicit peer alternatives). Each has packed CSR, SSR, prerender and hydration coverage with its matching compiler/CLI/build/SSR version and TypeScript **6.0.3**:
 
