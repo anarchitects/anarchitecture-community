@@ -175,6 +175,9 @@ Key v1 references:
 
 ## Development Rules
 
+See [Community ownership](OWNERSHIP.md) for package owners and release authority,
+and the [local SDLC operating model](docs/sdlc.md) for delivery and acceptance.
+
 - Keep packages independently publishable.
 - Do not leak repo-internal implementation details into public exports.
 - Prefer typed config and explicit module options.

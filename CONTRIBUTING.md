@@ -4,6 +4,10 @@
 
 This repository hosts community integration packages for the Anarchitects ecosystem.
 
+Use [OWNERSHIP.md](OWNERSHIP.md) to identify the responsible package owner and
+technical maintainer. The [Community SDLC operating model](docs/sdlc.md) applies
+the agreed ecosystem delivery, acceptance and release-authority rules locally.
+
 The initial focus is:
 
 - `@anarchitects/better-auth-typeorm-adapter`
