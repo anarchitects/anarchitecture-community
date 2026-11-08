@@ -49,6 +49,12 @@ Identically named fields do not synchronize values. Owners maintain the links
 and resolve competing priorities jointly; no unilateral priority override or
 unagreed deadline is introduced here.
 
+The [#717 planning migration record](sdlc-planning-migration-717.md) documents
+the reviewed work set, field mappings, workflow verification, overview
+reconciliation and recovery procedure. Johan maintains Community's source and
+overview links at planning and acceptance changes, coordinating with PWG for
+overview-level decisions.
+
 ## Readiness, authorization, tagging and execution
 
 | Decision or action                                                                 | Responsible role                                                                           |
@@ -93,8 +99,9 @@ a supporting package.
 
 This document and OWNERSHIP.md establish the local role/mapping record and operating
 model for [#716](https://github.com/anarchitects/anarchitecture-community/issues/716).
-They do not establish that project fields or release permission enforcement have
-already been migrated. The remaining work under [#715](https://github.com/anarchitects/anarchitecture-community/issues/715)
+Project fields and active-work migration are recorded separately in the
+[#717 planning migration](sdlc-planning-migration-717.md). Release permission
+enforcement remains separate implementation work. The remaining work under [#715](https://github.com/anarchitects/anarchitecture-community/issues/715)
 has distinct owners and acceptance gates:
 
 - [#717](https://github.com/anarchitects/anarchitecture-community/issues/717): project schema and active-work migration.
