@@ -27,6 +27,10 @@ products assigned their own App PO or Infra deployment lifecycle.
 
 ## From work item to accepted outcome
 
+Use [CONTRIBUTING.md](../CONTRIBUTING.md#intake-planning-and-acceptance) and the
+issue/PR templates for intake and review. They apply this model without replacing
+the canonical status/field definitions or the ownership inventory.
+
 1. Identify the outcome, affected packages, responsible owner, acceptance criteria
    and dependencies. Consult the applicable accepted architecture and package
    contracts before implementation.

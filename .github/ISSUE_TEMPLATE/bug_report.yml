@@ -1,130 +1,82 @@
 name: Bug report
-description: Report a defect or regression in a package, workflow, or documentation path.
-title: "[Bug]: "
+description: Report a defect in any package, fixture, workflow or documentation path.
+title: '[Bug]: '
 labels:
   - bug
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Use [CONTRIBUTING](https://github.com/anarchitects/anarchitecture-community/blob/main/CONTRIBUTING.md) and the [ownership inventory](https://github.com/anarchitects/anarchitecture-community/blob/main/OWNERSHIP.md) for guidance.
+        Short answers and existing links are enough. Ownership can be confirmed during triage; submitting does not commit you to implementation.
+        These answers provide intake context, not automatic project-field updates or release authorization.
+
   - type: dropdown
     id: affected-project
     attributes:
-      label: Affected package or project
-      description: Pick the package, project, or repo area that is primarily affected.
+      label: Affected package family or repository area
+      description: Name exact packages, versions and scope in the details below. Select all relevant areas.
+      multiple: true
       options:
-        - "@anarchitects/nest-angular-ssr"
-        - "Better Auth TypeORM adapter"
-        - "Release / publish tooling"
-        - "Documentation"
-        - "Fixture apps"
-        - "Other"
-    validations:
-      required: true
-
-  - type: input
-    id: summary
-    attributes:
-      label: Summary
-      description: One concise sentence describing the bug.
-      placeholder: SSR fallback route returns 500 when rendering through Fastify
+        - Better Auth TypeORM (Auth)
+        - Nest Angular SSR (SSR)
+        - Governance (Core, adapters, extensions, CLI, Python/dbt)
+        - Editor.js (authoring, tools, uploads, HTML rendering)
+        - Repository tooling / CI / release operations
+        - Documentation / planning
+        - Fixture apps
+        - Other / unsure
     validations:
       required: true
 
   - type: textarea
     id: current-behavior
     attributes:
-      label: Current behavior
-      description: What is happening now?
-      placeholder: Describe the observed bug, error, or regression.
+      label: Current behavior and affected scope
+      description: What fails, which exact packages or repository paths are involved, and what is the impact?
     validations:
       required: true
 
   - type: textarea
     id: expected-behavior
     attributes:
-      label: Expected behavior
-      description: What should happen instead?
-      placeholder: Describe the expected outcome.
+      label: Expected outcome and acceptance
+      description: What should happen, and what observation would demonstrate this bug is resolved? State if publication or consumer adoption is part of the requested outcome.
     validations:
       required: true
 
   - type: textarea
     id: reproduction
     attributes:
-      label: Reproduction steps
-      description: List the shortest reliable steps to reproduce the issue.
-      placeholder: |
-        1. Create a Nest Fastify app with NestAngularSsrModule.forRoot(...)
-        2. Request /
-        3. Observe ...
+      label: Reproduction steps and evidence
+      description: Give the shortest reproduction or link an existing example/failing run. If not reproducible yet, say what is known. Redact credentials and private data.
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: |
-        If this is **not** about `@anarchitects/nest-angular-ssr`, leave the SSR-specific fields below as `N/A` or `unknown`.
-
-  - type: dropdown
-    id: ssr-adapter
-    attributes:
-      label: SSR adapter
-      description: For `@anarchitects/nest-angular-ssr` issues, which adapter is involved?
-      options:
-        - fastify
-        - express
-        - other
-        - N/A
-    validations:
-      required: false
-
-  - type: dropdown
-    id: runtime-mode
-    attributes:
-      label: Runtime mode
-      description: For `@anarchitects/nest-angular-ssr` issues, which module/runtime mode is involved?
-      options:
-        - CommonJS
-        - ESM
-        - unknown
-        - N/A
-    validations:
-      required: false
 
   - type: textarea
     id: environment
     attributes:
-      label: Environment details
-      description: Include the relevant versions and runtime details.
-      placeholder: |
-        Package version: 0.1.0
-        Nest version: 11.x
-        Angular / @angular/ssr version: 21.x
-        Node version: 22.x
-        OS: macOS / Linux / Windows
+      label: Relevant environment
+      description: Include package/runtime/framework versions and OS. For SSR, include HTTP adapter and CJS/ESM mode; for Editor.js, browser/rendering mode; for dbt, Python/dbt/artifact versions. For docs/planning, a link or revision is enough.
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: logs
     attributes:
-      label: Logs or stack traces
-      description: Paste relevant logs, stack traces, or failing output.
-      render: shell
+      label: Logs, screenshots or workaround
+      description: Add useful evidence or a temporary workaround. Keep consumer exceptions and their upstream/cutover work linked; publication alone does not prove adoption.
     validations:
       required: false
 
   - type: textarea
-    id: screenshots
+    id: ownership-dependencies
     attributes:
-      label: Screenshots or visual evidence
-      description: Add screenshots, screen recordings, or copied output if helpful.
-    validations:
-      required: false
-
-  - type: textarea
-    id: workaround
-    attributes:
-      label: Workaround found
-      description: If you found a temporary workaround, describe it here.
-      placeholder: Optional
+      label: Ownership and dependencies (if known)
+      description: Maintainers confirm the accountable Owner and Domain/Capability before Ready. Link parent/related issues and any Blocked by dependency, its owner and next action. Leave unagreed release/iteration commitments unset.
+      placeholder: |
+        Owner / Domain or Capability: unknown; needs triage
+        Parent or related work:
+        Blocked by / responsible owner / next action:
     validations:
       required: false
