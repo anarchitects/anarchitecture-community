@@ -12,6 +12,29 @@ Meta ADR index: https://github.com/anarchitects/anarchitecture-meta/tree/main/ad
 
 Before generating, editing or refactoring **any code**, enumerate and read **ALL ADRs in this repository**, including every document in `adr/**`, `docs/adr/**` and any other documented ADR location. Read accepted, proposed, historical and superseded records; apply their status correctly and follow applicable accepted decisions. Then read **all relevant engineering guides** for the affected packages and topics, including the [Modern Angular Engineering Guide](docs/guides/modern-angular/README.md), its [repository application](docs/guides/modern-angular/repository-application.md) and linked topic guides for Angular work. This applies to generated code, templates, examples, tests and migrations. Record applicable decisions and explicit conflicts before implementation; re-check when scope changes. A proposal does not silently override an accepted ADR. Never commit the licensed Modern Angular PDF, extracted text, scans or copied source passages.
 
+## Delivery, ownership and authorization
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [OWNERSHIP.md](OWNERSHIP.md) and the
+[local SDLC model](docs/sdlc.md) before starting work. Preserve the full ADR
+preflight above. Confirm scope, accountable owner, acceptance criteria and resolved
+prerequisites; do not infer assignments, release dates or adoption from issue labels.
+When authorized work starts or a blocker resolves, reconcile project Status and
+Blocked by with the source issue. Match Done to the owner's acceptance of the
+promised result; code merge alone does not prove publication or consumer adoption.
+
+Technical readiness and merge access do not authorize release. Domain/capability
+tags may be created by the owner or an authorized bot; application tags, including
+hotfix tags, belong only to the relevant App PO. Use exact Nx project scopes in
+Conventional Commits and non-bumping `init` only before a package's first release,
+as described in CONTRIBUTING.md. Dependency updates require human review and merge.
+
+Do not spend CI credits without explicit maintainer permission. Prepare and verify
+the concrete change locally before requesting any still-needed push/PR permission.
+Existing permission for that change remains valid; do not ask again. Monitoring,
+reruns, hosted experiments and extra workers need their own explicit authorization.
+Keep #715's release-control implementation and documented cache/DTE exceptions
+distinct from policy adoption; do not claim unimplemented enforcement.
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 

@@ -1,0 +1,64 @@
+name: Operational work
+description: Plan maintenance, documentation, CI, release, ownership or live-settings work.
+title: '[Work]: '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use [CONTRIBUTING](https://github.com/anarchitects/anarchitecture-community/blob/main/CONTRIBUTING.md) and the [ownership inventory](https://github.com/anarchitects/anarchitecture-community/blob/main/OWNERSHIP.md) for guidance.
+        Short answers and existing links are enough. Ownership can be confirmed during triage; submitting does not commit you to implementation.
+        These answers provide intake context, not automatic project-field updates or release authorization.
+
+  - type: dropdown
+    id: affected-project
+    attributes:
+      label: Affected package family or repository area
+      description: Name exact packages, versions and scope in the details below. Select all relevant areas.
+      multiple: true
+      options:
+        - Better Auth TypeORM (Auth)
+        - Nest Angular SSR (SSR)
+        - Governance (Core, adapters, extensions, CLI, Python/dbt)
+        - Editor.js (authoring, tools, uploads, HTML rendering)
+        - Repository tooling / CI / release operations
+        - Documentation / planning
+        - Fixture apps
+        - Other / unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome-scope
+    attributes:
+      label: Outcome and scope
+      description: What result is needed, why, and in which packages or systems? Distinguish a proposal, implementation, live operation or consumer adoption; name material exclusions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance and evidence
+      description: How will the accountable owner verify the agreed result? Link existing evidence or describe the necessary checks. A live-outcome issue needs live evidence, not just a merged PR.
+    validations:
+      required: true
+
+  - type: textarea
+    id: ownership-dependencies
+    attributes:
+      label: Ownership and dependencies (if known)
+      description: Maintainers confirm the accountable Owner and Domain/Capability before Ready. Link parent/related issues and any Blocked by dependency, its owner and next action. Leave unagreed release/iteration commitments unset.
+      placeholder: |
+        Owner / Domain or Capability: unknown; needs triage
+        Parent or related work:
+        Blocked by / responsible owner / next action:
+    validations:
+      required: false
+
+  - type: textarea
+    id: authorization-follow-through
+    attributes:
+      label: Authorization and follow-through (where applicable)
+      description: Link decisions required for live changes, publication, CI spending or consumer cutover. Identify who must decide and what remains unknown; filing this issue is not that authorization.
+    validations:
+      required: false
