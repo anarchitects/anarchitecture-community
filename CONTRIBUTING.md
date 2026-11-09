@@ -245,6 +245,11 @@ for an already published package or overwrite published history. A workflow inpu
 accepting a version or release flag does not make every value policy-compliant.
 
 These are current execution paths, not proof of enforced owner authorization.
+The [#719 release-control design](docs/release-controls.md) records the owner-accepted
+owner handoff, immutable evidence and recovery controls; its
+[dated inventory](docs/release-controls-inventory-719.md) distinguishes observed
+settings from verification gaps. Design acceptance does not establish implemented
+protection; enforcement remains #720–#722.
 [#719](https://github.com/anarchitects/anarchitecture-community/issues/719) owns
 accepted controls and the complete release/retry/recovery handoff;
 [#720](https://github.com/anarchitects/anarchitecture-community/issues/720),
