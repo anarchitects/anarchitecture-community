@@ -85,6 +85,12 @@ rules and real release-history checks. Preserve package compatibility and
 human dependency review and the [required CI/protection contract](main-branch-protection.md).
 Scope ownership does not change package boundaries or published support.
 
+The [owner-accepted #719 release-control design](release-controls.md) specifies approval,
+candidate/artifact binding and recovery handoff for all Community distributions.
+Its [dated inventory](release-controls-inventory-719.md) records actual routes and
+settings separately from designed controls and unresolved access. Implementation
+in #720–#722 remains separate from acceptance of this design and policy adoption.
+
 ## Consumers and upstream work
 
 Record shared bugs and missing capabilities upstream. An affected consumer App PO
