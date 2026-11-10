@@ -91,6 +91,57 @@
   "nx": {
     "includedScripts": [],
     "targets": {
+      "test-release-policy": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{workspaceRoot}/tools/release/**/*",
+          "{workspaceRoot}/nx.json",
+          "{workspaceRoot}/package.json",
+          "{workspaceRoot}/yarn.lock",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          {
+            "runtime": "python3 --version"
+          },
+          {
+            "runtime": "git --version"
+          }
+        ],
+        "outputs": [],
+        "options": {
+          "command": "node --test tools/release/*.test.mjs"
+        }
+      },
+      "validate-release-policy": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/release/check.mjs config"
+        }
+      },
+      "validate-commit-policy": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/release/check.mjs ci"
+        }
+      },
+      "release-history": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/release/check.mjs history"
+        }
+      },
+      "preview-release-policy": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/release/check.mjs preview"
+        }
+      },
       "test-nest-angular-ssr-consumer-lifecycle": {
         "executor": "nx:noop",
         "cache": false,

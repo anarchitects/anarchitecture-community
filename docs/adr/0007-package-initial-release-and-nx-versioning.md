@@ -28,7 +28,7 @@ Packages in Nx monorepositories have independent release lifecycles. Initial imp
 **Exception: domain-aligned versioning in Bricks 3-Tier and Bricks DDD.** Publishable packages belonging to one bounded context MUST have identical `MAJOR.MINOR` values for their latest released versions, while `PATCH` MAY vary per package. Example: `auth-ts@0.12.6`, `auth-nest@0.12.5`, `auth-angular@0.12.3`. Group by bounded context, not by Nest/Angular/TS technology family. Independent Nx release relationships are retained for patch autonomy; they do not alone enforce domain-line synchronization.
 
 - **Patch:** only changed packages need publishing, provided every previously released package remains on the shared major/minor line.
-- **Major/minor:** coordinated domain release advances *all previously published packages* of that context to the new major/minor line, including unchanged packages if necessary. Never leave latest released members on different major/minor lines.
+- **Major/minor:** coordinated domain release advances _all previously published packages_ of that context to the new major/minor line, including unchanged packages if necessary. Never leave latest released members on different major/minor lines.
 - **New domain:** the first distributed package starts at `0.0.1`. Packages of a domain not yet released stay in non-bumping `init` development.
 - **New package joining a released domain:** initialization commits remain `init` (non-bumping), but **its first released version joins the domain's current major/minor**, normally `MAJOR.MINOR.0` or an available patch number. This is the sole permitted exception to the general first-version `0.0.1` rule. It must not trigger a domain-wide minor/major bump merely because a new package is added.
 - **DDD:** follow the same domain grouping semantics as 3-Tier, despite DDD's finer `ts/domain`, `ts/contracts`, `nest/*`, `angular/*` layout. Only independently distributable/publishable projects participate in public version alignment; internal projects do not need distribution versions.
@@ -36,6 +36,23 @@ Packages in Nx monorepositories have independent release lifecycles. Initial imp
 - **Enforcement:** release validation must inspect the Nx project graph, current published tags/registries, proposed release versions and alignment across all published packages in the domain. Test independent patch and coordinated major/minor releases. Keep Bricks 3-Tier's existing domain Nx release groups; establish corresponding groups for DDD when publishable packages are introduced. Cross-repo 3-Tier/DDD versions need not match each other.
 
 ## Nx release configuration illustration
+
+### Community zero-major clarification (2026-11-10)
+
+Johan confirmed during #720 that Community retains Nx's zero-major adjustment
+until an explicit decision to release `1.x`. “Normal Conventional Commits” above
+distinguishes released packages from non-bumping `init` development; it does not
+disable Nx's `0.x` behavior. With
+`release.version.adjustSemverBumpsForZeroMajorVersion: true`, a feature or fix
+increments the patch while on `0.x`, and a breaking change increments the minor.
+From `1.x` onward, features increment the minor and breaking changes increment
+the major. First distribution remains exactly `0.0.1`.
+
+Compatibility gates must use that same version-aware minimum: a breaking change
+cannot pass as a patch on either line. Moving out of `0.x` requires an explicit
+owner decision for the selected stable candidate, not an incidental breaking
+commit. This clarifies Community's existing Nx behavior; it does not claim that
+Meta mandates disabling or enabling zero-major adjustment across all repositories.
 
 The `conventionalCommits.types` mapping MUST explicitly define **all allowed types**, not only `init`. A partial override may change how omitted types are interpreted and cause unintended bumps. Use a complete reviewed baseline, while preserving repository-specific types and deliberate policies:
 

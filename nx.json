@@ -168,6 +168,7 @@
     "version": {
       "preVersionCommand": "UV_CACHE_DIR=.cache/uv yarn nx run-many -t build",
       "conventionalCommits": true,
+      "adjustSemverBumpsForZeroMajorVersion": true,
       "updateDependents": "auto",
       "preserveMatchingDependencyRanges": false
     },
@@ -188,6 +189,15 @@
         },
         "fix": {
           "semverBump": "patch"
+        },
+        "perf": {
+          "semverBump": "patch"
+        },
+        "revert": {
+          "semverBump": "patch"
+        },
+        "build": {
+          "semverBump": "none"
         },
         "init": {
           "semverBump": "none",
