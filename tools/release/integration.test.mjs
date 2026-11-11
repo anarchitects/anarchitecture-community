@@ -58,6 +58,8 @@ test(
           projectsRelationship: 'independent',
           releaseTag: { pattern: '{projectName}@{version}' },
           version: {
+            // Fixture shares installed modules; never resolve a second install.
+            versionActionsOptions: { skipLockFileUpdate: true },
             conventionalCommits: true,
             adjustSemverBumpsForZeroMajorVersion: true,
             preVersionCommand:
@@ -84,8 +86,8 @@ test(
       commit('init(lib): baseline');
       git(['tag', 'lib@0.0.1']);
       const baseline = git(['rev-parse', 'HEAD']).trim();
-      const preview = (expected, firstRelease = false) => {
-        const script = `import { nxPreview } from ${JSON.stringify(moduleUrl)}; const r=await nxPreview(['lib'],${firstRelease}); console.log('RESULT:'+JSON.stringify(r.projectsVersionData));`;
+      const preview = (expected, firstRelease = false, stabilize = false) => {
+        const script = `import { nxPreview } from ${JSON.stringify(moduleUrl)}; const r=await nxPreview(['lib'],${firstRelease},${stabilize}); console.log('RESULT:'+JSON.stringify(r.projectsVersionData));`;
         const before = git(['show-ref']);
         const manifest = readFileSync(
           join(dir, 'packages/lib/package.json'),
@@ -168,6 +170,50 @@ test(
       });
       commit('init(lib): unreleased fixture');
       preview('0.0.1', true);
+      // The preparation path may write version/changelog files, but must never
+      // stage, commit, tag, push or execute the configured preVersionCommand.
+      const headBefore = git(['rev-parse', 'HEAD']);
+      const refsBefore = git(['show-ref']);
+      const prepareModule = new URL('./prepare.mjs', import.meta.url).href;
+      execFileSync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '-e',
+          `import { prepareNxVersions } from ${JSON.stringify(prepareModule)}; await prepareNxVersions(['lib'],true);`,
+        ],
+        {
+          cwd: dir,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+          timeout: 30_000,
+          env: {
+            ...process.env,
+            NODE_OPTIONS: '',
+            VSCODE_INSPECTOR_OPTIONS: '',
+            NX_WORKSPACE_ROOT_PATH: dir,
+            NX_DAEMON: 'false',
+            NX_ISOLATE_PLUGINS: 'false',
+            NX_NO_CLOUD: 'true',
+            NX_INTERACTIVE: 'false',
+            CI: 'true',
+          },
+        },
+      );
+      assert.equal(
+        JSON.parse(readFileSync(join(dir, 'packages/lib/package.json'), 'utf8'))
+          .version,
+        '0.0.1',
+      );
+      assert.ok(existsSync(join(dir, 'packages/lib/CHANGELOG.md')));
+      assert.equal(git(['rev-parse', 'HEAD']), headBefore);
+      assert.equal(git(['show-ref']), refsBefore);
+      assert.equal(git(['diff', '--cached', '--name-only']), '');
+      assert.equal(existsSync(join(dir, 'UNSAFE')), false);
+      commit('init(lib): prepare first version');
+      preview('0.0.1', true);
+      git(['tag', 'lib@0.0.1']);
+      preview('1.0.0', false, true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

@@ -101,15 +101,16 @@ observed history, and its Nx baseline must exist in its distribution channel.
 This deliberately blocks advancing past the Governance tag/registry discrepancies
 recorded in the [#719 inventory](release-controls-inventory-719.md).
 
-#721 must supply authenticated Nx results and compatibility/transition evidence,
-bind them to the exact final commit and archives, validate the complete dependent
-closure, enforce owner approval, and recheck publication state immediately before
-mutation. The injectable dependencies in tests are not an authorization mechanism.
+The [#721 execution path](release-execution.md) supplies authenticated Nx results
+and compatibility/transition evidence, binds them to the final commit and archives,
+checks dependent publication, enforces owner approval, and rechecks publication
+state before mutation. Activation remains blocked on #722. The injectable
+dependencies in tests are not an authorization mechanism.
 Recognizing an existing version does not permit overwriting it: recovery must
 compare remote bytes and provenance before publishing any missing channel.
 Archive metadata agreement does not replace export, dependency, security,
 consumer or compatibility checks. dbt's directory digest identifies its prepared
-contents; #721 must bind those contents to the released Git subdirectory.
+contents; #721 records and verifies the released Git subdirectory/tree separately.
 
 ## Fresh state, failures and coverage
 
@@ -136,11 +137,11 @@ metadata edits trigger CI so title/body corrections are checked. The affected
 product selection and aggregate contract remain unchanged; this does not solve
 #712 or #667. No hosting, monitoring or reruns are authorized by these targets.
 
-Direct main pushes, release/publish workflows, manual registry operations and
-last-moment squash-message edits are **not fully enforced by this slice**. #721
-must validate the actual integrated release intent and reuse the candidate gates
-on all normal/retry/manual paths; #722 owns access and bypass closure. Existing
-release workflows are not yet made safe merely by merging these helpers.
+Direct main pushes, manual registry operations and last-moment squash-message
+edits are **not fully enforced by this slice**. #721's staged controllers validate
+the integrated candidate and new commits since version preparation, repeating
+gates on normal/retry/manual paths. #722 owns access, activation and bypass closure.
+Existing release routes are not made safe merely by merging these helpers.
 
 ## Architecture preflight
 

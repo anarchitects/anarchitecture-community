@@ -1,7 +1,5 @@
 name: Release (Manual)
-
-env:
-  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+run-name: "Release record ${{ inputs.record_artifact_id || 'legacy' }}"
 
 on:
   workflow_dispatch:
@@ -19,23 +17,37 @@ on:
         required: false
         default: false
         type: boolean
+      record_artifact_id:
+        description: Immutable artifact ID from Prepare release record (after activation)
+        required: false
+        type: string
+      record_digest:
+        description: SHA-256 of release-record.json (after activation)
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
-  group: release-manual
+  group: community-publication
   cancel-in-progress: false
+  queue: max
 
 jobs:
   release:
+    # #722 removes this transitional branch during the agreed maintenance window.
+    if: vars.COMMUNITY_RELEASE_CONTROLS == ''
     runs-on: ubuntu-latest
+    env:
+      NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
 
     steps:
       - name: Ensure workflow runs from main
         if: github.ref != 'refs/heads/main'
         run: |
-          echo "This workflow must run from main. Current ref: ${{ github.ref }}"
+          echo "This workflow must run from main. Current ref: $GITHUB_REF"
           exit 1
 
       - name: Generate GitHub App token
@@ -76,18 +88,99 @@ jobs:
         run: |
           args=(--skip-publish)
 
-          if [ -n "${{ inputs.projects }}" ]; then
-            args+=("--projects=${{ inputs.projects }}")
+          if [ -n "$RELEASE_PROJECTS" ]; then
+            args+=("--projects=$RELEASE_PROJECTS")
           fi
 
-          if [ -n "${{ inputs.specifier }}" ]; then
-            args+=("${{ inputs.specifier }}")
+          if [ -n "$RELEASE_SPECIFIER" ]; then
+            args+=("$RELEASE_SPECIFIER")
           fi
 
-          if [ "${{ inputs.first_release }}" = "true" ]; then
+          if [ "$RELEASE_FIRST" = "true" ]; then
             args+=(--first-release)
           fi
 
           yarn nx release "${args[@]}"
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_PROJECTS: ${{ inputs.projects }}
+          RELEASE_SPECIFIER: ${{ inputs.specifier }}
+          RELEASE_FIRST: ${{ inputs.first_release }}
+
+  review:
+    if: vars.COMMUNITY_RELEASE_CONTROLS == 'active' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    env:
+      COMMUNITY_RELEASE_CONTROLS: ${{ vars.COMMUNITY_RELEASE_CONTROLS }}
+      RELEASE_ARTIFACT_ID: ${{ inputs.record_artifact_id }}
+      RELEASE_DIGEST: ${{ inputs.record_digest }}
+      RELEASE_ACTION: release
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Resolve retained preparation run
+        id: source
+        run: node tools/release/controller.mjs locate
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ inputs.record_artifact_id }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: release-payload
+          merge-multiple: true
+      - run: node tools/release/controller.mjs review
+        env:
+          GH_TOKEN: ${{ github.token }}
+  approved:
+    needs: review
+    environment: community-release
+    runs-on: ubuntu-latest
+    env:
+      COMMUNITY_RELEASE_CONTROLS: ${{ vars.COMMUNITY_RELEASE_CONTROLS }}
+      RELEASE_ARTIFACT_ID: ${{ inputs.record_artifact_id }}
+      RELEASE_DIGEST: ${{ inputs.record_digest }}
+      RELEASE_ACTION: release
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Resolve retained preparation run
+        id: source
+        run: node tools/release/controller.mjs locate
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ inputs.record_artifact_id }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: release-payload
+          merge-multiple: true
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ secrets.ANARCHITECTS_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.ANARCHITECTS_BOT_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Revalidate and create exact approved tags and releases
+        run: node tools/release/controller.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TOKEN: ${{ steps.app-token.outputs.token }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-receipt.json
+          retention-days: 90

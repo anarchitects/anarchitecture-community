@@ -6,7 +6,9 @@ implements them nor authorizes a release. The [dated inventory](release-controls
 separates observed behavior from unresolved settings. Workflow and permission
 enforcement are tracked in #720–#722. The [#720 enforcement guide](release-version-policy.md)
 records the commit/version validators now supplied; the full release path and
-permissions remain #721–#722.
+permissions remain staged pending #722. The [#721 execution runbook](release-execution.md)
+describes the implemented preparation/controllers, local evidence and activation
+handoff; it does not claim the new route is operational.
 
 ## Authority and architecture review
 

@@ -250,7 +250,9 @@ owner handoff, immutable evidence and recovery controls; its
 [dated inventory](docs/release-controls-inventory-719.md) distinguishes observed
 settings from verification gaps. Design acceptance does not establish implemented
 protection. [Commit/version validators](docs/release-version-policy.md) cover #720;
-full release execution and permission enforcement remain #721–#722.
+the [#721 execution runbook](docs/release-execution.md) describes staged release
+controllers and exact operator/recovery commands. Effective activation and access
+enforcement remain blocked on #722's settings read-back and owner acceptance.
 [#719](https://github.com/anarchitects/anarchitecture-community/issues/719) owns
 accepted controls and the complete release/retry/recovery handoff;
 [#720](https://github.com/anarchitects/anarchitecture-community/issues/720),
