@@ -249,7 +249,8 @@ The [#719 release-control design](docs/release-controls.md) records the owner-ac
 owner handoff, immutable evidence and recovery controls; its
 [dated inventory](docs/release-controls-inventory-719.md) distinguishes observed
 settings from verification gaps. Design acceptance does not establish implemented
-protection; enforcement remains #720–#722.
+protection. [Commit/version validators](docs/release-version-policy.md) cover #720;
+full release execution and permission enforcement remain #721–#722.
 [#719](https://github.com/anarchitects/anarchitecture-community/issues/719) owns
 accepted controls and the complete release/retry/recovery handoff;
 [#720](https://github.com/anarchitects/anarchitecture-community/issues/720),
@@ -283,8 +284,11 @@ Before a package's first release use `init(<nx-project-name>): ...` (non-bumping
 After publication, including `0.0.x`, use normal version intent (`feat`, `fix`,
 breaking-change notation and configured non-bumping types). Split mixed lifecycle
 changes when needed to keep per-package intent reviewable. See
-[ADR0007](docs/adr/0007-package-initial-release-and-nx-versioning.md); enforcement
-updates remain separate work in #720.
+[ADR0007](docs/adr/0007-package-initial-release-and-nx-versioning.md) and the
+[enforcement guide](docs/release-version-policy.md) for allowed types, PR-message
+validation, local commands and limitations. Nx's `0.x` adjustment remains enabled:
+features/fixes increment patch and breaking changes increment minor until an
+explicit owner decision to release `1.x`.
 
 Examples:
 

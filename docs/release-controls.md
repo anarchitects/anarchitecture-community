@@ -4,7 +4,9 @@ Status: **Accepted by Johan on 9 November 2026** under [#719](https://github.com
 This document records Community's accepted control design; it neither
 implements them nor authorizes a release. The [dated inventory](release-controls-inventory-719.md)
 separates observed behavior from unresolved settings. Workflow and permission
-enforcement remain #720–#722.
+enforcement are tracked in #720–#722. The [#720 enforcement guide](release-version-policy.md)
+records the commit/version validators now supplied; the full release path and
+permissions remain #721–#722.
 
 ## Authority and architecture review
 

@@ -15,14 +15,14 @@ This repository already uses independent Nx releases. Future Governance packages
 
 ## Manual Release Workflow
 
-The manual GitHub release workflow accepts an optional Nx release specifier.
-
-Use the `specifier` input for either:
-
-- a semver bump keyword such as `patch`, `minor`, `major`, `prepatch`, `preminor`, `premajor`, or `prerelease`
-- an exact version such as `0.0.1`
-
-For first releases of the Governance packages, prefer an explicit version so the workflow does not derive a bump from repository-wide commit history.
+The existing manual workflow accepts an optional Nx release specifier, but its
+input flexibility is not release authorization. Follow
+[ADR0007](adr/0007-package-initial-release-and-nx-versioning.md), the
+[version enforcement guide](release-version-policy.md) and the owner-approved
+[release controls](release-controls.md). Nx Conventional Commits determine ongoing
+versions; first distribution must be exactly `0.0.1`, with no prior official
+prerelease. Published history cannot be reset. Full workflow enforcement remains
+#721–#722; a successful local preview does not authorize dispatch or publication.
 
 ## Cross-Repository Release Sequencing
 
@@ -42,9 +42,11 @@ Governance packages should follow semantic versioning.
 
 Use these rules:
 
-- breaking changes require explicit major-version treatment
-- backward-compatible feature additions use minor versions
+- breaking changes require breaking-change notation and migration review; on
+  `0.x` they increment minor, and from `1.x` onward they increment major
+- backward-compatible features increment patch on `0.x` and minor from `1.x`
 - fixes that preserve the public contract use patch versions
+- moving from `0.x` to `1.x` requires an explicit owner decision
 - package versions should always be explicit
 - dependency ranges should be intentional rather than incidental
 

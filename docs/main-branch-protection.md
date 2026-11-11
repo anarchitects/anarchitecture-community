@@ -20,6 +20,23 @@ times, the exact rule values, repository permissions, app identities and read-ba
 result. Settings are mutable; repeat the review after changing check names,
 workflow triggers, aggregate dependencies, bypasses or merge strategy.
 
+## #720 follow-up: PR admission (10 November 2026)
+
+A bounded read of ruleset `14374927`, the ruleset inventory including parents,
+effective `main` rules and repository merge options confirmed the same required
+`main` context (GitHub Actions App `15368`), strict checking, signed commits and
+squash-only PR rule. No settings were changed or CI results inspected. #720 adds
+policy validation to `selection`, already required by the aggregate, and adds PR
+metadata edits to workflow triggers so prospective squash-message edits revalidate.
+Product selection and the aggregate dependencies remain unchanged.
+
+The repository currently defaults to `COMMIT_OR_PR_TITLE` and `COMMIT_MESSAGES`
+for squash messages. These defaults do **not** guarantee the checked PR title/body
+becomes the final commit. Maintainers must select the validated message; #722 must
+review alignment of those settings, and #721 must validate actual integrated
+release intent. The [version policy guide](release-version-policy.md) records this
+limitation. A green prospective-message check is not proof of the final message.
+
 ## Architecture and authority
 
 The preflight enumerated and read all 24 Meta ADRs at

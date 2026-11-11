@@ -8,6 +8,7 @@ on:
     branches:
       - main
   pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   merge_group:
 
 permissions:
@@ -31,6 +32,16 @@ jobs:
           node-version: 24
           cache: 'yarn'
       - run: yarn install --immutable
+      - name: Validate release policy and its regression tests
+        run: yarn nx run-many -p @anarchitecture-community/source -t validate-release-policy,test-release-policy
+        env:
+          NX_NO_CLOUD: 'true'
+      - name: Validate prospective squash commit
+        if: github.event_name == 'pull_request'
+        run: yarn nx run @anarchitecture-community/source:validate-commit-policy
+        env:
+          NX_NO_CLOUD: 'true'
+          GH_TOKEN: ${{ github.token }}
       - run: yarn nx run @anarchitecture-community/source:test-ci-selection
         env:
           NX_NO_CLOUD: 'true'
