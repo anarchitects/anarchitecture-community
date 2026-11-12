@@ -219,11 +219,276 @@
       }
     }
   ],
+  "cutover": {
+    "approvedMaintenanceWindow": "2026-11-12; this session; owner confirmed manual recovery available; no activation, release or CI-run authorization",
+    "activationVariable": {
+      "name": "COMMUNITY_RELEASE_CONTROLS",
+      "value": "paused",
+      "readBackAt": "2026-11-12T09:39:44Z"
+    },
+    "unfinishedReleaseRunCheck": {
+      "workflows": [
+        "release.yml",
+        "publish.yml",
+        "release-prepare.yml",
+        "publish-controller.yml"
+      ],
+      "unfinished": [],
+      "scope": "One-time maintenance check; publish-controller inspection separately explicitly authorized following auto-review rejection."
+    },
+    "environments": [
+      {
+        "id": 27054974617,
+        "name": "community-release",
+        "can_admins_bypass": false,
+        "protection_rules": [
+          {
+            "type": "required_reviewers",
+            "prevent_self_review": false,
+            "reviewers": [
+              {
+                "type": "User",
+                "id": 5003361,
+                "login": "vrxj81"
+              }
+            ]
+          },
+          {
+            "type": "branch_policy"
+          }
+        ],
+        "deployment_branch_policy": {
+          "protected_branches": false,
+          "custom_branch_policies": true
+        },
+        "branches": [
+          {
+            "id": 66432632,
+            "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3k2NjQzMjYzMg==",
+            "name": "main",
+            "type": "branch"
+          }
+        ]
+      },
+      {
+        "id": 27055002688,
+        "name": "community-publish",
+        "can_admins_bypass": false,
+        "protection_rules": [
+          {
+            "type": "required_reviewers",
+            "prevent_self_review": false,
+            "reviewers": [
+              {
+                "type": "User",
+                "id": 5003361,
+                "login": "vrxj81"
+              }
+            ]
+          },
+          {
+            "type": "branch_policy"
+          }
+        ],
+        "deployment_branch_policy": {
+          "protected_branches": false,
+          "custom_branch_policies": true
+        },
+        "branches": [
+          {
+            "id": 66432668,
+            "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3k2NjQzMjY2OA==",
+            "name": "main",
+            "type": "branch"
+          }
+        ]
+      }
+    ],
+    "tagRules": [
+      {
+        "id": 27105409,
+        "name": "community-release-tag-creation",
+        "target": "tag",
+        "enforcement": "active",
+        "conditions": {
+          "ref_name": {
+            "exclude": [],
+            "include": [
+              "refs/tags/better-auth-typeorm-adapter@*",
+              "refs/tags/nest-angular-ssr@*",
+              "refs/tags/governance-core@*",
+              "refs/tags/governance-adapter-dbt@*",
+              "refs/tags/governance-adapter-typescript@*",
+              "refs/tags/governance-extension-dbt@*",
+              "refs/tags/governance-extension-typescript@*",
+              "refs/tags/governance-dbt-package@*",
+              "refs/tags/governance-runtime-dbt@*",
+              "refs/tags/governance-cli@*",
+              "refs/tags/governance-host-dbt@*",
+              "refs/tags/editorjs-core@*",
+              "refs/tags/editorjs-angular@*",
+              "refs/tags/editorjs-tool-paragraph@*",
+              "refs/tags/editorjs-tool-header@*",
+              "refs/tags/editorjs-tool-list@*",
+              "refs/tags/editorjs-tool-quote@*",
+              "refs/tags/editorjs-tool-image@*",
+              "refs/tags/editorjs-upload-fetch@*",
+              "refs/tags/editorjs-html@*",
+              "refs/tags/editorjs-html-angular@*"
+            ]
+          }
+        },
+        "rules": [
+          {
+            "type": "creation"
+          }
+        ],
+        "bypass_actors": [
+          {
+            "actor_id": 3090882,
+            "actor_type": "Integration",
+            "bypass_mode": "always"
+          },
+          {
+            "actor_id": 5003361,
+            "actor_type": "User",
+            "bypass_mode": "always"
+          }
+        ],
+        "current_user_can_bypass": "always"
+      },
+      {
+        "id": 27105412,
+        "name": "community-release-tag-history",
+        "target": "tag",
+        "enforcement": "active",
+        "conditions": {
+          "ref_name": {
+            "exclude": [],
+            "include": [
+              "refs/tags/better-auth-typeorm-adapter@*",
+              "refs/tags/nest-angular-ssr@*",
+              "refs/tags/governance-core@*",
+              "refs/tags/governance-adapter-dbt@*",
+              "refs/tags/governance-adapter-typescript@*",
+              "refs/tags/governance-extension-dbt@*",
+              "refs/tags/governance-extension-typescript@*",
+              "refs/tags/governance-dbt-package@*",
+              "refs/tags/governance-runtime-dbt@*",
+              "refs/tags/governance-cli@*",
+              "refs/tags/governance-host-dbt@*",
+              "refs/tags/editorjs-core@*",
+              "refs/tags/editorjs-angular@*",
+              "refs/tags/editorjs-tool-paragraph@*",
+              "refs/tags/editorjs-tool-header@*",
+              "refs/tags/editorjs-tool-list@*",
+              "refs/tags/editorjs-tool-quote@*",
+              "refs/tags/editorjs-tool-image@*",
+              "refs/tags/editorjs-upload-fetch@*",
+              "refs/tags/editorjs-html@*",
+              "refs/tags/editorjs-html-angular@*"
+            ]
+          }
+        },
+        "rules": [
+          {
+            "type": "update"
+          },
+          {
+            "type": "deletion"
+          }
+        ],
+        "bypass_actors": [],
+        "current_user_can_bypass": "never"
+      }
+    ],
+    "registryCutoverApproval": "Owner explicitly approved replacement of 11 npm + one PyPI publisher, adding eight npm publishers, and rejecting npm bypass-2FA tokens; no publication; dist-tag remains disabled. After discovering two-day npm validation expiry, owner deferred remaining npm publisher changes while continuing 2FA restrictions and PyPI migration.",
+    "npmPublisherReadBack": [
+      {
+        "package": "@anarchitects/editorjs-core",
+        "repository": "anarchitects/anarchitecture-community",
+        "workflow": "publish-controller.yml",
+        "environment": "community-publish",
+        "allowPublish": true,
+        "allowDistTag": false,
+        "status": "pending validation",
+        "firstPublishDeadline": "2026-11-14T10:05:00Z",
+        "publishingAccessChange": "saved and read back after owner two-factor authentication: require 2FA and disallow bypass tokens"
+      }
+    ],
+    "npmAccessReadBack": {
+      "require2faDisallowBypassTokens": [
+        "@anarchitects/editorjs-core",
+        "@anarchitects/editorjs-angular",
+        "@anarchitects/editorjs-tool-paragraph",
+        "@anarchitects/editorjs-tool-header",
+        "@anarchitects/editorjs-tool-list",
+        "@anarchitects/editorjs-tool-quote",
+        "@anarchitects/editorjs-tool-image",
+        "@anarchitects/editorjs-upload-fetch",
+        "@anarchitects/editorjs-html",
+        "@anarchitects/editorjs-html-angular",
+        "@anarchitects/better-auth-typeorm-adapter",
+        "@anarchitects/nest-angular-ssr",
+        "@anarchitects/governance-core",
+        "@anarchitects/governance-adapter-dbt",
+        "@anarchitects/governance-adapter-typescript",
+        "@anarchitects/governance-extension-dbt",
+        "@anarchitects/governance-extension-typescript",
+        "@anarchitects/governance-runtime-dbt",
+        "@anarchitects/governance-cli"
+      ],
+      "verification": "All 19 distinct package settings were independently reopened and read back with the restrictive option selected. Angular was saved manually by the owner; keyboard selection worked for subsequent browser changes. After browser verification stalled, the owner authenticated the supported CLI, authorized the remaining eight mfa=publish commands, and each command exited successfully. Fresh browser read-back verified all 19 afterward. No publisher connections were changed by these access commands.",
+      "remainingCount": 0
+    },
+    "npmRemainingPublishers": "Deferred by owner until an authorized release is ready; eleven existing legacy connections have not been removed, and seven additional authoring packages still have no publisher.",
+    "pypiPublisherReadBack": {
+      "project": "anarchitecture-dbt-governance",
+      "publisherCount": 1,
+      "repository": "anarchitects/anarchitecture-community",
+      "workflow": "publish-controller.yml",
+      "environment": "community-publish",
+      "legacyPublishYmlRemoved": true,
+      "verification": "Authenticated UI confirmed addition and removal; fresh navigation independently read back only the intended connection.",
+      "publicationPerformed": false,
+      "apiTokenDisposition": "pending"
+    },
+    "protectedReleaseSecretNamesReadBack": {
+      "environment": "community-release",
+      "totalCount": 0,
+      "names": [],
+      "scope": "Names-only administrative API read; no secret values requested or inspected. Provisioning remains pending."
+    },
+    "finalSettingsReadBack": {
+      "activation": "paused",
+      "mainRulesetId": 14374927,
+      "mainRulesetEnforcement": "active",
+      "requiredCheck": {
+        "context": "main",
+        "integrationId": 15368,
+        "strict": true
+      },
+      "requiredSignatures": true,
+      "deletionAndForcePushRestrictions": true,
+      "existingBotMainBypassStillPresent": true,
+      "protectedReleaseSecretCount": 0,
+      "scope": "Settings-only API reads after the completed registry changes; no CI result inspection."
+    },
+    "sharedBotDecision": {
+      "ownerDecision": "Keep paused; coordinate shared bot",
+      "dedicatedCommunityAppAuthorized": false,
+      "finding": "The App private key can request installation tokens for Community from any credential consumer; moving or adding a key on the same App does not isolate repositories.",
+      "requiredBeforeActivation": "Coordinate protected key custody and execution across all four selected repositories, verify replacement and recovery routes before removing unguarded access, and obtain owner acceptance.",
+      "otherRepositoriesChanged": false
+    },
+    "remaining": "Deferred npm publisher replacement/creation, shared bot coordination, protected credential provisioning, token disposition, main bypass removal, durable evidence custody, reviewed cleanup merge and final acceptance remain pending. All 19 npm 2FA restrictions and the PyPI publisher migration are complete and independently read back."
+  },
   "limitations": [
     "CLI organization metadata/App allocation reads remain 403; browser resolved the specific inventory above.",
     "npm CLI trust list remains 401; browser resolved all 19 package settings above.",
-    "Owner confirmation of manual recovery custody, PyPI token disposition and protected-environment credential provisioning pending.",
-    "Environment administrator-bypass controls, durable evidence retention and maintenance window still need verification/agreement.",
+    "Owner confirmed manual recovery availability; PyPI token disposition and protected-environment credential provisioning remain pending.",
+    "Owner chose to keep activation paused pending coordination of the shared App's credentials across all four selected repositories.",
+    "Both environments reject administrator approval bypass; durable evidence custody remains undecided.",
     "No hosted runs, release tags or publications used for verification."
   ],
   "browserReadBack": {

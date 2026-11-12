@@ -40,9 +40,97 @@ migration and dispatched no work. Their original values above are the recovery r
 unexpected workflow needs write access, review its explicit minimal permission
 instead of broadly restoring write access. Keep all ruleset safeguards intact.
 
+The owner approved the maintenance window for this session and confirmed local
+manual recovery. `COMMUNITY_RELEASE_CONTROLS=paused` was independently read back
+at `2026-11-12T09:39:44Z`. The separately authorized one-time check found no
+unfinished runs in the four release workflows; no runs were cancelled or started.
+Both approval environments now require `vrxj81`, allow self-review, reject admin
+approval bypass and allow only branch `main` (no tag policy). Their IDs are
+`27054974617` and `27055002688`. The UI changes and REST read-back agree.
+The two active tag rulesets are `27105409` (creation) and `27105412` (history),
+with exactly the scope and actors below. Registry migration is partial as
+described below; credential cutover and removal of the existing bot main bypass
+remain pending.
+
+The first npm connection, `@anarchitects/editorjs-core`, was saved and read back
+on 12 November: repository `anarchitects/anarchitecture-community`, workflow
+`publish-controller.yml`, environment `community-publish`, direct publish
+enabled and dist-tag disabled. Its status is **pending validation**, with the
+UI deadline `2026-11-14T10:05:00Z` (11:05 CET). npm requires a first successful
+publish within two days or the new connection expires; see [trusted publisher
+expiry](https://docs.npmjs.com/trusted-publishers/#trusted-publisher-configuration-expiry).
+This is configuration evidence, not a validated publishing route.
+All **19 npm packages** now require **2FA and disallow bypass tokens**. Each
+package's settings were independently reopened and the saved restrictive option
+read back. Angular was saved manually by the owner; keyboard selection worked for
+later browser changes. After npm's browser verification stalled, the owner
+authenticated the CLI and authorized completing Nest SSR and the seven Governance
+packages with `npm access set mfa=publish`. All eight commands succeeded, followed
+by the fresh read-back of all 19 packages. The installed npm implementation maps
+that option to `publish_requires_tfa=true` and
+`automation_token_overrides_tfa=false`. This changed publishing access only.
+
+Given the activation pause, the owner explicitly chose to **defer the remaining
+npm publisher replacements/additions until an authorized release is ready**.
+The first connection may remain pending and must be recreated if it expires.
+The eleven legacy npm connections therefore still require replacement at that
+cutover; do not claim their old authority is revoked. The independently approved
+npm 2FA restrictions and PyPI migration are complete. Never publish merely to keep a
+trust connection alive. Re-read expiry and exact trust immediately before the
+eventual owner-authorized release.
+
+PyPI's `anarchitecture-dbt-governance` publisher was replaced and independently
+read back after a fresh settings-page navigation. Its sole connection now names
+`anarchitects/anarchitecture-community`, `publish-controller.yml` and
+`community-publish`. The old `publish.yml` / any-environment connection is removed.
+No package was uploaded. This verifies the configured OIDC boundary, not a hosted
+token exchange or the disposition of separate API tokens.
+
+### Shared bot coordination blocks activation
+
+The owner chose **keep paused; coordinate the shared bot**, rather than create
+a dedicated Community App. Moving the same App's key to Community's protected
+environment, or generating another key for that App, does not isolate Community
+from keys available to the other selected repositories. A private key can
+authenticate as the App and request installation tokens; restricting one job's
+token to its repository does not restrict a different token request made using
+that key. See GitHub's [App key documentation](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps)
+and [App permission guidance](https://docs.github.com/en/apps/creating-github-apps/about-creating-github-apps/best-practices-for-creating-a-github-app).
+
+Before activation, coordinate key custody and protected execution across
+Community, Bricks 3-tier, Contracts and Plugins. Inventory every active App key's
+custodian and every automation consumer without reading key values, agree the
+protected replacement and recovery route with those repositories' owners, and
+remove unguarded access only after their replacements are verified. Rotating a
+key while retaining its unguarded allocation is insufficient. Record effective
+read-back and owner acceptance before treating this boundary as resolved.
+No other repository's configuration or shared key is changed by this Community
+cutover. The current pause controls the intended workflows; it does not revoke
+the App's existing access or main bypass. Do not claim effective release
+enforcement while that alternative path remains.
+The names-only API read-back of `community-release` currently returns zero
+environment secrets. Protected App credential provisioning therefore remains
+pending; no values were requested or inspected.
+
+A bounded read of the other three default-branch release workflows on 12 November
+confirms concrete consumers to coordinate. Each reads the shared private-key
+secret in its `release` job without a job-level approval environment:
+
+| Repository    | Workflow                                                                                                           | Observed App identity input                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| Bricks 3-tier | [release.yml](https://github.com/anarchitects/anarchitecture-bricks-3tier/blob/main/.github/workflows/release.yml) | `ANARCHITECTS_BOT_APP_ID`                           |
+| Contracts     | [release.yml](https://github.com/anarchitects/anarchitecture-contracts/blob/main/.github/workflows/release.yml)    | `ANARCHITECTS_BOT_CLIENT_ID`, used for non-dry runs |
+| Plugins       | [release.yml](https://github.com/anarchitects/anarchitecture-plugins/blob/main/.github/workflows/release.yml)      | `ANARCHITECTS_BOT_APP_ID`                           |
+
+These workflow reads establish consumers, not a complete audit of those
+repositories or authorization to modify them. Their owners must confirm intended
+release behavior and protected credential custody before a coordinated change.
+Community's maintainer tracks this activation dependency under #722; no deadline
+or assignment in another repository is inferred.
+
 ### Exact tag scope and actors
 
-For each name below, both proposed rulesets include `refs/tags/<name>@*`, with no
+For each name below, both installed rulesets include `refs/tags/<name>@*`, with no
 exclusions. This is a project-prefix protection boundary; the controller enforces
 the exact version/tag identity and owner approval. It is not a SemVer validator.
 
@@ -87,20 +175,23 @@ All names except `governance-host-dbt` and `governance-dbt-package` identify npm
 packages `@anarchitects/<name>`; those 19 settings must each be read back. dbt
 distribution uses the protected Git tag/subdirectory, not a registry publisher.
 
-The eight npm packages without a trusted publisher are `editorjs-core`,
+At baseline, the eight npm packages without a trusted publisher were `editorjs-core`,
 `editorjs-angular`, all five `editorjs-tool-*` projects and `editorjs-upload-fetch`.
-The other eleven each have one valid connection, direct publish enabled, no
+The other eleven each had one valid connection, direct publish enabled, no
 environment and dist-tag management disabled. npm reports staged publishing as
 always allowed by that connection; this does not adopt staged publishing as a
 Community route. The current UI makes the repository/workflow binding immutable,
 so replacement requires creating the intended connection and deleting the old one
-during cutover. No registry settings were changed by this inventory.
+during cutover. This paragraph records the baseline inventory; applied changes
+and the owner's deferral are recorded above.
 
 ## Cutover sequence and recovery
 
 The accepted design requires an owner-agreed maintenance window and usable manual
-recovery before changing production credentials/trust. These are **pending**,
-not inferred from starting #722 or accepting #719's design.
+recovery before changing production credentials/trust. The owner explicitly
+approved both for this session. Activation is separately blocked on the shared
+bot coordination and remaining checks; the window does not authorize publication
+or CI runs.
 
 1. Complete missing administrative inventory, including organization secret
    allocations, App repository selection, registry collaborators/publishers/tokens,
@@ -144,25 +235,27 @@ partial receipts and revalidate before a fresh owner-approved dispatch.
 
 ## Verification and open blockers
 
-| Path                                                                                                                             | Required result and evidence                                           | Current evidence                                                       |
-| -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Current main controller, valid record and owner review                                                                           | Permit only the recorded operations                                    | Local controller tests; live environment/trust proof pending           |
-| Missing/non-owner approval, foreign/expired artifact, changed controller, failed exact-candidate CI, conflicting published bytes | Stop before mutation                                                   | Existing offline negative tests; not a hosted enforcement claim        |
-| Non-main ref or reused run attempt                                                                                               | Reject privileged controller                                           | Workflow guard and controller tests; environment ref read-back pending |
-| Legacy build/publish job or unset activation variable                                                                            | No privileged fallback after cleanup                                   | Local workflow contract test; cleanup not yet merged                   |
-| Owner or bot creates a matching capability tag                                                                                   | Creation rule permits execution; owner authorization remains mandatory | Proposed rule only; read-back pending                                  |
-| Other actor creates, or any actor updates/deletes matching release tag                                                           | Block; no blanket admin/history bypass                                 | Proposed rule only; read-back pending                                  |
-| Old tag workflow requests registry access                                                                                        | No matching publisher/token path                                       | Blocked on registry/secret inventory and cutover                       |
-| Required `main` check and signed history                                                                                         | Preserve #696/#720 contract                                            | Fresh live settings and unchanged CI workflow; no CI-result inspection |
+| Path                                                                                                                             | Required result and evidence                                           | Current evidence                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Current main controller, valid record and owner review                                                                           | Permit only the recorded operations                                    | Local tests; environment/PyPI configuration read back; npm trust deferred; no hosted execution claim |
+| Missing/non-owner approval, foreign/expired artifact, changed controller, failed exact-candidate CI, conflicting published bytes | Stop before mutation                                                   | Existing offline negative tests; not a hosted enforcement claim                                      |
+| Non-main ref or reused run attempt                                                                                               | Reject privileged controller                                           | Workflow guards/tests and main-only environment branch policies read back; no hosted execution claim |
+| Legacy build/publish job or unset activation variable                                                                            | No privileged fallback after cleanup                                   | Local workflow contract test; cleanup not yet merged                                                 |
+| Owner or bot creates a matching capability tag                                                                                   | Creation rule permits execution; owner authorization remains mandatory | Active creation ruleset read back; no test tag created                                               |
+| Other actor creates, or any actor updates/deletes matching release tag                                                           | Block; no blanket admin/history bypass                                 | Active creation/history rules read back; history bypass empty; no mutation probe                     |
+| Old tag workflow requests registry access                                                                                        | No matching publisher/token path                                       | PyPI legacy trust removed; eleven npm legacy connections and token disposition still pending         |
+| Required `main` check and signed history                                                                                         | Preserve #696/#720 contract                                            | Fresh live settings and unchanged CI workflow; no CI-result inspection                               |
 
 GitHub CLI repository administration is available. The CLI's organization reads
 returned 403 and npm trust inspection returned 401, but restored Safari access
 resolved the bot installation, secret allocation and all 19 npm package settings.
 After local owner sign-in, PyPI publisher, collaborator/2FA and token-scope metadata
 were also read. Both npm and PyPI settings are administratively accessible.
-Token disposition, protected credential provisioning, environment controls,
-manual recovery and evidence custody remain unresolved. These are activation
-blockers, not proof that the underlying controls are absent.
+Token disposition, protected credential provisioning, shared bot coordination,
+registry migration, durable evidence custody, reviewed cleanup merge and final
+owner acceptance remain unresolved. These are activation blockers, not proof
+that the underlying controls are absent. Environment controls and the owner's
+manual recovery confirmation are recorded above.
 
 Local `test-release-policy` and `validate-release-policy` passed with Nx Cloud
 disabled and no cache hits. Workflow regression coverage rejects the removed
