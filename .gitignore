@@ -70,3 +70,9 @@ packages/governance/dbt-package/tests/fixtures/smoke/*.duckdb
 .angular
 
 test-output
+
+# Immutable release handoff downloads and local execution receipts
+/release-payload/
+/release-receipt.json
+/publisher.npmrc
+/publisher-global.npmrc

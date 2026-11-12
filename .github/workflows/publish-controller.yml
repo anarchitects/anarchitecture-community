@@ -1,0 +1,97 @@
+name: Publish approved archives
+run-name: '${{ inputs.operation }} ${{ inputs.tag }} · record ${{ inputs.record_artifact_id }}'
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        required: true
+        type: string
+      record_artifact_id:
+        required: true
+        type: string
+      record_digest:
+        required: true
+        type: string
+      operation:
+        type: choice
+        options: [publish, channel]
+        default: publish
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: community-publication
+  cancel-in-progress: false
+  queue: max
+env:
+  COMMUNITY_RELEASE_CONTROLS: ${{ vars.COMMUNITY_RELEASE_CONTROLS }}
+  RELEASE_ARTIFACT_ID: ${{ inputs.record_artifact_id }}
+  RELEASE_DIGEST: ${{ inputs.record_digest }}
+  RELEASE_TAG: ${{ inputs.tag }}
+  RELEASE_ACTION: ${{ inputs.operation }}
+jobs:
+  review:
+    if: vars.COMMUNITY_RELEASE_CONTROLS == 'active' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Resolve retained preparation run
+        id: source
+        run: node tools/release/controller.mjs locate
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ inputs.record_artifact_id }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: release-payload
+          merge-multiple: true
+      - run: node tools/release/controller.mjs review
+        env:
+          GH_TOKEN: ${{ github.token }}
+  publish:
+    needs: review
+    runs-on: ubuntu-latest
+    environment: community-publish
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+      - name: Resolve retained preparation run
+        id: source
+        run: node tools/release/controller.mjs locate
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ inputs.record_artifact_id }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: release-payload
+          merge-multiple: true
+      - name: Revalidate and publish only approved archives
+        run: node tools/release/controller.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: publish-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-receipt.json
+          retention-days: 90

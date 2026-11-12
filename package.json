@@ -107,7 +107,12 @@
           },
           {
             "runtime": "git --version"
-          }
+          },
+          {
+            "runtime": "npm --version"
+          },
+          "{workspaceRoot}/.github/workflows/release*.yml",
+          "{workspaceRoot}/.github/workflows/publish*.yml"
         ],
         "outputs": [],
         "options": {
@@ -233,6 +238,20 @@
         "cache": false,
         "options": {
           "command": "node --test tools/ci/*.test.mjs"
+        }
+      },
+      "prepare-release-version": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/release/prepare.mjs version"
+        }
+      },
+      "freeze-release-record": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/release/prepare.mjs freeze"
         }
       }
     },

@@ -142,23 +142,40 @@ export async function validateCandidate(context, candidate, dependencies) {
 }
 
 /** Never call release/changelog/publish; dryRun alone still executes preVersionCommand. */
-export async function previewVersions(context, projects, firstRelease = false) {
+export async function previewVersions(
+  context,
+  projects,
+  firstRelease = false,
+  stabilize = false,
+) {
   requireCondition(
     projects.length > 0 && projects.every((p) => context.projects.includes(p)),
     'Select explicit release project names',
+  );
+  requireCondition(
+    !stabilize || (!firstRelease && projects.length === 1),
+    'Stabilization requires one previously released 0.x project',
   );
   const histories = await collectHistories(
     projects.map((p) => identity(context, p)),
   );
   for (const p of projects) {
     const h = histories[p];
+    if (stabilize)
+      requireCondition(
+        [...h.tags, ...h.releases, ...h.registry].length > 0 &&
+          [...h.tags, ...h.releases, ...h.registry].every((v) =>
+            v.startsWith('0.'),
+          ),
+        'Stabilization requires exclusively 0.x history',
+      );
     const published = h.tags.length + h.releases.length + h.registry.length > 0;
     requireCondition(
       firstRelease ? !published : published,
       'Separate unreleased and released preview selections; first-release cannot reset history',
     );
   }
-  const result = await nxPreview(projects, firstRelease);
+  const result = await nxPreview(projects, firstRelease, stabilize);
   const expanded = Object.keys(result.projectsVersionData).filter(
     (p) => !histories[p],
   );
@@ -182,14 +199,22 @@ export async function previewVersions(context, projects, firstRelease = false) {
 }
 
 // Offline calculation seam for installed-Nx regression tests; not a readiness gate.
-export async function nxPreview(projects, firstRelease = false) {
+export async function nxPreview(
+  projects,
+  firstRelease = false,
+  stabilize = false,
+) {
   const { ReleaseClient } = await import('nx/release');
   const client = new ReleaseClient({ version: { preVersionCommand: '' } });
   const result = await client.releaseVersion({
     projects,
     dryRun: true,
     firstRelease,
-    ...(firstRelease ? { specifier: '0.0.1' } : {}),
+    ...(firstRelease
+      ? { specifier: '0.0.1' }
+      : stabilize
+        ? { specifier: '1.0.0' }
+        : {}),
     gitCommit: false,
     gitTag: false,
     gitPush: false,

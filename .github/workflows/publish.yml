@@ -10,13 +10,15 @@ on:
         description: Release tag to publish, for example governance-core@1.2.3
         required: true
         type: string
-
-env:
-  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+      record_artifact_id:
+        description: Retained preparation artifact ID (after activation)
+        type: string
+      record_digest:
+        description: SHA-256 of release-record.json (after activation)
+        type: string
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: publish-${{ inputs.tag || github.event.release.tag_name }}
@@ -24,16 +26,24 @@ concurrency:
 
 jobs:
   publish:
+    # Remove this legacy branch in #722 before reopening release automation.
+    if: vars.COMMUNITY_RELEASE_CONTROLS == ''
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
+    env:
+      RELEASE_REF: ${{ inputs.tag || github.event.release.tag_name }}
+      NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
 
     steps:
       - name: Resolve release ref
         id: ref
         shell: bash
         run: |
-          ref_name='${{ inputs.tag || github.event.release.tag_name }}'
+          ref_name="$RELEASE_REF"
 
-          if [ -z "$ref_name" ]; then
+          if [[ ! "$ref_name" =~ ^[a-z][a-z0-9-]+@[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
             echo "Unable to resolve a release tag from the event payload"
             exit 1
           fi
@@ -44,7 +54,7 @@ jobs:
         id: tag
         shell: bash
         run: |
-          ref_name='${{ steps.ref.outputs.ref_name }}'
+          ref_name="$RELEASE_REF"
           project="${ref_name%@*}"
           version="${ref_name##*@}"
 
@@ -86,7 +96,10 @@ jobs:
       - name: Validate Nx project exists
         shell: bash
         run: |
-          yarn nx show project "${{ steps.tag.outputs.project }}" > /dev/null
+          yarn nx show project "$RELEASE_PROJECT" > /dev/null
+
+        env:
+          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
 
       - name: Validate and pack governance-dbt-package
         if: steps.tag.outputs.project == 'governance-dbt-package'
@@ -96,15 +109,24 @@ jobs:
 
       - name: Build project
         if: steps.tag.outputs.project != 'governance-dbt-package'
-        run: yarn nx build "${{ steps.tag.outputs.project }}"
+        run: yarn nx build "$RELEASE_PROJECT"
+
+        env:
+          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
 
       - name: Typecheck project
-        run: yarn nx typecheck "${{ steps.tag.outputs.project }}"
+        run: yarn nx typecheck "$RELEASE_PROJECT"
         if: steps.tag.outputs.project != 'governance-host-dbt' && steps.tag.outputs.project != 'governance-dbt-package'
 
+        env:
+          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
+
       - name: Test project
-        run: yarn nx test "${{ steps.tag.outputs.project }}"
+        run: yarn nx test "$RELEASE_PROJECT"
         if: steps.tag.outputs.project != 'governance-dbt-package'
+
+        env:
+          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
 
       - name: Run Better Auth TypeORM Adapter Postgres tests
         if: steps.tag.outputs.project == 'better-auth-typeorm-adapter'
@@ -119,6 +141,37 @@ jobs:
         run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-release-gate
 
       - name: Publish project
-        run: yarn nx release publish --projects "${{ steps.tag.outputs.project }}" --yes
+        run: yarn nx release publish --projects "$RELEASE_PROJECT" --yes
         env:
+          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
           NPM_CONFIG_PROVENANCE: true
+
+  forward:
+    if: vars.COMMUNITY_RELEASE_CONTROLS == 'active'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      # No checkout, registry credential, OIDC or release App key in this job.
+      - uses: actions/github-script@v8
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_ARTIFACT: ${{ inputs.record_artifact_id }}
+          INPUT_DIGEST: ${{ inputs.record_digest }}
+        with:
+          script: |
+            const release = context.payload.release;
+            let tag = process.env.INPUT_TAG;
+            let artifact = process.env.INPUT_ARTIFACT;
+            let digest = process.env.INPUT_DIGEST;
+            if (release) {
+              tag = release.tag_name;
+              const match = /\nCommunity release record: ([1-9]\d*)\nSHA256: ([a-f0-9]{64})\nPreparation: ([1-9]\d*)\nCandidate: ([a-f0-9]{40})\n$/.exec(release.body || '');
+              if (!match) throw new Error('Missing release record; use the reviewed manual controller');
+              artifact = match[1]; digest = match[2];
+            } else if (context.ref !== 'refs/heads/main') {
+              throw new Error('Dispatch the main controller');
+            }
+            if (!/^[a-z][a-z0-9-]+@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(tag) || !/^[1-9]\d*$/.test(artifact) || !/^[a-f0-9]{64}$/.test(digest)) throw new Error('Invalid publication request');
+            await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'publish-controller.yml', ref: 'main', inputs: { tag, record_artifact_id: artifact, record_digest: digest, operation: 'publish' }});

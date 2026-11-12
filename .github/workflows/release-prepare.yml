@@ -1,0 +1,58 @@
+name: Prepare release record
+on:
+  workflow_dispatch:
+    inputs:
+      ci_run:
+        description: Successful integrated main CI run for this exact commit
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: community-release-preparation
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    env:
+      NX_NO_CLOUD: 'true'
+      NX_DAEMON: 'false'
+      RELEASE_CI_RUN_ID: ${{ inputs.ci_run }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: yarn
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+      - run: yarn install --immutable
+      - run: python -m pip install 'dbt-core>=1.11,<1.12' 'dbt-duckdb>=1.10,<1.11'
+      - name: Validate, build and retain final bytes
+        id: freeze
+        run: yarn nx run @anarchitecture-community/source:freeze-release-record
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v4
+        id: record
+        with:
+          name: community-release-record
+          path: release-payload/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+      - name: Record immutable handoff
+        env:
+          ARTIFACT_ID: ${{ steps.record.outputs.artifact-id }}
+          RECORD_DIGEST: ${{ steps.freeze.outputs.digest }}
+        run: |
+          printf 'Artifact ID: %s\n\nRecord SHA-256: %s\n\nCandidate: %s\n' "$ARTIFACT_ID" "$RECORD_DIGEST" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
