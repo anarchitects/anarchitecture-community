@@ -37,6 +37,27 @@ review alignment of those settings, and #721 must validate actual integrated
 release intent. The [version policy guide](release-version-policy.md) records this
 limitation. A green prospective-message check is not proof of the final message.
 
+## #722 follow-up (12 November 2026)
+
+At merged #730 (`f74a204`), fresh ruleset and effective-branch reads confirmed
+the same required `main` / GitHub Actions `15368` check, strict checking, signed
+commits, squash-only PRs and history safeguards. The current CI workflow and its
+aggregate were not changed. No CI results were inspected.
+
+The squash defaults were changed from `COMMIT_OR_PR_TITLE` / `COMMIT_MESSAGES`
+to **`PR_TITLE` / `PR_BODY`**, and the default workflow token from `write` to
+**`read`**, retaining disabled PR approval. Independent GETs confirmed both writes.
+All five workflows explicitly declare permissions, so the default reduction does
+not remove their declared access. This aligns the default merge message with #720's
+admission, but cannot prevent a maintainer editing the final message.
+
+Main rules and the bot bypass remain unchanged pending the controlled release
+cutover. The [#722 settings record](release-permissions.md) and
+[dated evidence](evidence/release-permissions-2026-11-12.json) separate applied
+defaults from pending environment, credential, registry and tag controls. The
+historical tables below describe #696's baseline; they do not assert that #722's
+full permission rollout is complete.
+
 ## Architecture and authority
 
 The preflight enumerated and read all 24 Meta ADRs at

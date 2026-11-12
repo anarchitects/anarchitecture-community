@@ -1,0 +1,768 @@
+{
+  "observedOn": "2026-11-12",
+  "repository": "anarchitects/anarchitecture-community",
+  "sourceCommit": "f74a204aac068ff2cf79caeba1e8d6cd4ca2b29b",
+  "before": {
+    "repository": {
+      "allow_auto_merge": false,
+      "allow_merge_commit": true,
+      "allow_rebase_merge": true,
+      "allow_squash_merge": true,
+      "default_branch": "main",
+      "id": 1191475966,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "pull": true,
+        "push": true,
+        "triage": true
+      },
+      "private": false,
+      "squash_merge_commit_message": "COMMIT_MESSAGES",
+      "squash_merge_commit_title": "COMMIT_OR_PR_TITLE"
+    },
+    "rulesets": [
+      {
+        "_links": {
+          "html": {
+            "href": "https://github.com/anarchitects/anarchitecture-community/rules/14374927"
+          },
+          "self": {
+            "href": "https://api.github.com/repos/anarchitects/anarchitecture-community/rulesets/14374927"
+          }
+        },
+        "created_at": "2026-03-26T15:46:07.236+01:00",
+        "enforcement": "active",
+        "id": 14374927,
+        "name": "main",
+        "node_id": "RRS_lACqUmVwb3NpdG9yec5HBHr-zgDbWA8",
+        "source": "anarchitects/anarchitecture-community",
+        "source_type": "Repository",
+        "target": "branch",
+        "updated_at": "2026-10-14T09:39:53.352+02:00"
+      }
+    ],
+    "main": {
+      "bypass_actors": [
+        {
+          "actor_id": 3090882,
+          "actor_type": "Integration",
+          "bypass_mode": "always"
+        }
+      ],
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": ["~DEFAULT_BRANCH"]
+        }
+      },
+      "current_user_can_bypass": "never",
+      "enforcement": "active",
+      "id": 14374927,
+      "name": "main",
+      "rules": [
+        {
+          "type": "deletion"
+        },
+        {
+          "type": "non_fast_forward"
+        },
+        {
+          "parameters": {
+            "allowed_merge_methods": ["squash"],
+            "dismiss_stale_reviews_on_push": false,
+            "dismissal_restriction": {
+              "allowed_actors": [],
+              "enabled": false
+            },
+            "require_code_owner_review": false,
+            "require_extra_approval_for_unattributed_changes": true,
+            "require_last_push_approval": false,
+            "required_approving_review_count": 0,
+            "required_review_thread_resolution": false,
+            "required_reviewers": []
+          },
+          "type": "pull_request"
+        },
+        {
+          "parameters": {
+            "do_not_enforce_on_create": false,
+            "required_status_checks": [
+              {
+                "context": "main",
+                "integration_id": 15368
+              }
+            ],
+            "strict_required_status_checks_policy": true
+          },
+          "type": "required_status_checks"
+        },
+        {
+          "type": "required_signatures"
+        }
+      ],
+      "target": "branch"
+    },
+    "effectiveMain": [
+      {
+        "ruleset_id": 14374927,
+        "ruleset_source": "anarchitects/anarchitecture-community",
+        "ruleset_source_type": "Repository",
+        "type": "deletion"
+      },
+      {
+        "ruleset_id": 14374927,
+        "ruleset_source": "anarchitects/anarchitecture-community",
+        "ruleset_source_type": "Repository",
+        "type": "non_fast_forward"
+      },
+      {
+        "parameters": {
+          "allowed_merge_methods": ["squash"],
+          "dismiss_stale_reviews_on_push": false,
+          "dismissal_restriction": {
+            "allowed_actors": [],
+            "enabled": false
+          },
+          "require_code_owner_review": false,
+          "require_extra_approval_for_unattributed_changes": true,
+          "require_last_push_approval": false,
+          "required_approving_review_count": 0,
+          "required_review_thread_resolution": false,
+          "required_reviewers": []
+        },
+        "ruleset_id": 14374927,
+        "ruleset_source": "anarchitects/anarchitecture-community",
+        "ruleset_source_type": "Repository",
+        "type": "pull_request"
+      },
+      {
+        "parameters": {
+          "do_not_enforce_on_create": false,
+          "required_status_checks": [
+            {
+              "context": "main",
+              "integration_id": 15368
+            }
+          ],
+          "strict_required_status_checks_policy": true
+        },
+        "ruleset_id": 14374927,
+        "ruleset_source": "anarchitects/anarchitecture-community",
+        "ruleset_source_type": "Repository",
+        "type": "required_status_checks"
+      },
+      {
+        "ruleset_id": 14374927,
+        "ruleset_source": "anarchitects/anarchitecture-community",
+        "ruleset_source_type": "Repository",
+        "type": "required_signatures"
+      }
+    ],
+    "workflowPermissions": {
+      "can_approve_pull_request_reviews": false,
+      "default_workflow_permissions": "write"
+    },
+    "environments": {
+      "environments": [],
+      "total_count": 0
+    },
+    "releaseVariable": {
+      "variables": []
+    },
+    "repositorySecrets": {
+      "secrets": [
+        {
+          "created_at": "2026-03-25T13:27:17Z",
+          "name": "ADD_TO_PROJECT_PAT",
+          "updated_at": "2026-03-25T13:27:17Z"
+        },
+        {
+          "created_at": "2026-03-26T14:41:09Z",
+          "name": "NPM_AUTH_TOKEN",
+          "updated_at": "2026-03-26T14:41:09Z"
+        },
+        {
+          "created_at": "2026-05-22T15:22:17Z",
+          "name": "NX_CLOUD_ACCESS_TOKEN",
+          "updated_at": "2026-05-22T19:25:54Z"
+        }
+      ],
+      "total_count": 3
+    }
+  },
+  "applied": [
+    {
+      "endpoint": "PUT actions/permissions/workflow",
+      "change": {
+        "default_workflow_permissions": "read",
+        "can_approve_pull_request_reviews": false
+      },
+      "readBack": {
+        "default_workflow_permissions": "read",
+        "can_approve_pull_request_reviews": false
+      }
+    },
+    {
+      "endpoint": "PATCH repository",
+      "change": {
+        "squash_merge_commit_title": "PR_TITLE",
+        "squash_merge_commit_message": "PR_BODY"
+      },
+      "readBack": {
+        "squash_merge_commit_title": "PR_TITLE",
+        "squash_merge_commit_message": "PR_BODY",
+        "allow_auto_merge": false,
+        "allow_squash_merge": true,
+        "allow_merge_commit": true,
+        "allow_rebase_merge": true
+      }
+    }
+  ],
+  "limitations": [
+    "CLI organization metadata/App allocation reads remain 403; browser resolved the specific inventory above.",
+    "npm CLI trust list remains 401; browser resolved all 19 package settings above.",
+    "Owner confirmation of manual recovery custody, PyPI token disposition and protected-environment credential provisioning pending.",
+    "Environment administrator-bypass controls, durable evidence retention and maintenance window still need verification/agreement.",
+    "No hosted runs, release tags or publications used for verification."
+  ],
+  "browserReadBack": {
+    "observedOn": "2026-11-12",
+    "method": "Authenticated Safari settings UI; read-only; no secret values",
+    "organizationSecrets": {
+      "source": "https://github.com/organizations/anarchitects/settings/secrets/actions",
+      "botSecrets": [
+        {
+          "name": "ANARCHITECTS_BOT_APP_ID",
+          "repositorySelection": [
+            "anarchitecture-bricks-3tier",
+            "anarchitecture-community",
+            "anarchitecture-contracts",
+            "anarchitecture-plugins"
+          ]
+        },
+        {
+          "name": "ANARCHITECTS_BOT_CLIENT_ID",
+          "repositorySelection": [
+            "anarchitecture-bricks-3tier",
+            "anarchitecture-community",
+            "anarchitecture-contracts",
+            "anarchitecture-plugins"
+          ]
+        },
+        {
+          "name": "ANARCHITECTS_BOT_PRIVATE_KEY",
+          "repositorySelection": [
+            "anarchitecture-bricks-3tier",
+            "anarchitecture-community",
+            "anarchitecture-contracts",
+            "anarchitecture-plugins"
+          ]
+        }
+      ],
+      "otherSecretMetadata": [
+        {
+          "name": "HETZNER_DEPLOY_HOST",
+          "visibility": "all repositories"
+        }
+      ]
+    },
+    "releaseApp": {
+      "source": "https://github.com/organizations/anarchitects/settings/installations/116337836",
+      "appId": 3090882,
+      "installationId": 116337836,
+      "repositories": [
+        "anarchitecture-bricks-3tier",
+        "anarchitecture-community",
+        "anarchitecture-contracts",
+        "anarchitecture-plugins"
+      ],
+      "permissions": {
+        "contents": "write",
+        "metadata": "read"
+      }
+    },
+    "npm": [
+      {
+        "package": "@anarchitects/better-auth-typeorm-adapter",
+        "source": "https://www.npmjs.com/package/@anarchitects/better-auth-typeorm-adapter/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/nest-angular-ssr",
+        "source": "https://www.npmjs.com/package/@anarchitects/nest-angular-ssr/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/governance-core",
+        "source": "https://www.npmjs.com/package/@anarchitects/governance-core/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/governance-adapter-dbt",
+        "source": "https://www.npmjs.com/package/@anarchitects/governance-adapter-dbt/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/governance-adapter-typescript",
+        "source": "https://www.npmjs.com/package/@anarchitects/governance-adapter-typescript/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/governance-extension-dbt",
+        "source": "https://www.npmjs.com/package/@anarchitects/governance-extension-dbt/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/governance-extension-typescript",
+        "source": "https://www.npmjs.com/package/@anarchitects/governance-extension-typescript/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/governance-runtime-dbt",
+        "source": "https://www.npmjs.com/package/@anarchitects/governance-runtime-dbt/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/governance-cli",
+        "source": "https://www.npmjs.com/package/@anarchitects/governance-cli/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-html",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-html/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-html-angular",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-html-angular/access",
+        "publishers": [
+          {
+            "provider": "GitHub Actions",
+            "repository": "anarchitects/anarchitecture-community",
+            "workflow": "publish.yml",
+            "environment": null,
+            "status": "valid",
+            "allowPublish": true,
+            "allowDistTag": false,
+            "stagePublish": "always allowed by npm"
+          }
+        ],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-core",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-core/access",
+        "publishers": [],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-angular",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-angular/access",
+        "publishers": [],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-tool-paragraph",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-tool-paragraph/access",
+        "publishers": [],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-tool-header",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-tool-header/access",
+        "publishers": [],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-tool-list",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-tool-list/access",
+        "publishers": [],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-tool-quote",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-tool-quote/access",
+        "publishers": [],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-tool-image",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-tool-image/access",
+        "publishers": [],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      },
+      {
+        "package": "@anarchitects/editorjs-upload-fetch",
+        "source": "https://www.npmjs.com/package/@anarchitects/editorjs-upload-fetch/access",
+        "publishers": [],
+        "publishingAccess": "2FA or granular access token with bypass 2FA",
+        "maintainers": [
+          {
+            "login": "vrxj81",
+            "access": "write",
+            "via": "developers team"
+          }
+        ]
+      }
+    ],
+    "pypi": {
+      "source": "https://pypi.org/manage/project/anarchitecture-dbt-governance/settings/publishing/",
+      "project": "anarchitecture-dbt-governance",
+      "publishers": [
+        {
+          "provider": "GitHub",
+          "repository": "anarchitects/anarchitecture-community",
+          "workflow": "publish.yml",
+          "environment": null
+        }
+      ],
+      "collaborators": [
+        {
+          "login": "anarchitects",
+          "displayName": "Johan Vrolix",
+          "role": "Owner",
+          "twoFactorEnabled": true
+        }
+      ],
+      "accountTokenMetadata": {
+        "source": "https://pypi.org/manage/account/",
+        "activeTokens": [
+          {
+            "name": "anarch-dbt",
+            "scope": "anarchitecture-dbt-governance",
+            "lastUsed": "2026-06-17"
+          },
+          {
+            "name": "firstrelease",
+            "scope": "all projects",
+            "lastUsed": "2026-06-15"
+          }
+        ],
+        "disposition": "Owner must confirm local recovery custody and disposition of broad bootstrap token; no token values inspected or changed."
+      }
+    },
+    "npmAccountTokens": {
+      "source": "https://www.npmjs.com/settings/vrxj81/tokens",
+      "visibleCount": 2,
+      "tokens": [
+        {
+          "name": "anarchitecture-bricks",
+          "status": "expired",
+          "expiredOn": "2026-05-19"
+        },
+        {
+          "name": "anarchitects-plugins",
+          "status": "expired",
+          "expiredOn": "2026-05-19"
+        }
+      ],
+      "activeVisibleCount": 0,
+      "limitation": "No assertion that an existing GitHub secret contains either token; values were not read."
+    }
+  },
+  "mainReadBackAfterDefaults": {
+    "bypass_actors": [
+      {
+        "actor_id": 3090882,
+        "actor_type": "Integration",
+        "bypass_mode": "always"
+      }
+    ],
+    "conditions": {
+      "ref_name": {
+        "exclude": [],
+        "include": ["~DEFAULT_BRANCH"]
+      }
+    },
+    "enforcement": "active",
+    "id": 14374927,
+    "rules": [
+      {
+        "type": "deletion"
+      },
+      {
+        "type": "non_fast_forward"
+      },
+      {
+        "parameters": {
+          "allowed_merge_methods": ["squash"],
+          "dismiss_stale_reviews_on_push": false,
+          "dismissal_restriction": {
+            "allowed_actors": [],
+            "enabled": false
+          },
+          "require_code_owner_review": false,
+          "require_extra_approval_for_unattributed_changes": true,
+          "require_last_push_approval": false,
+          "required_approving_review_count": 0,
+          "required_review_thread_resolution": false,
+          "required_reviewers": []
+        },
+        "type": "pull_request"
+      },
+      {
+        "parameters": {
+          "do_not_enforce_on_create": false,
+          "required_status_checks": [
+            {
+              "context": "main",
+              "integration_id": 15368
+            }
+          ],
+          "strict_required_status_checks_policy": true
+        },
+        "type": "required_status_checks"
+      },
+      {
+        "type": "required_signatures"
+      }
+    ]
+  }
+}

@@ -71,9 +71,10 @@ or permission, and it does not validate prepared artifacts.
 against its merge base, and requires a complete Git history. It checks the PR
 title/body, not every temporary branch commit. Maintainers must preserve the
 validated message when squashing; changing the merge message is not automatically
-covered by a successful PR check. The current repository defaults to
-`COMMIT_OR_PR_TITLE` / `COMMIT_MESSAGES`, so #722 must review that mismatch;
-see the [dated protection follow-up](main-branch-protection.md).
+covered by a successful PR check. On 12 November, #722 changed and independently
+verified the repository defaults as `PR_TITLE` / `PR_BODY` to match admission.
+These defaults do not prevent manual edits to the final message; see the
+[dated protection follow-up](main-branch-protection.md).
 
 ## Candidate API for #721
 

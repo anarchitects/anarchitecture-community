@@ -11,10 +11,12 @@ on:
         required: true
         type: string
       record_artifact_id:
-        description: Retained preparation artifact ID (after activation)
+        description: Retained preparation artifact ID
+        required: true
         type: string
       record_digest:
-        description: SHA-256 of release-record.json (after activation)
+        description: SHA-256 of release-record.json
+        required: true
         type: string
 
 permissions:
@@ -25,127 +27,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
-    # Remove this legacy branch in #722 before reopening release automation.
-    if: vars.COMMUNITY_RELEASE_CONTROLS == ''
-    permissions:
-      contents: read
-      id-token: write
-    runs-on: ubuntu-latest
-    env:
-      RELEASE_REF: ${{ inputs.tag || github.event.release.tag_name }}
-      NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
-
-    steps:
-      - name: Resolve release ref
-        id: ref
-        shell: bash
-        run: |
-          ref_name="$RELEASE_REF"
-
-          if [[ ! "$ref_name" =~ ^[a-z][a-z0-9-]+@[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "Unable to resolve a release tag from the event payload"
-            exit 1
-          fi
-
-          echo "ref_name=$ref_name" >> "$GITHUB_OUTPUT"
-
-      - name: Derive project from tag
-        id: tag
-        shell: bash
-        run: |
-          ref_name="$RELEASE_REF"
-          project="${ref_name%@*}"
-          version="${ref_name##*@}"
-
-          if [ -z "$project" ] || [ -z "$version" ] || [ "$project" = "$ref_name" ]; then
-            echo "Invalid release tag: $ref_name"
-            echo "Expected format: <nx-project-name>@<version>"
-            exit 1
-          fi
-
-          echo "project=$project" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-          echo "Publishing project: $project"
-          echo "Version: $version"
-
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          ref: refs/tags/${{ steps.ref.outputs.ref_name }}
-          fetch-depth: 0
-          filter: tree:0
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'yarn'
-          registry-url: 'https://registry.npmjs.org/'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-
-      - name: Install dependencies
-        run: yarn install --immutable
-
-      - name: Validate Nx project exists
-        shell: bash
-        run: |
-          yarn nx show project "$RELEASE_PROJECT" > /dev/null
-
-        env:
-          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
-
-      - name: Validate and pack governance-dbt-package
-        if: steps.tag.outputs.project == 'governance-dbt-package'
-        run: |
-          yarn nx run governance-dbt-package:validate
-          yarn nx run governance-dbt-package:pack
-
-      - name: Build project
-        if: steps.tag.outputs.project != 'governance-dbt-package'
-        run: yarn nx build "$RELEASE_PROJECT"
-
-        env:
-          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
-
-      - name: Typecheck project
-        run: yarn nx typecheck "$RELEASE_PROJECT"
-        if: steps.tag.outputs.project != 'governance-host-dbt' && steps.tag.outputs.project != 'governance-dbt-package'
-
-        env:
-          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
-
-      - name: Test project
-        run: yarn nx test "$RELEASE_PROJECT"
-        if: steps.tag.outputs.project != 'governance-dbt-package'
-
-        env:
-          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
-
-      - name: Run Better Auth TypeORM Adapter Postgres tests
-        if: steps.tag.outputs.project == 'better-auth-typeorm-adapter'
-        run: yarn nx run better-auth-typeorm-adapter:test-postgres
-
-      - name: Run Better Auth TypeORM Adapter Better Auth tests
-        if: steps.tag.outputs.project == 'better-auth-typeorm-adapter'
-        run: yarn nx run better-auth-typeorm-adapter:test-better-auth
-
-      - name: Validate packed Nest Angular SSR consumers
-        if: steps.tag.outputs.project == 'nest-angular-ssr'
-        run: yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-release-gate
-
-      - name: Publish project
-        run: yarn nx release publish --projects "$RELEASE_PROJECT" --yes
-        env:
-          RELEASE_PROJECT: ${{ steps.tag.outputs.project }}
-          NPM_CONFIG_PROVENANCE: true
-
   forward:
     if: vars.COMMUNITY_RELEASE_CONTROLS == 'active'
     runs-on: ubuntu-latest
