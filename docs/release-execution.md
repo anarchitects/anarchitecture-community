@@ -2,7 +2,8 @@
 
 This is the staged implementation of [#721](https://github.com/anarchitects/anarchitecture-community/issues/721)
 and the [accepted control design](release-controls.md). **It is not an activated
-release route.** #722 must verify settings, close legacy access and obtain owner
+release route.** The [#722 settings reconciliation](release-permissions.md) must
+verify settings, close legacy access and obtain owner
 acceptance before activation. No release, hosted run or CI monitoring is authorized
 by this document. Johan (`vrxj81`, GitHub ID `5003361`) remains the confirmed owner
 for all 21 projects in [OWNERSHIP](../OWNERSHIP.md).
@@ -86,7 +87,7 @@ for all 21 projects in [OWNERSHIP](../OWNERSHIP.md).
 
 ## Authorized mutations after #722 activation
 
-Dispatch tags/releases using the record identity; leave legacy version inputs empty:
+Dispatch tags/releases using the record identity:
 
 ```sh
 gh workflow run release.yml --repo anarchitects/anarchitecture-community --ref main -f record_artifact_id=123456 -f record_digest=REPLACE_WITH_64_HEX_RECORD_SHA256
@@ -176,10 +177,13 @@ result and decides the disposition of failures, corrections or deprecations.
 
 ## #722 activation handoff
 
-At merge, an **unset** `COMMUNITY_RELEASE_CONTROLS` variable retains the transitional
-legacy jobs, subject to existing explicit owner authorization. `active` selects the
-new route; other nonempty values disable mutation jobs. Do not set `active` merely
-to try the implementation. This variable is not a substitute for access controls.
+The #722 cleanup removes the transitional jobs and legacy version inputs.
+**Merge that cleanup only during the agreed cutover window**: after it lands,
+`COMMUNITY_RELEASE_CONTROLS=active` is the only enabled route. Unset, empty and
+pause values all disable mutation jobs. The previously deployed #721 revision
+still selects legacy jobs when the variable is unset; use a nonempty pause value
+during migration and do not unset it as rollback. Do not set `active` merely to
+try the implementation. This variable is not a substitute for access controls.
 
 During the owner-agreed maintenance window, #722 must:
 
@@ -198,8 +202,8 @@ During the owner-agreed maintenance window, #722 must:
    routes. Verify bootstrap access, npm CLI/provenance, uv OIDC and channel permission
    without publishing test packages. Old tags retain old workflow files; removing
    the current legacy job alone cannot revoke their credentials or registry trust.
-5. Remove the transitional `release` job in `release.yml` and `publish` job in
-   `publish.yml` through reviewed code, including their unused inputs/credentials.
+5. Merge the reviewed removal of the transitional `release` job in `release.yml`
+   and `publish` job in `publish.yml`, including unused inputs/credentials.
    Verify remaining entry points, forwarding, run/ref rejection, queue behavior,
    artifact/receipt retention and the protected environment settings. Any hosted
    evidence needs its own explicit credit authorization.

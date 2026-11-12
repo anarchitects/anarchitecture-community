@@ -9,6 +9,8 @@ records the commit/version validators now supplied; the full release path and
 permissions remain staged pending #722. The [#721 execution runbook](release-execution.md)
 describes the implemented preparation/controllers, local evidence and activation
 handoff; it does not claim the new route is operational.
+The [#722 settings record](release-permissions.md) separates verified live settings,
+the proposed cutover and remaining activation blockers.
 
 ## Authority and architecture review
 
@@ -199,7 +201,8 @@ an explicitly verified publishing route.
 The accepted settings design is a target for #722, **not observed enforcement**:
 
 - Protect release-tag creation for the exact release-project patterns: owner
-  identity through an appropriate owner-only team/role and the authorized release
+  identity directly where supported, otherwise through an appropriate owner-only
+  team/role, and the authorized release
   App. Protect tag updates/deletions separately so a creation bypass does not
   silently permit rewriting history. Read effective inherited rules as well.
 - Scope the App installation to necessary repositories and permissions. Keep its

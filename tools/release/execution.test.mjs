@@ -402,10 +402,42 @@ test('workflow privilege boundaries and staged activation are explicit', () => {
     );
     assert.equal(download.with['run-id'], '${{ steps.source.outputs.run_id }}');
   }
-  assert.match(release.jobs.release.if, /== ''/);
-  assert.match(publish.jobs.publish.if, /== ''/);
-  assert.match(release.jobs.review.if, /== 'active'/);
-  assert.match(controller.jobs.review.if, /run_attempt == 1/);
+  // No unset-variable fallback may recover the old credentialed build route.
+  assert.deepEqual(Object.keys(release.jobs).sort(), ['approved', 'review']);
+  assert.deepEqual(Object.keys(publish.jobs), ['forward']);
+  assert.deepEqual(Object.keys(controller.jobs).sort(), ['publish', 'review']);
+  assert.deepEqual(Object.keys(release.on.workflow_dispatch.inputs).sort(), [
+    'record_artifact_id',
+    'record_digest',
+  ]);
+  for (const name of ['record_artifact_id', 'record_digest']) {
+    assert.equal(release.on.workflow_dispatch.inputs[name].required, true);
+    assert.equal(publish.on.workflow_dispatch.inputs[name].required, true);
+  }
+  for (const job of [release.jobs.review, controller.jobs.review]) {
+    assert.equal(
+      job.if,
+      "vars.COMMUNITY_RELEASE_CONTROLS == 'active' && github.ref == 'refs/heads/main' && github.run_attempt == 1",
+    );
+  }
+  assert.equal(
+    publish.jobs.forward.if,
+    "vars.COMMUNITY_RELEASE_CONTROLS == 'active'",
+  );
+  for (const workflow of [release, publish, controller, prepare]) {
+    assert.equal(workflow.permissions['id-token'], undefined);
+    assert.equal(workflow.permissions.contents, 'read');
+    for (const job of Object.values(workflow.jobs)) {
+      if (job.permissions?.['id-token'] === 'write') {
+        assert.equal(job, controller.jobs.publish);
+      }
+      for (const step of job.steps ?? []) {
+        if (JSON.stringify(step).includes('ANARCHITECTS_BOT_')) {
+          assert.equal(job, release.jobs.approved);
+        }
+      }
+    }
+  }
 });
 
 test('controller rejects changed code, failed exact CI, foreign preparation and wrong event before mutation', async () => {

@@ -1,29 +1,16 @@
 name: Release (Manual)
-run-name: "Release record ${{ inputs.record_artifact_id || 'legacy' }}"
+run-name: 'Release record ${{ inputs.record_artifact_id }}'
 
 on:
   workflow_dispatch:
     inputs:
-      projects:
-        description: Optional Nx projects argument, for example nest-angular-ssr or better-auth-typeorm-adapter
-        required: false
-        type: string
-      specifier:
-        description: Optional Nx release specifier, for example patch, minor, prerelease, or an exact version like 0.0.1
-        required: false
-        type: string
-      first_release:
-        description: Treat the selected release as a first release
-        required: false
-        default: false
-        type: boolean
       record_artifact_id:
-        description: Immutable artifact ID from Prepare release record (after activation)
-        required: false
+        description: Immutable artifact ID from Prepare release record
+        required: true
         type: string
       record_digest:
-        description: SHA-256 of release-record.json (after activation)
-        required: false
+        description: SHA-256 of release-record.json
+        required: true
         type: string
 
 permissions:
@@ -36,77 +23,6 @@ concurrency:
   queue: max
 
 jobs:
-  release:
-    # #722 removes this transitional branch during the agreed maintenance window.
-    if: vars.COMMUNITY_RELEASE_CONTROLS == ''
-    runs-on: ubuntu-latest
-    env:
-      NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
-
-    steps:
-      - name: Ensure workflow runs from main
-        if: github.ref != 'refs/heads/main'
-        run: |
-          echo "This workflow must run from main. Current ref: $GITHUB_REF"
-          exit 1
-
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ secrets.ANARCHITECTS_BOT_CLIENT_ID }}
-          private-key: ${{ secrets.ANARCHITECTS_BOT_PRIVATE_KEY }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-          fetch-depth: 0
-          filter: tree:0
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: 'yarn'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-
-      - name: Install dependencies
-        run: yarn install --immutable
-
-      - name: Configure git author for release commits
-        run: |
-          git config user.name "anarchitects-bot[bot]"
-          git config user.email "anarchitects-bot[bot]@users.noreply.github.com"
-
-      - name: Run Nx release
-        run: |
-          args=(--skip-publish)
-
-          if [ -n "$RELEASE_PROJECTS" ]; then
-            args+=("--projects=$RELEASE_PROJECTS")
-          fi
-
-          if [ -n "$RELEASE_SPECIFIER" ]; then
-            args+=("$RELEASE_SPECIFIER")
-          fi
-
-          if [ "$RELEASE_FIRST" = "true" ]; then
-            args+=(--first-release)
-          fi
-
-          yarn nx release "${args[@]}"
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          RELEASE_PROJECTS: ${{ inputs.projects }}
-          RELEASE_SPECIFIER: ${{ inputs.specifier }}
-          RELEASE_FIRST: ${{ inputs.first_release }}
-
   review:
     if: vars.COMMUNITY_RELEASE_CONTROLS == 'active' && github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-latest
