@@ -1,0 +1,407 @@
+{
+  "repository": "anarchitects/anarchitecture-community",
+  "observed_date": "2026-11-14",
+  "source": "Authenticated GitHub REST reads before and after the authorized main-bypass removal",
+  "main": {
+    "before": {
+      "id": 14374927,
+      "name": "main",
+      "target": "branch",
+      "source_type": "Repository",
+      "source": "anarchitects/anarchitecture-community",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": ["~DEFAULT_BRANCH"]
+        }
+      },
+      "rules": [
+        {
+          "type": "deletion"
+        },
+        {
+          "type": "non_fast_forward"
+        },
+        {
+          "type": "pull_request",
+          "parameters": {
+            "required_approving_review_count": 0,
+            "dismiss_stale_reviews_on_push": false,
+            "required_reviewers": [],
+            "require_code_owner_review": false,
+            "dismissal_restriction": {
+              "enabled": false,
+              "allowed_actors": []
+            },
+            "require_last_push_approval": false,
+            "required_review_thread_resolution": false,
+            "require_extra_approval_for_unattributed_changes": true,
+            "allowed_merge_methods": ["squash"]
+          }
+        },
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "strict_required_status_checks_policy": true,
+            "do_not_enforce_on_create": false,
+            "required_status_checks": [
+              {
+                "context": "main",
+                "integration_id": 15368
+              }
+            ]
+          }
+        },
+        {
+          "type": "required_signatures"
+        }
+      ],
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5HBHr-zgDbWA8",
+      "created_at": "2026-03-26T15:46:07.236+01:00",
+      "updated_at": "2026-10-14T09:39:53.352+02:00",
+      "bypass_actors": [
+        {
+          "actor_id": 3090882,
+          "actor_type": "Integration",
+          "bypass_mode": "always"
+        }
+      ],
+      "current_user_can_bypass": "never",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/anarchitects/anarchitecture-community/rulesets/14374927"
+        },
+        "html": {
+          "href": "https://github.com/anarchitects/anarchitecture-community/rules/14374927"
+        }
+      }
+    },
+    "after": {
+      "id": 14374927,
+      "name": "main",
+      "target": "branch",
+      "source_type": "Repository",
+      "source": "anarchitects/anarchitecture-community",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": ["~DEFAULT_BRANCH"]
+        }
+      },
+      "rules": [
+        {
+          "type": "deletion"
+        },
+        {
+          "type": "non_fast_forward"
+        },
+        {
+          "type": "pull_request",
+          "parameters": {
+            "required_approving_review_count": 0,
+            "dismiss_stale_reviews_on_push": false,
+            "required_reviewers": [],
+            "require_code_owner_review": false,
+            "dismissal_restriction": {
+              "enabled": false,
+              "allowed_actors": []
+            },
+            "require_last_push_approval": false,
+            "required_review_thread_resolution": false,
+            "require_extra_approval_for_unattributed_changes": true,
+            "allowed_merge_methods": ["squash"]
+          }
+        },
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "strict_required_status_checks_policy": true,
+            "do_not_enforce_on_create": false,
+            "required_status_checks": [
+              {
+                "context": "main",
+                "integration_id": 15368
+              }
+            ]
+          }
+        },
+        {
+          "type": "required_signatures"
+        }
+      ],
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5HBHr-zgDbWA8",
+      "created_at": "2026-03-26T15:46:07.236+01:00",
+      "updated_at": "2026-11-14T23:00:26.072+01:00",
+      "bypass_actors": [],
+      "current_user_can_bypass": "never",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/anarchitects/anarchitecture-community/rulesets/14374927"
+        },
+        "html": {
+          "href": "https://github.com/anarchitects/anarchitecture-community/rules/14374927"
+        }
+      }
+    }
+  },
+  "tag_creation": {
+    "before": {
+      "id": 27105409,
+      "name": "community-release-tag-creation",
+      "target": "tag",
+      "source_type": "Repository",
+      "source": "anarchitects/anarchitecture-community",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/tags/better-auth-typeorm-adapter@*",
+            "refs/tags/nest-angular-ssr@*",
+            "refs/tags/governance-core@*",
+            "refs/tags/governance-adapter-dbt@*",
+            "refs/tags/governance-adapter-typescript@*",
+            "refs/tags/governance-extension-dbt@*",
+            "refs/tags/governance-extension-typescript@*",
+            "refs/tags/governance-dbt-package@*",
+            "refs/tags/governance-runtime-dbt@*",
+            "refs/tags/governance-cli@*",
+            "refs/tags/governance-host-dbt@*",
+            "refs/tags/editorjs-core@*",
+            "refs/tags/editorjs-angular@*",
+            "refs/tags/editorjs-tool-paragraph@*",
+            "refs/tags/editorjs-tool-header@*",
+            "refs/tags/editorjs-tool-list@*",
+            "refs/tags/editorjs-tool-quote@*",
+            "refs/tags/editorjs-tool-image@*",
+            "refs/tags/editorjs-upload-fetch@*",
+            "refs/tags/editorjs-html@*",
+            "refs/tags/editorjs-html-angular@*"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "type": "creation"
+        }
+      ],
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5HBHr-zgGdmIE",
+      "created_at": "2026-11-12T10:43:51.794+01:00",
+      "updated_at": "2026-11-12T10:43:51.977+01:00",
+      "bypass_actors": [
+        {
+          "actor_id": 3090882,
+          "actor_type": "Integration",
+          "bypass_mode": "always"
+        },
+        {
+          "actor_id": 5003361,
+          "actor_type": "User",
+          "bypass_mode": "always"
+        }
+      ],
+      "current_user_can_bypass": "always",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/anarchitects/anarchitecture-community/rulesets/27105409"
+        },
+        "html": {
+          "href": "https://github.com/anarchitects/anarchitecture-community/rules/27105409"
+        }
+      }
+    },
+    "after": {
+      "id": 27105409,
+      "name": "community-release-tag-creation",
+      "target": "tag",
+      "source_type": "Repository",
+      "source": "anarchitects/anarchitecture-community",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/tags/better-auth-typeorm-adapter@*",
+            "refs/tags/nest-angular-ssr@*",
+            "refs/tags/governance-core@*",
+            "refs/tags/governance-adapter-dbt@*",
+            "refs/tags/governance-adapter-typescript@*",
+            "refs/tags/governance-extension-dbt@*",
+            "refs/tags/governance-extension-typescript@*",
+            "refs/tags/governance-dbt-package@*",
+            "refs/tags/governance-runtime-dbt@*",
+            "refs/tags/governance-cli@*",
+            "refs/tags/governance-host-dbt@*",
+            "refs/tags/editorjs-core@*",
+            "refs/tags/editorjs-angular@*",
+            "refs/tags/editorjs-tool-paragraph@*",
+            "refs/tags/editorjs-tool-header@*",
+            "refs/tags/editorjs-tool-list@*",
+            "refs/tags/editorjs-tool-quote@*",
+            "refs/tags/editorjs-tool-image@*",
+            "refs/tags/editorjs-upload-fetch@*",
+            "refs/tags/editorjs-html@*",
+            "refs/tags/editorjs-html-angular@*"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "type": "creation"
+        }
+      ],
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5HBHr-zgGdmIE",
+      "created_at": "2026-11-12T10:43:51.794+01:00",
+      "updated_at": "2026-11-12T10:43:51.977+01:00",
+      "bypass_actors": [
+        {
+          "actor_id": 3090882,
+          "actor_type": "Integration",
+          "bypass_mode": "always"
+        },
+        {
+          "actor_id": 5003361,
+          "actor_type": "User",
+          "bypass_mode": "always"
+        }
+      ],
+      "current_user_can_bypass": "always",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/anarchitects/anarchitecture-community/rulesets/27105409"
+        },
+        "html": {
+          "href": "https://github.com/anarchitects/anarchitecture-community/rules/27105409"
+        }
+      }
+    }
+  },
+  "tag_history": {
+    "before": {
+      "id": 27105412,
+      "name": "community-release-tag-history",
+      "target": "tag",
+      "source_type": "Repository",
+      "source": "anarchitects/anarchitecture-community",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/tags/better-auth-typeorm-adapter@*",
+            "refs/tags/nest-angular-ssr@*",
+            "refs/tags/governance-core@*",
+            "refs/tags/governance-adapter-dbt@*",
+            "refs/tags/governance-adapter-typescript@*",
+            "refs/tags/governance-extension-dbt@*",
+            "refs/tags/governance-extension-typescript@*",
+            "refs/tags/governance-dbt-package@*",
+            "refs/tags/governance-runtime-dbt@*",
+            "refs/tags/governance-cli@*",
+            "refs/tags/governance-host-dbt@*",
+            "refs/tags/editorjs-core@*",
+            "refs/tags/editorjs-angular@*",
+            "refs/tags/editorjs-tool-paragraph@*",
+            "refs/tags/editorjs-tool-header@*",
+            "refs/tags/editorjs-tool-list@*",
+            "refs/tags/editorjs-tool-quote@*",
+            "refs/tags/editorjs-tool-image@*",
+            "refs/tags/editorjs-upload-fetch@*",
+            "refs/tags/editorjs-html@*",
+            "refs/tags/editorjs-html-angular@*"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "type": "update"
+        },
+        {
+          "type": "deletion"
+        }
+      ],
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5HBHr-zgGdmIQ",
+      "created_at": "2026-11-12T10:43:57.068+01:00",
+      "updated_at": "2026-11-12T10:43:57.086+01:00",
+      "bypass_actors": [],
+      "current_user_can_bypass": "never",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/anarchitects/anarchitecture-community/rulesets/27105412"
+        },
+        "html": {
+          "href": "https://github.com/anarchitects/anarchitecture-community/rules/27105412"
+        }
+      }
+    },
+    "after": {
+      "id": 27105412,
+      "name": "community-release-tag-history",
+      "target": "tag",
+      "source_type": "Repository",
+      "source": "anarchitects/anarchitecture-community",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/tags/better-auth-typeorm-adapter@*",
+            "refs/tags/nest-angular-ssr@*",
+            "refs/tags/governance-core@*",
+            "refs/tags/governance-adapter-dbt@*",
+            "refs/tags/governance-adapter-typescript@*",
+            "refs/tags/governance-extension-dbt@*",
+            "refs/tags/governance-extension-typescript@*",
+            "refs/tags/governance-dbt-package@*",
+            "refs/tags/governance-runtime-dbt@*",
+            "refs/tags/governance-cli@*",
+            "refs/tags/governance-host-dbt@*",
+            "refs/tags/editorjs-core@*",
+            "refs/tags/editorjs-angular@*",
+            "refs/tags/editorjs-tool-paragraph@*",
+            "refs/tags/editorjs-tool-header@*",
+            "refs/tags/editorjs-tool-list@*",
+            "refs/tags/editorjs-tool-quote@*",
+            "refs/tags/editorjs-tool-image@*",
+            "refs/tags/editorjs-upload-fetch@*",
+            "refs/tags/editorjs-html@*",
+            "refs/tags/editorjs-html-angular@*"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "type": "update"
+        },
+        {
+          "type": "deletion"
+        }
+      ],
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5HBHr-zgGdmIQ",
+      "created_at": "2026-11-12T10:43:57.068+01:00",
+      "updated_at": "2026-11-12T10:43:57.086+01:00",
+      "bypass_actors": [],
+      "current_user_can_bypass": "never",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/anarchitects/anarchitecture-community/rulesets/27105412"
+        },
+        "html": {
+          "href": "https://github.com/anarchitects/anarchitecture-community/rules/27105412"
+        }
+      }
+    }
+  },
+  "retention": {
+    "source": "Signed-in GitHub Actions settings UI",
+    "repository_days": 90,
+    "organization_maximum_days": 90
+  },
+  "release_controls": "paused",
+  "limits": [
+    "No release, tag, branch-push or publication probe was performed.",
+    "Credential-verifier evidence is linked separately; this file contains no secret values."
+  ]
+}

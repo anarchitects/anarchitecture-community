@@ -1,5 +1,11 @@
 # Release permissions and cutover (#722)
 
+**Current read-back:** [14 November cutover update](release-cutover-2026-11-14.md).
+Protected App/signing migration and PyPI token retirement are complete; main bot
+bypass is removed; durable evidence custody and 90-day retention are recorded.
+Community remains paused. The update supersedes pending-state statements below;
+this earlier inventory preserves the baseline, design and cutover history.
+
 Status: **in progress; activation blocked**. This record applies the
 [owner-accepted design](release-controls.md) to the
 [#721 implementation](release-execution.md). It does not authorize a release or

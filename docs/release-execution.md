@@ -1,5 +1,11 @@
 # Owner-authorized release execution
 
+For current settings, completed credential cutover and Johan's durable archive
+arrangement, see the [14 November read-back](release-cutover-2026-11-14.md).
+The legacy cleanup described in the activation handoff below is already merged;
+its merge prerequisite is historical. Community remains paused pending the
+remaining #722 controls and owner acceptance.
+
 This is the staged implementation of [#721](https://github.com/anarchitects/anarchitecture-community/issues/721)
 and the [accepted control design](release-controls.md). **It is not an activated
 release route.** The [#722 settings reconciliation](release-permissions.md) must
