@@ -1,5 +1,12 @@
 # Main branch protection and CI contract
 
+**14 November #722 update:** main ruleset `14374927` now has no bypass actors.
+The strict `main`/GitHub Actions check, signatures, squash-only PRs and history
+safeguards are unchanged; separate owner/bot capability-tag creation remains.
+See the [cutover read-back and evidence](release-cutover-2026-11-14.md).
+The dated reviews below preserve earlier settings and do not describe the
+current bot-bypass state.
+
 Reviewed for [#696](https://github.com/anarchitects/anarchitecture-community/issues/696)
 on 6 November 2026 against merged commit
 `3c2ef2900c897a68c33e7eb298e599817c778d2c` (#707). This is a dated settings

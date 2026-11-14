@@ -1,7 +1,13 @@
 # Shared bot coordination for #722
 
-Status on 14 November 2026: owner-approved plan; implementation and credential
-cutover in progress. This is not release authorization or Community activation.
+**Current status:** protected credential cutover is complete. See the
+[14 November read-back](release-cutover-2026-11-14.md) for merged delivery,
+successful checks, old-key retirement and remaining acceptance limits. Community
+remains paused. The plan and inventory below are the earlier same-day baseline;
+their pending-state statements are superseded by that read-back.
+
+Initial status on 14 November 2026: owner-approved plan; implementation and
+credential cutover in progress. This is not release authorization or Community activation.
 Johan approved the following bounded plan in the working session after confirming
 the App has no consumers outside the four repositories below. Existing local key
 copies/custodians are uncertain; replacement and revocation resolve that uncertainty.
