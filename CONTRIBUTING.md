@@ -31,6 +31,11 @@ identify the accountable Owner and Domain/Capability from OWNERSHIP.md; reporter
 may leave ownership for maintainer triage. Reporting a problem does not require
 knowing our internal process or committing to implement it.
 
+For cross-repository requests, use the [consumer handoff guide](docs/consumer-handoff.md)
+to link upstream work, any joint local-exception decision, actual publication and
+separately accepted consumer adoption. Keep follow-up in the owning repository;
+existing issue fields and links are sufficient.
+
 Keep small changes small: link existing issue detail instead of repeating it in a
 PR. Discuss substantial public API, boundary, dependency or architectural changes
 before implementation. Operational work can promise documentation, a decision,

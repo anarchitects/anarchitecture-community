@@ -99,6 +99,11 @@ and its individual cutover plan, linking the consumer and upstream work. There i
 no universal cutover deadline. Keep publication and adopted replacement evidence
 separate.
 
+Follow the [consumer handoff guide](consumer-handoff.md) for the lightweight
+decision record, publication evidence and project reconciliation. The
+[#723 review](consumer-handoff-review-723.md) records representative existing
+handoffs and the remaining decisions in their owning repositories.
+
 Use public ecosystem packages where suitable. Shared private packages are not
 permitted; application-specific identity, data and configuration remain local.
 Shared public HTTP contracts remain owned by Contracts. Community does not acquire
