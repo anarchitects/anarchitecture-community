@@ -1,0 +1,182 @@
+{
+  "observed_date": "2026-11-14",
+  "scope": "Required-reviewer/ref policy and secret names only; no credential values",
+  "admin_bypass_new_environments": {
+    "allowed": false,
+    "evidence": "Johan confirmed saving all three; independent Safari UI read-back showed unchecked bypass, required vrxj81 reviewer, self-review allowed and main branch only for each."
+  },
+  "repositories": {
+    "anarchitecture-community": {
+      "environment": {
+        "deployment_branch_policy": {
+          "custom_branch_policies": true,
+          "protected_branches": false
+        },
+        "id": 27054974617,
+        "name": "community-release",
+        "protection_rules": [
+          {
+            "prevent_self_review": false,
+            "reviewers": [
+              {
+                "id": 5003361,
+                "login": "vrxj81",
+                "type": "User"
+              }
+            ],
+            "type": "required_reviewers"
+          },
+          {
+            "prevent_self_review": null,
+            "reviewers": [],
+            "type": "branch_policy"
+          }
+        ]
+      },
+      "branch_policies": {
+        "total_count": 1,
+        "branch_policies": [
+          {
+            "id": 66432632,
+            "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3k2NjQzMjYzMg==",
+            "name": "main",
+            "type": "branch"
+          }
+        ]
+      },
+      "secret_names": {
+        "secrets": [],
+        "total_count": 0
+      }
+    },
+    "anarchitecture-bricks-3tier": {
+      "environment": {
+        "deployment_branch_policy": {
+          "custom_branch_policies": true,
+          "protected_branches": false
+        },
+        "id": 27319487005,
+        "name": "shared-bot-release",
+        "protection_rules": [
+          {
+            "prevent_self_review": false,
+            "reviewers": [
+              {
+                "id": 5003361,
+                "login": "vrxj81",
+                "type": "User"
+              }
+            ],
+            "type": "required_reviewers"
+          },
+          {
+            "prevent_self_review": null,
+            "reviewers": [],
+            "type": "branch_policy"
+          }
+        ]
+      },
+      "branch_policies": {
+        "total_count": 1,
+        "branch_policies": [
+          {
+            "id": 66737230,
+            "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3k2NjczNzIzMA==",
+            "name": "main",
+            "type": "branch"
+          }
+        ]
+      },
+      "secret_names": {
+        "secrets": [],
+        "total_count": 0
+      }
+    },
+    "anarchitecture-contracts": {
+      "environment": {
+        "deployment_branch_policy": {
+          "custom_branch_policies": true,
+          "protected_branches": false
+        },
+        "id": 27319491841,
+        "name": "shared-bot-release",
+        "protection_rules": [
+          {
+            "prevent_self_review": false,
+            "reviewers": [
+              {
+                "id": 5003361,
+                "login": "vrxj81",
+                "type": "User"
+              }
+            ],
+            "type": "required_reviewers"
+          },
+          {
+            "prevent_self_review": null,
+            "reviewers": [],
+            "type": "branch_policy"
+          }
+        ]
+      },
+      "branch_policies": {
+        "total_count": 1,
+        "branch_policies": [
+          {
+            "id": 66737238,
+            "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3k2NjczNzIzOA==",
+            "name": "main",
+            "type": "branch"
+          }
+        ]
+      },
+      "secret_names": {
+        "secrets": [],
+        "total_count": 0
+      }
+    },
+    "anarchitecture-plugins": {
+      "environment": {
+        "deployment_branch_policy": {
+          "custom_branch_policies": true,
+          "protected_branches": false
+        },
+        "id": 27319497303,
+        "name": "shared-bot-release",
+        "protection_rules": [
+          {
+            "prevent_self_review": false,
+            "reviewers": [
+              {
+                "id": 5003361,
+                "login": "vrxj81",
+                "type": "User"
+              }
+            ],
+            "type": "required_reviewers"
+          },
+          {
+            "prevent_self_review": null,
+            "reviewers": [],
+            "type": "branch_policy"
+          }
+        ]
+      },
+      "branch_policies": {
+        "total_count": 1,
+        "branch_policies": [
+          {
+            "id": 66737247,
+            "node_id": "MDE2OkdhdGVCcmFuY2hQb2xpY3k2NjczNzI0Nw==",
+            "name": "main",
+            "type": "branch"
+          }
+        ]
+      },
+      "secret_names": {
+        "secrets": [],
+        "total_count": 0
+      }
+    }
+  }
+}
