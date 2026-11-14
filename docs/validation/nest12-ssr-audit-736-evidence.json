@@ -1,0 +1,1680 @@
+{
+  "auditDate": "2026-11-14",
+  "collectionCompletedAt": "2026-11-14T22:37:09Z",
+  "scope": "Read-only registry/source audit; no install, runtime test, publication or full dependency-tree security certification.",
+  "communityCommit": "e968ec02301633dfc42ca924edb43ee2fa6f4529",
+  "metaCommit": "b2cc857bef3ecc4180ca8180db015ba5537bc497",
+  "registrySource": "https://registry.npmjs.org/",
+  "queries": "npm view <query> <selected fields> --json; mutable tags were observed once; version and integrity identify results.",
+  "packages": [
+    {
+      "query": "@nestjs/common@12.5.0",
+      "metadata": {
+        "version": "12.5.0",
+        "peerDependencies": {
+          "rxjs": "^7.1.0",
+          "class-validator": ">=0.13.2",
+          "reflect-metadata": "^0.1.12 || ^0.2.0",
+          "class-transformer": ">=0.4.1"
+        },
+        "peerDependenciesMeta": {
+          "class-validator": {
+            "optional": true
+          },
+          "class-transformer": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "uid": "2.0.2",
+          "tslib": "2.9.1",
+          "iterare": "1.2.1",
+          "load-esm": "1.0.3",
+          "file-type": "22.3.0",
+          "@standard-schema/spec": "1.1.0"
+        },
+        "dist-tags": {
+          "rc": "6.0.0-rc.1",
+          "beta": "9.3.0-beta.3",
+          "old": "10.4.19",
+          "next": "12.0.0-alpha.7",
+          "legacy": "11.2.10",
+          "latest": "12.5.0"
+        },
+        "dist.integrity": "sha512-3pid0u/4ILXS7fvliSZp5lvPxAqGVTgbQQ06qv6zZdyqaofhpTeQbWjZjdpbsBhNm5BhEaMh38JKBE2p0hoCJQ==",
+        "dist.tarball": "https://registry.npmjs.org/@nestjs/common/-/common-12.5.0.tgz",
+        "gitHead": "3a1c9ac570a822ce92e2b7f35b79b5391ca393e3"
+      }
+    },
+    {
+      "query": "@nestjs/core@12.5.0",
+      "metadata": {
+        "version": "12.5.0",
+        "engines": {
+          "node": ">= 20"
+        },
+        "peerDependencies": {
+          "rxjs": "^7.1.0",
+          "@nestjs/common": "^12.0.0",
+          "reflect-metadata": "^0.1.12 || ^0.2.0",
+          "@nestjs/websockets": "^12.0.0",
+          "@nestjs/microservices": "^12.0.0",
+          "@nestjs/platform-express": "^12.0.0"
+        },
+        "peerDependenciesMeta": {
+          "@nestjs/websockets": {
+            "optional": true
+          },
+          "@nestjs/microservices": {
+            "optional": true
+          },
+          "@nestjs/platform-express": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "uid": "2.0.2",
+          "tslib": "2.9.1",
+          "iterare": "1.2.1",
+          "path-to-regexp": "8.4.2",
+          "fast-safe-stringify": "2.1.1"
+        },
+        "dist-tags": {
+          "rc": "6.0.0-rc.1",
+          "beta": "9.3.0-beta.3",
+          "old": "10.4.19",
+          "next": "12.0.0-alpha.7",
+          "legacy": "11.2.10",
+          "latest": "12.5.0"
+        },
+        "dist.integrity": "sha512-o6auZGZNwIhc0NT7YDxK3j9EKt3k651moerLD5NSsU0EY2fqTRO8PBBJXIprVHVLnzYNWwFfgsUUzDFSPo0vAg==",
+        "dist.tarball": "https://registry.npmjs.org/@nestjs/core/-/core-12.5.0.tgz",
+        "gitHead": "3a1c9ac570a822ce92e2b7f35b79b5391ca393e3"
+      }
+    },
+    {
+      "query": "@nestjs/platform-fastify@12.5.0",
+      "metadata": {
+        "version": "12.5.0",
+        "peerDependencies": {
+          "rxjs": "^7.1.0",
+          "@nestjs/core": "^12.0.0",
+          "@fastify/view": "^10.0.0 || ^11.0.0 || ^12.0.0",
+          "@nestjs/common": "^12.0.0",
+          "@fastify/static": "^10.1.10",
+          "@fastify/multipart": "^10.1.0"
+        },
+        "peerDependenciesMeta": {
+          "@fastify/view": {
+            "optional": true
+          },
+          "@fastify/static": {
+            "optional": true
+          },
+          "@fastify/multipart": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "tslib": "2.9.1",
+          "fastify": "5.12.8",
+          "find-my-way": "9.10.0",
+          "@fastify/cors": "11.4.1",
+          "path-to-regexp": "8.4.2",
+          "@fastify/middie": "9.3.6",
+          "fast-querystring": "1.1.2",
+          "light-my-request": "6.8.0",
+          "@fastify/formbody": "9.0.1"
+        },
+        "dist-tags": {
+          "rc": "6.0.0-rc.1",
+          "beta": "9.3.0-beta.3",
+          "old": "10.4.19",
+          "next": "12.0.0-alpha.7",
+          "legacy": "11.2.10",
+          "latest": "12.5.0"
+        },
+        "dist.integrity": "sha512-u0R9z1FbgrSjoQTsufHrcZ5As2XDhjmQ2eejpWodYEPZXZAahT5sEoGPd03AusEvlX5Bh89hiavLWxeglpR6mg==",
+        "dist.tarball": "https://registry.npmjs.org/@nestjs/platform-fastify/-/platform-fastify-12.5.0.tgz",
+        "gitHead": "3a1c9ac570a822ce92e2b7f35b79b5391ca393e3"
+      }
+    },
+    {
+      "query": "@nestjs/core@11.2.10",
+      "metadata": {
+        "version": "11.2.10",
+        "engines": {
+          "node": ">= 20"
+        },
+        "peerDependencies": {
+          "rxjs": "^7.1.0",
+          "@nestjs/common": "^11.0.0",
+          "reflect-metadata": "^0.1.12 || ^0.2.0",
+          "@nestjs/websockets": "^11.0.0",
+          "@nestjs/microservices": "^11.0.0",
+          "@nestjs/platform-express": "^11.0.0"
+        },
+        "peerDependenciesMeta": {
+          "@nestjs/websockets": {
+            "optional": true
+          },
+          "@nestjs/microservices": {
+            "optional": true
+          },
+          "@nestjs/platform-express": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "uid": "2.0.2",
+          "tslib": "2.8.1",
+          "iterare": "1.2.1",
+          "path-to-regexp": "8.4.2",
+          "fast-safe-stringify": "2.1.1"
+        },
+        "dist-tags": {
+          "rc": "6.0.0-rc.1",
+          "beta": "9.3.0-beta.3",
+          "old": "10.4.19",
+          "next": "12.0.0-alpha.7",
+          "legacy": "11.2.10",
+          "latest": "12.5.0"
+        },
+        "dist.integrity": "sha512-3tzOVDoo701CNCb+J6JYJvXjZJLpdQnhMjjKg8bM5ePqqteYdyyvCXJzGcRpnTvjTlfDing+H7X9jp57TfWhRQ==",
+        "dist.tarball": "https://registry.npmjs.org/@nestjs/core/-/core-11.2.10.tgz",
+        "gitHead": "89a3e0fb77346d2a8124793b9bd7fdacb1aebf52"
+      }
+    },
+    {
+      "query": "@nestjs/platform-fastify@11.2.10",
+      "metadata": {
+        "version": "11.2.10",
+        "peerDependencies": {
+          "@nestjs/core": "^11.0.0",
+          "@fastify/view": "^10.0.0 || ^11.0.0 || ^12.0.0",
+          "@nestjs/common": "^11.0.0",
+          "@fastify/static": "^10.1.2"
+        },
+        "peerDependenciesMeta": {
+          "@fastify/view": {
+            "optional": true
+          },
+          "@fastify/static": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "tslib": "2.8.1",
+          "fastify": "5.12.8",
+          "find-my-way": "9.10.0",
+          "@fastify/cors": "11.3.0",
+          "path-to-regexp": "8.4.2",
+          "@fastify/middie": "9.3.4",
+          "fast-querystring": "1.1.2",
+          "light-my-request": "6.6.0",
+          "@fastify/formbody": "8.0.2"
+        },
+        "dist-tags": {
+          "rc": "6.0.0-rc.1",
+          "beta": "9.3.0-beta.3",
+          "old": "10.4.19",
+          "next": "12.0.0-alpha.7",
+          "legacy": "11.2.10",
+          "latest": "12.5.0"
+        },
+        "dist.integrity": "sha512-lGHDE8H9W+JTcnsqwZ5DdIDdNQ72moOS8UkdZSSvt7Br9rK0ETwElrDeER7raROnvCmdgvDK6AsFrbH3X0vzFQ==",
+        "dist.tarball": "https://registry.npmjs.org/@nestjs/platform-fastify/-/platform-fastify-11.2.10.tgz",
+        "gitHead": "89a3e0fb77346d2a8124793b9bd7fdacb1aebf52"
+      }
+    },
+    {
+      "query": "fastify@latest",
+      "metadata": {
+        "version": "5.12.8",
+        "dependencies": {
+          "pino": "^9.14.0 || ^10.1.0",
+          "rfdc": "^1.3.1",
+          "avvio": "^9.0.0",
+          "semver": "^7.6.0",
+          "toad-cache": "^3.7.0",
+          "find-my-way": "^9.10.0",
+          "@fastify/error": "^4.0.0",
+          "process-warning": "^5.1.0",
+          "abstract-logging": "^2.0.1",
+          "light-my-request": "^6.0.0",
+          "secure-json-parse": "^4.0.0",
+          "@fastify/proxy-addr": "^5.0.0",
+          "fast-json-stringify": "^7.0.0",
+          "@fastify/ajv-compiler": "^4.0.5",
+          "@fastify/fast-json-stringify-compiler": "^5.0.0"
+        },
+        "dist-tags": {
+          "three": "3.29.5",
+          "four": "4.29.1",
+          "latest": "5.12.8",
+          "next": "6.0.0-alpha.6"
+        },
+        "dist.integrity": "sha512-moP8exb2sCHLUbJkwp+I6C0padhy4D8lp0SdmzY7HhSdZuqm7O/u3o2aq7u8okaQ//33QDzj3G/u+FsSdB8Qzw==",
+        "dist.tarball": "https://registry.npmjs.org/fastify/-/fastify-5.12.8.tgz",
+        "gitHead": "0c7413a8332a7892e12dcc351c27a190fefc0053"
+      }
+    },
+    {
+      "query": "@fastify/static@latest",
+      "metadata": {
+        "version": "10.1.11",
+        "dependencies": {
+          "glob": "^14.0.0",
+          "fastq": "^1.17.1",
+          "@fastify/send": "^4.2.0",
+          "@fastify/error": "^4.0.0",
+          "fastify-plugin": "^6.0.0",
+          "content-disposition": "^3.0.0",
+          "@fastify/accept-negotiator": "^2.0.0"
+        },
+        "dist-tags": {
+          "next": "8.0.0",
+          "latest": "10.1.11"
+        },
+        "dist.integrity": "sha512-WjEpDqkzOziIipghh4ki3ZNfLCmI1kRWlYKar3+9FiuY2LzoeogKiDqxIH68r6vYUSxvUzyEiV1BOP0yfW+glQ==",
+        "dist.tarball": "https://registry.npmjs.org/@fastify/static/-/static-10.1.11.tgz",
+        "gitHead": "ce8a807466dca06d232ec93be085cf080a6792dc"
+      }
+    },
+    {
+      "query": "@angular/core@latest",
+      "metadata": {
+        "version": "22.2.6",
+        "engines": {
+          "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+        },
+        "peerDependencies": {
+          "rxjs": "^6.5.3 || ^7.4.0",
+          "zone.js": "~0.15.0 || ~0.16.0",
+          "@angular/compiler": "22.2.6"
+        },
+        "peerDependenciesMeta": {
+          "zone.js": {
+            "optional": true
+          },
+          "@angular/compiler": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "tslib": "^2.3.0"
+        },
+        "dist-tags": {
+          "v4-lts": "4.4.7",
+          "v5-lts": "5.2.11",
+          "v6-lts": "6.1.10",
+          "v7-lts": "7.2.15",
+          "v8-lts": "8.2.14",
+          "v9-lts": "9.1.13",
+          "v10-lts": "10.2.5",
+          "v11-lts": "11.2.14",
+          "v12-lts": "12.2.17",
+          "v14-lts": "14.3.0",
+          "v13-lts": "13.4.0",
+          "v15-lts": "15.2.10",
+          "v16-lts": "16.2.12",
+          "v17-lts": "17.3.12",
+          "v18-lts": "18.2.14",
+          "v19-lts": "19.2.25",
+          "v20-lts": "20.3.35",
+          "v21-lts": "21.2.26",
+          "next": "22.3.0-rc.0",
+          "latest": "22.2.6"
+        },
+        "dist.integrity": "sha512-atESNSPsM0dBXU88aDtByBP4W/wb8USbhL16lsePyxBvAWtM1Xn7QBB489QTmHpY6VCXHnqMhXWcrZsDpoIBsw==",
+        "dist.tarball": "https://registry.npmjs.org/@angular/core/-/core-22.2.6.tgz"
+      }
+    },
+    {
+      "query": "@angular/ssr@latest",
+      "metadata": {
+        "version": "22.2.7",
+        "peerDependencies": {
+          "@angular/core": "^22.0.0",
+          "@angular/common": "^22.0.0",
+          "@angular/router": "^22.0.0",
+          "@angular/platform-server": "^22.0.0"
+        },
+        "peerDependenciesMeta": {
+          "@angular/platform-server": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "tslib": "^2.3.0",
+          "beasties": "0.5.4"
+        },
+        "dist-tags": {
+          "v17-lts": "17.3.17",
+          "v18-lts": "18.2.21",
+          "v19-lts": "19.2.27",
+          "v21-lts": "21.2.30",
+          "latest": "22.2.7",
+          "next": "22.3.0-rc.0",
+          "v20-lts": "20.3.43"
+        },
+        "dist.integrity": "sha512-AdQ7QRrRynFr0wOnXYKfGidadK0zfE+K9BtHxYXVhdKkRHfPSDR2081qGr1waI1fWe1aaRrpam1QRZLLZLwhqg==",
+        "dist.tarball": "https://registry.npmjs.org/@angular/ssr/-/ssr-22.2.7.tgz",
+        "gitHead": "321d6a9b9a0eb0097e8154b07a98e23a344e677f"
+      }
+    },
+    {
+      "query": "@angular/build@latest",
+      "metadata": {
+        "version": "22.2.7",
+        "engines": {
+          "npm": "^6.11.0 || ^7.5.6 || >=8.0.0",
+          "node": "^22.22.3 || ^24.15.0 || >=26.0.0",
+          "yarn": ">= 1.13.0"
+        },
+        "peerDependencies": {
+          "less": "^4.2.0",
+          "karma": "^6.4.0",
+          "tslib": "^2.3.0",
+          "rollup": "^4.0.0",
+          "vitest": "^4.0.8 || ^5.0.0",
+          "postcss": "^8.4.0",
+          "ng-packagr": "^22.0.0",
+          "typescript": ">=6.0 <6.1",
+          "tailwindcss": "^2.0.0 || ^3.0.0 || ^4.0.0",
+          "@angular/ssr": "^22.2.7",
+          "@angular/core": "^22.0.0",
+          "@angular/compiler": "^22.0.0",
+          "@angular/localize": "^22.0.0",
+          "@angular/compiler-cli": "^22.0.0",
+          "@angular/service-worker": "^22.0.0",
+          "istanbul-lib-instrument": "^6.0.0",
+          "@angular/platform-server": "^22.0.0",
+          "@angular/platform-browser": "^22.0.0"
+        },
+        "peerDependenciesMeta": {
+          "less": {
+            "optional": true
+          },
+          "karma": {
+            "optional": true
+          },
+          "rollup": {
+            "optional": true
+          },
+          "vitest": {
+            "optional": true
+          },
+          "postcss": {
+            "optional": true
+          },
+          "ng-packagr": {
+            "optional": true
+          },
+          "tailwindcss": {
+            "optional": true
+          },
+          "@angular/ssr": {
+            "optional": true
+          },
+          "@angular/core": {
+            "optional": true
+          },
+          "@angular/localize": {
+            "optional": true
+          },
+          "@angular/service-worker": {
+            "optional": true
+          },
+          "istanbul-lib-instrument": {
+            "optional": true
+          },
+          "@angular/platform-server": {
+            "optional": true
+          },
+          "@angular/platform-browser": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "sass": "1.104.1",
+          "vite": "8.3.5",
+          "listr2": "11.1.0",
+          "mrmime": "2.0.1",
+          "semver": "7.8.5",
+          "esbuild": "0.28.2",
+          "piscina": "5.3.2",
+          "beasties": "0.5.4",
+          "chokidar": "5.0.0",
+          "rolldown": "1.2.16",
+          "picomatch": "4.0.7",
+          "oxc-parser": "0.156.0",
+          "tinyglobby": "0.2.17",
+          "@babel/core": "8.0.5",
+          "xxhash-wasm": "1.1.0",
+          "browserslist": "^4.26.0",
+          "jsonc-parser": "3.3.1",
+          "magic-string": "1.4.1",
+          "sass-embedded": "1.104.1",
+          "@parcel/watcher": "2.6.0",
+          "@inquirer/confirm": "6.3.2",
+          "https-proxy-agent": "9.1.0",
+          "source-map-support": "0.5.21",
+          "@ampproject/remapping": "2.3.0",
+          "@vitejs/plugin-basic-ssl": "2.3.0",
+          "@angular-devkit/architect": "0.2202.7",
+          "parse5-html-rewriting-stream": "8.0.1"
+        },
+        "dist-tags": {
+          "v18-lts": "18.2.21",
+          "v19-lts": "19.2.27",
+          "v21-lts": "21.2.30",
+          "latest": "22.2.7",
+          "next": "22.3.0-rc.0",
+          "v20-lts": "20.3.43"
+        },
+        "dist.integrity": "sha512-tQGzQPHvPK2oG5CqAsOMayU49WliSLlFV001poDpClmZ5d7cBsPeUZZlsEv84aMkplFDfhxqj6Guqd38T9HRdQ==",
+        "dist.tarball": "https://registry.npmjs.org/@angular/build/-/build-22.2.7.tgz",
+        "gitHead": "321d6a9b9a0eb0097e8154b07a98e23a344e677f"
+      }
+    },
+    {
+      "query": "typescript@latest",
+      "metadata": {
+        "version": "7.0.2",
+        "engines": {
+          "node": ">=16.20.0"
+        },
+        "dependencies": {
+          "@typescript/typescript-aix-ppc64": "7.0.2",
+          "@typescript/typescript-linux-arm": "7.0.2",
+          "@typescript/typescript-linux-x64": "7.0.2",
+          "@typescript/typescript-sunos-x64": "7.0.2",
+          "@typescript/typescript-win32-x64": "7.0.2",
+          "@typescript/typescript-darwin-x64": "7.0.2",
+          "@typescript/typescript-netbsd-x64": "7.0.2",
+          "@typescript/typescript-freebsd-x64": "7.0.2",
+          "@typescript/typescript-linux-arm64": "7.0.2",
+          "@typescript/typescript-linux-ppc64": "7.0.2",
+          "@typescript/typescript-linux-s390x": "7.0.2",
+          "@typescript/typescript-openbsd-x64": "7.0.2",
+          "@typescript/typescript-win32-arm64": "7.0.2",
+          "@typescript/typescript-darwin-arm64": "7.0.2",
+          "@typescript/typescript-netbsd-arm64": "7.0.2",
+          "@typescript/typescript-freebsd-arm64": "7.0.2",
+          "@typescript/typescript-linux-loong64": "7.0.2",
+          "@typescript/typescript-linux-riscv64": "7.0.2",
+          "@typescript/typescript-openbsd-arm64": "7.0.2",
+          "@typescript/typescript-linux-mips64el": "7.0.2"
+        },
+        "dist-tags": {
+          "dev": "3.9.4",
+          "tag-for-publishing-older-releases": "4.1.6",
+          "insiders": "4.6.2-insiders.20220225",
+          "rc": "7.0.1-rc",
+          "latest": "7.0.2",
+          "beta": "7.1.0-beta",
+          "next": "7.1.0-dev.20261114.1"
+        },
+        "dist.integrity": "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==",
+        "dist.tarball": "https://registry.npmjs.org/typescript/-/typescript-7.0.2.tgz",
+        "gitHead": "2bd066d87f5bafd315be9f40889d0a60b9e58e0b"
+      }
+    },
+    {
+      "query": "nx@latest",
+      "metadata": {
+        "version": "24.0.6",
+        "peerDependencies": {
+          "@swc/core": "^1.15.8",
+          "@swc-node/register": "^1.11.1"
+        },
+        "peerDependenciesMeta": {
+          "@swc/core": {
+            "optional": true
+          },
+          "@swc-node/register": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "bl": "4.1.0",
+          "ejs": "5.0.1",
+          "ora": "5.4.1",
+          "tmp": "0.2.7",
+          "once": "1.4.0",
+          "y18n": "5.0.8",
+          "yaml": "2.9.0",
+          "chalk": "4.1.2",
+          "cliui": "8.0.1",
+          "clone": "1.0.4",
+          "isexe": "2.0.0",
+          "json5": "2.2.3",
+          "tslib": "2.8.1",
+          "which": "3.0.1",
+          "yargs": "17.7.2",
+          "buffer": "5.7.1",
+          "dotenv": "16.4.7",
+          "ignore": "7.0.12",
+          "semver": "7.8.5",
+          "undici": "7.30.1",
+          "wrappy": "1.0.2",
+          "figures": "3.2.0",
+          "ieee754": "1.2.1",
+          "onetime": "5.1.2",
+          "wcwidth": "1.0.1",
+          "argparse": "2.0.1",
+          "defaults": "1.0.4",
+          "escalade": "3.2.0",
+          "has-flag": "4.0.0",
+          "inherits": "2.0.4",
+          "mimic-fn": "2.1.0",
+          "minimist": "1.2.8",
+          "path-key": "3.1.1",
+          "base64-js": "1.5.1",
+          "minimatch": "10.2.5",
+          "smol-toml": "1.9.0",
+          "strip-bom": "3.0.0",
+          "wrap-ansi": "7.0.0",
+          "ansi-regex": "5.0.1",
+          "cli-cursor": "3.1.0",
+          "color-name": "1.1.4",
+          "picocolors": "1.1.1",
+          "sisteransi": "1.0.5",
+          "strip-ansi": "6.0.1",
+          "tar-stream": "2.2.0",
+          "@clack/core": "1.4.3",
+          "ansi-styles": "4.3.0",
+          "emoji-regex": "8.0.0",
+          "log-symbols": "4.1.0",
+          "safe-buffer": "5.2.1",
+          "signal-exit": "3.0.7",
+          "@emnapi/core": "1.4.5",
+          "cli-spinners": "2.6.1",
+          "fs-constants": "1.0.0",
+          "jsonc-parser": "3.3.1",
+          "npm-run-path": "4.0.1",
+          "string-width": "4.2.3",
+          "yargs-parser": "21.1.1",
+          "color-convert": "2.0.1",
+          "dotenv-expand": "12.0.3",
+          "end-of-stream": "1.4.5",
+          "@clack/prompts": "1.7.0",
+          "balanced-match": "4.0.3",
+          "fast-wrap-ansi": "0.2.0",
+          "is-interactive": "1.0.0",
+          "restore-cursor": "3.1.0",
+          "string_decoder": "1.3.0",
+          "supports-color": "7.2.0",
+          "tsconfig-paths": "4.2.0",
+          "util-deprecate": "1.0.2",
+          "@emnapi/runtime": "1.4.5",
+          "brace-expansion": "5.0.12",
+          "get-caller-file": "2.0.5",
+          "readable-stream": "3.6.2",
+          "resolve.exports": "2.0.3",
+          "@tybys/wasm-util": "0.9.0",
+          "@zkochan/js-yaml": "0.0.7",
+          "@yarnpkg/lockfile": "1.1.0",
+          "fast-string-width": "3.0.2",
+          "lines-and-columns": "2.0.3",
+          "require-directory": "2.1.1",
+          "@emnapi/wasi-threads": "1.0.4",
+          "@jest/diff-sequences": "30.0.1",
+          "escape-string-regexp": "1.0.5",
+          "is-unicode-supported": "0.1.0",
+          "@napi-rs/wasm-runtime": "0.2.4",
+          "is-fullwidth-code-point": "3.0.0",
+          "fast-string-truncated-width": "3.0.3"
+        },
+        "dist-tags": {
+          "pull-request": "24.0.0-pr.37405.acdaf31",
+          "latest": "24.0.6",
+          "next": "24.1.0-beta.1",
+          "previous": "23.3.2",
+          "canary": "24.1.0-canary.20261113-51292c7"
+        },
+        "dist.integrity": "sha512-d/8V/yPOqAYPjtbwydBrzlksQ72eWr+Hw5TJoMuyIwF5KJH0xr2OCCzUlxIAxpe20cZKDk5ftGEspZ2Si7wgsg==",
+        "dist.tarball": "https://registry.npmjs.org/nx/-/nx-24.0.6.tgz"
+      }
+    },
+    {
+      "query": "@nx/angular@latest",
+      "metadata": {
+        "version": "24.0.6",
+        "peerDependencies": {
+          "rxjs": "^6.5.3 || ^7.5.0",
+          "@nx/rspack": "24.0.6",
+          "ng-packagr": ">= 20.0.0 < 23.0.0",
+          "@nx/cypress": "24.0.6",
+          "@nx/webpack": "24.0.6",
+          "webpack-merge": "^5.8.0",
+          "@angular/build": ">= 20.0.0 < 23.0.0",
+          "@nx/playwright": "24.0.6",
+          "@schematics/angular": ">= 20.0.0 < 23.0.0",
+          "@angular-devkit/core": ">= 20.0.0 < 23.0.0",
+          "@angular-devkit/schematics": ">= 20.0.0 < 23.0.0",
+          "@angular-devkit/build-angular": ">= 20.0.0 < 23.0.0"
+        },
+        "peerDependenciesMeta": {
+          "@nx/rspack": {
+            "optional": true
+          },
+          "ng-packagr": {
+            "optional": true
+          },
+          "@nx/cypress": {
+            "optional": true
+          },
+          "@nx/webpack": {
+            "optional": true
+          },
+          "webpack-merge": {
+            "optional": true
+          },
+          "@angular/build": {
+            "optional": true
+          },
+          "@nx/playwright": {
+            "optional": true
+          },
+          "@angular-devkit/build-angular": {
+            "optional": true
+          }
+        },
+        "dependencies": {
+          "tslib": "^2.3.0",
+          "@nx/js": "24.0.6",
+          "semver": "^7.6.3",
+          "picomatch": "^4.0.7",
+          "@nx/devkit": "24.0.6",
+          "@nx/eslint": "24.0.6",
+          "picocolors": "^1.1.0",
+          "jsonc-parser": "^3.2.0",
+          "magic-string": "~0.30.2",
+          "@phenomnomnominal/tsquery": "~6.2.0",
+          "@typescript-eslint/type-utils": "^8.0.0"
+        },
+        "dist-tags": {
+          "pull-request": "24.0.0-pr.37405.acdaf31",
+          "latest": "24.0.6",
+          "next": "24.1.0-beta.1",
+          "previous": "23.3.2",
+          "canary": "24.1.0-canary.20261113-51292c7"
+        },
+        "dist.integrity": "sha512-Gzo5tHkMEHkNc4SlWfbS+qdG6At3Xjgtx05IJBS9dR0m1cy3/IasXBj4ii0HsgqFyDh5mShdER93ox2s6ZK0Gg==",
+        "dist.tarball": "https://registry.npmjs.org/@nx/angular/-/angular-24.0.6.tgz"
+      }
+    },
+    {
+      "query": "@anarchitects/nest-angular-ssr@0.3.2",
+      "metadata": {
+        "version": "0.3.2",
+        "peerDependencies": {
+          "fastify": "^5.0.0",
+          "@angular/ssr": "^21.0.0 || ^22.0.0",
+          "@nestjs/core": "^11.0.0",
+          "@angular/core": "^21.0.0 || ^22.0.0",
+          "@nestjs/common": "^11.0.0",
+          "@angular/router": "^21.0.0 || ^22.0.0",
+          "reflect-metadata": "^0.2.0",
+          "@nestjs/platform-fastify": "^11.1.29",
+          "@angular/platform-browser": "^21.0.0 || ^22.0.0"
+        },
+        "dependencies": {
+          "@fastify/static": "^10.1.7"
+        },
+        "dist-tags": {
+          "latest": "0.3.2"
+        },
+        "dist.integrity": "sha512-TZYeSr+wZ3EhkgaP+7ELvxk5/VtMpLoQEmAvOnpJ9s4bRDbI1ZlJvpXo4yZQDAHeqZW0jXFPhJz/uWfmVSCecw==",
+        "dist.tarball": "https://registry.npmjs.org/@anarchitects/nest-angular-ssr/-/nest-angular-ssr-0.3.2.tgz",
+        "gitHead": "ae31ea974a6659efaee7746b2831db80ba35445e"
+      }
+    },
+    {
+      "query": "typescript@6.0",
+      "metadata": [
+        {
+          "version": "6.0.2",
+          "engines": {
+            "node": ">=14.17"
+          },
+          "main": "./lib/typescript.js"
+        },
+        {
+          "version": "6.0.3",
+          "engines": {
+            "node": ">=14.17"
+          },
+          "main": "./lib/typescript.js"
+        }
+      ]
+    },
+    {
+      "query": "@nx/angular@23.1.2",
+      "metadata": {
+        "version": "23.1.2",
+        "peerDependencies": {
+          "rxjs": "^6.5.3 || ^7.5.0",
+          "@nx/rspack": "23.1.2",
+          "ng-packagr": ">= 20.0.0 < 23.0.0",
+          "@nx/cypress": "23.1.2",
+          "@nx/webpack": "23.1.2",
+          "webpack-merge": "^5.8.0",
+          "@angular/build": ">= 20.0.0 < 23.0.0",
+          "@nx/playwright": "23.1.2",
+          "@schematics/angular": ">= 20.0.0 < 23.0.0",
+          "@angular-devkit/core": ">= 20.0.0 < 23.0.0",
+          "@nx/module-federation": "23.1.2",
+          "@angular-devkit/schematics": ">= 20.0.0 < 23.0.0",
+          "@angular-devkit/build-angular": ">= 20.0.0 < 23.0.0"
+        },
+        "dependencies": {
+          "tslib": "^2.3.0",
+          "@nx/js": "23.1.2",
+          "semver": "^7.6.3",
+          "@nx/web": "23.1.2",
+          "enquirer": "~2.3.6",
+          "picomatch": "4.0.4",
+          "@nx/devkit": "23.1.2",
+          "@nx/eslint": "23.1.2",
+          "picocolors": "^1.1.0",
+          "jsonc-parser": "^3.2.0",
+          "magic-string": "~0.30.2",
+          "@phenomnomnominal/tsquery": "~6.2.0",
+          "@typescript-eslint/type-utils": "^8.0.0"
+        },
+        "type": "commonjs",
+        "exports": {
+          ".": {
+            "types": "./dist/types/nx-angular.d.ts",
+            "default": "./dist/fesm2022/nx-angular.mjs"
+          },
+          "./mf": {
+            "types": "./dist/types/nx-angular-mf.d.ts",
+            "default": "./dist/fesm2022/nx-angular-mf.mjs"
+          },
+          "./plugin": "./dist/plugin.js",
+          "./internal": "./dist/internal.js",
+          "./tailwind": "./dist/tailwind.js",
+          "./executors": "./dist/executors.js",
+          "./generators": "./dist/generators.js",
+          "./package.json": {
+            "default": "./package.json"
+          },
+          "./executors.json": "./executors.json",
+          "./generators.json": "./generators.json",
+          "./migrations.json": "./migrations.json",
+          "./src/builders/*.impl": "./dist/src/builders/*.impl.js",
+          "./src/executors/*.impl": "./dist/src/executors/*.impl.js",
+          "./src/builders/*/schema": "./dist/src/builders/*/schema.d.ts",
+          "./src/executors/*/schema": "./dist/src/executors/*/schema.d.ts",
+          "./src/generators/*/schema": "./dist/src/generators/*/schema.d.ts",
+          "./plugins/component-testing": "./dist/plugins/component-testing.js",
+          "./src/builders/*/schema.json": "./dist/src/builders/*/schema.json",
+          "./src/executors/*/schema.json": "./dist/src/executors/*/schema.json",
+          "./src/generators/*/schema.json": "./dist/src/generators/*/schema.json"
+        },
+        "types": "./dist/types/nx-angular.d.ts"
+      }
+    },
+    {
+      "query": "@nestjs/platform-fastify@11.1.29",
+      "metadata": {
+        "version": "11.1.29",
+        "peerDependencies": {
+          "@nestjs/core": "^11.0.0",
+          "@fastify/view": "^10.0.0 || ^11.0.0 || ^12.0.0",
+          "@nestjs/common": "^11.0.0",
+          "@fastify/static": "^10.1.2"
+        },
+        "dependencies": {
+          "tslib": "2.8.1",
+          "fastify": "5.11.0",
+          "reusify": "1.1.0",
+          "find-my-way": "9.7.0",
+          "@fastify/cors": "11.3.0",
+          "fastify-plugin": "6.0.0",
+          "path-to-regexp": "8.4.2",
+          "fast-querystring": "1.1.2",
+          "light-my-request": "6.6.0",
+          "@fastify/formbody": "8.0.2"
+        },
+        "types": "./index.d.ts"
+      }
+    },
+    {
+      "query": "@fastify/static@10.1.7",
+      "metadata": {
+        "version": "10.1.7",
+        "dependencies": {
+          "glob": "^13.0.0",
+          "fastq": "^1.17.1",
+          "@fastify/send": "^4.0.0",
+          "@fastify/error": "^4.0.0",
+          "fastify-plugin": "^6.0.0",
+          "content-disposition": "^3.0.0",
+          "@fastify/accept-negotiator": "^2.0.0"
+        },
+        "type": "commonjs",
+        "main": "index.js",
+        "types": "types/index.d.ts"
+      }
+    },
+    {
+      "query": "@nestjs/core@12.0.0",
+      "metadata": {
+        "version": "12.0.0",
+        "engines": {
+          "node": ">= 20"
+        },
+        "peerDependencies": {
+          "rxjs": "^7.1.0",
+          "@nestjs/common": "^11.0.0",
+          "reflect-metadata": "^0.1.12 || ^0.2.0",
+          "@nestjs/websockets": "^11.0.0",
+          "@nestjs/microservices": "^11.0.0",
+          "@nestjs/platform-express": "^11.0.0"
+        },
+        "dependencies": {
+          "uid": "2.0.2",
+          "tslib": "2.8.1",
+          "iterare": "1.2.1",
+          "path-to-regexp": "8.4.2",
+          "fast-safe-stringify": "2.1.1"
+        },
+        "type": "module",
+        "exports": {
+          ".": "./index.js",
+          "./*": "./*.js",
+          "./*.js": "./*.js",
+          "./internal": "./internal.js"
+        },
+        "main": "./index.js",
+        "types": "./index.d.ts"
+      }
+    },
+    {
+      "query": "@nestjs/platform-fastify@12.0.0",
+      "metadata": {
+        "version": "12.0.0",
+        "peerDependencies": {
+          "@nestjs/core": "^11.0.0",
+          "@fastify/view": "^10.0.0 || ^11.0.0 || ^12.0.0",
+          "@nestjs/common": "^11.0.0",
+          "@fastify/static": "^10.1.2"
+        },
+        "dependencies": {
+          "tslib": "2.8.1",
+          "fastify": "5.12.1",
+          "reusify": "1.1.0",
+          "find-my-way": "9.9.0",
+          "@fastify/cors": "11.3.0",
+          "fastify-plugin": "6.0.0",
+          "path-to-regexp": "8.4.2",
+          "fast-querystring": "1.1.2",
+          "light-my-request": "6.6.0",
+          "@fastify/formbody": "9.0.0"
+        },
+        "type": "module",
+        "exports": {
+          ".": "./index.js",
+          "./*": "./*.js",
+          "./*.js": "./*.js"
+        },
+        "main": "./index.js",
+        "types": "./index.d.ts"
+      }
+    },
+    {
+      "query": "@nestjs/core@12.5.0",
+      "metadata": {
+        "version": "12.5.0",
+        "engines": {
+          "node": ">= 20"
+        },
+        "type": "module",
+        "exports": {
+          ".": "./index.js",
+          "./*": "./*.js",
+          "./*.js": "./*.js",
+          "./internal": "./internal.js",
+          "./package.json": "./package.json"
+        },
+        "main": "./index.js",
+        "types": "./index.d.ts",
+        "peerDependencies": {
+          "rxjs": "^7.1.0",
+          "@nestjs/common": "^12.0.0",
+          "reflect-metadata": "^0.1.12 || ^0.2.0",
+          "@nestjs/websockets": "^12.0.0",
+          "@nestjs/microservices": "^12.0.0",
+          "@nestjs/platform-express": "^12.0.0"
+        }
+      }
+    },
+    {
+      "query": "@nestjs/common@12.5.0",
+      "metadata": {
+        "version": "12.5.0",
+        "type": "module",
+        "exports": {
+          ".": "./index.js",
+          "./*": "./*.js",
+          "./*.js": "./*.js",
+          "./internal": "./internal.js",
+          "./package.json": "./package.json"
+        },
+        "main": "./index.js",
+        "types": "./index.d.ts",
+        "peerDependencies": {
+          "rxjs": "^7.1.0",
+          "class-validator": ">=0.13.2",
+          "reflect-metadata": "^0.1.12 || ^0.2.0",
+          "class-transformer": ">=0.4.1"
+        }
+      }
+    },
+    {
+      "query": "@nestjs/platform-fastify@12.5.0",
+      "metadata": {
+        "version": "12.5.0",
+        "type": "module",
+        "exports": {
+          ".": "./index.js",
+          "./*": "./*.js",
+          "./*.js": "./*.js",
+          "./multipart": "./multipart/index.js",
+          "./package.json": "./package.json"
+        },
+        "main": "./index.js",
+        "types": "./index.d.ts",
+        "peerDependencies": {
+          "rxjs": "^7.1.0",
+          "@nestjs/core": "^12.0.0",
+          "@fastify/view": "^10.0.0 || ^11.0.0 || ^12.0.0",
+          "@nestjs/common": "^12.0.0",
+          "@fastify/static": "^10.1.10",
+          "@fastify/multipart": "^10.1.0"
+        }
+      }
+    },
+    {
+      "query": "@fastify/send@4.2.0",
+      "metadata": {
+        "version": "4.2.0",
+        "type": "commonjs",
+        "main": "index.js",
+        "types": "types/index.d.ts"
+      }
+    },
+    {
+      "query": "fastify-plugin@6.0.0",
+      "metadata": {
+        "version": "6.0.0",
+        "type": "commonjs",
+        "main": "index.js",
+        "types": "types/index.d.ts"
+      }
+    },
+    {
+      "query": "glob@14.0.0",
+      "metadata": {
+        "version": "14.0.0",
+        "engines": {
+          "node": "18 || 20 || >=22"
+        },
+        "type": "module",
+        "exports": {
+          ".": {
+            "import": {
+              "types": "./dist/esm/index.d.ts",
+              "default": "./dist/esm/index.min.js"
+            },
+            "require": {
+              "types": "./dist/commonjs/index.d.ts",
+              "default": "./dist/commonjs/index.min.js"
+            }
+          },
+          "./raw": {
+            "import": {
+              "types": "./dist/esm/index.d.ts",
+              "default": "./dist/esm/index.js"
+            },
+            "require": {
+              "types": "./dist/commonjs/index.d.ts",
+              "default": "./dist/commonjs/index.js"
+            }
+          },
+          "./package.json": "./package.json"
+        },
+        "main": "./dist/commonjs/index.min.js",
+        "types": "./dist/commonjs/index.d.ts"
+      }
+    },
+    {
+      "query": "@angular/compiler-cli@22.2.6",
+      "metadata": {
+        "version": "22.2.6",
+        "engines": {
+          "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+        },
+        "type": "module",
+        "exports": {
+          ".": {
+            "types": "./index.d.ts",
+            "default": "./bundles/index.js"
+          },
+          "./linker": {
+            "types": "./linker/index.d.ts",
+            "default": "./bundles/linker/index.js"
+          },
+          "./private/*": {
+            "types": "./private/*.d.ts",
+            "default": "./bundles/private/*.js"
+          },
+          "./linker/babel": {
+            "types": "./linker/babel/index.d.ts",
+            "default": "./bundles/linker/babel/index.js"
+          },
+          "./package.json": {
+            "default": "./package.json"
+          }
+        },
+        "peerDependencies": {
+          "typescript": ">=6.0 <6.1",
+          "@angular/compiler": "22.2.6"
+        }
+      }
+    }
+  ],
+  "publicationTimes": {
+    "@nestjs/core": {
+      "12.0.0": "2026-08-27T07:03:15.139Z",
+      "12.5.0": "2026-11-12T13:13:48.145Z",
+      "11.2.10": "2026-11-12T18:52:41.234Z"
+    },
+    "@nestjs/platform-fastify": {
+      "12.0.0": "2026-08-27T07:02:11.874Z",
+      "12.5.0": "2026-11-12T13:13:43.854Z",
+      "11.2.10": "2026-11-12T18:51:37.610Z"
+    },
+    "@angular/core": {
+      "12.0.0": "2021-05-12T18:51:12.205Z",
+      "11.2.10": "2021-04-14T19:41:37.769Z",
+      "22.2.6": "2026-11-12T00:05:07.475Z"
+    },
+    "@angular/ssr": {
+      "22.2.6": "2026-11-04T22:43:55.823Z",
+      "22.2.7": "2026-11-12T13:34:39.032Z"
+    },
+    "fastify": {
+      "5.12.8": "2026-11-02T10:46:39.236Z"
+    },
+    "@fastify/static": {
+      "10.1.11": "2026-11-13T12:20:25.256Z"
+    }
+  },
+  "nodeRelease": {
+    "html_url": "https://github.com/nodejs/node/releases/tag/v24.22.3",
+    "prerelease": false,
+    "published_at": "2026-11-11T16:44:08Z",
+    "tag_name": "v24.22.3"
+  },
+  "workspaceLock": {
+    "node": "v24.22.3",
+    "versions": [
+      {
+        "key": "@angular/build@npm:^22.0.0",
+        "version": "22.1.6",
+        "resolution": "@angular/build@npm:22.1.6",
+        "dependencies": {
+          "@ampproject/remapping": "npm:2.3.0",
+          "@angular-devkit/architect": "npm:0.2201.6",
+          "@babel/core": "npm:8.0.1",
+          "@babel/helper-annotate-as-pure": "npm:8.0.0",
+          "@babel/helper-split-export-declaration": "npm:7.24.7",
+          "@inquirer/confirm": "npm:6.1.1",
+          "@vitejs/plugin-basic-ssl": "npm:2.3.0",
+          "beasties": "npm:0.4.3",
+          "browserslist": "npm:^4.26.0",
+          "esbuild": "npm:0.28.2",
+          "https-proxy-agent": "npm:9.1.0",
+          "jsonc-parser": "npm:3.3.1",
+          "listr2": "npm:11.0.0",
+          "lmdb": "npm:3.5.6",
+          "magic-string": "npm:1.0.0",
+          "mrmime": "npm:2.0.1",
+          "oxc-parser": "npm:0.142.0",
+          "parse5-html-rewriting-stream": "npm:8.0.1",
+          "picomatch": "npm:4.0.5",
+          "piscina": "npm:5.2.0",
+          "rolldown": "npm:1.2.0",
+          "sass": "npm:1.101.0",
+          "semver": "npm:7.8.5",
+          "source-map-support": "npm:0.5.21",
+          "tinyglobby": "npm:0.2.17",
+          "vite": "npm:8.1.5",
+          "watchpack": "npm:2.5.2"
+        }
+      },
+      {
+        "key": "@angular/core@npm:^22.0.0",
+        "version": "22.1.4",
+        "resolution": "@angular/core@npm:22.1.4",
+        "dependencies": {
+          "tslib": "npm:^2.3.0"
+        }
+      },
+      {
+        "key": "@angular/ssr@npm:^22.0.0",
+        "version": "22.1.6",
+        "resolution": "@angular/ssr@npm:22.1.6",
+        "dependencies": {
+          "tslib": "npm:^2.3.0"
+        }
+      },
+      {
+        "key": "@fastify/send@npm:^4.0.0",
+        "version": "4.1.0",
+        "resolution": "@fastify/send@npm:4.1.0",
+        "dependencies": {
+          "@lukeed/ms": "npm:^2.0.2",
+          "escape-html": "npm:~1.0.3",
+          "fast-decode-uri-component": "npm:^1.0.1",
+          "http-errors": "npm:^2.0.0",
+          "mime": "npm:^3"
+        }
+      },
+      {
+        "key": "@fastify/static@npm:^10.1.7",
+        "version": "10.1.7",
+        "resolution": "@fastify/static@npm:10.1.7",
+        "dependencies": {
+          "@fastify/accept-negotiator": "npm:^2.0.0",
+          "@fastify/error": "npm:^4.0.0",
+          "@fastify/send": "npm:^4.0.0",
+          "content-disposition": "npm:^3.0.0",
+          "fastify-plugin": "npm:^6.0.0",
+          "fastq": "npm:^1.17.1",
+          "glob": "npm:^13.0.0"
+        }
+      },
+      {
+        "key": "@nestjs/common@npm:11.1.17, @nestjs/common@npm:^11.1.6",
+        "version": "11.1.17",
+        "resolution": "@nestjs/common@npm:11.1.17",
+        "dependencies": {
+          "file-type": "npm:21.3.2",
+          "iterare": "npm:1.2.1",
+          "load-esm": "npm:1.0.3",
+          "tslib": "npm:2.8.1",
+          "uid": "npm:2.0.2"
+        }
+      },
+      {
+        "key": "@nestjs/core@npm:11.1.17, @nestjs/core@npm:^11.1.6",
+        "version": "11.1.17",
+        "resolution": "@nestjs/core@npm:11.1.17",
+        "dependencies": {
+          "@nuxt/opencollective": "npm:0.4.1",
+          "fast-safe-stringify": "npm:2.1.1",
+          "iterare": "npm:1.2.1",
+          "path-to-regexp": "npm:8.3.0",
+          "tslib": "npm:2.8.1",
+          "uid": "npm:2.0.2"
+        }
+      },
+      {
+        "key": "@nestjs/platform-fastify@npm:~11.1.29",
+        "version": "11.1.29",
+        "resolution": "@nestjs/platform-fastify@npm:11.1.29",
+        "dependencies": {
+          "@fastify/cors": "npm:11.3.0",
+          "@fastify/formbody": "npm:8.0.2",
+          "fast-querystring": "npm:1.1.2",
+          "fastify": "npm:5.11.0",
+          "fastify-plugin": "npm:6.0.0",
+          "find-my-way": "npm:9.7.0",
+          "light-my-request": "npm:6.6.0",
+          "path-to-regexp": "npm:8.4.2",
+          "reusify": "npm:1.1.0",
+          "tslib": "npm:2.8.1"
+        }
+      },
+      {
+        "key": "fastify@npm:5.11.0",
+        "version": "5.11.0",
+        "resolution": "fastify@npm:5.11.0",
+        "dependencies": {
+          "@fastify/ajv-compiler": "npm:^4.0.5",
+          "@fastify/error": "npm:^4.0.0",
+          "@fastify/fast-json-stringify-compiler": "npm:^5.0.0",
+          "@fastify/proxy-addr": "npm:^5.0.0",
+          "abstract-logging": "npm:^2.0.1",
+          "avvio": "npm:^9.0.0",
+          "fast-json-stringify": "npm:^7.0.0",
+          "find-my-way": "npm:^9.6.0",
+          "light-my-request": "npm:^6.0.0",
+          "pino": "npm:^9.14.0 || ^10.1.0",
+          "process-warning": "npm:^5.0.0",
+          "rfdc": "npm:^1.3.1",
+          "secure-json-parse": "npm:^4.0.0",
+          "semver": "npm:^7.6.0",
+          "toad-cache": "npm:^3.7.0"
+        }
+      },
+      {
+        "key": "fastify@npm:^5.0.0",
+        "version": "5.12.1",
+        "resolution": "fastify@npm:5.12.1",
+        "dependencies": {
+          "@fastify/ajv-compiler": "npm:^4.0.5",
+          "@fastify/error": "npm:^4.0.0",
+          "@fastify/fast-json-stringify-compiler": "npm:^5.0.0",
+          "@fastify/proxy-addr": "npm:^5.0.0",
+          "abstract-logging": "npm:^2.0.1",
+          "avvio": "npm:^9.0.0",
+          "fast-json-stringify": "npm:^7.0.0",
+          "find-my-way": "npm:^9.6.0",
+          "light-my-request": "npm:^6.0.0",
+          "pino": "npm:^9.14.0 || ^10.1.0",
+          "process-warning": "npm:^5.1.0",
+          "rfdc": "npm:^1.3.1",
+          "secure-json-parse": "npm:^4.0.0",
+          "semver": "npm:^7.6.0",
+          "toad-cache": "npm:^3.7.0"
+        }
+      },
+      {
+        "key": "fastify@npm:^5.6.0",
+        "version": "5.8.4",
+        "resolution": "fastify@npm:5.8.4",
+        "dependencies": {
+          "@fastify/ajv-compiler": "npm:^4.0.5",
+          "@fastify/error": "npm:^4.0.0",
+          "@fastify/fast-json-stringify-compiler": "npm:^5.0.0",
+          "@fastify/proxy-addr": "npm:^5.0.0",
+          "abstract-logging": "npm:^2.0.1",
+          "avvio": "npm:^9.0.0",
+          "fast-json-stringify": "npm:^6.0.0",
+          "find-my-way": "npm:^9.0.0",
+          "light-my-request": "npm:^6.0.0",
+          "pino": "npm:^9.14.0 || ^10.1.0",
+          "process-warning": "npm:^5.0.0",
+          "rfdc": "npm:^1.3.1",
+          "secure-json-parse": "npm:^4.0.0",
+          "semver": "npm:^7.6.0",
+          "toad-cache": "npm:^3.7.0"
+        }
+      },
+      {
+        "key": "find-my-way@npm:9.7.0",
+        "version": "9.7.0",
+        "resolution": "find-my-way@npm:9.7.0",
+        "dependencies": {
+          "fast-deep-equal": "npm:^3.1.3",
+          "fast-querystring": "npm:^1.0.0",
+          "safe-regex2": "npm:^5.0.0"
+        }
+      },
+      {
+        "key": "find-my-way@npm:^9.0.0",
+        "version": "9.5.0",
+        "resolution": "find-my-way@npm:9.5.0",
+        "dependencies": {
+          "fast-deep-equal": "npm:^3.1.3",
+          "fast-querystring": "npm:^1.0.0",
+          "safe-regex2": "npm:^5.0.0"
+        }
+      },
+      {
+        "key": "find-my-way@npm:^9.6.0",
+        "version": "9.9.0",
+        "resolution": "find-my-way@npm:9.9.0",
+        "dependencies": {
+          "fast-deep-equal": "npm:^3.1.3",
+          "fast-querystring": "npm:^1.0.0",
+          "safe-regex2": "npm:^5.0.0"
+        }
+      },
+      {
+        "key": "nx@npm:23.2.1",
+        "version": "23.2.1",
+        "resolution": "nx@npm:23.2.1",
+        "dependencies": {
+          "@clack/core": "npm:1.4.3",
+          "@clack/prompts": "npm:1.7.0",
+          "@emnapi/core": "npm:1.4.5",
+          "@emnapi/runtime": "npm:1.4.5",
+          "@emnapi/wasi-threads": "npm:1.0.4",
+          "@jest/diff-sequences": "npm:30.0.1",
+          "@napi-rs/wasm-runtime": "npm:0.2.4",
+          "@nx/nx-darwin-arm64": "npm:23.2.1",
+          "@nx/nx-darwin-x64": "npm:23.2.1",
+          "@nx/nx-freebsd-x64": "npm:23.2.1",
+          "@nx/nx-linux-arm-gnueabihf": "npm:23.2.1",
+          "@nx/nx-linux-arm64-gnu": "npm:23.2.1",
+          "@nx/nx-linux-arm64-musl": "npm:23.2.1",
+          "@nx/nx-linux-x64-gnu": "npm:23.2.1",
+          "@nx/nx-linux-x64-musl": "npm:23.2.1",
+          "@nx/nx-win32-arm64-msvc": "npm:23.2.1",
+          "@nx/nx-win32-x64-msvc": "npm:23.2.1",
+          "@tybys/wasm-util": "npm:0.9.0",
+          "@yarnpkg/lockfile": "npm:1.1.0",
+          "@zkochan/js-yaml": "npm:0.0.7",
+          "agent-base": "npm:6.0.2",
+          "ansi-regex": "npm:5.0.1",
+          "ansi-styles": "npm:4.3.0",
+          "argparse": "npm:2.0.1",
+          "asynckit": "npm:0.4.0",
+          "axios": "npm:1.18.1",
+          "balanced-match": "npm:4.0.3",
+          "base64-js": "npm:1.5.1",
+          "bl": "npm:4.1.0",
+          "brace-expansion": "npm:5.0.9",
+          "buffer": "npm:5.7.1",
+          "bundle-name": "npm:4.1.0",
+          "call-bind-apply-helpers": "npm:1.0.2",
+          "chalk": "npm:4.1.2",
+          "cli-cursor": "npm:3.1.0",
+          "cli-spinners": "npm:2.6.1",
+          "cliui": "npm:8.0.1",
+          "clone": "npm:1.0.4",
+          "color-convert": "npm:2.0.1",
+          "color-name": "npm:1.1.4",
+          "combined-stream": "npm:1.0.8",
+          "debug": "npm:4.4.3",
+          "default-browser": "npm:5.2.1",
+          "default-browser-id": "npm:5.0.0",
+          "defaults": "npm:1.0.4",
+          "define-lazy-prop": "npm:3.0.0",
+          "delayed-stream": "npm:1.0.0",
+          "dotenv": "npm:16.4.7",
+          "dotenv-expand": "npm:12.0.3",
+          "dunder-proto": "npm:1.0.1",
+          "ejs": "npm:5.0.1",
+          "emoji-regex": "npm:8.0.0",
+          "end-of-stream": "npm:1.4.5",
+          "es-define-property": "npm:1.0.1",
+          "es-errors": "npm:1.3.0",
+          "es-object-atoms": "npm:1.1.1",
+          "es-set-tostringtag": "npm:2.1.0",
+          "escalade": "npm:3.2.0",
+          "escape-string-regexp": "npm:1.0.5",
+          "fast-string-truncated-width": "npm:3.0.3",
+          "fast-string-width": "npm:3.0.2",
+          "fast-wrap-ansi": "npm:0.2.0",
+          "figures": "npm:3.2.0",
+          "flat": "npm:5.0.2",
+          "follow-redirects": "npm:1.16.0",
+          "form-data": "npm:4.0.6",
+          "fs-constants": "npm:1.0.0",
+          "function-bind": "npm:1.1.2",
+          "get-caller-file": "npm:2.0.5",
+          "get-intrinsic": "npm:1.3.0",
+          "get-proto": "npm:1.0.1",
+          "gopd": "npm:1.2.0",
+          "has-flag": "npm:4.0.0",
+          "has-symbols": "npm:1.1.0",
+          "has-tostringtag": "npm:1.0.2",
+          "hasown": "npm:2.0.4",
+          "https-proxy-agent": "npm:5.0.1",
+          "ieee754": "npm:1.2.1",
+          "ignore": "npm:7.0.5",
+          "inherits": "npm:2.0.4",
+          "is-docker": "npm:3.0.0",
+          "is-fullwidth-code-point": "npm:3.0.0",
+          "is-inside-container": "npm:1.0.0",
+          "is-interactive": "npm:1.0.0",
+          "is-unicode-supported": "npm:0.1.0",
+          "is-wsl": "npm:3.1.0",
+          "isexe": "npm:2.0.0",
+          "json5": "npm:2.2.3",
+          "jsonc-parser": "npm:3.3.1",
+          "lines-and-columns": "npm:2.0.3",
+          "log-symbols": "npm:4.1.0",
+          "math-intrinsics": "npm:1.1.0",
+          "mime-db": "npm:1.52.0",
+          "mime-types": "npm:2.1.35",
+          "mimic-fn": "npm:2.1.0",
+          "minimatch": "npm:10.2.5",
+          "minimist": "npm:1.2.8",
+          "ms": "npm:2.1.3",
+          "npm-run-path": "npm:4.0.1",
+          "once": "npm:1.4.0",
+          "onetime": "npm:5.1.2",
+          "open": "npm:10.1.0",
+          "ora": "npm:5.4.1",
+          "path-key": "npm:3.1.1",
+          "picocolors": "npm:1.1.1",
+          "proxy-from-env": "npm:2.1.0",
+          "readable-stream": "npm:3.6.2",
+          "require-directory": "npm:2.1.1",
+          "resolve.exports": "npm:2.0.3",
+          "restore-cursor": "npm:3.1.0",
+          "run-applescript": "npm:7.0.0",
+          "safe-buffer": "npm:5.2.1",
+          "semver": "npm:7.8.4",
+          "signal-exit": "npm:3.0.7",
+          "sisteransi": "npm:1.0.5",
+          "smol-toml": "npm:1.6.1",
+          "string-width": "npm:4.2.3",
+          "string_decoder": "npm:1.3.0",
+          "strip-ansi": "npm:6.0.1",
+          "strip-bom": "npm:3.0.0",
+          "supports-color": "npm:7.2.0",
+          "tar-stream": "npm:2.2.0",
+          "tmp": "npm:0.2.7",
+          "tsconfig-paths": "npm:4.2.0",
+          "tslib": "npm:2.8.1",
+          "util-deprecate": "npm:1.0.2",
+          "wcwidth": "npm:1.0.1",
+          "which": "npm:3.0.1",
+          "wrap-ansi": "npm:7.0.0",
+          "wrappy": "npm:1.0.2",
+          "y18n": "npm:5.0.8",
+          "yaml": "npm:2.9.0",
+          "yargs": "npm:17.7.2",
+          "yargs-parser": "npm:21.1.1"
+        }
+      },
+      {
+        "key": "typescript@npm:5.8.2",
+        "version": "5.8.2",
+        "resolution": "typescript@npm:5.8.2"
+      },
+      {
+        "key": "typescript@npm:6.0.3, typescript@npm:~6.0.3",
+        "version": "6.0.3",
+        "resolution": "typescript@npm:6.0.3"
+      },
+      {
+        "key": "typescript@patch:typescript@npm%3A5.8.2#optional!builtin<compat/typescript>",
+        "version": "5.8.2",
+        "resolution": "typescript@patch:typescript@npm%3A5.8.2#optional!builtin<compat/typescript>::version=5.8.2&hash=5786d5"
+      },
+      {
+        "key": "typescript@patch:typescript@npm%3A6.0.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A~6.0.3#optional!builtin<compat/typescript>",
+        "version": "6.0.3",
+        "resolution": "typescript@patch:typescript@npm%3A6.0.3#optional!builtin<compat/typescript>::version=6.0.3&hash=5786d5"
+      }
+    ]
+  },
+  "advisorySource": "GitHub global security advisories API, ecosystem=npm, affects=<package>@<version>, per_page=100; all returned sets below fit one page.",
+  "advisories": [
+    {
+      "package": "@nestjs/core@12.5.0",
+      "results": []
+    },
+    {
+      "package": "@nestjs/common@12.5.0",
+      "results": []
+    },
+    {
+      "package": "@nestjs/platform-fastify@12.5.0",
+      "results": []
+    },
+    {
+      "package": "@fastify/send@4.1.0",
+      "results": []
+    },
+    {
+      "package": "@fastify/send@4.2.0",
+      "results": []
+    },
+    {
+      "package": "find-my-way@9.7.0",
+      "results": []
+    },
+    {
+      "package": "find-my-way@9.10.0",
+      "results": []
+    },
+    {
+      "package": "file-type@22.3.0",
+      "results": []
+    },
+    {
+      "package": "fastify@5.12.7",
+      "results": []
+    },
+    {
+      "package": "@fastify/static@10.1.7",
+      "results": []
+    },
+    {
+      "package": "fastify@5.12.8",
+      "results": []
+    },
+    {
+      "package": "@fastify/static@10.1.11",
+      "results": []
+    },
+    {
+      "package": "fastify@5.11.0",
+      "results": [
+        {
+          "ghsa_id": "GHSA-4mh8-r7rc-xpvc",
+          "html_url": "https://github.com/advisories/GHSA-4mh8-r7rc-xpvc",
+          "severity": "medium",
+          "summary": "fastify vulnerable to Denial of Service via unhandled exception on HTTP/2 trailer responses",
+          "vulnerabilities": [
+            {
+              "first_patched_version": "5.12.5",
+              "package": {
+                "ecosystem": "npm",
+                "name": "fastify"
+              },
+              "vulnerable_functions": [],
+              "vulnerable_version_range": "< 5.12.5"
+            }
+          ]
+        },
+        {
+          "ghsa_id": "GHSA-667r-xxjv-c9mm",
+          "html_url": "https://github.com/advisories/GHSA-667r-xxjv-c9mm",
+          "severity": "high",
+          "summary": "fastify vulnerable to request body replacement via an async validation result collision",
+          "vulnerabilities": [
+            {
+              "first_patched_version": "5.12.2",
+              "package": {
+                "ecosystem": "npm",
+                "name": "fastify"
+              },
+              "vulnerable_functions": [],
+              "vulnerable_version_range": "< 5.12.2"
+            }
+          ]
+        },
+        {
+          "ghsa_id": "GHSA-p68q-wchp-6fh7",
+          "html_url": "https://github.com/advisories/GHSA-p68q-wchp-6fh7",
+          "severity": "high",
+          "summary": "fastify vulnerable to authentication bypass via malformed URLs reaching encapsulated not-found handlers",
+          "vulnerabilities": [
+            {
+              "first_patched_version": "5.12.2",
+              "package": {
+                "ecosystem": "npm",
+                "name": "fastify"
+              },
+              "vulnerable_functions": [],
+              "vulnerable_version_range": ">= 4.0.0, < 5.12.2"
+            }
+          ]
+        },
+        {
+          "ghsa_id": "GHSA-hwr6-493r-vm6h",
+          "html_url": "https://github.com/advisories/GHSA-hwr6-493r-vm6h",
+          "severity": "high",
+          "summary": "fastify vulnerable to request validation bypass via skipped boolean false schemas",
+          "vulnerabilities": [
+            {
+              "first_patched_version": "5.12.2",
+              "package": {
+                "ecosystem": "npm",
+                "name": "fastify"
+              },
+              "vulnerable_functions": [],
+              "vulnerable_version_range": "< 5.12.2"
+            }
+          ]
+        },
+        {
+          "ghsa_id": "GHSA-9q9j-q6p8-xq58",
+          "html_url": "https://github.com/advisories/GHSA-9q9j-q6p8-xq58",
+          "severity": "high",
+          "summary": "fastify vulnerable to header validation bypass via incomplete schema case normalization",
+          "vulnerabilities": [
+            {
+              "first_patched_version": "5.12.2",
+              "package": {
+                "ecosystem": "npm",
+                "name": "fastify"
+              },
+              "vulnerable_functions": [],
+              "vulnerable_version_range": "< 5.12.2"
+            }
+          ]
+        },
+        {
+          "ghsa_id": "GHSA-3m5p-2c4r-xxw2",
+          "html_url": "https://github.com/advisories/GHSA-3m5p-2c4r-xxw2",
+          "severity": "medium",
+          "summary": "fastify vulnerable to X-Forwarded-* spoofing under trustProxy hop-count",
+          "vulnerabilities": [
+            {
+              "first_patched_version": "5.12.1",
+              "package": {
+                "ecosystem": "npm",
+                "name": "fastify"
+              },
+              "vulnerable_functions": [],
+              "vulnerable_version_range": ">= 5.8.3, < 5.12.1"
+            }
+          ]
+        },
+        {
+          "ghsa_id": "GHSA-w2qp-rph6-63g4",
+          "html_url": "https://github.com/advisories/GHSA-w2qp-rph6-63g4",
+          "severity": "medium",
+          "summary": "fastify vulnerable to schema validation bypass via root primitive coercion mismatch",
+          "vulnerabilities": [
+            {
+              "first_patched_version": "5.12.1",
+              "package": {
+                "ecosystem": "npm",
+                "name": "fastify"
+              },
+              "vulnerable_functions": [],
+              "vulnerable_version_range": "< 5.12.1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
