@@ -88,6 +88,15 @@ token exchange or the disposition of separate API tokens.
 
 ### Shared bot coordination blocks activation
 
+**14 November update:** Johan approved coordinated protection and rotation across
+the four repositories. The [coordination record](shared-bot-coordination-722.md)
+contains the concrete workflow changes, key-fingerprint inventory, newly created
+environments, verification limits and ordered cutover. This supersedes the earlier
+statement that other repositories are outside the authorized coordination scope.
+The replacement key is not provisioned, old access is not revoked, and activation
+remains paused. The legacy Community workflow cleanup is already on current
+`main`; the historical merge prerequisite below is no longer outstanding.
+
 The owner chose **keep paused; coordinate the shared bot**, rather than create
 a dedicated Community App. Moving the same App's key to Community's protected
 environment, or generating another key for that App, does not isolate Community
