@@ -25,7 +25,12 @@ import {
   MAINTENANCE_ANCHOR,
   validateSsrManifest,
 } from './lines.mjs';
-import { validateProtection, protectionRevision, exactCI } from './github.mjs';
+import {
+  validateProtection,
+  protectionRevision,
+  protectionTimestamp,
+  exactCI,
+} from './github.mjs';
 import { inspectRequest, controllerDigest } from './controller.mjs';
 
 const candidate = 'a'.repeat(40),
@@ -326,6 +331,36 @@ test('source rules require exact strict check, signatures, PRs and no bypass', (
     assert.throws(() => validateProtection(MAINTENANCE_BRANCH, rules, [bad]));
 });
 
+test('protection revision timestamps preserve the instant and reject ambiguous or invalid input', () => {
+  for (const [input, expected] of [
+    ['2026-11-14T23:00:26.072+01:00', '2026-11-14T22:00:26.072Z'],
+    ['2026-11-15T19:26:26.128+01:00', '2026-11-15T18:26:26.128Z'],
+    ['2026-01-01T00:15:00+01:00', '2025-12-31T23:15:00.000Z'],
+    ['2025-12-31T23:15:00-01:00', '2026-01-01T00:15:00.000Z'],
+    ['2024-02-29T12:00:00.1Z', '2024-02-29T12:00:00.100Z'],
+  ])
+    assert.equal(protectionTimestamp(input), expected);
+  for (const invalid of [
+    undefined,
+    null,
+    0,
+    '',
+    'not a date',
+    '2026-11-15',
+    '2026-11-15T15:00:00',
+    '2026-11-15 15:00:00Z',
+    '2026-02-29T15:00:00Z',
+    '2026-04-31T15:00:00Z',
+    '2026-13-15T15:00:00Z',
+    '2026-11-15T24:00:00Z',
+    '2026-11-15T15:00:60Z',
+    '2026-11-15T15:00:00+24:00',
+    '2026-11-15T15:00:00+01:60',
+    '2026-11-15T15:00:00.0001Z',
+  ])
+    assert.throws(() => protectionTimestamp(invalid), /revision timestamp/);
+});
+
 test('hidden bypass lists require an owner snapshot of the same public ruleset revision', () => {
   const rules = [
     'deletion',
@@ -347,7 +382,7 @@ test('hidden bypass lists require an owner snapshot of the same public ruleset r
     source: REPOSITORY,
     source_type: 'Repository',
     enforcement: 'active',
-    updated_at: '2026-11-15T15:00:00Z',
+    updated_at: '2026-11-14T23:00:26.072+01:00',
     rules,
   };
   const snapshot = {
@@ -358,6 +393,39 @@ test('hidden bypass lists require an owner snapshot of the same public ruleset r
     publicDigest: protectionRevision(set),
   };
   validateProtection(MAINTENANCE_BRANCH, rules, [set], [snapshot]);
+  // Regression: the privileged review and the read-only preparation API use
+  // different timestamp representations for the same unchanged GitHub rules.
+  for (const updated_at of [
+    '2026-11-14T22:00:26.072Z',
+    '2026-11-14T22:00:26.072+00:00',
+    '2026-11-14T16:30:26.072-05:30',
+  ]) {
+    const publicSet = { ...set, updated_at };
+    assert.equal(protectionRevision(publicSet), snapshot.publicDigest);
+    validateProtection(MAINTENANCE_BRANCH, rules, [publicSet], [snapshot]);
+    validateProtection(
+      MAINTENANCE_BRANCH,
+      rules,
+      [set],
+      [
+        {
+          ...snapshot,
+          updatedAt: updated_at,
+        },
+      ],
+    );
+  }
+  for (const changed of [
+    { ...set, updated_at: '2026-11-14T22:00:26.073Z' },
+    { ...set, updated_at: '2026-11-14T23:00:26.072Z' },
+    { ...set, conditions: { ref_name: { include: ['~ALL'] } } },
+    { ...set, source: 'anarchitects/another-repository' },
+    { ...set, updated_at: undefined },
+    { ...set, updated_at: '2026-11-14T22:00:26.072' },
+  ])
+    assert.throws(() =>
+      validateProtection(MAINTENANCE_BRANCH, rules, [changed], [snapshot]),
+    );
   assert.throws(() => validateProtection(MAINTENANCE_BRANCH, rules, [set]));
   assert.throws(() =>
     validateProtection(
@@ -379,6 +447,8 @@ test('hidden bypass lists require an owner snapshot of the same public ruleset r
     { ...snapshot, ownerId: 1 },
     { ...snapshot, bypassActors: [{}] },
     { ...snapshot, publicDigest: hash },
+    { ...snapshot, updatedAt: undefined },
+    { ...snapshot, updatedAt: '2026-02-30T23:00:26.072+01:00' },
   ])
     assert.throws(() =>
       validateProtection(MAINTENANCE_BRANCH, rules, [set], [bad]),

@@ -214,6 +214,10 @@ transition question without changing the architecture or adapter scope.
 
 ## Maintenance version proposal and release notes
 
+The proposal below is historical. PRs #763/#764 integrated it; the
+[timestamp correction](#protection-timestamp-correction--15-november-2026)
+updates its controller binding without changing the proposed package version.
+
 The clean main controller at `bc977df` prepared the reviewed maintenance source
 `7ac811e` using `line=nest11`, channel `nest11`, `minimumBump=major` and fresh
 GitHub tags/releases/npm history. **Nx derived `0.3.2 → 0.4.0`**, with no dependent
@@ -312,3 +316,77 @@ release authorization remain pending. The local preparation above started no
 hosted CI and performed no tag, registry mutation, publication, consumer handoff
 message or release activation. Delivery authorization excludes agent CI inspection,
 merges, reruns, hosted release preparation, npm changes, activation and publication.
+
+## Protection timestamp correction — 15 November 2026
+
+Johan merged #763 at main `238ebd3e133b6ece9dd2f189bb72525229bd774f`
+and #764 at maintenance `cb69cc8ae58d0458366ae814884e9f8ea1551511`.
+He then authorized exact source-CI inspection and one preparation after success.
+[Source CI 43763535968](https://github.com/anarchitects/anarchitecture-community/actions/runs/43763535968)
+passed all 12 jobs on attempt 1, including required `main` job `132968025121`.
+[Preparation 43765244067](https://github.com/anarchitects/anarchitecture-community/actions/runs/43765244067)
+used those exact revisions and `line=nest11`, but failed protected-source
+admission with `Hidden bypass list requires owner-reviewed matching ruleset revision`.
+Installation, builds and upload were skipped; the artifact inventory was empty.
+That authorization was consumed; no rerun or publication followed.
+
+Read-only public and privileged API comparisons isolated the mismatch to
+equivalent timestamp spellings. The original checker compared and hashed raw
+strings. The public response uses UTC while the privileged response uses `+01:00`.
+For both rulesets, substituting only the reviewed timestamp spelling reproduced
+the original snapshot digest exactly. Active rules, conditions and verified empty
+bypass lists were unchanged. The failed job did not log its full API response;
+the independent public-response reproduction supplies the diagnostic evidence.
+
+The fix validates a timezone-qualified timestamp with at most millisecond
+precision and normalizes it to UTC before comparison and hashing. It rejects
+invalid calendar dates, missing zones and finer precision rather than guessing
+or silently truncating a revision. Other public fields remain hash-bound;
+revision changes, altered rules, missing/wrong-owner snapshots and visible or
+attested bypass actors still reject. Both snapshots are migrated after the fresh
+unchanged-settings read-back, with no legacy-digest fallback or settings mutation.
+
+| Branch                                        | Canonical revision time    | Canonical public digest                                            |
+| --------------------------------------------- | -------------------------- | ------------------------------------------------------------------ |
+| `main` (14374927)                             | `2026-11-14T22:00:26.072Z` | `9d37d072477f901e8cd12058364384ed4ca34ab75c253bb33f49024f25725aaf` |
+| `maintenance/nest-angular-ssr-0.3` (27324428) | `2026-11-15T18:26:26.128Z` | `6def06cfa7dfdfd5caaaefe30fdc66fc8f290fa7446086e9dd194a9e8d536405` |
+
+Local branches are `fix/release-protection-timestamps-742` for main and
+`chore/ssr-controller-refresh-742` for maintenance. The latter changes only
+`.release/request.json`'s `controllerDigest` to
+`27b4102058103cb724266faf71c8b8783c77f6db2dad379857cf81e3d4457ad5`.
+This digest was calculated from the proposed Git tree using an isolated index
+and the existing controller path selection, not from the unchanged main HEAD.
+It must equal `controllerDigest()` after the reviewed main fix is committed and
+again after integration. The maintenance version remains Nx-derived `0.4.0`,
+channel `nest11`; source baseline, compatibility, manifests, locks and package
+bytes are unchanged. Historical evidence above remains evidence for its original
+source, request and archives, not certification of a new hosted record.
+
+Validation: **45 release-policy tests pass**, including the equivalent-offset
+regression, date/year boundaries, invalid timestamps and unchanged security
+rejection cases. Release-policy configuration, formatting, whitespace and both
+prospective commit/PR-message checks pass. Fresh unauthenticated
+`sourceProtection()` calls pass for both branches with bypass lists hidden and
+all five required effective rules present. No administrative credential is added
+to preparation. Local proof does not claim that a new hosted preparation passed.
+
+Johan authorized committing, pushing and opening both PRs with their normal CI;
+**Johan will inspect PR and post-merge source CI**. He also authorized one new
+main `nest11` / `0.4.0` preparation and its inspection, conditional on his merging
+both PRs, integrated controller/request digest agreement and successful exact
+maintenance-source CI. Preserve that successful run ID and source SHA for dispatch.
+No merge or rerun is delegated. #742 remains open and publication-Blocked.
+#722 trust/activation, exact owner release approval, durable archive copies and
+consumer handoff remain separate unfinished gates.
+
+The preflight reread all 25 Meta ADRs at
+`4f0339d86f0ebfa073173ad307cb67c8d6042bdd` and all nine Community ADRs at
+`238ebd3`, including the maintenance line's historical differences and every
+status. CONTRIBUTING, OWNERSHIP, SDLC, release controls/version/execution,
+CI/protection and #748 guidance were reviewed. Meta0013/0015/0016–0019 and
+Community0007 preserve versioning, cache boundaries, ownership and authorization;
+Community0004 keeps operational evidence here. Meta0022 and Community0005/0006
+retain the accepted lifecycle/compatibility boundaries. No runtime API, adapter,
+dependency or lifecycle decision changes; proposals do not override accepted ADRs.
+No architectural conflict or new policy exception was identified.
