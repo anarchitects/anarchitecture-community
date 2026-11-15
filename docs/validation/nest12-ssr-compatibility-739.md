@@ -8,7 +8,7 @@ Owner: Johan, SSR capability owner. Started 15 November 2026 after accepted
 ## Architecture review and scope
 
 Enumerated and read all 24 Meta ADRs at
-`3899558482b615aa46dd5004eae440d62cd2e222` (verified current main) and all nine
+`3899558482b615aa46dd5004eae440d62cd2e222` (main at initial review) and all nine
 Community ADRs at the base above, including proposed and historical records.
 Reviewed CONTRIBUTING, OWNERSHIP, local SDLC, Modern Angular index/repository
 application/architecture/SSR/testing guides, accepted #736/#737 evidence, #738
@@ -121,8 +121,9 @@ The Nest11 maintenance manifest and its frozen cells remain unchanged.
 The active feature proof now consists of `N12-current` (CJS/ESM) and `N12-split`.
 The existing CI matrix likewise selects only the patched Angular22.2 cell;
 direct and split CI inputs use the same patched train. SSR-local development
-Angular dependencies are pinned to that train so package compilation/tests resolve
-the approved versions without migrating unrelated workspace Angular packages.
+dependencies and the two direct consumer workspaces resolve that train, preserving
+one Angular type identity across their declarations. Root Angular development
+dependencies and other packages' published peer contracts remain unchanged.
 
 Nx23.2.1's `@nx/nest` tooling peers still expect Nest11 and Yarn reports that
 mismatch after the root runtime upgrade. The package build, types, unit checks
@@ -141,7 +142,7 @@ the active support claim. No runtime source or export change was necessary.
 
 ## Remaining gates
 
-Johan's implementation acceptance, authorized push/PR and normal CI, protected
+Johan's implementation acceptance, passing normal CI, protected
 maintenance source preservation before merge, #740 certification, #748 release
 controls and #741 technical readiness remain separate. #722 stays paused and
 #742 alone owns subsequent authorized publication. No tags, publication, channel
@@ -153,3 +154,49 @@ Johan authorized committing, pushing and opening the #739 PR with its normal
 CI run on 15 November 2026. This does not authorize additional hosted monitoring,
 reruns, merging, maintenance protection changes or release actions. Implementation
 acceptance and the documented maintenance-branch merge prerequisite remain open.
+
+## Workspace CI correction — 15 November 2026
+
+The first [PR #756 CI run](https://github.com/anarchitects/anarchitecture-community/actions/runs/43708979805)
+passed the independent Ubuntu/macOS packed-consumer jobs and the active Angular
+matrix, but failed five workspace tasks. The CJS/ESM build and typecheck targets
+resolved root Angular22.1.4 against SSR-local Angular22.2.6, producing incompatible
+`PlatformRef` private declarations. The split backend's three Jest suites could
+not load Nest12 ESM. Prior local packed-consumer installation had left fixture
+`node_modules` directories that concealed the workspace-only resolution failure.
+
+The two direct fixtures are now explicit Yarn workspaces with declared SSR links
+and their own approved Angular22.2 dependencies. Their packed-consumer runner
+copies source and configuration into temporary directories outside the repository,
+substitutes the archive for the workspace dependency and removes source project
+references. It leaves workspace installs and outputs untouched. Root Angular22.1
+remains available to existing Editor.js contracts; no unrelated peer range or
+Forms behavior is changed. The backend retains
+ts-jest for its TypeScript and uses the already installed `@swc/jest` only for
+Nest and content-disposition JavaScript. This also handles Nest's `import.meta`,
+which plain TypeScript CommonJS transformation leaves intact. The obsolete
+JS-only ts-jest configuration is removed. Nx infers the new transformer as a
+test-cache input. See [Jest transformation guidance](https://jestjs.io/docs/code-transformation).
+
+Validation uses Yarn-installed fixture dependencies and Nx cache disabled, so the
+four consumer checks exercise CI's workspace resolution rather than a previous
+packed npm install. The backend passes all three existing tests without mocks of
+Nest or changes to runtime source.
+
+Final local verification passes all 61 build/typecheck/test/lint tasks across
+17 Nest and Editor.js projects with cache disabled, both isolated direct packed
+consumers, all 10 CI-selection tests and immutable Yarn installation. The four
+workspace consumer checks pass again after packed validation, with Yarn's SSR
+source link and Angular22.2 dependencies intact. The refreshed locked proof passes
+all 19 active direct/split checks, including SSR/hydration, on the same tarball
+SHA256 as before the CI correction; its new input hashes are in the companion
+evidence JSON. Hosted success of this correction is still pending normal CI.
+
+Before the correction, reviewed the intervening Meta amendments through
+`4f0339d86f0ebfa073173ad307cb67c8d6042bdd`, including accepted ADR0022 and the
+amendments to Modern Angular0008 and 0009–0012. Latest-stable feature development
+and prospective 90-day previous-major maintenance do not activate a release or
+invent an EOM date. Existing commitments remain protected; #741/#748 must record
+the actual successor publication trigger and owner-reviewed transition. No
+architecture or public compatibility change beyond the approved #737 policy is
+introduced by this correction.

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -78,6 +78,7 @@ async function main() {
           fixtures[fixtureName],
           tarballPath,
           npmCacheDir,
+          tempDir,
         ),
       );
     }
@@ -101,8 +102,37 @@ async function main() {
   }
 }
 
-async function validateFixture(name, fixture, tarballPath, npmCacheDir) {
-  await cleanFixtureInstall(fixture.appDir);
+async function validateFixture(
+  name,
+  source,
+  tarballPath,
+  npmCacheDir,
+  tempDir,
+) {
+  // Keep packed installs outside Yarn's workspaces: neither source links nor
+  // leftovers from this check may satisfy a later workspace build.
+  const fixture = { ...source, appDir: join(tempDir, name) };
+  await mkdir(fixture.appDir);
+  await cp(join(source.appDir, 'src'), join(fixture.appDir, 'src'), {
+    recursive: true,
+  });
+  const manifest = JSON.parse(
+    await readFile(join(source.appDir, 'package.json'), 'utf8'),
+  );
+  manifest.dependencies['@anarchitects/nest-angular-ssr'] = tarballPath;
+  await writeFile(
+    join(fixture.appDir, 'package.json'),
+    JSON.stringify(manifest, null, 2),
+  );
+  const tsconfig = JSON.parse(
+    await readFile(join(source.appDir, 'tsconfig.app.json'), 'utf8'),
+  );
+  // A packed consumer resolves declarations from the archive, not source refs.
+  delete tsconfig.references;
+  await writeFile(
+    join(fixture.appDir, 'tsconfig.app.json'),
+    JSON.stringify(tsconfig, null, 2),
+  );
 
   await runCommand('npm', ['install', '--package-lock=false'], {
     cwd: fixture.appDir,
@@ -111,17 +141,6 @@ async function validateFixture(name, fixture, tarballPath, npmCacheDir) {
       npm_config_cache: npmCacheDir,
     },
   });
-  await runCommand(
-    'npm',
-    ['install', '--package-lock=false', '--no-save', tarballPath],
-    {
-      cwd: fixture.appDir,
-      env: {
-        ...process.env,
-        npm_config_cache: npmCacheDir,
-      },
-    },
-  );
   await runCommand('npm', ['run', 'build'], { cwd: fixture.appDir });
   await assertSsrSecurityConformance(
     fixture.appDir,
@@ -154,12 +173,6 @@ async function validateFixture(name, fixture, tarballPath, npmCacheDir) {
   };
 }
 
-async function cleanFixtureInstall(appDir) {
-  await rm(join(appDir, 'node_modules'), { recursive: true, force: true });
-  await rm(join(appDir, 'package-lock.json'), { force: true });
-  await rm(join(appDir, 'dist'), { recursive: true, force: true });
-}
-
 function renderResults(results) {
   const rows = results
     .map(
@@ -174,8 +187,8 @@ These fixture apps install the packed \`@anarchitects/nest-angular-ssr\` tarball
 
 Each installed consumer also passes static-path/guard, GET/HEAD, API bypass,
 SSR fallback, redirect, cookie, host and proxy-trust conformance. Deployment
-fixtures use the host-owned Fastify 5.12.7 override; the separate compatibility
-matrix checks Nest 11.1.29 with its bundled Fastify. See
+fixtures use Nest 12.5.0 and the host-owned Fastify 5.12.8 override. Each consumer
+installs the archive outside the repository with no workspace source references. See
 [security validation](nest-angular-ssr-security.md) for scope and release gates.
 
 | Fixture | Classification | Mode | Summary |

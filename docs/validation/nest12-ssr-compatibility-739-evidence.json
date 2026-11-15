@@ -4,9 +4,9 @@
   "status": "Owner-approved Angular narrowing implemented; active local compatibility passes; implementation acceptance and certification remain pending",
   "runs": {
     "nest12": {
-      "evidenceDirectory": "dist/validation/nest12-ssr-739/nest12-thiYko",
+      "evidenceDirectory": "dist/validation/nest12-ssr-739/nest12-aikCkY",
       "status": "passed",
-      "sourceCommit": "8ff34b9d627d8031321f5ac45b526ec03ed05578",
+      "sourceCommit": "888491d2f558bfcf2b660d4cd4693c9a1c03e9fd",
       "node": "v24.22.3",
       "npm": "11.19.1",
       "platform": "darwin",
@@ -41,7 +41,7 @@
       "inputs": {
         ".github/workflows/ci.yml": "6d63a357a54f02c5b6229ba8a782d29d90615972cf30f09801934cb7c20c6420",
         "apps/fixtures/nest-angular-split/backend/.spec.swcrc": "1088d15cd8fe8068d19df786712d77f3f82bf64c9168a922753d09334058910f",
-        "apps/fixtures/nest-angular-split/backend/jest.config.cts": "86134eb61307a3cc50b0913e41f0dce12908c48bfa28baf5c20b9d9bf5155f39",
+        "apps/fixtures/nest-angular-split/backend/jest.config.cts": "b34588167d58cd931e5004aa27b086c4cebb616a749c2af16429ec55ede62c34",
         "apps/fixtures/nest-angular-split/backend/package.json": "6c5c5cca707e89b22f2c9ab55aea3968668912abd03839d6d92be4f402f11b02",
         "apps/fixtures/nest-angular-split/backend/project.json": "a5ef53014ac4092d0b7ec3c4422950e368cdcff9fe16260f70f28852274b1a4d",
         "apps/fixtures/nest-angular-split/backend/src/app/app.controller.spec.ts": "4327588ae3b11f6d5f0bb282095022e4ce4667ff484a34b9a238e77f3c1e92c1",
@@ -53,7 +53,6 @@
         "apps/fixtures/nest-angular-split/backend/src/assets/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "apps/fixtures/nest-angular-split/backend/src/main.ts": "60497160e8d93049073012f5750fafcc624800d1b309c5e920ff04e595c0c639",
         "apps/fixtures/nest-angular-split/backend/tsconfig.app.json": "9ee99999e9b30538a7c528eb746428d5c9996e6ba0539e831f68c596aa578b96",
-        "apps/fixtures/nest-angular-split/backend/tsconfig.jest-esm.json": "976e843e7b318c3fa565fc522ec5012cb67ebe0d3932b876c3506df6dc495f88",
         "apps/fixtures/nest-angular-split/backend/tsconfig.json": "db5ee7ada52a355c3351de566ea6ba26428ca0967f8bed512b655ced91bccc40",
         "apps/fixtures/nest-angular-split/backend/tsconfig.spec.json": "380819224c5823a654c763eb3781896d6b3892080852a879b6846f06f52f1e1e",
         "apps/fixtures/nest-angular-split/backend/webpack.config.js": "fc1a293408c5300508197dab4489a9200bc3019716aff75453ded6652addecd8",
@@ -74,7 +73,7 @@
         "apps/fixtures/nest-angular-split/frontend/tsconfig.app.json": "e65e69124853ec928940d4b704e4ba3858e3941d143ca2adf43d692631bcf3e5",
         "apps/fixtures/nest-angular-split/frontend/tsconfig.json": "80542092f2d69c78767adeddf027eff29a8051117cd3463060355a233acf72b5",
         "apps/fixtures/nest-angular-split/tsconfig.base.json": "3c67105a969c48e29c20b13568afc9fe8ca0197d60b4b8bca0f635730fdedb30",
-        "apps/fixtures/nest-cjs-consumer/package.json": "430b695fba652b10c75eddfe037eba01c225626f98f8a3b86d1797a1a0662697",
+        "apps/fixtures/nest-cjs-consumer/package.json": "016523ade35671abdd5abed19fcd2cc0cb128e0534868f5f3e89d596bc3bc9ca",
         "apps/fixtures/nest-cjs-consumer/project.json": "f078d9690521d49cb423711268eb4f59eeb7bd7dbdc904511ad1c21f14aaecf4",
         "apps/fixtures/nest-cjs-consumer/src/app/app.module.ts": "d488df7eee8267a6212cb05c6a6dc0294876f17f7593ae72e13a6dd9d8123902",
         "apps/fixtures/nest-cjs-consumer/src/app/health.controller.ts": "197a42836cd42e79984128c40eca3ec83fc99bb68686d9b5a493d1b55f6727a2",
@@ -86,7 +85,7 @@
         "apps/fixtures/nest-cjs-consumer/src/ssr/angular-ssr-fixture.ts": "5aba1034bc2ac87e11c06fbc38a74d24c1b78c0b58e35d45012c6cd972a1cf21",
         "apps/fixtures/nest-cjs-consumer/tsconfig.app.json": "100bd98831c4d42d2a3bdf0c299e5492f42e552a786fa9a160375e5077fe9765",
         "apps/fixtures/nest-cjs-consumer/tsconfig.json": "6501cb88b12372411564417e5a150095c44edd71c485b14de95e505998f690bb",
-        "apps/fixtures/nest-esm-consumer/package.json": "ac3d88f6604a431fd75bead18f42ba7d2179f24389400e2bb0f6e20a3e1867db",
+        "apps/fixtures/nest-esm-consumer/package.json": "afc4aa3c632c5f18f8cc93ba9ebb6d523161a8755447a6c7da7293f5b9cc806d",
         "apps/fixtures/nest-esm-consumer/project.json": "7f72655fa5036831053e4f5be00b3b727c7621d7f0ae0d6271f5654bbe3a0da5",
         "apps/fixtures/nest-esm-consumer/src/app/app.module.ts": "a416daa7635559b59d9e2a360e53b4029f09bd7a0e7994edbb88e66d5303a356",
         "apps/fixtures/nest-esm-consumer/src/app/health.controller.ts": "197a42836cd42e79984128c40eca3ec83fc99bb68686d9b5a493d1b55f6727a2",
@@ -98,7 +97,7 @@
         "apps/fixtures/nest-esm-consumer/src/ssr/angular-ssr-fixture.ts": "64fccba949d3398026e8e21e4e32f82a35a35f2582d80b4161577c64b1ffbf58",
         "apps/fixtures/nest-esm-consumer/tsconfig.app.json": "9e02b9f276452e1c769b7b154f73b49f71e932db3360d2ed444eafc6420d0482",
         "apps/fixtures/nest-esm-consumer/tsconfig.json": "6501cb88b12372411564417e5a150095c44edd71c485b14de95e505998f690bb",
-        "package.json": "ccf7683072274ea1af5979919e6e22ea6085b469a806425fc7d0a9652987557a",
+        "package.json": "04ff6424c6f6481484bcc9bb63a2e8d0b4853a3a968e380d75c2a3a33905afda",
         "packages/nest/angular-ssr/README.md": "29ec6b7f813ed3fc574f0923b4cd53fa5ae4e7b01ab6749608f297e012421438",
         "packages/nest/angular-ssr/package.json": "db6e7e89885aea50327428dc87822c87f2a5d448e756f09498d07e1545be0fbf",
         "packages/nest/angular-ssr/src/index.ts": "c7e7cb0268400f243aa44d2390c39bcfd03a8701b67b679080a85e77875e3be2",
@@ -155,11 +154,11 @@
         "tools/fixtures/nest-angular-ssr-security-conformance.mjs": "98cfc667660cfc9fc410cf9e6a1ef7323a7ee3aa16112f2384402fe29eaa5e73",
         "tools/fixtures/probe-nest-angular-ssr-consumer.mjs": "60f6ce2d4cce004a30d497b717a85c1529c47932a9109ee94b8dd3506a3bd498",
         "tools/fixtures/refresh-nest-angular-ssr-locks.mjs": "e0f989a689a1ae08ddd200f4edbc1620e3b8a9e418bf0118167f8dc3703ed807",
-        "tools/fixtures/validate-nest-angular-ssr-consumers.mjs": "c0e3ee770c7ef62cafec0dd220bd2e3c13352695aaa53485815f6db7cc051552",
+        "tools/fixtures/validate-nest-angular-ssr-consumers.mjs": "83d3718a50179c5d350b096502400f830f84f7cd718e64659618bc7b84e63f23",
         "tools/fixtures/validate-nest-angular-ssr-locked.mjs": "7dc2b3eb722ee04e493b516f4ff7dd55c221507af04dad4fde7705dd70413657",
         "tools/fixtures/validate-nest-angular-ssr-matrix.mjs": "410da1ee79409a3445e505e6437c9c5add8a2e4e2157432467342025f6e7d901",
         "tools/fixtures/validate-nest-angular-ssr-split.mjs": "6a3f891b38a384b7055f9e5b2b0fcc407d95b2737878089b166851fcf887ea48",
-        "yarn.lock": "a6c71001e41dde8ebb7fb6af3c5757f1d9891f46234dddc6ff7959f85095959a"
+        "yarn.lock": "58f65f8f3b5bf5efcad2e7623ee0bff84e5be9991550353cd0406339ebbf5bc7"
       },
       "cells": [
         {
@@ -1460,5 +1459,22 @@
     "angularSsr": "~22.2.7",
     "historicalCell": "N12-reference",
     "nest11PolicyChanged": false
+  },
+  "workspaceCiCorrection": {
+    "date": "2026-11-15",
+    "failedRun": "https://github.com/anarchitects/anarchitecture-community/actions/runs/43708979805",
+    "baseCommit": "888491d2f558bfcf2b660d4cd4693c9a1c03e9fd",
+    "previousEvidenceDirectory": "dist/validation/nest12-ssr-739/nest12-thiYko",
+    "previousArchiveSha256": "836df6f722329c46ecf2af7a608d85004d8fdd71f4f1aa4953881f29019d5262",
+    "workspaceTasks": 61,
+    "workspaceProjects": 17,
+    "workspaceCache": "disabled",
+    "directPackedConsumers": ["nest-cjs-consumer", "nest-esm-consumer"],
+    "ciSelectionTests": 10,
+    "consumerBuildAndTypecheckAfterPackedValidation": "passed",
+    "immutableYarnInstall": "passed",
+    "rootAngularBaselineUnchanged": true,
+    "metaAdrRevision": "4f0339d86f0ebfa073173ad307cb67c8d6042bdd",
+    "hostedFixResult": "pending normal CI"
   }
 }
