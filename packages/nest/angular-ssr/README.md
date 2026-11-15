@@ -10,7 +10,7 @@ This package provides three usage levels:
 
 ## Support matrix
 
-Release `0.3.x` supports Node 24, NestJS 11 (Fastify adapter 11.1.29 or later), Fastify 5, and these tested
+This Nest 11 maintenance source requires Node 24, NestJS 11 (Fastify adapter 11.2.10 or later), Fastify 5, and these tested
 Angular/Nx combinations. Nx is test infrastructure, not a peer dependency of
 this library.
 
@@ -46,7 +46,7 @@ The compatibility result above is backed by the fixture validation note at [`doc
 
 ## Requirements
 
-- NestJS 11 with `@nestjs/platform-fastify` 11.1.29 or later within major 11
+- NestJS 11 with `@nestjs/platform-fastify` 11.2.10 or later within major 11
 - Angular 21 or 22 SSR built on `@angular/ssr`
 - A built Angular `outputMode: "server"` application (recommended), or the
   legacy app-owned bootstrap/template inputs
@@ -59,10 +59,12 @@ Peer dependencies:
 - `@nestjs/platform-fastify`
 - `fastify`
 
-The static-file dependency is `@fastify/static ^10.1.7`, which supports Fastify
-5. Upgrade the Nest Fastify adapter to at least 11.1.29 before installing this
-maintenance update; older adapters declare incompatible optional static-plugin
-peers. No Nest 12 support is implied.
+The static-file dependency is `@fastify/static ^10.1.7`, which supports Fastify 5. Upgrade the Nest Fastify adapter to at least 11.2.10 before installing this
+maintenance update. This raises the previous 11.1.29 minimum: a Fastify override
+does not fix the adapter's path-scoped middleware bypass
+([GHSA-9c5c-9qcx-q35q](https://github.com/advisories/GHSA-9c5c-9qcx-q35q)).
+Use coherent Nest 11 package versions and independently patched Angular packages.
+No Nest 12 support is implied.
 
 ### Static files and reverse proxies
 
