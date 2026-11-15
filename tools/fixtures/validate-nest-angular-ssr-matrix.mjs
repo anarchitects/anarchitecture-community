@@ -79,8 +79,12 @@ async function validateCell(name, versions, tarballPath, npmCache) {
     // Fastify; deployment/security coverage uses the patched host override.
     delete packageJson.overrides;
     // Prove the first Nest 11 adapter release that supports static 10.
-    for (const dependency of ['@nestjs/common', '@nestjs/core', '@nestjs/platform-fastify']) {
-      packageJson.dependencies[dependency] = '11.1.29';
+    for (const dependency of [
+      '@nestjs/common',
+      '@nestjs/core',
+      '@nestjs/platform-fastify',
+    ]) {
+      packageJson.dependencies[dependency] = '11.2.10';
     }
     packageJson.devDependencies.nx = versions.nx;
     packageJson.devDependencies.typescript = versions.typescript;

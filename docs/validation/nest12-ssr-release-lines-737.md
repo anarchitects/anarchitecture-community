@@ -35,6 +35,23 @@ is required for an independently validated Fastify-only Nest 12 release. Preserv
 the separately reviewed native-Node-first implementation sequencing; this decision
 does not select which new adapter lands first or change any default.
 
+## Amendment — 15 November 2026: patched Angular feature baseline
+
+During #739, a fresh audit of the original Angular22.1.4/SSR22.1.6 reference
+lock identified SSR-related advisories. Johan explicitly approved narrowing the
+initial Nest12 installation policy to **Angular framework `~22.2.6` and SSR
+`~22.2.7`**. Exact proof uses framework22.2.6, SSR/build22.2.7, TypeScript6.0.3
+and isolated Nx24.0.6 consumers. The earlier reference remains historical
+compatibility evidence, not an advertised or required feature-line support cell.
+
+This amendment supersedes only the initial feature-line Angular ranges and their
+reference-cell requirement below. Nest11's published peer contracts and patch-only
+maintenance policy are unchanged; those historical dependencies still require
+independent security review before a maintenance release. Nest, Fastify, Node,
+release-line/channel policy and #740 certification remain unchanged. See the
+[#739 evidence](nest12-ssr-compatibility-739.md). Acceptance of this narrower
+policy does not authorize publication or declare production readiness.
+
 ## Evidence and architecture boundaries
 
 Reviewed Community `27b5f66bf5e3fcf9429df0c73d22c0b232194980`, with merged ADR0005
@@ -68,14 +85,14 @@ manifest. No range is advertised until the corresponding #740 evidence passes.
 Use exact versions in reviewed consumer locks; install without force/legacy-peer
 bypasses, source aliases or workspace dependency leakage.
 
-| Concern                              | Initial Nest 12 candidate policy                                                                                         | Nest 11 maintenance policy                                                                                                                                                  |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | --- | ------------------------------------------------------------------------------------------------------------ |
-| Nest common/core/platform-fastify    | `~12.5.0` for each; first locked proof uses coherent `12.5.0`. Do not infer a `12.0.0` or native `12.3.0` support floor. | Retain published common/core `^11.0.0` and adapter `^11.1.29` installation contracts; current security proof target is coherent `11.2.10`.                                  |
-| Angular core/platform-browser/router | `~22.1.4                                                                                                                 |                                                                                                                                                                             | ~22.2.6`; coherent framework versions per fixture      | Retain `^21.0.0                                                                                    |     | ^22.0.0`; preserve the audit's Angular 21.2.0 and 22.1.4 maintenance cells and existing historical evidence. |
-| Angular SSR                          | `~22.1.6                                                                                                                 |                                                                                                                                                                             | ~22.2.7`; match the corresponding framework/build cell | Preserve the existing peer contract; pin the distinct SSR/build train in each maintenance fixture. |
-| Fastify/static                       | Fastify peer `~5.12.8`; static dependency `~10.1.11`; initially lock `5.12.8` / `10.1.11` and audit every nested copy    | Keep the public Fastify `^5.0.0` installation contract. Security-current fixtures resolve `5.12.8` / `10.1.11`; any dependency-floor tightening needs compatibility review. |
-| Node                                 | Engine policy `>=24.22.3 <25`; initial proof exactly `24.22.3`                                                           | Do not add a restrictive engine as an unreviewed patch change. Existing declared contracts remain; the current maintenance proof uses `24.22.3`.                            |
-| Tooling                              | TS `6.0.3`; Nx `23.2.1` for Angular22.1, `24.0.6` for Angular22.2                                                        | Audit cells retain TS5.9.3/Nx22.6.0 or 23.1.2 for Angular21; TS6.0.3/Nx23.2.1 for Angular22.1.                                                                              |
+| Concern                              | Initial Nest 12 candidate policy (as amended)                    | Nest 11 maintenance policy                                                                                                 |
+| ------------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Nest common/core/platform-fastify    | `~12.5.0` each; coherent 12.5.0 proof                            | Retain common/core `^11.0.0`; next Nest 11 source requires adapter `^11.2.10` (15 November security-floor amendment below) |
+| Angular core/platform-browser/router | `~22.2.6`; coherent 22.2.6 proof                                 | Retain `^21.0.0 \|\| ^22.0.0`; existing maintenance cells/contracts remain                                                 |
+| Angular SSR                          | `~22.2.7`; SSR/build22.2.7 with framework22.2.6                  | Preserve existing peer contract and separately pinned SSR/build train                                                      |
+| Fastify/static                       | Fastify `~5.12.8`; static `~10.1.11`; exact proof 5.12.8/10.1.11 | Keep Fastify `^5.0.0`; patched proof and any floor tightening require review                                               |
+| Node                                 | `>=24.22.3 <25`; exact proof 24.22.3                             | No restrictive engine added as an unreviewed patch; current proof uses 24.22.3                                             |
+| Tooling                              | TS6.0.3, isolated Nx24.0.6 for Angular22.2                       | Retain TS5.9.3/Nx22.6.0 or 23.1.2 for Angular21, TS6.0.3/Nx23.2.1 for Angular22.1                                          |
 
 These deliberately bounded feature-line ranges admit compatible patches within
 the selected minor trains, not untested Nest/Angular minors. Range syntax is an
@@ -88,7 +105,7 @@ form coherent cells, not an arbitrary Cartesian product of the table.
 
 Retain CJS and ESM public loading and strict declaration resolution; require the
 real split Angular ESM-server/CJS Nest-host and hydration proof. Node22/26,
-Angular21 on Nest12, Nest12 minors below12.5, and native Node/Express support are
+Angular21/22.1 on Nest12, Nest12 minors below12.5, and native Node/Express support are
 outside the initial Fastify certification. Native Node is an approved target
 under ADR0005; its own version/peer selection and optional adapter imports must
 be coordinated through #33/#42/#43 without a second release-line policy.
@@ -101,23 +118,34 @@ tree is secure. The audit found vulnerable nested Fastify5.11.0 under adapter
 within Nest11 to the coherent 11.2.10 security-current target, followed by the
 locked conformance and full-tree audit. Do not rewrite historical test results.
 
-To retain the old adapter floor in a future maintenance release, #738 must add a
-distinct bounded compatibility fixture for 11.1.29 with a **consumer-root override**
-that resolves every relevant Fastify copy to the reviewed patched version, and
-prove it with #740. Document that explicit consumer configuration and verify its
-installed tree; a dependency package's own override cannot fix downstream installs.
-The unmodified vulnerable tree remains historical evidence, not an approved
-deployment recommendation. No hidden package override or weakened security gate
-is an acceptable substitute.
-[npm root-override semantics](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/#overrides).
+### Accepted security-floor amendment — 15 November 2026
 
-If that patched old-floor fixture cannot preserve the contract, stop maintenance
-publication and return to Johan with an explicit floor-change decision. Raising
-the advertised Nest/Angular/Node floor or removing a public API is not a silent
-`0.3.x` patch. It requires a reviewed breaking migration and another available
-minor/version-line decision under ADR0007; do not reuse the Nest12 `0.4.x` identity
-for incompatible Nest11 artifacts. This contingency does not assert that the
-old-floor fixture already passes or authorize a policy exception.
+Johan explicitly directed: “tighten the published minimum now, decision on
+compatibility/version-line is explicitly made now”. The next Nest 11 package
+requires **`@nestjs/platform-fastify ^11.2.10`**, the coherent baseline already
+validated in the maintenance cells. This supersedes the earlier conditional
+retention of adapter11.1.29 with a Fastify override. The fresh #740 audit identifies
+[GHSA-9c5c-9qcx-q35q](https://github.com/advisories/GHSA-9c5c-9qcx-q35q) in the
+adapter itself; replacing Fastify alone cannot repair it. The upstream11.2.4 fix
+is included in11.2.10. No lower patched version is claimed as a tested minimum.
+
+The compatibility impact is accepted: consumers below adapter11.2.10 must upgrade.
+Record the implementation with breaking Conventional Commit intent. Under ADR0007
+it requires a distinct Nest 11 successor minor, not an ordinary `0.3.x` patch;
+keep it separate from the Nest12 feature line and do not reuse that line's version
+identity. Nx and #748/#741 must derive and verify an unused version from the actual
+branch/global history at release preparation. This is implementation of an accepted
+compatibility decision, not another pending request to approve the minimum.
+No manifest version is manually reserved, no existing npm version is rewritten,
+and no release/channel action is authorized by this decision.
+
+Preserve the original11.1.29 lock and successful historical compatibility evidence,
+but exclude that cell from current maintenance selection. A strict clean install
+of the new archive must reject that old floor. Active Nest11 cells use11.2.10 and
+must prove path-scoped middleware behavior on real origin/absolute-form HTTP targets.
+Historical Angular advisories remain a separate maintenance security gate; the
+adapter change does not certify those dependencies. The Nest12 manifest remains
+on12.5.0. #748 owns protected source/release execution and #722 stays paused.
 
 ## Branch, backport and channel routing
 

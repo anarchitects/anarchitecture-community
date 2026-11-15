@@ -10,19 +10,61 @@ This package provides three usage levels:
 
 ## Support matrix
 
-Release `0.3.x` supports Node 24, NestJS 11 (Fastify adapter 11.1.29 or later), Fastify 5, and these tested
-Angular/Nx combinations. Nx is test infrastructure, not a peer dependency of
-this library.
+This is the **unreleased Nest 11 maintenance successor** to `0.3.x`. It raises the
+Fastify adapter minimum to `^11.2.10` and must receive a distinct unused minor
+version before publication. The working `0.3.2` manifest is not a replacement for
+the already published package. No Nest 12 support is included.
 
-| Angular | TypeScript | Nx             | Status    |
-| ------- | ---------- | -------------- | --------- |
-| 21.2    | 5.9        | 22.6 (minimum) | Supported |
-| 21.2    | 5.9        | 23.1           | Supported |
-| 22      | 6.0        | 23.1           | Supported |
+| Nest common/core/platform-fastify | Angular framework | SSR/build | TypeScript | Nx tooling        | Consumer shapes                                                    |
+| --------------------------------- | ----------------- | --------- | ---------- | ----------------- | ------------------------------------------------------------------ |
+| 11.2.10                           | 21.2.26           | 21.2.30   | 5.9.3      | 22.6.0 and 23.1.2 | CJS and ESM Nest                                                   |
+| 11.2.10                           | 22.2.6            | 22.2.7    | 6.0.3      | 23.2.1            | CJS and ESM Nest; split Angular ESM server/CJS Nest with hydration |
 
-The cells are centrally defined in
-[`tools/fixtures/nest-angular-ssr-compatibility-matrix.json`](../../../tools/fixtures/nest-angular-ssr-compatibility-matrix.json)
-and run as isolated packed-tarball consumers in CI.
+Exact proof uses Node 24.22.3, Fastify 5.12.8 and static 10.1.11. Nx is tooling,
+not a runtime peer. The manifest preserves Nest common/core `^11.0.0`, Angular
+`^21.0.0 || ^22.0.0` and Fastify `^5.0.0`; this is not a security claim for every
+older patch or every cross-product. Use the coherent patched combinations above.
+Native Node and Express are not supported by this implementation.
+
+### Installation and migration
+
+Set `SSR_VERSION` to the actually published, reviewed Nest 11 successor once it
+is available. Do not install the Nest 12 line into a Nest 11 host.
+
+```sh
+: "${SSR_VERSION:?Set an approved published Nest 11 successor version}"
+npm install --save-exact "@anarchitects/nest-angular-ssr@${SSR_VERSION}" \
+  @nestjs/common@11.2.10 @nestjs/core@11.2.10 @nestjs/platform-fastify@11.2.10 \
+  fastify@5.12.8 reflect-metadata@0.2.2 rxjs@7.8.2 \
+  @angular/common@21.2.26 @angular/compiler@21.2.26 @angular/core@21.2.26 \
+  @angular/platform-browser@21.2.26 @angular/platform-server@21.2.26 \
+  @angular/router@21.2.26 @angular/ssr@21.2.30
+```
+
+For Angular 22, select all framework packages at 22.2.6 and SSR/build at 22.2.7
+instead. Build Angular with its compatible application toolchain before starting
+Nest. The package does not generate an Angular application or require Nx at runtime.
+
+Upgrade coherent Nest 11 packages to 11.2.10 or a separately verified patch.
+A top-level Fastify override does not fix the older adapter's path-scoped
+middleware bypass. The previous 11.1.29 floor is rejected by this package. Keep
+Angular framework/compiler packages coherent, refresh the complete lockfile and
+check runtime advisories; do not bypass peer or engine checks. Existing public
+module/bootstrap and low-level signatures remain unchanged. Verify API misses,
+SSR, hydration, assets, host/proxy handling, cookies, redirects and HEAD in your
+application. Restore the previous reviewed application artifact and full lockfile
+together if its owner authorizes rollback.
+
+The intended maintenance channel is `nest11`; it is not yet established by this
+source tree. Pin a reviewed version and lockfile. This line receives only
+security and critical-defect fixes, with new features on the separately released
+Nest 12 line. That migration requires Node `>=24.22.3 <25`, Nest `~12.5.0`, Angular
+framework `~22.2.6` and SSR `~22.2.7`; keep Fastify explicitly selected.
+
+Previous-major maintenance is 90 calendar days from this package's first verified
+generally available successor-major release, independently for Nest and Angular.
+Existing commitments are reviewed before dates are announced. No EOM date is
+invented here; older immutable artifacts remain available after maintenance ends.
 
 ## Runtime support
 
@@ -42,27 +84,29 @@ Validated consumer compatibility:
 | CommonJS-oriented Nest app | Supported | Direct module import works |
 | ESM Nest app               | Supported | Direct module import works |
 
-The compatibility result above is backed by the fixture validation note at [`docs/validation/nest-angular-ssr-consumers.md`](../../../docs/validation/nest-angular-ssr-consumers.md).
+These shapes describe the bounded versions above. The host owns its build,
+application providers, authentication, authorization, persistence and deployment.
+The package owns the SSR bridge, browser-asset routing and Nest integration;
+it does not install auth, mail or schema-validation infrastructure.
 
 ## Requirements
 
-- NestJS 11 with `@nestjs/platform-fastify` 11.1.29 or later within major 11
-- Angular 21 or 22 SSR built on `@angular/ssr`
-- A built Angular `outputMode: "server"` application (recommended), or the
-  legacy app-owned bootstrap/template inputs
+- NestJS common/core `^11.0.0` and platform-fastify `^11.2.10`
+- Angular core/platform-browser/router/SSR `^21.0.0 || ^22.0.0`, using a coherent
+  patched combination from the table above
+- Fastify `^5.0.0` and reflect-metadata `^0.2.0`
+- A built Angular `outputMode: "server"` application, or legacy app-owned
+  bootstrap/template inputs
 
-Peer dependencies:
+The runtime dependency is `@fastify/static ^10.1.7`; the tested installation
+resolves 10.1.11. The host explicitly selects and configures `FastifyAdapter`.
 
-- `@angular/ssr`
-- `@nestjs/common`
-- `@nestjs/core`
-- `@nestjs/platform-fastify`
-- `fastify`
-
-The static-file dependency is `@fastify/static ^10.1.7`, which supports Fastify
-5. Upgrade the Nest Fastify adapter to at least 11.1.29 before installing this
-maintenance update; older adapters declare incompatible optional static-plugin
-peers. No Nest 12 support is implied.
+Responses retain the existing buffered body behavior; streaming/backpressure parity
+with other HTTP adapters is not claimed. The bridge reads the complete Web Response
+before sending it, including for HEAD requests; use bounded response bodies.
+Client disconnects do not abort the renderer's `Request.signal`. Applications
+that need cancellable rendering or streaming must supply those capabilities outside
+this bridge. Renderer and body-read failures use Nest's normal exception handling.
 
 ### Static files and reverse proxies
 
@@ -102,20 +146,87 @@ assets and Angular ESM server bundle under the single output root. The runtime
 import is safe when this Nest entry is compiled into a CommonJS webpack bundle.
 
 ```ts
-await bootstrapNestAngularSsr(app, {
-  angular: {
-    buildOutput: {
-      root: 'dist/apps/frontend',
-      // Optional overrides:
-      // serverBundleCandidates: ['server/server.mjs'],
-      // engineExport: 'angularSsrEngine',
-    },
-    allowedHosts: ['localhost', '127.0.0.1'],
-  },
-  routing: { apiPrefix: 'api' },
-});
+// backend/src/main.ts (AppModule contains the application's Nest API modules)
+import 'reflect-metadata';
+import { NestFactory } from '@nestjs/core';
+import {
+  FastifyAdapter,
+  type NestFastifyApplication,
+} from '@nestjs/platform-fastify';
+import { bootstrapNestAngularSsr } from '@anarchitects/nest-angular-ssr';
+import { AppModule } from './app.module.js';
 
-await app.listen(3000, '0.0.0.0');
+async function main() {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter(),
+  );
+  app.setGlobalPrefix('api');
+
+  await bootstrapNestAngularSsr(app, {
+    angular: {
+      buildOutput: {
+        root: 'dist/apps/frontend',
+        // Optional overrides:
+        // serverBundleCandidates: ['server/server.mjs'],
+        // engineExport: 'angularSsrEngine',
+      },
+      allowedHosts: ['localhost', '127.0.0.1'],
+    },
+    routing: { apiPrefix: 'api' },
+  });
+
+  await app.listen(3000, '0.0.0.0');
+}
+
+void main();
+```
+
+The Angular application must already have its normal browser bootstrap, server
+bootstrap, server-rendered routes and hydration providers configured. Build it
+with its application builder before starting the compiled Nest host. Run Nest
+from the directory against which `dist/apps/frontend` resolves. A browser GET to
+`http://localhost:3000/` should return rendered application HTML and hydrate;
+`/api/...` stays with Nest, including API 404s.
+
+For module-driven startup, replace the explicit helper call with this import in
+your application module and keep the same Fastify bootstrap and global prefix:
+
+```ts
+import { Module } from '@nestjs/common';
+import { NestAngularSsrModule } from '@anarchitects/nest-angular-ssr';
+
+@Module({
+  imports: [
+    NestAngularSsrModule.forRoot({
+      angular: {
+        buildOutput: { root: 'dist/apps/frontend' },
+        allowedHosts: ['localhost', '127.0.0.1'],
+      },
+      routing: { apiPrefix: 'api' },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+Register SSR once: choose the module lifecycle **or** explicit bootstrap. Do not
+call both for the same app. `forRootAsync` accepts `imports`, `inject` and an
+async `useFactory` returning the same options. For environment-only configuration:
+
+```ts
+NestAngularSsrModule.forRootAsync({
+  useFactory: async () => ({
+    enabled: process.env['SSR_ENABLED'] !== 'false',
+    angular: {
+      buildOutput: {
+        root: process.env['WEB_OUTPUT_ROOT'] ?? 'dist/apps/frontend',
+      },
+      allowedHosts: ['localhost', '127.0.0.1'],
+    },
+    routing: { apiPrefix: 'api' },
+  }),
+});
 ```
 
 For customized split deployments, explicit bootstrap is the recommended
@@ -197,21 +308,6 @@ Notes:
 - `@angular/compiler` may be required by this direct-source/JIT path. It is not
   loaded or required by the recommended build-output path.
 
-```ts
-NestAngularSsrModule.forRootAsync({
-  inject: [ConfigService],
-  useFactory: (config: ConfigService) => ({
-    angular: {
-      bootstrap: async () => bootstrapServerApplication,
-      templatePath: config.getOrThrow<string>('WEB_INDEX_SERVER_TEMPLATE'),
-    },
-    routing: {
-      browserAssetsDir: config.getOrThrow<string>('WEB_BROWSER_ASSETS_DIR'),
-    },
-  }),
-});
-```
-
 ### Explicit Bootstrap Helper (legacy inputs)
 
 Use this when you want explicit bootstrap wiring in `main.ts`.
@@ -284,7 +380,7 @@ const registration = await createAngularSsrRegistration({
 These APIs keep the public boundary small:
 
 - SSR core stays on Web `Request` / `Response`
-- Nest integration is Fastify-only in v1
+- Nest integration is Fastify-only in this release line
 - routing and bootstrap remain explicit concerns
 
 ## Render observability
@@ -379,7 +475,7 @@ and its bypass events.
 ### Metrics and structured logging adapters
 
 Copy the following complete, application-owned adapters into `observability.ts`.
-The [checked-in example](examples/observability.ts) is typechecked and exercised
+The [checked-in example](https://github.com/anarchitects/anarchitecture-community/blob/main/packages/nest/angular-ssr/examples/observability.ts) is typechecked and exercised
 by the package's unit and end-to-end tests. These functions are examples, not
 runtime exports. They use structural counter, histogram, and log sinks; the
 package does not depend on Prometheus, OpenTelemetry, or a logging library.
@@ -637,39 +733,26 @@ request IDs, and the original error. Allowlist and redact any extra log fields
 before adding them; avoid serializing the entire lifecycle event. Configure
 `applicationId` with a non-sensitive value.
 
-Future [cache work (#34)](https://github.com/anarchitects/anarchitecture-community/issues/34)
-can extend the event union with namespaced cache events using the same observer
-and shared metadata. No cache events, cache metrics, or caching behavior exist
-yet; render counters must not count future cache events as render attempts.
-[Multi-app work (#37)](https://github.com/anarchitects/anarchitecture-community/issues/37)
-can use the existing optional `applicationId` to distinguish applications.
-This identifier does not implement app selection or multi-app orchestration.
+No cache behavior or multi-application orchestration is implemented. The optional
+`applicationId` labels observations; it does not select an Angular application.
 Review exhaustive event switches when upgrading to newly added event variants.
 
-### Validation and release notes
+## Public API and configuration
 
-The routing/observability end-to-end test follows success, null, error, API
-bypass, asset serving, and host rejection through a real Nest/Fastify app and
-the instrumented renderer, then checks metric updates and structured records.
-Other tests cover all three bootstrap paths, observer failures, concurrent
-renders, and deterministic timing.
+Import runtime functions and types from `@anarchitects/nest-angular-ssr` only;
+`./package.json` is the other supported package entry point. Use the module or
+bootstrap helper for normal composition; direct renderer, integration, route
+registration and `resolveAngularSsrBuildOutput` are advanced public entry points.
 
-From the repository root, the complete release gate is:
-
-```sh
-yarn nx sync
-yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-release-gate
-```
-
-It runs package build/typecheck/test/lint, packed CommonJS and ESM consumers,
-the split Angular/Nest fixture, and all Angular/Nx compatibility cells. It
-requires Node 24, registry access, and local fixture ports 3311, 3312, and 3320.
-Review any fixture reference changes from `nx sync` separately from package
-changes. See [unreleased observability notes](RELEASE_NOTES.md) for the rollout
-and compatibility details.
-
-## Existing Option Shapes
-
+- `AngularSsrBuildOutputOptions`
+  - `buildOutput.root: string` (resolved from the process working directory)
+  - `buildOutput.browserAssetsDir?: string` (default `browser`, relative to root)
+  - `buildOutput.serverBundleCandidates?: readonly string[]` (default
+    `server/server.mjs`, `server/main.server.mjs`, `server/main.mjs`, in order)
+  - `buildOutput.engineExport?: string` (default `angularSsrEngine`)
+  - `buildOutput.importStrategy?: 'runtime' | 'native'` (default `runtime`;
+    preserves dynamic import through CJS bundling)
+  - `allowedHosts?: readonly string[]`
 - `AngularSsrRegistrationOptions`
   - `bootstrap: AngularSsrServerBootstrapLoader`
   - `templatePath: string`
@@ -709,6 +792,16 @@ and compatibility details.
 - `NestAngularSsrModuleOptions<TContext>`
   - alias of `BootstrapNestAngularSsrOptions<TContext>`
 
+`enabled` defaults to true; false returns before loading frontend files. In
+build-output mode, explicit `routing.browserAssetsDir` and `routing.allowedHosts`
+override derived assets and `angular.allowedHosts`. Configure the exported Angular
+engine's own host allowlist separately. In legacy registration mode,
+`angular.allowedHosts` configures the engine; set `routing.allowedHosts` as well
+when you want to restrict the routing/static-asset boundary. An absent or empty
+routing allowlist does not restrict hosts. Explicit `routing.apiPrefix` overrides
+the Nest global prefix; an empty value disables bypass. Without either, there is
+no API prefix. Prefix matching includes the exact prefix and its slash descendants.
+
 The mutually exclusive pairs are enforced in code:
 
 - renderer `registration` vs `engine`
@@ -720,7 +813,7 @@ The mutually exclusive pairs are enforced in code:
 
 ## Constraints and Non-Goals
 
-v1 intentionally does not do the following:
+This implementation does not do the following:
 
 - support Express or non-Fastify Nest adapters
 - use `ServeStaticModule`
@@ -742,11 +835,26 @@ This package is intentionally scoped to modern Angular SSR on Nest + Fastify.
   configure `engineExport` to match your chosen name.
 - `request host is not allowed`: add the public hostname to `allowedHosts`.
   Rejected hosts deliberately return HTTP 400 instead of an empty CSR shell.
+- Peer/engine install errors: check the selected package line, Node patch and
+  coherent framework versions; do not use `--force` or `--legacy-peer-deps`.
+- `ERR_REQUIRE_ESM`: use the tested Node 24 line;
+  keep Angular's split server output ESM and use the runtime import strategy.
+- Duplicate-route errors: remove either the module registration or explicit helper.
+- API misses render HTML: match `routing.apiPrefix` to the Nest global prefix.
+- Large or endless response bodies: this bridge buffers them; it is unsuitable
+  for unbounded streams. Client disconnects do not cancel Angular rendering.
+- Hydration mismatches: keep initial server/client DOM consistent, isolate request
+  state and exclude browser-only imports from server evaluation. The host owns
+  hydration providers and safe transfer-cache configuration.
 - Do not import or instantiate `AngularNodeAppEngine` in Nest for split mode;
   the single engine instance must be owned by the Angular server bundle.
+
+For help, report a minimal reproduction with exact package/framework versions in
+the [issue tracker](https://github.com/anarchitects/anarchitecture-community/issues).
+Do not include credentials, private request data or tokens.
 
 ## License
 
 Copyright © 2026 Optimalist BV and Anarchitects contributors.
 
-Licensed under the Apache License, Version 2.0. See the repository [LICENSE](../../../LICENSE) and [NOTICE](../../../NOTICE) files.
+Licensed under the Apache License, Version 2.0. See the repository [LICENSE](https://github.com/anarchitects/anarchitecture-community/blob/main/LICENSE) and [NOTICE](https://github.com/anarchitects/anarchitecture-community/blob/main/NOTICE) files.
