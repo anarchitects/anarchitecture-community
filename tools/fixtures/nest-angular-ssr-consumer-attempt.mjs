@@ -7,13 +7,17 @@ export async function runFixtureAttempt(
   name,
   fixture,
   attempt,
-  { startupTimeoutMs = 20_000, shutdownTimeoutMs = 2_000 } = {},
+  {
+    startupTimeoutMs = 20_000,
+    shutdownTimeoutMs = 2_000,
+    verify = assertHttpBehavior,
+  } = {},
 ) {
   const grouped = process.platform !== 'win32';
-  const child = spawn(process.execPath, ['dist/main.js'], {
+  const child = spawn(process.execPath, [fixture.entry ?? 'dist/main.js'], {
     cwd: fixture.appDir,
     env: {
-      ...process.env,
+      ...(fixture.env ?? process.env),
       PORT: String(fixture.port),
       NEST_SSR_CONSUMPTION_MODE: attempt.mode,
     },
@@ -53,9 +57,16 @@ export async function runFixtureAttempt(
   for (const [signal, handler] of handlers) process.on(signal, handler);
 
   let outcome;
+  // Port zero lets the OS allocate a unique port. The fixture announces its
+  // own bound address, so readiness cannot accidentally probe another server.
+  const port = () =>
+    fixture.port || Number(stdout.match(/SSR_FIXTURE_PORT=(\d+)/)?.[1]);
   try {
     const started = await waitForServer(
-      `http://127.0.0.1:${fixture.port}/`,
+      () =>
+        port()
+          ? `http://127.0.0.1:${port()}${fixture.readyPath ?? '/'}`
+          : undefined,
       child,
       () => spawnError,
       interruption.signal,
@@ -68,7 +79,7 @@ export async function runFixtureAttempt(
         summary: `${attempt.label} startup failed: ${started.reason}`,
       };
     } else {
-      await assertHttpBehavior(fixture.port, name, interruption.signal);
+      await verify(port(), name, interruption.signal);
       outcome = {
         mode: attempt.mode,
         result: attempt.mode === 'direct' ? 'direct' : 'interop',
@@ -78,6 +89,9 @@ export async function runFixtureAttempt(
             : 'Direct consumption failed; dynamic-import interop worked.',
       };
     }
+  } catch (error) {
+    error.fixtureOutput = { stdout, stderr };
+    throw error;
   } finally {
     try {
       await stopServer(child, grouped, () => closed, shutdownTimeoutMs);
@@ -102,7 +116,12 @@ async function waitForServer(url, child, getSpawnError, signal, timeoutMs) {
       };
     }
     try {
-      const response = await fetch(url, {
+      const address = typeof url === 'function' ? url() : url;
+      if (!address) {
+        await delay(25, undefined, { signal });
+        continue;
+      }
+      const response = await fetch(address, {
         signal: AbortSignal.any([
           signal,
           AbortSignal.timeout(
@@ -142,7 +161,7 @@ async function assertHttpBehavior(port, fixtureName, signal) {
   }
 }
 
-async function stopServer(child, grouped, isClosed, timeoutMs) {
+export async function stopServer(child, grouped, isClosed, timeoutMs) {
   const send = (signal) => {
     if (!child.pid) return;
     try {

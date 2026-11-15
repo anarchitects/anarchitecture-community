@@ -24,9 +24,11 @@ async function bootstrap() {
     routing: { apiPrefix: globalPrefix },
   });
   const port = process.env.PORT || 3000;
-  await app.listen(port, '127.0.0.1');
+  app.enableShutdownHooks();
+  await app.listen(Number(port), '127.0.0.1');
+  console.log(`SSR_FIXTURE_PORT=${new URL(await app.getUrl()).port}`);
   Logger.log(
-    `Application is running on: http://127.0.0.1:${port}/${globalPrefix}`,
+    `Application is running on: ${await app.getUrl()}/${globalPrefix}`,
   );
 }
 
