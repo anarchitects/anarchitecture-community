@@ -134,11 +134,18 @@
           "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
           {
             "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          },
+          "{workspaceRoot}/.github/workflows/ci.yml",
+          {
+            "env": "PLAYWRIGHT_BROWSERS_PATH"
           }
         ],
         "options": {
           "command": "node tools/fixtures/validate-nest-angular-ssr-locked.mjs"
-        }
+        },
+        "outputs": [
+          "{workspaceRoot}/dist/validation/nest12-ssr-740"
+        ]
       },
       "refresh-consumer-locks": {
         "executor": "nx:run-commands",
@@ -163,6 +170,13 @@
         ],
         "options": {
           "command": "node --test tools/fixtures/nest-angular-ssr-locked-support.test.mjs"
+        }
+      },
+      "install-consumer-browser": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "playwright install --with-deps chromium"
         }
       }
     }

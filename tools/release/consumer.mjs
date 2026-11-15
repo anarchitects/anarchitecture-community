@@ -10,10 +10,13 @@ import {
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { assert, sha256 } from './execution.mjs';
+import { certifySsrArchive } from './ssr-certification.mjs';
 
 export function verifyConsumers(packages, directory) {
   const evidence = [];
   for (const p of packages.filter((p) => p.channel === 'npm')) {
+    if (p.project === 'nest-angular-ssr')
+      evidence.push(...certifySsrArchive(p, directory));
     const consumer = mkdtempSync(join(tmpdir(), 'community-release-consumer-'));
     try {
       const included = [

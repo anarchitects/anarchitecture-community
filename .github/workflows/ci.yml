@@ -117,11 +117,19 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.22.3
           cache: 'yarn'
       - run: yarn install --immutable
       # macOS exercises guard bypass on a case-insensitive filesystem.
-      - run: yarn nx run nest-angular-ssr:validate-consumers
+      - run: yarn nx run nest-angular-ssr:validate-locked-consumers --cell=N12-current
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ssr-certification-${{ matrix.os }}
+          path: dist/validation/nest12-ssr-740/
+          if-no-files-found: error
+          retention-days: 90
 
   nest-angular-ssr-compatibility:
     needs: selection
@@ -132,7 +140,7 @@ jobs:
       fail-fast: false
       matrix:
         cell:
-          - angular22-current
+          - N12-split
     steps:
       - uses: actions/checkout@v6
         with:
@@ -141,10 +149,18 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 24.22.3
           cache: 'yarn'
       - run: yarn install --immutable
-      - run: yarn nx run nest-angular-ssr:validate-matrix --cell=${{ matrix.cell }}
+      - run: yarn nx run nest-angular-ssr:install-consumer-browser
+      - run: yarn nx run nest-angular-ssr:validate-locked-consumers --cell=${{ matrix.cell }}
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ssr-certification-${{ matrix.cell }}
+          path: dist/validation/nest12-ssr-740/
+          if-no-files-found: error
+          retention-days: 90
 
   editorjs-angular-packed:
     needs: selection

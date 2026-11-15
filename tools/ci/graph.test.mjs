@@ -66,6 +66,13 @@ test('installed Nx graph admits actual fixture, source, dependency and shared co
     ['apps/fixtures/nest-angular-split/backend/src/main.ts', true, []],
     ['apps/fixtures/nest-angular-split/tsconfig.base.json', true, []],
     ['tools/fixtures/nest-angular-ssr-security-conformance.mjs', true, []],
+    ['tools/fixtures/nest-angular-ssr-http-conformance.mjs', true, []],
+    ['tools/fixtures/nest-angular-ssr-locked-matrix.json', true, []],
+    [
+      'tools/fixtures/nest-angular-ssr-locks/N12-current/package-lock.json',
+      true,
+      [],
+    ],
     ['tools/fixtures/nest-angular-ssr-compatibility-matrix.json', true, []],
     ['packages/nest/angular-ssr/package.json', true, []],
     ['yarn.lock', true, 'all'],
@@ -230,6 +237,26 @@ test('complete-family CI retains all proof atoms, cacheable prerequisites and un
       'Root-only documentation must not hide a workspace task',
     );
   const nest = graph.nodes['nest-angular-ssr'].data;
+  const locked = nest.targets['validate-locked-consumers'];
+  assert.equal(locked.cache, false);
+  assert.ok(
+    locked.inputs.includes(
+      '{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*',
+    ),
+  );
+  assert.ok(locked.dependsOn.includes('test-consumer-lifecycle'));
+  assert.ok(locked.dependsOn.includes('test-locked-consumers'));
+  assert.equal(
+    root.targets['validate-nest-angular-ssr-release-gate'].cache,
+    false,
+  );
+  assert.ok(
+    root.targets[
+      'validate-nest-angular-ssr-release-gate'
+    ].options.commands.includes(
+      'yarn nx run nest-angular-ssr:validate-locked-consumers --cell=nest12',
+    ),
+  );
   for (const [legacy, target] of [
     ['test-nest-angular-ssr-consumer-lifecycle', 'test-consumer-lifecycle'],
     ['validate-nest-angular-ssr-consumers', 'validate-consumers'],
