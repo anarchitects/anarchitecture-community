@@ -20,8 +20,8 @@ Meta0013–0017 and Community0007 require independently versioned, owner-approve
 releases with reviewed compatibility and truthful cache evidence. Meta0022's
 latest-stable/90-day maintenance policy does not invent a release or end date.
 The accepted #737 patched feature baseline remains authoritative. The old Nest 11
-floor has an unresolved security condition described below; compatibility alone
-does not satisfy it. Proposed ADRs do not override accepted decisions.
+floor failed the security condition described below; Johan subsequently approved
+the tightened minimum in the dated amendment below. Proposed ADRs do not override accepted decisions.
 
 ## Candidate and reproducible evidence
 
@@ -104,13 +104,39 @@ and 12.0.2 (with subsequent patch upgrades recommended); the active Nest12.5.0
 cell is outside that affected range. Historical Angular advisories remain too.
 
 **The #737 old-floor retention condition is not established by these results.**
-No maintenance release should use this record as security acceptance. Johan must
-review a patched maintenance consumer strategy and, if necessary, an explicit
-floor/version-line amendment under #737's contingency. No peer contract is changed
+No maintenance release should use this record as security acceptance. Johan subsequently approved
+the adapter floor change under #737's contingency; see the amendment below.
+Patched Angular consumer validation remains required. No peer contract is changed
 silently here. The remote branch `maintenance/nest-angular-ssr-0.3` was absent in
 the read-only inventory; source protection and executable maintenance releases
 remain #748/#741 work. #722 stays paused. These findings do not require an
 additional HTTP adapter before a Fastify-only Nest12 release can be assessed.
+
+## Accepted adapter minimum — 15 November 2026
+
+Johan explicitly approved tightening the published minimum and its breaking
+compatibility impact. The [accepted #737 amendment](nest12-ssr-release-lines-737.md#accepted-security-floor-amendment--15-november-2026)
+now requires adapter `^11.2.10` for the next Nest 11 source. This decision is no
+longer pending. The [maintenance implementation](https://github.com/anarchitects/anarchitecture-community/commit/4f10043d9cf49020d5e8583b5cfc2917de3efd9f)
+is isolated from the Nest 12 branch, based on the last Nest 11 source `8ff34b9`.
+It changes the real package manifest, README, build/fixture dependencies and lock.
+It records breaking Conventional Commit intent; release preparation must select
+a distinct unused Nest 11 successor minor under the accepted version policy.
+No existing npm version, Nest 12 peer range or release channel was modified.
+
+The rebuilt archive has SHA256
+`c3d4ef9703d113bf00c53fe596b48491afdb3efcd816bf4f72d872ef9a8fac91`.
+Its three active Nest 11 cells pass **45 checks**, including real middleware
+protection for origin- and absolute-form targets in both CJS and ESM. An explicit
+strict install with historical adapter11.1.29 fails with `ERESOLVE` on the new
+`^11.2.10` peer. The original lock/results remain historical; the old cell is no
+longer selected for current maintenance. The unchanged Nest 12 archive passes
+all **21 checks** with the updated harness. See the
+[supplemental evidence](nest11-ssr-minimum-740-evidence.json).
+
+The earlier four-cell results above remain the pre-decision historical record.
+This adapter fix does not clear the separately recorded Angular advisories or
+establish release readiness. Johan will monitor the fresh PR CI run.
 
 ## CI, artifacts and cache/DTE exception
 
@@ -151,7 +177,8 @@ monitoring was started for #740.
    archive and per-platform evidence, including the macOS case-insensitive check.
 2. Johan accepts the Fastify feature certification and buffering/disconnect limits.
    Historical maintenance compatibility must not be accepted as security readiness;
-   resolve the old-floor contingency before a maintenance release.
+   the adapter-floor decision is now accepted, while patched Angular certification
+   and release-line execution remain required before a maintenance release.
 3. #741 assesses technical readiness with #748's release controls; #722/#742 retain
    separate activation/publication authority. No downstream adoption is inferred.
 

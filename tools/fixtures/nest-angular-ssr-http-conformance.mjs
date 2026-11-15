@@ -11,8 +11,10 @@ export async function assertSsrHttpConformance(root, ssr) {
   const { Module, Controller, Get, RequestMethod } = require('@nestjs/common');
   const { NestFactory } = require('@nestjs/core');
   const { FastifyAdapter } = require('@nestjs/platform-fastify');
+  // Only the explicitly historical, vulnerable adapter reproduction is excluded.
+  // Every active maintenance and feature cell must prove middleware protection.
   const certifyMiddleware =
-    require('@nestjs/core/package.json').version.startsWith('12.');
+    require('@nestjs/platform-fastify/package.json').version !== '11.1.29';
   class ProtectedController {
     get() {
       return 'PRIVATE_CONTROLLER_SENTINEL';
@@ -313,7 +315,7 @@ export async function assertSsrHttpConformance(root, ssr) {
   return {
     transport: 'loopback TCP',
     middlewareCertification: certifyMiddleware
-      ? 'Nest 12 required'
+      ? 'required for active Nest 11 and Nest 12 cells'
       : 'historical Nest 11 compatibility only; see separate audit',
     checks: evidence,
     limitations: [

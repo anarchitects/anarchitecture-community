@@ -37,14 +37,14 @@ const manifest = {
 
 test('release-line selection keeps maintenance and feature consumers distinct', () => {
   const matrix = {
-    old: { nest: '11.1.29' },
+    old: { nest: '11.1.29', historical: true },
     current: { nest: '11.2.10' },
     feature: { nest: '12.5.0' },
     historical: { nest: '12.5.0', historical: true },
   };
-  assert.deepEqual(selectCells(matrix, 'nest11'), ['old', 'current']);
+  assert.deepEqual(selectCells(matrix, 'nest11'), ['current']);
   assert.deepEqual(selectCells(matrix, 'nest12'), ['feature']);
-  assert.deepEqual(selectCells(matrix, 'all'), ['old', 'current', 'feature']);
+  assert.deepEqual(selectCells(matrix, 'all'), ['current', 'feature']);
   assert.deepEqual(selectCells(matrix, 'historical'), ['historical']);
   assert.deepEqual(selectCells(matrix, 'old'), ['old']);
   assert.throws(() => selectCells(matrix, 'nest13'), /Unknown cell/);
