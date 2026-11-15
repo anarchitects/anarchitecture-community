@@ -26,24 +26,24 @@
   },
   "N11-A21-min-tool": {
     "nest": "11.2.10",
-    "angular": "21.2.0",
-    "angularBuild": "21.2.0",
+    "angular": "21.2.26",
+    "angularBuild": "21.2.30",
     "typescript": "5.9.3",
     "nx": "22.6.0",
     "direct": true
   },
   "N11-A21-next-tool": {
     "nest": "11.2.10",
-    "angular": "21.2.0",
-    "angularBuild": "21.2.0",
+    "angular": "21.2.26",
+    "angularBuild": "21.2.30",
     "typescript": "5.9.3",
     "nx": "23.1.2",
     "direct": true
   },
   "N11-A22": {
     "nest": "11.2.10",
-    "angular": "22.1.4",
-    "angularBuild": "22.1.6",
+    "angular": "22.2.6",
+    "angularBuild": "22.2.7",
     "typescript": "6.0.3",
     "nx": "23.2.1",
     "direct": true,
