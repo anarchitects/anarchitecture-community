@@ -1,6 +1,9 @@
 <main>
   <h1>Split Nx workspace SSR fixture</h1>
   <p id="ssr-marker">Rendered by the Angular server bundle.</p>
+  <button id="replay" type="button" (click)="clicks.set(clicks() + 1)">
+    Clicks: {{ clicks() }}
+  </button>
 </main>
 
 <router-outlet />

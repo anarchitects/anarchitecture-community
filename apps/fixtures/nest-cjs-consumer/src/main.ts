@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { bootstrapNestAngularSsr } from '@anarchitects/nest-angular-ssr';
 
 import { NestFactory } from '@nestjs/core';
 import {
@@ -6,7 +7,7 @@ import {
   type NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 
-import { AppModule } from './app/app.module';
+import { AppModule, fixtureOptions } from './app/app.module';
 
 async function bootstrap() {
   const port = Number(process.env.PORT ?? '3311');
@@ -18,7 +19,12 @@ async function bootstrap() {
   );
 
   app.setGlobalPrefix('api');
+  if (process.env.NEST_SSR_API === 'explicit') {
+    await bootstrapNestAngularSsr(app, fixtureOptions);
+  }
+  app.enableShutdownHooks();
   await app.listen(port, '127.0.0.1');
+  console.log(`SSR_FIXTURE_PORT=${new URL(await app.getUrl()).port}`);
 }
 
 void bootstrap();

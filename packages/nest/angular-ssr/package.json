@@ -116,6 +116,54 @@
           "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
           "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
         ]
+      },
+      "validate-locked-consumers": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build",
+          "test-consumer-lifecycle",
+          "test-locked-consumers"
+        ],
+        "cache": false,
+        "inputs": [
+          "default",
+          "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+          "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          }
+        ],
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-locked.mjs {args.cell}"
+        }
+      },
+      "refresh-consumer-locks": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/fixtures/refresh-nest-angular-ssr-locks.mjs {args.cell}"
+        }
+      },
+      "test-locked-consumers": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "default",
+          "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+          "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+          "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+          {
+            "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+          }
+        ],
+        "options": {
+          "command": "node --test tools/fixtures/nest-angular-ssr-locked-support.test.mjs"
+        }
       }
     }
   },

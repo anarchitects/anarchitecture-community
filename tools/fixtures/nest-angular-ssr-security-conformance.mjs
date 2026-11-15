@@ -6,7 +6,11 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 // Resolve everything from the installed consumer, never the workspace source.
-export async function assertSsrSecurityConformance(consumerRoot, mode = 'cjs') {
+export async function assertSsrSecurityConformance(
+  consumerRoot,
+  mode = 'cjs',
+  expected,
+) {
   const require = createRequire(join(consumerRoot, 'package.json'));
   require('reflect-metadata');
   const { Module } = require('@nestjs/common');
@@ -18,11 +22,25 @@ export async function assertSsrSecurityConformance(consumerRoot, mode = 'cjs') {
   const manifest = JSON.parse(await readFile(packagePath, 'utf8'));
   const ssrRequire = createRequire(packagePath);
   const staticVersion = ssrRequire('@fastify/static/package.json').version;
-  assert.equal(manifest.dependencies['@fastify/static'], '^10.1.7');
-  assert.equal(
-    manifest.peerDependencies['@nestjs/platform-fastify'],
-    '^11.1.29',
-  );
+  if (expected) {
+    assert.equal(staticVersion, expected.static);
+    assert.equal(
+      require('@nestjs/platform-fastify/package.json').version,
+      expected.nest,
+    );
+    assert.equal(
+      createRequire(require.resolve('@nestjs/platform-fastify/package.json'))(
+        'fastify/package.json',
+      ).version,
+      expected.fastify,
+    );
+  } else {
+    assert.equal(manifest.dependencies['@fastify/static'], '^10.1.7');
+    assert.equal(
+      manifest.peerDependencies['@nestjs/platform-fastify'],
+      '^11.1.29',
+    );
+  }
   const [major, minor, patch] = staticVersion.split('.').map(Number);
   assert.ok(major === 10 && (minor > 1 || (minor === 1 && patch >= 7)));
   const readme = await readFile(

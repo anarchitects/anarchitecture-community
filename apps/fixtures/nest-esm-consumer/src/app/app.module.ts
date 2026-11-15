@@ -7,14 +7,22 @@ import { join } from 'node:path';
 import { HealthController } from './health.controller.js';
 import { fixtureAngularSsrRegistration } from '../ssr/angular-ssr-fixture.js';
 
+export const fixtureOptions = {
+  angular: fixtureAngularSsrRegistration,
+  routing: { browserAssetsDir: join(process.cwd(), 'src/assets/browser') },
+};
+
 @Module({
   imports: [
-    NestAngularSsrModule.forRoot({
-      angular: fixtureAngularSsrRegistration,
-      routing: {
-        browserAssetsDir: join(process.cwd(), 'src/assets/browser'),
-      },
-    }),
+    ...(process.env.NEST_SSR_API === 'explicit'
+      ? []
+      : [
+          process.env.NEST_SSR_API === 'async'
+            ? NestAngularSsrModule.forRootAsync({
+                useFactory: async () => fixtureOptions,
+              })
+            : NestAngularSsrModule.forRoot(fixtureOptions),
+        ]),
   ],
   controllers: [HealthController],
 })
