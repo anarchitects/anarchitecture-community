@@ -12,6 +12,10 @@ handoff; it does not claim the new route is operational.
 The [#722 settings record](release-permissions.md) separates verified live settings,
 the proposed cutover and remaining activation blockers.
 
+The [#748 amendment](#ssr-maintenance-amendment--15-november-2026) below was
+accepted by Johan on 15 November 2026, including its exact allowlist and protection
+snapshot design. It does not activate the release route.
+
 ## Authority and architecture review
 
 [OWNERSHIP.md](../OWNERSHIP.md) identifies Johan as owner for Auth, Governance,
@@ -261,3 +265,48 @@ particular release, hosted validation, workflow/settings implementation or exemp
 from technical gates. Material design changes return to the affected owner.
 Separate permission to push this documentation and open its PR covers the normal
 CI run only, without monitoring or reruns.
+
+## SSR maintenance amendment — 15 November 2026
+
+Detailed control amendment: **accepted by Johan on 15 November 2026** under #748.
+The [implementation review and operator handoff](validation/ssr-maintenance-release-controls-748.md)
+defines the exact allowlist, evidence and remaining activation work. On 15 November,
+Johan accepted preparing the breaking Nest 11 minimum migration **before** the
+Nest 12 feature release; actual versions remain Nx-derived and globally unique.
+
+This narrowly amends the main-source-only clauses above:
+
+- One SSR package may be prepared from either `main` (`nest12`) or protected
+  `maintenance/nest-angular-ssr-0.3` (`nest11`), descended from the recorded last
+  Nest 11 main commit. The old numeric branch suffix does not prohibit the
+  accepted breaking successor minor. No unrelated dependent publication is allowed.
+- Preparation and privileged execution still originate on protected main. A
+  maintenance checkout supplies candidate source/bytes without App, registry or
+  publishing OIDC credentials. Main supplies controller code and the final locked
+  consumer harness. Main-only privileged environment admission is unchanged.
+- Schema 2 records separate main-controller provenance from source commit/tree,
+  branch/head, request, locks, reachable baseline, source protection and exact CI.
+  Revalidation checks those bindings, retained proof and archive hashes. A new tag
+  needs the current selected source head; an existing tag retains its fixed identity.
+- Only maintenance may advance below higher versions on other branches. It must
+  advance its branch-reachable, npm-distributed Nx baseline and use an unused
+  global version. Feature preparation uses all-branch Nx history and waits for
+  the patched maintenance distribution. No independent version allocator is added.
+- Maintenance publishes only to `nest11`, preserving `latest`/`next`. Feature
+  publication uses `next`; its immutable record explicitly lists `latest` as a
+  possible later channel target. Moving it requires a separate channel dispatch,
+  byte verification and new owner environment approval. A target allowance is
+  not approval. Targets outside the record still require a new reviewed record.
+- Effective maintenance protection and exact branch CI are verified separately.
+  Where GitHub hides bypass actors from read-only jobs, require an owner-reviewed
+  main-owned snapshot of the full empty list, bound to the unchanged public
+  ruleset digest and update timestamp. Missing/changed evidence stops execution;
+  preparation does not receive ruleset administration credentials.
+  Fresh audits and all retained maintenance consumer checks gate final archives;
+  historical vulnerable locks are compatibility evidence, not release certification.
+
+Numeric-owner review, first-attempt dispatches, serialization, history, immutable
+tags, exact archives, receipts, recovery and durable retention remain unchanged.
+Live maintenance settings/hosted proof and #722 activation require separate
+authorization. Local implementation or acceptance of this amendment is not a
+release, support sunset, consumer migration or registry-trust claim.

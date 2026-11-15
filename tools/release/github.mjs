@@ -1,4 +1,13 @@
-import { assert, REPOSITORY, SHA } from './execution.mjs';
+import { readFileSync } from 'node:fs';
+import {
+  assert,
+  REPOSITORY,
+  SHA,
+  OWNER,
+  sha256,
+  canonical,
+} from './execution.mjs';
+import { MAINTENANCE_BRANCH } from './lines.mjs';
 
 export async function github(
   path,
@@ -40,7 +49,133 @@ export async function pages(path, key) {
   throw new Error('GitHub pagination limit; review before release');
 }
 export async function mainCommit() {
-  return (await repoApi('/git/ref/heads/main')).object.sha;
+  return branchCommit('main');
+}
+export async function branchCommit(branch) {
+  assert(
+    ['main', MAINTENANCE_BRANCH].includes(branch),
+    'Unapproved source branch',
+  );
+  const commit = (await repoApi(`/git/ref/heads/${encodeURIComponent(branch)}`))
+    .object.sha;
+  assert(SHA.test(commit), 'Invalid source head');
+  return commit;
+}
+
+export function protectionRevision(ruleset) {
+  return sha256(
+    canonical(
+      Object.fromEntries(
+        [
+          'id',
+          'source_type',
+          'source',
+          'target',
+          'enforcement',
+          'conditions',
+          'rules',
+          'updated_at',
+        ].map((key) => [key, ruleset[key]]),
+      ),
+    ),
+  );
+}
+
+export function validateProtection(branch, rules, rulesets, snapshots = []) {
+  assert(
+    ['main', MAINTENANCE_BRANCH].includes(branch),
+    'Unapproved protected branch',
+  );
+  assert(
+    Array.isArray(rules) && rules.length > 0,
+    'Missing effective source rules',
+  );
+  for (const rule of rules) {
+    const set = rulesets.find((s) => s.id === rule.ruleset_id);
+    assert(
+      set?.enforcement === 'active' && set.target === 'branch',
+      'Source rules must be active',
+    );
+    if (Object.hasOwn(set, 'bypass_actors')) {
+      assert(
+        Array.isArray(set.bypass_actors) && set.bypass_actors.length === 0,
+        'Source rules must have verified empty bypass lists',
+      );
+    } else {
+      // GitHub hides bypass lists from read-only workflow tokens. Never treat
+      // omission as an empty list or grant the build job ruleset write access.
+      const snapshot = snapshots.find((s) => s.id === set.id);
+      assert(
+        snapshot?.ownerId === OWNER.id &&
+          snapshot.bypassActors?.length === 0 &&
+          Array.isArray(snapshot.bypassActors) &&
+          typeof set.updated_at === 'string' &&
+          snapshot.updatedAt === set.updated_at &&
+          snapshot.publicDigest === protectionRevision(set),
+        'Hidden bypass list requires owner-reviewed matching ruleset revision',
+      );
+    }
+  }
+  for (const type of [
+    'deletion',
+    'non_fast_forward',
+    'required_signatures',
+    'pull_request',
+  ])
+    assert(
+      rules.some((r) => r.type === type),
+      `Missing source protection: ${type}`,
+    );
+  assert(
+    rules.some(
+      (r) =>
+        r.type === 'required_status_checks' &&
+        r.parameters?.strict_required_status_checks_policy === true &&
+        r.parameters.required_status_checks?.some(
+          (c) => c.context === 'main' && c.integration_id === 15368,
+        ),
+    ),
+    'Missing strict main check bound to GitHub Actions',
+  );
+  return {
+    branch,
+    rules,
+    rulesets,
+    snapshots,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+export async function sourceProtection(branch) {
+  const rules = await pages(`/rules/branches/${encodeURIComponent(branch)}`);
+  const rulesets = [];
+  for (const rule of rules) {
+    if (rulesets.some((s) => s.id === rule.ruleset_id)) continue;
+    assert(
+      Number.isSafeInteger(rule.ruleset_id) && rule.ruleset_id > 0,
+      'Invalid ruleset identity',
+    );
+    const path =
+      rule.ruleset_source_type === 'Repository' &&
+      rule.ruleset_source === REPOSITORY
+        ? `/repos/${REPOSITORY}/rulesets/${rule.ruleset_id}`
+        : rule.ruleset_source_type === 'Organization' &&
+            rule.ruleset_source === 'anarchitects'
+          ? `/orgs/anarchitects/rulesets/${rule.ruleset_id}`
+          : null;
+    assert(path, 'Unverified inherited source ruleset');
+    rulesets.push(await github(path));
+  }
+  const approvals = JSON.parse(
+    readFileSync(new URL('./source-protection.json', import.meta.url), 'utf8'),
+  );
+  assert(approvals.schema === 1, 'Invalid source-protection snapshot format');
+  return validateProtection(
+    branch,
+    rules,
+    rulesets,
+    approvals.branches[branch] ?? [],
+  );
 }
 export async function tagIdentity(tag) {
   const ref = await repoApi(`/git/ref/tags/${encodeURIComponent(tag)}`, {
@@ -57,11 +192,12 @@ export async function tagIdentity(tag) {
   );
   return { objectId, commit: object.sha };
 }
-export async function exactCI(commit, runId) {
+export async function exactCI(commit, runId, branch = 'main') {
+  assert(['main', MAINTENANCE_BRANCH].includes(branch), 'Unapproved CI branch');
   const run = await repoApi(`/actions/runs/${runId}`);
   assert(
     run.head_sha === commit &&
-      run.head_branch === 'main' &&
+      run.head_branch === branch &&
       run.event === 'push' &&
       run.path === '.github/workflows/ci.yml' &&
       run.conclusion === 'success' &&
@@ -81,6 +217,7 @@ export async function exactCI(commit, runId) {
     id: runId,
     attempt: run.run_attempt,
     head: commit,
+    branch,
     url: run.html_url,
   };
 }

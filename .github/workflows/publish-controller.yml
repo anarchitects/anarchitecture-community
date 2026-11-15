@@ -16,6 +16,10 @@ on:
         type: choice
         options: [publish, channel]
         default: publish
+      channel:
+        description: Explicit recorded target for a channel action (SSR only)
+        type: string
+        default: ''
 permissions:
   contents: read
   actions: read
@@ -29,6 +33,7 @@ env:
   RELEASE_DIGEST: ${{ inputs.record_digest }}
   RELEASE_TAG: ${{ inputs.tag }}
   RELEASE_ACTION: ${{ inputs.operation }}
+  RELEASE_CHANNEL: ${{ inputs.channel }}
 jobs:
   review:
     if: vars.COMMUNITY_RELEASE_CONTROLS == 'active' && github.ref == 'refs/heads/main' && github.run_attempt == 1

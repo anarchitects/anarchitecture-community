@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { validateLineScope } from './lines.mjs';
 
 // Use the SemVer implementation declared by the pinned Nx installation.
 const requireNx = createRequire(import.meta.resolve('nx/package.json'));
@@ -195,8 +196,41 @@ export function validateVersion({
   nxVersion,
   compatibility,
   stableTransition,
+  sourceLine,
 }) {
   const versions = validateHistory(history, project);
+  if (sourceLine) {
+    requireCondition(
+      !versions.includes(version),
+      'New source-line preparation cannot reuse an existing global version; recover with its original record',
+    );
+    validateLineScope(sourceLine.name, sourceLine.branch, [
+      {
+        project,
+        name: manifest?.name,
+        channel: history.channel,
+        distTag: sourceLine.distTag,
+        dependencies: [],
+      },
+    ]);
+    requireCondition(
+      Array.isArray(sourceLine.reachableVersions) &&
+        sourceLine.reachableVersions.length > 0 &&
+        sourceLine.reachableVersions.every((v) => versions.includes(v)),
+      'Source-line history must be verified against complete global history',
+    );
+    if (sourceLine.name === 'nest11') {
+      const latest = [...sourceLine.reachableVersions].sort(semver.rcompare)[0];
+      requireCondition(
+        nxVersion?.currentVersion === latest,
+        'Maintenance Nx baseline must be the latest branch-reachable release',
+      );
+      requireCondition(
+        semver.gt(version, latest),
+        'Maintenance must advance its released baseline',
+      );
+    }
+  }
   requireCondition(
     semver.valid(version) === version,
     `Invalid candidate version: ${version}`,
@@ -272,7 +306,10 @@ export function validateVersion({
     // Authorizing it and comparing remote bytes is deliberately left to #721.
     if (!versions.includes(version))
       requireCondition(
-        versions.every((v) => semver.gt(version, v)),
+        (sourceLine?.name === 'nest11'
+          ? sourceLine.reachableVersions
+          : versions
+        ).every((v) => semver.gt(version, v)),
         'New version must advance existing history; reconcile discrepancies first',
       );
     if (compatibility.minimumBump !== 'none') {

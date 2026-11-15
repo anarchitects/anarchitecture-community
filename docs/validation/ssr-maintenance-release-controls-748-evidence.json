@@ -1,0 +1,1441 @@
+{
+  "schema": 1,
+  "issue": 748,
+  "date": "2026-11-15",
+  "purpose": "Local negative release-audit proof using the retained #740 floor archive; no publication",
+  "controllerBase": "e44140cd2594f8a0f1d51f2e1a525496bfe52d36",
+  "node": "v24.22.3",
+  "npm": "11.19.1",
+  "platform": "darwin",
+  "arch": "arm64",
+  "archive": {
+    "sha256": "c3d4ef9703d113bf00c53fe596b48491afdb3efcd816bf4f72d872ef9a8fac91",
+    "version": "0.3.2",
+    "sourceCommit": "4f10043d9cf49020d5e8583b5cfc2917de3efd9f",
+    "distributionStatus": "development archive; must not overwrite published 0.3.2"
+  },
+  "result": {
+    "status": "failed",
+    "sha256": "4106beefd66ffa6758027ee60ab24ccbb05c5cdc0295040c67d6fd608118cb7b",
+    "localPath": "dist/validation/nest12-ssr-740/nest11-2LRIWq/result.json",
+    "compatibilityChecksPassed": 45,
+    "runtimeAuditsFailed": 3
+  },
+  "cells": [
+    {
+      "name": "N11-A21-min-tool",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "install",
+          "status": "passed"
+        },
+        {
+          "name": "dependency-tree",
+          "status": "passed"
+        },
+        {
+          "name": "runtime-audit",
+          "status": "failed"
+        },
+        {
+          "name": "cjs-declarations",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-build",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-exports-security",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-module-http",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-async-http",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-explicit-http",
+          "status": "passed"
+        },
+        {
+          "name": "esm-declarations",
+          "status": "passed"
+        },
+        {
+          "name": "esm-build",
+          "status": "passed"
+        },
+        {
+          "name": "esm-exports-security",
+          "status": "passed"
+        },
+        {
+          "name": "esm-module-http",
+          "status": "passed"
+        },
+        {
+          "name": "esm-async-http",
+          "status": "passed"
+        },
+        {
+          "name": "esm-explicit-http",
+          "status": "passed"
+        }
+      ],
+      "audit": {
+        "sha256": "a76cdd3e930d195b6540af5609100a80aa965dc46e89a0331294823bec35112d",
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 2,
+          "high": 5,
+          "critical": 0,
+          "total": 7
+        },
+        "packages": {
+          "@angular/common": {
+            "severity": "high",
+            "range": "21.0.0-next.0 - 21.2.19",
+            "via": [
+              "@angular/core",
+              {
+                "source": 1123499,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "@angular/common: Denial of Service (DoS) via OOM in Date Formatting (formatDate)",
+                "url": "https://github.com/advisories/GHSA-48r7-hpm6-gfxm",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-1333"],
+                "cvss": {
+                  "score": 7.5,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+                },
+                "range": ">=21.0.0-next.0 <21.2.17"
+              },
+              {
+                "source": 1123503,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "@angular/common: Weak 32-Bit Cache Key Hashing in `HttpTransferCache` Leading to Cross-Request Data Leakage and State Poisoning",
+                "url": "https://github.com/advisories/GHSA-39pv-4j6c-2g6v",
+                "severity": "high",
+                "cwe": ["CWE-328", "CWE-345"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.17"
+              },
+              {
+                "source": 1123535,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "@angular/common: Denial of Service (DoS) via OOM in Number Formatting (digitsInfo)",
+                "url": "https://github.com/advisories/GHSA-p3vc-36g9-x9gr",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-834"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1123540,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "@angular/common: Information Leak via Default Caching of Credentialed Requests in HttpTransferCache",
+                "url": "https://github.com/advisories/GHSA-q6f4-qqrg-jv6x",
+                "severity": "high",
+                "cwe": ["CWE-524"],
+                "cvss": {
+                  "score": 7.5,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1130679,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "Angular: Cache-Key Ambiguity in HttpTransferCache Leading to Cross-Request Response Reuse and State Poisoning",
+                "url": "https://github.com/advisories/GHSA-jhpw-976m-542j",
+                "severity": "high",
+                "cwe": ["CWE-345"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.19"
+              },
+              {
+                "source": 1204772,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "Angular: Information Leak via `HttpTransferCache` Bypass When Using `withRequestsMadeViaParent`",
+                "url": "https://github.com/advisories/GHSA-p297-fm68-3q8c",
+                "severity": "moderate",
+                "cwe": ["CWE-200", "CWE-524"],
+                "cvss": {
+                  "score": 4,
+                  "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:L/I:N/A:N"
+                },
+                "range": ">=21.0.0 <21.2.20"
+              }
+            ]
+          },
+          "@angular/compiler": {
+            "severity": "high",
+            "range": "21.0.0-next.0 - 21.2.19",
+            "via": [
+              {
+                "source": 1117737,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "Angular vulnerable to XSS in i18n attribute bindings",
+                "url": "https://github.com/advisories/GHSA-g93w-mfhg-p222",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 9,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:H"
+                },
+                "range": ">=21.0.0-next.0 <21.2.4"
+              },
+              {
+                "source": 1123507,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "@angular/compiler: Two-Way Property Binding Sanitization Bypass (XSS)",
+                "url": "https://github.com/advisories/GHSA-58w9-8g37-x9v5",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.17"
+              },
+              {
+                "source": 1123513,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "Angular: Template and Attribute Namespace Sanitization Bypass (XSS)",
+                "url": "https://github.com/advisories/GHSA-f3m7-gqxr-g87x",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1130699,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "Angular i18n: Cross-Site Scripting (XSS) via event-handler attributes",
+                "url": "https://github.com/advisories/GHSA-jj27-h5hq-8x99",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.19"
+              },
+              {
+                "source": 1204778,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "Angular: Sanitization bypass via directive host bindings on concrete host elements in @angular/core and @angular/compiler",
+                "url": "https://github.com/advisories/GHSA-hh8m-fm6v-7cvg",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.20"
+              }
+            ]
+          },
+          "@angular/core": {
+            "severity": "high",
+            "range": "21.0.0-next.0 - 21.2.19",
+            "via": [
+              "@angular/compiler",
+              {
+                "source": 1117740,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular vulnerable to XSS in i18n attribute bindings",
+                "url": "https://github.com/advisories/GHSA-g93w-mfhg-p222",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 9,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:H"
+                },
+                "range": ">=21.0.0-next.0 <21.2.4"
+              },
+              {
+                "source": 1123518,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular: Template and Attribute Namespace Sanitization Bypass (XSS)",
+                "url": "https://github.com/advisories/GHSA-f3m7-gqxr-g87x",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1123549,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "@angular/core: Angular Template and Dynamic Component Namespace Bypass leading to Cross-Site Scripting (XSS)",
+                "url": "https://github.com/advisories/GHSA-692r-grfm-v8x7",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1123562,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular Client Hydration DOM Clobbering & Response-Cache Poisoning",
+                "url": "https://github.com/advisories/GHSA-rgjc-h3x7-9mwg",
+                "severity": "high",
+                "cwe": ["CWE-79", "CWE-471"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.17"
+              },
+              {
+                "source": 1130695,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular i18n: Cross-Site Scripting (XSS) via event-handler attributes",
+                "url": "https://github.com/advisories/GHSA-jj27-h5hq-8x99",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.19"
+              },
+              {
+                "source": 1204779,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular: Sanitization bypass via directive host bindings on concrete host elements in @angular/core and @angular/compiler",
+                "url": "https://github.com/advisories/GHSA-hh8m-fm6v-7cvg",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.20"
+              }
+            ]
+          },
+          "@angular/platform-browser": {
+            "severity": "moderate",
+            "range": "21.0.0-next.0 - 21.2.19",
+            "via": ["@angular/common", "@angular/core"]
+          },
+          "@angular/platform-server": {
+            "severity": "high",
+            "range": "21.0.0-next.0 - 21.2.24",
+            "via": [
+              "@angular/common",
+              "@angular/compiler",
+              "@angular/core",
+              "@angular/platform-browser",
+              {
+                "source": 1118626,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular: SSRF via protocol-relative and backslash URLs in Angular Platform-Server",
+                "url": "https://github.com/advisories/GHSA-45q2-gjvg-7973",
+                "severity": "high",
+                "cwe": ["CWE-918"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.9"
+              },
+              {
+                "source": 1120775,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: Missing `<noscript>` Raw-Text Serialization Escaping leads to Cross-Site Scripting (XSS) in Angular SSR",
+                "url": "https://github.com/advisories/GHSA-gxx4-3xcv-f8qx",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.16"
+              },
+              {
+                "source": 1123522,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+                "url": "https://github.com/advisories/GHSA-hqr9-c56f-3x7f",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.16"
+              },
+              {
+                "source": 1123555,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: URL Parser Differential leading to SSRF Allowlist Bypass",
+                "url": "https://github.com/advisories/GHSA-xrxm-cp7j-8xf6",
+                "severity": "high",
+                "cwe": ["CWE-346", "CWE-918"],
+                "cvss": {
+                  "score": 8.2,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1123567,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: SSRF via Hostname Hijacking",
+                "url": "https://github.com/advisories/GHSA-rfh7-fxqc-q52v",
+                "severity": "high",
+                "cwe": ["CWE-918"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.13"
+              },
+              {
+                "source": 1130703,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular SSR: Missing Fallback Raw-Content Serialization Escaping leads to Cross-Site Scripting (XSS)",
+                "url": "https://github.com/advisories/GHSA-vpx6-8pjr-4g3v",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.19"
+              },
+              {
+                "source": 1204764,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular: SSR XSS via Unescaped <template> Content Across DocumentFragment Boundaries in Fallback Raw-Content Elements",
+                "url": "https://github.com/advisories/GHSA-v3p8-whq6-r5jg",
+                "severity": "high",
+                "cwe": ["CWE-79", "CWE-116"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.22"
+              },
+              {
+                "source": 1204768,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular: SSRF and Cross-Origin Credential Disclosure via URL Resolution Discrepancy in SSR",
+                "url": "https://github.com/advisories/GHSA-f6mr-pjwc-34m4",
+                "severity": "high",
+                "cwe": ["CWE-918"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.22"
+              },
+              {
+                "source": 1239939,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular SSR: Denial of Service (DoS) via Infinite Loop on Malformed DOCTYPE",
+                "url": "https://github.com/advisories/GHSA-f67j-2jqw-jpq7",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-835"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.23"
+              },
+              {
+                "source": 1239952,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular SSR: XSS via Unescaped Processing Instruction (<?...?>) Nodes in Fallback Raw-Content Elements",
+                "url": "https://github.com/advisories/GHSA-j3r3-mxqp-r2p4",
+                "severity": "high",
+                "cwe": ["CWE-79", "CWE-116"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.22"
+              },
+              {
+                "source": 1242598,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: Open Redirect via Protocol-Relative URLs in Server-Side Rendering (SSR)",
+                "url": "https://github.com/advisories/GHSA-w739-gvwx-grc3",
+                "severity": "moderate",
+                "cwe": ["CWE-601"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.25"
+              }
+            ]
+          },
+          "@angular/router": {
+            "severity": "high",
+            "range": "10.0.0-next.0 - 10.0.0-rc.1 || 21.0.0-next.0 - 21.2.24",
+            "via": [
+              "@angular/common",
+              "@angular/core",
+              "@angular/platform-browser",
+              {
+                "source": 1240618,
+                "name": "@angular/router",
+                "dependency": "@angular/router",
+                "title": "Angular Server-Side Rendering (SSR): Denial of Service via Numeric URL Matrix Parameters",
+                "url": "https://github.com/advisories/GHSA-ff3f-86qr-9cv3",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-770"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.24"
+              },
+              {
+                "source": 1242593,
+                "name": "@angular/router",
+                "dependency": "@angular/router",
+                "title": "@angular/router: Denial of Service via Unmatched Empty-Path Outlet Route Matching in Server-Side Rendering (SSR)",
+                "url": "https://github.com/advisories/GHSA-62vg-58rm-qff7",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-405"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.25"
+              },
+              {
+                "source": 1242606,
+                "name": "@angular/router",
+                "dependency": "@angular/router",
+                "title": "@angular/router: Denial of Service via RouterLink Query Parameter Retention in Server-Side Rendering (SSR)",
+                "url": "https://github.com/advisories/GHSA-57xq-rjx2-v5xh",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-770"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.2.0 <21.2.25"
+              }
+            ]
+          },
+          "@angular/ssr": {
+            "severity": "moderate",
+            "range": "21.0.0-next.0 - 21.2.22",
+            "via": [
+              {
+                "source": 1117730,
+                "name": "@angular/ssr",
+                "dependency": "@angular/ssr",
+                "title": "Protocol-Relative URL Injection via Single Backslash Bypass in Angular SSR",
+                "url": "https://github.com/advisories/GHSA-vfx2-hv2g-xj5f",
+                "severity": "moderate",
+                "cwe": ["CWE-601"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.3"
+              },
+              {
+                "source": 1118986,
+                "name": "@angular/ssr",
+                "dependency": "@angular/ssr",
+                "title": "Angular SSR has Open Redirect and Request Steering via Encoded X-Forwarded-Prefix",
+                "url": "https://github.com/advisories/GHSA-69xr-m8h6-h664",
+                "severity": "moderate",
+                "cwe": ["CWE-22", "CWE-601"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.9"
+              },
+              {
+                "source": 1241235,
+                "name": "@angular/ssr",
+                "dependency": "@angular/ssr",
+                "title": "Angular SSR: Path Traversal to Sibling Directories in CommonEngine on Windows",
+                "url": "https://github.com/advisories/GHSA-7g7c-h8rr-7p6q",
+                "severity": "moderate",
+                "cwe": ["CWE-22"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.23"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "N11-A21-next-tool",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "install",
+          "status": "passed"
+        },
+        {
+          "name": "dependency-tree",
+          "status": "passed"
+        },
+        {
+          "name": "runtime-audit",
+          "status": "failed"
+        },
+        {
+          "name": "cjs-declarations",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-build",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-exports-security",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-module-http",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-async-http",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-explicit-http",
+          "status": "passed"
+        },
+        {
+          "name": "esm-declarations",
+          "status": "passed"
+        },
+        {
+          "name": "esm-build",
+          "status": "passed"
+        },
+        {
+          "name": "esm-exports-security",
+          "status": "passed"
+        },
+        {
+          "name": "esm-module-http",
+          "status": "passed"
+        },
+        {
+          "name": "esm-async-http",
+          "status": "passed"
+        },
+        {
+          "name": "esm-explicit-http",
+          "status": "passed"
+        }
+      ],
+      "audit": {
+        "sha256": "679ea9fd0bc24b3fa432cf5b05e7ced3b98ff861b3b99476792d5d0a5b91801d",
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 2,
+          "high": 5,
+          "critical": 0,
+          "total": 7
+        },
+        "packages": {
+          "@angular/common": {
+            "severity": "high",
+            "range": "21.0.0-next.0 - 21.2.19",
+            "via": [
+              "@angular/core",
+              {
+                "source": 1123499,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "@angular/common: Denial of Service (DoS) via OOM in Date Formatting (formatDate)",
+                "url": "https://github.com/advisories/GHSA-48r7-hpm6-gfxm",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-1333"],
+                "cvss": {
+                  "score": 7.5,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+                },
+                "range": ">=21.0.0-next.0 <21.2.17"
+              },
+              {
+                "source": 1123503,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "@angular/common: Weak 32-Bit Cache Key Hashing in `HttpTransferCache` Leading to Cross-Request Data Leakage and State Poisoning",
+                "url": "https://github.com/advisories/GHSA-39pv-4j6c-2g6v",
+                "severity": "high",
+                "cwe": ["CWE-328", "CWE-345"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.17"
+              },
+              {
+                "source": 1123535,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "@angular/common: Denial of Service (DoS) via OOM in Number Formatting (digitsInfo)",
+                "url": "https://github.com/advisories/GHSA-p3vc-36g9-x9gr",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-834"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1123540,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "@angular/common: Information Leak via Default Caching of Credentialed Requests in HttpTransferCache",
+                "url": "https://github.com/advisories/GHSA-q6f4-qqrg-jv6x",
+                "severity": "high",
+                "cwe": ["CWE-524"],
+                "cvss": {
+                  "score": 7.5,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1130679,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "Angular: Cache-Key Ambiguity in HttpTransferCache Leading to Cross-Request Response Reuse and State Poisoning",
+                "url": "https://github.com/advisories/GHSA-jhpw-976m-542j",
+                "severity": "high",
+                "cwe": ["CWE-345"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.19"
+              },
+              {
+                "source": 1204772,
+                "name": "@angular/common",
+                "dependency": "@angular/common",
+                "title": "Angular: Information Leak via `HttpTransferCache` Bypass When Using `withRequestsMadeViaParent`",
+                "url": "https://github.com/advisories/GHSA-p297-fm68-3q8c",
+                "severity": "moderate",
+                "cwe": ["CWE-200", "CWE-524"],
+                "cvss": {
+                  "score": 4,
+                  "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:L/I:N/A:N"
+                },
+                "range": ">=21.0.0 <21.2.20"
+              }
+            ]
+          },
+          "@angular/compiler": {
+            "severity": "high",
+            "range": "21.0.0-next.0 - 21.2.19",
+            "via": [
+              {
+                "source": 1117737,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "Angular vulnerable to XSS in i18n attribute bindings",
+                "url": "https://github.com/advisories/GHSA-g93w-mfhg-p222",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 9,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:H"
+                },
+                "range": ">=21.0.0-next.0 <21.2.4"
+              },
+              {
+                "source": 1123507,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "@angular/compiler: Two-Way Property Binding Sanitization Bypass (XSS)",
+                "url": "https://github.com/advisories/GHSA-58w9-8g37-x9v5",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.17"
+              },
+              {
+                "source": 1123513,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "Angular: Template and Attribute Namespace Sanitization Bypass (XSS)",
+                "url": "https://github.com/advisories/GHSA-f3m7-gqxr-g87x",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1130699,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "Angular i18n: Cross-Site Scripting (XSS) via event-handler attributes",
+                "url": "https://github.com/advisories/GHSA-jj27-h5hq-8x99",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.19"
+              },
+              {
+                "source": 1204778,
+                "name": "@angular/compiler",
+                "dependency": "@angular/compiler",
+                "title": "Angular: Sanitization bypass via directive host bindings on concrete host elements in @angular/core and @angular/compiler",
+                "url": "https://github.com/advisories/GHSA-hh8m-fm6v-7cvg",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.20"
+              }
+            ]
+          },
+          "@angular/core": {
+            "severity": "high",
+            "range": "21.0.0-next.0 - 21.2.19",
+            "via": [
+              "@angular/compiler",
+              {
+                "source": 1117740,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular vulnerable to XSS in i18n attribute bindings",
+                "url": "https://github.com/advisories/GHSA-g93w-mfhg-p222",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 9,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:H"
+                },
+                "range": ">=21.0.0-next.0 <21.2.4"
+              },
+              {
+                "source": 1123518,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular: Template and Attribute Namespace Sanitization Bypass (XSS)",
+                "url": "https://github.com/advisories/GHSA-f3m7-gqxr-g87x",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1123549,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "@angular/core: Angular Template and Dynamic Component Namespace Bypass leading to Cross-Site Scripting (XSS)",
+                "url": "https://github.com/advisories/GHSA-692r-grfm-v8x7",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1123562,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular Client Hydration DOM Clobbering & Response-Cache Poisoning",
+                "url": "https://github.com/advisories/GHSA-rgjc-h3x7-9mwg",
+                "severity": "high",
+                "cwe": ["CWE-79", "CWE-471"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.17"
+              },
+              {
+                "source": 1130695,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular i18n: Cross-Site Scripting (XSS) via event-handler attributes",
+                "url": "https://github.com/advisories/GHSA-jj27-h5hq-8x99",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.19"
+              },
+              {
+                "source": 1204779,
+                "name": "@angular/core",
+                "dependency": "@angular/core",
+                "title": "Angular: Sanitization bypass via directive host bindings on concrete host elements in @angular/core and @angular/compiler",
+                "url": "https://github.com/advisories/GHSA-hh8m-fm6v-7cvg",
+                "severity": "moderate",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.20"
+              }
+            ]
+          },
+          "@angular/platform-browser": {
+            "severity": "moderate",
+            "range": "21.0.0-next.0 - 21.2.19",
+            "via": ["@angular/common", "@angular/core"]
+          },
+          "@angular/platform-server": {
+            "severity": "high",
+            "range": "21.0.0-next.0 - 21.2.24",
+            "via": [
+              "@angular/common",
+              "@angular/compiler",
+              "@angular/core",
+              "@angular/platform-browser",
+              {
+                "source": 1118626,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular: SSRF via protocol-relative and backslash URLs in Angular Platform-Server",
+                "url": "https://github.com/advisories/GHSA-45q2-gjvg-7973",
+                "severity": "high",
+                "cwe": ["CWE-918"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.9"
+              },
+              {
+                "source": 1120775,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: Missing `<noscript>` Raw-Text Serialization Escaping leads to Cross-Site Scripting (XSS) in Angular SSR",
+                "url": "https://github.com/advisories/GHSA-gxx4-3xcv-f8qx",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.16"
+              },
+              {
+                "source": 1123522,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+                "url": "https://github.com/advisories/GHSA-hqr9-c56f-3x7f",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.16"
+              },
+              {
+                "source": 1123555,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: URL Parser Differential leading to SSRF Allowlist Bypass",
+                "url": "https://github.com/advisories/GHSA-xrxm-cp7j-8xf6",
+                "severity": "high",
+                "cwe": ["CWE-346", "CWE-918"],
+                "cvss": {
+                  "score": 8.2,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.15"
+              },
+              {
+                "source": 1123567,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: SSRF via Hostname Hijacking",
+                "url": "https://github.com/advisories/GHSA-rfh7-fxqc-q52v",
+                "severity": "high",
+                "cwe": ["CWE-918"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.13"
+              },
+              {
+                "source": 1130703,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular SSR: Missing Fallback Raw-Content Serialization Escaping leads to Cross-Site Scripting (XSS)",
+                "url": "https://github.com/advisories/GHSA-vpx6-8pjr-4g3v",
+                "severity": "high",
+                "cwe": ["CWE-79"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.19"
+              },
+              {
+                "source": 1204764,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular: SSR XSS via Unescaped <template> Content Across DocumentFragment Boundaries in Fallback Raw-Content Elements",
+                "url": "https://github.com/advisories/GHSA-v3p8-whq6-r5jg",
+                "severity": "high",
+                "cwe": ["CWE-79", "CWE-116"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.22"
+              },
+              {
+                "source": 1204768,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular: SSRF and Cross-Origin Credential Disclosure via URL Resolution Discrepancy in SSR",
+                "url": "https://github.com/advisories/GHSA-f6mr-pjwc-34m4",
+                "severity": "high",
+                "cwe": ["CWE-918"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.22"
+              },
+              {
+                "source": 1239939,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular SSR: Denial of Service (DoS) via Infinite Loop on Malformed DOCTYPE",
+                "url": "https://github.com/advisories/GHSA-f67j-2jqw-jpq7",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-835"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.23"
+              },
+              {
+                "source": 1239952,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular SSR: XSS via Unescaped Processing Instruction (<?...?>) Nodes in Fallback Raw-Content Elements",
+                "url": "https://github.com/advisories/GHSA-j3r3-mxqp-r2p4",
+                "severity": "high",
+                "cwe": ["CWE-79", "CWE-116"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.22"
+              },
+              {
+                "source": 1242598,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: Open Redirect via Protocol-Relative URLs in Server-Side Rendering (SSR)",
+                "url": "https://github.com/advisories/GHSA-w739-gvwx-grc3",
+                "severity": "moderate",
+                "cwe": ["CWE-601"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.25"
+              }
+            ]
+          },
+          "@angular/router": {
+            "severity": "high",
+            "range": "10.0.0-next.0 - 10.0.0-rc.1 || 21.0.0-next.0 - 21.2.24",
+            "via": [
+              "@angular/common",
+              "@angular/core",
+              "@angular/platform-browser",
+              {
+                "source": 1240618,
+                "name": "@angular/router",
+                "dependency": "@angular/router",
+                "title": "Angular Server-Side Rendering (SSR): Denial of Service via Numeric URL Matrix Parameters",
+                "url": "https://github.com/advisories/GHSA-ff3f-86qr-9cv3",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-770"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.24"
+              },
+              {
+                "source": 1242593,
+                "name": "@angular/router",
+                "dependency": "@angular/router",
+                "title": "@angular/router: Denial of Service via Unmatched Empty-Path Outlet Route Matching in Server-Side Rendering (SSR)",
+                "url": "https://github.com/advisories/GHSA-62vg-58rm-qff7",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-405"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.25"
+              },
+              {
+                "source": 1242606,
+                "name": "@angular/router",
+                "dependency": "@angular/router",
+                "title": "@angular/router: Denial of Service via RouterLink Query Parameter Retention in Server-Side Rendering (SSR)",
+                "url": "https://github.com/advisories/GHSA-57xq-rjx2-v5xh",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-770"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.2.0 <21.2.25"
+              }
+            ]
+          },
+          "@angular/ssr": {
+            "severity": "moderate",
+            "range": "21.0.0-next.0 - 21.2.22",
+            "via": [
+              {
+                "source": 1117730,
+                "name": "@angular/ssr",
+                "dependency": "@angular/ssr",
+                "title": "Protocol-Relative URL Injection via Single Backslash Bypass in Angular SSR",
+                "url": "https://github.com/advisories/GHSA-vfx2-hv2g-xj5f",
+                "severity": "moderate",
+                "cwe": ["CWE-601"],
+                "cvss": {
+                  "score": 6.1,
+                  "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+                },
+                "range": ">=21.0.0-next.0 <21.2.3"
+              },
+              {
+                "source": 1118986,
+                "name": "@angular/ssr",
+                "dependency": "@angular/ssr",
+                "title": "Angular SSR has Open Redirect and Request Steering via Encoded X-Forwarded-Prefix",
+                "url": "https://github.com/advisories/GHSA-69xr-m8h6-h664",
+                "severity": "moderate",
+                "cwe": ["CWE-22", "CWE-601"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0-next.0 <21.2.9"
+              },
+              {
+                "source": 1241235,
+                "name": "@angular/ssr",
+                "dependency": "@angular/ssr",
+                "title": "Angular SSR: Path Traversal to Sibling Directories in CommonEngine on Windows",
+                "url": "https://github.com/advisories/GHSA-7g7c-h8rr-7p6q",
+                "severity": "moderate",
+                "cwe": ["CWE-22"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=21.0.0 <21.2.23"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "N11-A22",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "install",
+          "status": "passed"
+        },
+        {
+          "name": "dependency-tree",
+          "status": "passed"
+        },
+        {
+          "name": "runtime-audit",
+          "status": "failed"
+        },
+        {
+          "name": "cjs-declarations",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-build",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-exports-security",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-module-http",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-async-http",
+          "status": "passed"
+        },
+        {
+          "name": "cjs-explicit-http",
+          "status": "passed"
+        },
+        {
+          "name": "esm-declarations",
+          "status": "passed"
+        },
+        {
+          "name": "esm-build",
+          "status": "passed"
+        },
+        {
+          "name": "esm-exports-security",
+          "status": "passed"
+        },
+        {
+          "name": "esm-module-http",
+          "status": "passed"
+        },
+        {
+          "name": "esm-async-http",
+          "status": "passed"
+        },
+        {
+          "name": "esm-explicit-http",
+          "status": "passed"
+        },
+        {
+          "name": "split-build",
+          "status": "passed"
+        },
+        {
+          "name": "split-output-boundary",
+          "status": "passed"
+        },
+        {
+          "name": "split-http-hydration",
+          "status": "passed"
+        }
+      ],
+      "audit": {
+        "sha256": "d0dfe03ff8027251861c27a6beab4a30ce904a66c7d10db98167c6710398d895",
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 1,
+          "high": 2,
+          "critical": 0,
+          "total": 3
+        },
+        "packages": {
+          "@angular/platform-server": {
+            "severity": "high",
+            "range": "22.0.0 - 22.2.0",
+            "via": [
+              {
+                "source": 1239940,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "Angular SSR: Denial of Service (DoS) via Infinite Loop on Malformed DOCTYPE",
+                "url": "https://github.com/advisories/GHSA-f67j-2jqw-jpq7",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-835"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=22.0.0 <22.1.6"
+              },
+              {
+                "source": 1242599,
+                "name": "@angular/platform-server",
+                "dependency": "@angular/platform-server",
+                "title": "@angular/platform-server: Open Redirect via Protocol-Relative URLs in Server-Side Rendering (SSR)",
+                "url": "https://github.com/advisories/GHSA-w739-gvwx-grc3",
+                "severity": "moderate",
+                "cwe": ["CWE-601"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=22.0.0 <22.2.1"
+              }
+            ]
+          },
+          "@angular/router": {
+            "severity": "high",
+            "range": "22.0.0 - 22.2.0",
+            "via": [
+              {
+                "source": 1240619,
+                "name": "@angular/router",
+                "dependency": "@angular/router",
+                "title": "Angular Server-Side Rendering (SSR): Denial of Service via Numeric URL Matrix Parameters",
+                "url": "https://github.com/advisories/GHSA-ff3f-86qr-9cv3",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-770"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=22.0.0 <22.2.0"
+              },
+              {
+                "source": 1242594,
+                "name": "@angular/router",
+                "dependency": "@angular/router",
+                "title": "@angular/router: Denial of Service via Unmatched Empty-Path Outlet Route Matching in Server-Side Rendering (SSR)",
+                "url": "https://github.com/advisories/GHSA-62vg-58rm-qff7",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-405"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=22.0.0 <22.2.1"
+              },
+              {
+                "source": 1242607,
+                "name": "@angular/router",
+                "dependency": "@angular/router",
+                "title": "@angular/router: Denial of Service via RouterLink Query Parameter Retention in Server-Side Rendering (SSR)",
+                "url": "https://github.com/advisories/GHSA-57xq-rjx2-v5xh",
+                "severity": "high",
+                "cwe": ["CWE-400", "CWE-770"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=22.0.0 <22.2.1"
+              }
+            ]
+          },
+          "@angular/ssr": {
+            "severity": "moderate",
+            "range": "22.0.0 - 22.1.6",
+            "via": [
+              {
+                "source": 1241236,
+                "name": "@angular/ssr",
+                "dependency": "@angular/ssr",
+                "title": "Angular SSR: Path Traversal to Sibling Directories in CommonEngine on Windows",
+                "url": "https://github.com/advisories/GHSA-7g7c-h8rr-7p6q",
+                "severity": "moderate",
+                "cwe": ["CWE-22"],
+                "cvss": {
+                  "score": 0,
+                  "vectorString": null
+                },
+                "range": ">=22.0.0 <22.1.7"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "controllerChecks": {
+    "releasePolicyTests": {
+      "passed": 44,
+      "failed": 0,
+      "logSha256": "e8dfb6c0fe22632519ecf9329aaec41c846736cd415340b7d54e4d09b7552b85"
+    },
+    "validate-release-policy": "passed",
+    "test-ci-selection": "passed",
+    "nxCloud": "disabled",
+    "hostedValidation": "not run; separate authorization required",
+    "liveProtectionSnapshots": "empty; owner read-back and review pending"
+  }
+}

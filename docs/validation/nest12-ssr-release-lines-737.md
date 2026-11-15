@@ -8,6 +8,9 @@ version announcement, version preparation, release authorization or activation.
 
 Keep one `@anarchitects/nest-angular-ssr` package with separate version lines:
 
+The following original numeric examples are amended by the accepted
+[maintenance-first ordering](#accepted-ordering-amendment--15-november-2026) below.
+
 | Line              | Purpose                                                                                    | Source and channel after cutover                                                                                     |
 | ----------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | `0.3.x`           | Nest 11 bug/security fixes only; preserve existing public APIs and Angular 21/22 contracts | Protected `maintenance/nest-angular-ssr-0.3` source branch; `nest11` npm channel                                     |
@@ -148,6 +151,29 @@ adapter change does not certify those dependencies. The Nest12 manifest remains
 on12.5.0. #748 owns protected source/release execution and #722 stays paused.
 
 ## Branch, backport and channel routing
+
+### Accepted ordering amendment — 15 November 2026
+
+During #748, Johan explicitly answered **“Prepare maintenance first”**. The
+accepted breaking adapter-floor migration must obtain its distinct Nest 11
+successor minor **before** the Nest 12 feature release is derived from the newly
+distributed baseline. With the currently observed history, the illustration is
+Nest 11 `0.4.0` followed by Nest 12 `0.5.0`, replacing the earlier initial Nest 12
+`0.4.0` example. Neither number is reserved: fresh history and Nx Conventional
+Commits determine actual candidates, and any collision stops preparation.
+
+The logical source remains `nest11` on `maintenance/nest-angular-ssr-0.3`; the
+historical numeric branch suffix does not classify the new floor as a patch.
+Maintenance Nx uses only reachable tags. Feature Nx explicitly considers all
+branches after the patched maintenance baseline reaches its distribution channel;
+this does not merge maintenance source into main. The concrete controls, detailed
+design acceptance and operator handoff are recorded in the
+[#748 review](ssr-maintenance-release-controls-748.md). Release authorization,
+security evidence and #722 activation remain separate. This is an ordering
+decision, not permission to publish either artifact or weaken the maintenance audit.
+
+The remaining historical examples below describe compatible patches and channel
+semantics. In particular, `0.3.3` is not the chosen version for the floor migration.
 
 Before the first Nest12-breaking implementation merges, preserve the last reviewed
 Nest11-compatible main commit as the protected maintenance branch base. Retain

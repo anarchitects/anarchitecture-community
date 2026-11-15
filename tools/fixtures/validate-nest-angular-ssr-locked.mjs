@@ -51,6 +51,7 @@ const { values, positionals } = parseArgs({
     archive: { type: 'string' },
     'archive-sha256': { type: 'string' },
     'output-directory': { type: 'string' },
+    'release-audit': { type: 'boolean', default: false },
   },
 });
 const selected = values.cell ?? positionals[0] ?? 'nest12';
@@ -94,6 +95,7 @@ function checkInterruption() {
     throw new Error('Matrix interrupted; remaining cells were not executed');
 }
 const report = {
+  releaseAudit: values['release-audit'],
   node: process.version,
   platform: process.platform,
   arch: process.arch,
@@ -183,7 +185,10 @@ try {
       );
       // Fresh registry evidence is deliberately uncached. The maintenance
       // archive preserves historical compatibility, not a new security claim.
-      if (versions.nest.startsWith('12.') && !versions.historical)
+      if (
+        values['release-audit'] ||
+        (versions.nest.startsWith('12.') && !versions.historical)
+      )
         await check(cell, 'runtime-audit', async () => {
           const audit = JSON.parse(
             await command('npm', ['audit', '--omit=dev', '--json'], temporary, {

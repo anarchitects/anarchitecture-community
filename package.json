@@ -98,6 +98,8 @@
         "cache": true,
         "inputs": [
           "{workspaceRoot}/tools/release/**/*",
+          "{workspaceRoot}/tools/fixtures/**/*",
+          "{workspaceRoot}/.github/workflows/ci.yml",
           "{workspaceRoot}/nx.json",
           "{workspaceRoot}/package.json",
           "{workspaceRoot}/yarn.lock",

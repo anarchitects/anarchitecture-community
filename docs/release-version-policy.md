@@ -97,10 +97,23 @@ The source manifest, actual artifact identities/versions, tag and Nx result must
 agree. First distribution is exactly `0.0.1`; existing version histories remain
 intact. An initial `0.0.1` tag created by the approved release handoff does not
 invalidate publication of that same version. An additional channel for an
-existing version is not a new initial release. A new candidate must advance all
+existing version is not a new initial release. A standard candidate must advance all
 observed history, and its Nx baseline must exist in its distribution channel.
 This deliberately blocks advancing past the Governance tag/registry discrepancies
 recorded in the [#719 inventory](release-controls-inventory-719.md).
+
+The narrowly scoped [#748 SSR path](validation/ssr-maintenance-release-controls-748.md)
+adds an explicit `sourceLine` binding for the approved package/branch/channel.
+Maintenance uses branch-reachable Nx tags (`checkAllBranchesWhen: false`), advances
+that distributed baseline and may remain below a higher feature version. Complete
+global history is still fetched and every new version must be unused. It cannot
+reuse an existing version for a new preparation record; recovery uses the original
+record. Feature preparation uses all-branch tags and waits for the accepted patched
+maintenance distribution. Changed peers/engines require breaking impact evidence.
+No manual version skipping, hidden history, `1.x` transition or arbitrary branch
+exception is introduced. Johan accepted the detailed design on 15 November 2026;
+live activation remains a separate gate. Generic callers cannot authorize a release
+by supplying these fields.
 
 The [#721 execution path](release-execution.md) supplies authenticated Nx results
 and compatibility/transition evidence, binds them to the final commit and archives,

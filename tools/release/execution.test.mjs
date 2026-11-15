@@ -369,6 +369,34 @@ test('workflow privilege boundaries and staged activation are explicit', () => {
     prepare = workflow('release-prepare');
   assert.equal(prepare.permissions['id-token'], undefined);
   assert.equal(prepare.permissions.contents, 'read');
+  assert.equal(
+    prepare.jobs.prepare.if,
+    "github.ref == 'refs/heads/main' && github.run_attempt == 1",
+  );
+  const admission = prepare.jobs.prepare.steps.findIndex(
+    (s) => s.id === 'source',
+  );
+  const candidateCheckout = prepare.jobs.prepare.steps.findIndex(
+    (s) => s.with?.path === 'maintenance-source',
+  );
+  assert.ok(admission >= 0 && candidateCheckout > admission);
+  assert.equal(
+    prepare.jobs.prepare.steps[candidateCheckout].with.ref,
+    '${{ steps.source.outputs.commit }}',
+  );
+  assert.equal(
+    prepare.jobs.prepare.steps[candidateCheckout].with['persist-credentials'],
+    false,
+  );
+  assert.match(
+    prepare.jobs.prepare.steps.find((s) => s.id === 'freeze').run,
+    /node \.\.\/tools\/release\/prepare\.mjs freeze --line=nest11/,
+  );
+  assert.ok(
+    workflow('ci').on.push.branches.includes(
+      'maintenance/nest-angular-ssr-0.3',
+    ),
+  );
   assert.equal(publish.jobs.forward.permissions['id-token'], undefined);
   assert.equal(
     publish.jobs.forward.steps.some((s) =>
@@ -436,6 +464,28 @@ test('workflow privilege boundaries and staged activation are explicit', () => {
           assert.equal(job, release.jobs.approved);
         }
       }
+    }
+  }
+});
+
+test('preparation rejects release credentials before reading or executing candidate source', async () => {
+  const { freeze } = await import('./prepare.mjs');
+  for (const name of [
+    'RELEASE_TOKEN',
+    'NPM_AUTH_TOKEN',
+    'ANARCHITECTS_BOT_PRIVATE_KEY',
+    'ACTIONS_ID_TOKEN_REQUEST_TOKEN',
+  ]) {
+    const previous = process.env[name];
+    try {
+      process.env[name] = 'test-only-sentinel';
+      await assert.rejects(
+        freeze({ ciRunId: 1 }),
+        /Preparation must not receive/,
+      );
+    } finally {
+      if (previous === undefined) delete process.env[name];
+      else process.env[name] = previous;
     }
   }
 });
