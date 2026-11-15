@@ -396,7 +396,30 @@ test('workflow gates every workload before allocation and retains the required m
     section('nest-angular-ssr-consumers'),
     /os: \[ubuntu-latest, macos-latest\]/,
   );
-  for (const cell of ['angular22-current']) {
+  assert.match(
+    section('nest-angular-ssr-consumers'),
+    /validate-locked-consumers --cell=N12-current/,
+  );
+  assert.match(
+    section('nest-angular-ssr-consumers'),
+    /node-version: 24\.22\.3/,
+  );
+  for (const job of [
+    'nest-angular-ssr-consumers',
+    'nest-angular-ssr-compatibility',
+  ]) {
+    assert.match(section(job), /actions\/upload-artifact@v6/);
+    assert.match(section(job), /if-no-files-found: error/);
+  }
+  assert.match(
+    section('nest-angular-ssr-compatibility'),
+    /install-consumer-browser/,
+  );
+  assert.match(
+    section('nest-angular-ssr-compatibility'),
+    /validate-locked-consumers/,
+  );
+  for (const cell of ['N12-split']) {
     assert.ok(section('nest-angular-ssr-compatibility').includes(`- ${cell}`));
   }
   assert.ok(

@@ -206,12 +206,12 @@
         "options": {
           "commands": [
             "yarn nx run-many -t build,typecheck,test,lint -p nest-angular-ssr",
-            "yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-consumers",
-            "yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-split",
-            "yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-matrix --cell=all"
+            "yarn nx run nest-angular-ssr:install-consumer-browser",
+            "yarn nx run nest-angular-ssr:validate-locked-consumers --cell=nest12"
           ],
           "parallel": false
-        }
+        },
+        "cache": false
       },
       "validate-governance-release-gate": {
         "executor": "nx:run-commands",

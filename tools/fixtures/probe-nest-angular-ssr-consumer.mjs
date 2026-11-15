@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { assertSsrSecurityConformance } from './nest-angular-ssr-security-conformance.mjs';
+import { assertSsrHttpConformance } from './nest-angular-ssr-http-conformance.mjs';
 import {
   readJson,
   fastifyVersion,
@@ -59,3 +60,10 @@ await assertSsrSecurityConformance(root, mode, {
   fastify: fastifyVersion,
   static: staticVersion,
 });
+console.log(
+  JSON.stringify(
+    { http: await assertSsrHttpConformance(root, exports) },
+    null,
+    2,
+  ),
+);

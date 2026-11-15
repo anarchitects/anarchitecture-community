@@ -83,7 +83,11 @@ Peer dependencies:
 The static-file dependency is `@fastify/static ~10.1.11`. The host selects and
 configures `FastifyAdapter` explicitly; the library does not switch HTTP adapters.
 Responses retain the existing buffered body behavior; streaming/backpressure parity
-with other HTTP adapters is not claimed.
+with other HTTP adapters is not claimed. The bridge reads the complete Web Response
+before sending it, including for HEAD requests; use bounded response bodies.
+Client disconnects do not abort the renderer's `Request.signal`. Applications
+that need cancellable rendering or streaming must supply those capabilities outside
+this bridge. Renderer and body-read failures use Nest's normal exception handling.
 
 ### Static files and reverse proxies
 

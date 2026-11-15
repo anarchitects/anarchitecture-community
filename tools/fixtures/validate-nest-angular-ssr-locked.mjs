@@ -50,6 +50,7 @@ const { values, positionals } = parseArgs({
     cell: { type: 'string' },
     archive: { type: 'string' },
     'archive-sha256': { type: 'string' },
+    'output-directory': { type: 'string' },
   },
 });
 const selected = values.cell ?? positionals[0] ?? 'nest12';
@@ -67,9 +68,13 @@ assert.equal(
   nodeVersion,
   'Use the exact reviewed Node proof version',
 );
-const outputBase = join(root, 'dist/validation/nest12-ssr-739');
+const outputBase = join(root, 'dist/validation/nest12-ssr-740');
 await mkdir(outputBase, { recursive: true });
-const output = await mkdtemp(join(outputBase, `${selected}-`));
+// An explicit directory must be new: never pass with stale certification files.
+const output = values['output-directory']
+  ? resolve(values['output-directory'])
+  : await mkdtemp(join(outputBase, `${selected}-`));
+if (values['output-directory']) await mkdir(output, { recursive: false });
 console.log(`Evidence: ${output}`);
 const results = [];
 let interrupted = false;
@@ -176,6 +181,25 @@ try {
           log: join(cellOutput, 'installed-tree.json'),
         }),
       );
+      // Fresh registry evidence is deliberately uncached. The maintenance
+      // archive preserves historical compatibility, not a new security claim.
+      if (versions.nest.startsWith('12.') && !versions.historical)
+        await check(cell, 'runtime-audit', async () => {
+          const audit = JSON.parse(
+            await command('npm', ['audit', '--omit=dev', '--json'], temporary, {
+              log: join(cellOutput, 'runtime-audit.json'),
+            }),
+          );
+          assert.equal(
+            audit.metadata?.vulnerabilities?.total,
+            0,
+            'Runtime advisories require review before certification',
+          );
+          return {
+            checkedAt: new Date().toISOString(),
+            vulnerabilities: audit.metadata.vulnerabilities,
+          };
+        });
       if (versions.direct) {
         for (const mode of ['cjs', 'esm'])
           await direct(temporary, cellOutput, cell, versions, mode);
@@ -482,6 +506,9 @@ async function inputHashes() {
     'package.json',
     'yarn.lock',
     '.github/workflows/ci.yml',
+    '.github/workflows/release-prepare.yml',
+    'tools/release/consumer.mjs',
+    'tools/release/ssr-certification.mjs',
     'packages/nest/angular-ssr/package.json',
     'packages/nest/angular-ssr/README.md',
     'packages/nest/angular-ssr/vite.config.mts',
