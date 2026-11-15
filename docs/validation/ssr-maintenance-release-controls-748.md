@@ -8,6 +8,15 @@ authorized committing, pushing and opening the PR with its normal CI run.
 #740 is closed at Johan's explicit request. #741 still depends on #748. #722 is
 paused until release planning; neither this work nor its tests activate it.
 
+## Delivery update — 15 November 2026
+
+PR #759 merged as `9938077fc04843e7afc19da101e479707cd3a7c8`; #748 is closed.
+The implementation prerequisite for #741 is resolved. The opening status and
+security results below describe the original review. See the
+[#741 readiness record](nest12-ssr-readiness-741.md) for patched maintenance
+consumer evidence and the still-pending live source/protection setup. #722 stays
+paused; implementation delivery is not live activation.
+
 ## Decision and exact scope
 
 The approved adapter minimum `^11.2.10` is a breaking Nest 11 installation change.

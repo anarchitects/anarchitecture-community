@@ -1,0 +1,1934 @@
+{
+  "issue": 741,
+  "reviewDate": "2026-11-15",
+  "status": "local-review-not-release-authorization",
+  "metaRevision": "4f0339d86f0ebfa073173ad307cb67c8d6042bdd",
+  "localEvidenceDirectories": {
+    "feature": "dist/validation/nest12-ssr-741-feature",
+    "maintenance": "dist/validation/nest12-ssr-741-maintenance-final"
+  },
+  "runs": {
+    "feature": {
+      "releaseAudit": true,
+      "node": "v24.22.3",
+      "platform": "darwin",
+      "arch": "arm64",
+      "cells": [
+        {
+          "name": "N12-current",
+          "versions": {
+            "nest": "12.5.0",
+            "angular": "22.2.6",
+            "angularBuild": "22.2.7",
+            "typescript": "6.0.3",
+            "nx": "24.0.6",
+            "direct": true
+          },
+          "checks": [
+            {
+              "name": "install",
+              "status": "passed"
+            },
+            {
+              "name": "dependency-tree",
+              "status": "passed"
+            },
+            {
+              "name": "runtime-audit",
+              "status": "passed",
+              "evidence": {
+                "checkedAt": "2026-11-15T17:12:27.533Z",
+                "vulnerabilities": {
+                  "info": 0,
+                  "low": 0,
+                  "moderate": 0,
+                  "high": 0,
+                  "critical": 0,
+                  "total": 0
+                }
+              }
+            },
+            {
+              "name": "cjs-declarations",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-build",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-exports-security",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-module-http",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-async-http",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-explicit-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-declarations",
+              "status": "passed"
+            },
+            {
+              "name": "esm-build",
+              "status": "passed"
+            },
+            {
+              "name": "esm-exports-security",
+              "status": "passed"
+            },
+            {
+              "name": "esm-module-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-async-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-explicit-http",
+              "status": "passed"
+            }
+          ],
+          "environmentLockSha256": "3839c75659f42f0dd396f8255ccf97962072a872138ea3dd2ad5a791fb6ad65a",
+          "fastifyCopies": {
+            "node_modules/fastify": "5.12.8"
+          },
+          "boundLockSha256": "c1bedda48a8446375938e92a4083f24068dbbf01a872bbc946c2fac685cb485c",
+          "status": "passed"
+        },
+        {
+          "name": "N12-split",
+          "versions": {
+            "nest": "12.5.0",
+            "angular": "22.2.6",
+            "angularBuild": "22.2.7",
+            "typescript": "6.0.3",
+            "nx": "24.0.6",
+            "split": true
+          },
+          "checks": [
+            {
+              "name": "install",
+              "status": "passed"
+            },
+            {
+              "name": "dependency-tree",
+              "status": "passed"
+            },
+            {
+              "name": "runtime-audit",
+              "status": "passed",
+              "evidence": {
+                "checkedAt": "2026-11-15T17:12:44.388Z",
+                "vulnerabilities": {
+                  "info": 0,
+                  "low": 0,
+                  "moderate": 0,
+                  "high": 0,
+                  "critical": 0,
+                  "total": 0
+                }
+              }
+            },
+            {
+              "name": "split-build",
+              "status": "passed"
+            },
+            {
+              "name": "split-output-boundary",
+              "status": "passed"
+            },
+            {
+              "name": "split-http-hydration",
+              "status": "passed",
+              "evidence": {
+                "playwright": "1.64.0",
+                "chromium": "156.0.8078.4",
+                "executable": "/Users/johanvrolix/Library/Caches/ms-playwright/chromium-1248/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+                "replayedClicks": 1,
+                "hydratedClicks": 1,
+                "retainedSsrNode": true
+              }
+            }
+          ],
+          "environmentLockSha256": "b5739957d61de0de7f70039a3ccec9ea6b736c800fdde1b981ec72181ca63191",
+          "fastifyCopies": {
+            "node_modules/fastify": "5.12.8"
+          },
+          "boundLockSha256": "2a3f48a8b138245464af22492458adf1d826f94f7db1c042491f7e16134b0862",
+          "status": "passed"
+        }
+      ],
+      "inputs": {
+        ".github/workflows/ci.yml": "c904c32d8224b89583b2d070ed65356c427e67de7d1c4f1db6c79efeb6c9fab4",
+        ".github/workflows/release-prepare.yml": "c7a5f7bc07c1817f1cba31205db3b1e45d32e1a9b5022087d2a060f9cf1fa390",
+        "apps/fixtures/nest-angular-split/backend/.spec.swcrc": "1088d15cd8fe8068d19df786712d77f3f82bf64c9168a922753d09334058910f",
+        "apps/fixtures/nest-angular-split/backend/jest.config.cts": "b34588167d58cd931e5004aa27b086c4cebb616a749c2af16429ec55ede62c34",
+        "apps/fixtures/nest-angular-split/backend/package.json": "6c5c5cca707e89b22f2c9ab55aea3968668912abd03839d6d92be4f402f11b02",
+        "apps/fixtures/nest-angular-split/backend/project.json": "a5ef53014ac4092d0b7ec3c4422950e368cdcff9fe16260f70f28852274b1a4d",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.controller.spec.ts": "4327588ae3b11f6d5f0bb282095022e4ce4667ff484a34b9a238e77f3c1e92c1",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.controller.ts": "eb4c6c96034109ba6722a70812e6cbbb20110d3ba420d29a16606bbfa16f7ecb",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.module.spec.ts": "a1ac634c6fa2f8abad28320ad75b751c9e8c196a7f925987da58de69d379aba8",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.module.ts": "517585838b0676c514a9a23f722dc882b6d71ac4f514f5a36c7498d4141acf4b",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.service.spec.ts": "ae5fd20b6cd3d23cf44b5341cb927e7e3aab2c9dd6825a6534684eb93a70594f",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.service.ts": "4c39152741ddfb578e12b53f507a53e8813c0702c57aa852dde5acd739af92ad",
+        "apps/fixtures/nest-angular-split/backend/src/assets/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "apps/fixtures/nest-angular-split/backend/src/main.ts": "60497160e8d93049073012f5750fafcc624800d1b309c5e920ff04e595c0c639",
+        "apps/fixtures/nest-angular-split/backend/tsconfig.app.json": "9ee99999e9b30538a7c528eb746428d5c9996e6ba0539e831f68c596aa578b96",
+        "apps/fixtures/nest-angular-split/backend/tsconfig.json": "db5ee7ada52a355c3351de566ea6ba26428ca0967f8bed512b655ced91bccc40",
+        "apps/fixtures/nest-angular-split/backend/tsconfig.spec.json": "380819224c5823a654c763eb3781896d6b3892080852a879b6846f06f52f1e1e",
+        "apps/fixtures/nest-angular-split/backend/webpack.config.js": "fc1a293408c5300508197dab4489a9200bc3019716aff75453ded6652addecd8",
+        "apps/fixtures/nest-angular-split/frontend/project.json": "35f2b7238ac2332770309d1a03a46f6fcc2119f08e95b656606ca57e0bc2c027",
+        "apps/fixtures/nest-angular-split/frontend/public/favicon.ico": "f8410ea5598b43087f77e64a6b8732f6a7ae6b0a09c94497b383e1e92df95c9c",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.config.server.ts": "115e541200ba96c75d9e45313d99b2344b3fe8cf5601c864eda7d2b79a342ecb",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.config.ts": "b72d91fa0a76d29209500c44c372907b0ff57b851295783ec949bd4d6d727868",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.css": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.html": "05cdc8e3f8f7208e8a84867e96ebcaa9ac34aa237dbf756d2682d733540e33d0",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.routes.server.ts": "65a6223628d4db6fc4c8334d1273a9f7e48d96fd788c84511730029e198689eb",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.routes.ts": "ec405f0cd6c869447e78875a98de468eb03271456be074594920010c27fa9b19",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.ts": "36f2ececf1def05177019c4c667f01f507288c7f5f624ff4e038292f72fcf078",
+        "apps/fixtures/nest-angular-split/frontend/src/index.html": "1366a98caeda064a24f545f3bf7ad2ae95ed326026988aaa62a92f5b35df5310",
+        "apps/fixtures/nest-angular-split/frontend/src/main.server.ts": "4055fc3b1f46038d17617797e0dbbf4c48c2c9dc0737946bc511d1f56d31f564",
+        "apps/fixtures/nest-angular-split/frontend/src/main.ts": "ecc610fb7d56c95a01a8aa6c274a63210d45b2944dd6b9a88b2c8f70b6351037",
+        "apps/fixtures/nest-angular-split/frontend/src/server.ts": "14253c9fef7d7f88f8e28519ff2fc5a350de9409e0e53fb92caabbdc44e8051b",
+        "apps/fixtures/nest-angular-split/frontend/src/styles.css": "c7295b915b6a250b910d30ff3b9d1991b6f43c9474d3afafc6cba59eee44383e",
+        "apps/fixtures/nest-angular-split/frontend/tsconfig.app.json": "e65e69124853ec928940d4b704e4ba3858e3941d143ca2adf43d692631bcf3e5",
+        "apps/fixtures/nest-angular-split/frontend/tsconfig.json": "80542092f2d69c78767adeddf027eff29a8051117cd3463060355a233acf72b5",
+        "apps/fixtures/nest-angular-split/tsconfig.base.json": "3c67105a969c48e29c20b13568afc9fe8ca0197d60b4b8bca0f635730fdedb30",
+        "apps/fixtures/nest-cjs-consumer/package.json": "016523ade35671abdd5abed19fcd2cc0cb128e0534868f5f3e89d596bc3bc9ca",
+        "apps/fixtures/nest-cjs-consumer/project.json": "f078d9690521d49cb423711268eb4f59eeb7bd7dbdc904511ad1c21f14aaecf4",
+        "apps/fixtures/nest-cjs-consumer/src/app/app.module.ts": "d488df7eee8267a6212cb05c6a6dc0294876f17f7593ae72e13a6dd9d8123902",
+        "apps/fixtures/nest-cjs-consumer/src/app/health.controller.ts": "197a42836cd42e79984128c40eca3ec83fc99bb68686d9b5a493d1b55f6727a2",
+        "apps/fixtures/nest-cjs-consumer/src/assets/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "apps/fixtures/nest-cjs-consumer/src/assets/browser/main.js": "b5490b7ad2b67654e69bff96c64262d8fe002465e9f3818f512d7614ca5f8314",
+        "apps/fixtures/nest-cjs-consumer/src/index.server.html": "8331284d00a9354c1c8e3af18249c466f4617fb4a424e4a7b5182f7e57c60c8e",
+        "apps/fixtures/nest-cjs-consumer/src/main.server.ts": "7e43d5f4a2c1b4db84874d2c5529498fc08e559c53ad8cb5614219c153009826",
+        "apps/fixtures/nest-cjs-consumer/src/main.ts": "d5a3e140a4fef5c0aa2d448732b6e47d045f398cc0940476a965a256f25f838f",
+        "apps/fixtures/nest-cjs-consumer/src/ssr/angular-ssr-fixture.ts": "5aba1034bc2ac87e11c06fbc38a74d24c1b78c0b58e35d45012c6cd972a1cf21",
+        "apps/fixtures/nest-cjs-consumer/tsconfig.app.json": "100bd98831c4d42d2a3bdf0c299e5492f42e552a786fa9a160375e5077fe9765",
+        "apps/fixtures/nest-cjs-consumer/tsconfig.json": "6501cb88b12372411564417e5a150095c44edd71c485b14de95e505998f690bb",
+        "apps/fixtures/nest-esm-consumer/package.json": "afc4aa3c632c5f18f8cc93ba9ebb6d523161a8755447a6c7da7293f5b9cc806d",
+        "apps/fixtures/nest-esm-consumer/project.json": "7f72655fa5036831053e4f5be00b3b727c7621d7f0ae0d6271f5654bbe3a0da5",
+        "apps/fixtures/nest-esm-consumer/src/app/app.module.ts": "a416daa7635559b59d9e2a360e53b4029f09bd7a0e7994edbb88e66d5303a356",
+        "apps/fixtures/nest-esm-consumer/src/app/health.controller.ts": "197a42836cd42e79984128c40eca3ec83fc99bb68686d9b5a493d1b55f6727a2",
+        "apps/fixtures/nest-esm-consumer/src/assets/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "apps/fixtures/nest-esm-consumer/src/assets/browser/main.js": "0051eca718fbd3e02ea0a118c3017de10682c56e913dabbcd8e6d3178875b93b",
+        "apps/fixtures/nest-esm-consumer/src/index.server.html": "26f1577a6ea6aa6965ede8a2949ef34021e346d4ad86d2ed2545438cb295f8f2",
+        "apps/fixtures/nest-esm-consumer/src/main.server.ts": "aad0242357fa88254647dcff5236ed02ecf8c49e4871d03138529cdc38cc4ec8",
+        "apps/fixtures/nest-esm-consumer/src/main.ts": "bafa8eca7da8630bd483a90064d3f560adc37bde0ee7663079087bb3ba96f1a3",
+        "apps/fixtures/nest-esm-consumer/src/ssr/angular-ssr-fixture.ts": "64fccba949d3398026e8e21e4e32f82a35a35f2582d80b4161577c64b1ffbf58",
+        "apps/fixtures/nest-esm-consumer/tsconfig.app.json": "9e02b9f276452e1c769b7b154f73b49f71e932db3360d2ed444eafc6420d0482",
+        "apps/fixtures/nest-esm-consumer/tsconfig.json": "6501cb88b12372411564417e5a150095c44edd71c485b14de95e505998f690bb",
+        "package.json": "cecf34cb69a14d4dd79e1fc11ad5e724f3044b765b83b37ff91c13d4eec1fcb2",
+        "packages/nest/angular-ssr/README.md": "56944c0180b1005a3b8834cf8ac35f75c5311d20c3832c507015b9f4b92178e5",
+        "packages/nest/angular-ssr/package.json": "874e91c3ac386771be4ee79b312c708654ff73b1398646e1f9058ac8b02182db",
+        "packages/nest/angular-ssr/src/index.ts": "c7e7cb0268400f243aa44d2390c39bcfd03a8701b67b679080a85e77875e3be2",
+        "packages/nest/angular-ssr/src/lib/core/angular-node-ssr-renderer-observability.spec.ts": "f9bb550f20fad1ed52743ce0e43dc00104149ac102fa8398878486b4c1dea805",
+        "packages/nest/angular-ssr/src/lib/core/angular-node-ssr-renderer.spec.ts": "b565fa1e7d80c7e36c50d70d74ed7c7b1ea17775df73e671c9df76775254b5f8",
+        "packages/nest/angular-ssr/src/lib/core/angular-node-ssr-renderer.ts": "1b3d24d0eeac38c907b4f5118352c6f9d617b5b563a2531729d909b119ef1825",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-build-output.spec.ts": "82245ba9bf5f45fbfe82f14d08e2b4f96ad151bd60b711932c107d1782854aea",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-build-output.ts": "fb6f9a5e449b02edc66359749866263043d67a61f79da284138de93c65e32e98",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-contract.ts": "e1cff57b073b15a9ab6cfee705bd238907b4191333b9c3fb31283d782eb6ff00",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-engine.ts": "1bb32b6d4841b88cd9e2e1a9a8b3957c960a11a104a318a09887e8a3c0106ba9",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-observability-examples.spec.ts": "012f05ae5c333061d0b475cf8a068e9d02199fe33fe9ebe7618ce50d7aad381b",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-observability-runtime.ts": "62194cbd38d76b2429dd8850463f2aade05ac676e6440b0428c9d8b9e79fb06e",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-observability.spec.ts": "fccde28fed176f6d948070b6e9d43fbcbb83fd0333a6d0fefb19f84ea3388d63",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-observability.ts": "7428ea62d160f836ddcf419f25bd5f5a07b4cc4b2577beb94c7628483066f177",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-registration-runtime.ts": "a5c4dc6920fee0535c317e037ab181be7a43cff514e9b4035b75a6b65bc5040b",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-registration.spec.ts": "6406fb622a3f4c9c56c9fd5201410b702d17c7d0d410cc7a11baac2ffbcd62a7",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-registration.ts": "0db1aa0ef047b725aa95092cdafbf27d0afd3d3f8c64236896ac736d956499f4",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-bootstrap.spec.ts": "c9b259540df7d64645fdece75016e45ca76833d965a71754dcaec150c1baace0",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-bootstrap.ts": "a41d5ebde22cc52fcefc45bad9e103667034c4c1382429aa6b18e0430f546049",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-integration.spec.ts": "269f72cc05322405266e55dbc5d2c016579074297a278c0b52a2439d9781fc65",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-integration.ts": "e9cba048206ce79dcf8a9bfd67e7384a437f6f1b6ef41e31def6b21d96c3d2b7",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-module.spec.ts": "8567ac54e5265c0f6cc48d10b132313b82fe6baf88ce4fb0817074532141286b",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-module.ts": "5fb6097d531d135ae52941add67a9f87f70873105c596f2454342aa17d59c7b9",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-options.spec.ts": "757c2a0340d523d2a1eb532ba93cf25a0656bfe00d72b1009c64c6a0ef82a141",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-options.ts": "5d3a7de5542467bd690b995f35eca5d26c23dde8b9078083428aa15091857a72",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-routing-observability.spec.ts": "d63a75245815bee7c89186613eb1923551a9ad53df3168fc81441ed06afef157",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-routing.spec.ts": "cfbabb8912828f4157a4659692d031b5bdea3edc393ab216ae5c11191961802c",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-routing.ts": "994e8fa226293da5e8cda6fbc4f03bc27e47bfa16ccf29af909256248ff9de11",
+        "packages/nest/angular-ssr/src/testing/angular-ssr-fixture.ts": "99c11d712d608f6240ed53f47cf47bcc29b2df8cb138bfa61200c1d73bfbd889",
+        "packages/nest/angular-ssr/src/testing/index.server.html": "6b45142e21fa281731ac90abfc5f98c33b72ed8904dde2304f6f1102548b728a",
+        "packages/nest/angular-ssr/src/testing/nest-fastify-fixture.ts": "a4d48341437d4e4122a86762e98886d3941251b6eb65d05422c56a3e7279ab1c",
+        "packages/nest/angular-ssr/vite.config.mts": "a0695bdeb5861e83e05d2e1ab34ce1c8fda1e1ba467593c4abc2fe85dd61f672",
+        "tools/fixtures/nest-angular-ssr-compatibility-matrix.json": "e2f65e5a4d909a76346e14bb04c2b0b7da411b72c2b72d46f3b66a6b880e70ae",
+        "tools/fixtures/nest-angular-ssr-consumer-attempt.mjs": "ac6e1d0107271525b22ea586c40462f029b41f623f642a80312290a1f223419a",
+        "tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs": "3df5feebdcc86bf91b64747e0a3ae173ac069c8fd502036431e430258f880136",
+        "tools/fixtures/nest-angular-ssr-http-conformance.mjs": "043e5d0b9ec0da3a67d7242ee2d74ac7c991f099d806fa7d50f7bc543b782a68",
+        "tools/fixtures/nest-angular-ssr-hydration.mjs": "035e0d0713b704947abb0cec8754f692b251313673f6421c8a94437a4f9bc1b0",
+        "tools/fixtures/nest-angular-ssr-locked-matrix.json": "ce72e118ae1f4fb64209b4d91ffc04b9595fe195767a09b2b46824d5ff8cca25",
+        "tools/fixtures/nest-angular-ssr-locked-support.mjs": "e3697845d208c1af2555f603b1da9c2f98feba66a0dce5f09f8fbdf799049ad8",
+        "tools/fixtures/nest-angular-ssr-locked-support.test.mjs": "4a1e3848423f3d1aece3d745bbb5977b9f3fc3cc28d5deabede18a90ae3bad9c",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package-lock.json": "428680827c6822f765c873d33c4ec515c53da3fe79dcf699771138463e05ebea",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package.json": "ede90dc1b7d808bff167127e954745c9ada2a0bc0f1722c7077f9bf0ad991adf",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package-lock.json": "9f6fee475698f941a2ff0fb698fff02094ab4d977ab512d5dc1024eb0a47e16a",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package.json": "5045fce0210b4733e6eb14c96d1652bfdad1c65d120d9f584f0ab59776f4c468",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A22/package-lock.json": "febe9a551200bf8f7144e5c518f8b2dc92321d55a85f6627aa7c6f6f768ad526",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A22/package.json": "1bbb239d9dd2658403fd5cd7632b892368fb6e4300d5773beae9713faa12655c",
+        "tools/fixtures/nest-angular-ssr-locks/N11-patched-floor/package-lock.json": "3381aa5c09dd4aae7395e43daddea85cae3a2c646a87efc8b6788af2c9817a4a",
+        "tools/fixtures/nest-angular-ssr-locks/N11-patched-floor/package.json": "06d5e67174ccffa648e1d757da79c7d335fde8140840674d54792670592c739d",
+        "tools/fixtures/nest-angular-ssr-locks/N12-current/package-lock.json": "3839c75659f42f0dd396f8255ccf97962072a872138ea3dd2ad5a791fb6ad65a",
+        "tools/fixtures/nest-angular-ssr-locks/N12-current/package.json": "b85de757f2d5950a46b1cbb05b3ef52c6fae97c08417b0a0be1f2997333851e8",
+        "tools/fixtures/nest-angular-ssr-locks/N12-reference/package-lock.json": "44ce4de1afbec9e2bc998c220dfbae121b6935fa1a1ec3a61d55eca77b929f8c",
+        "tools/fixtures/nest-angular-ssr-locks/N12-reference/package.json": "bd615aca3a38d20f05e9f44b6ac7dcb633773e6a6b8a28430c446f8ab9deffef",
+        "tools/fixtures/nest-angular-ssr-locks/N12-split/package-lock.json": "b5739957d61de0de7f70039a3ccec9ea6b736c800fdde1b981ec72181ca63191",
+        "tools/fixtures/nest-angular-ssr-locks/N12-split/package.json": "75b02ba25be55f1757778017bcb39688a3e367d29faeed7ebc6f6921607f81a3",
+        "tools/fixtures/nest-angular-ssr-security-conformance.mjs": "98cfc667660cfc9fc410cf9e6a1ef7323a7ee3aa16112f2384402fe29eaa5e73",
+        "tools/fixtures/probe-nest-angular-ssr-consumer.mjs": "39adab2de1c9c2cce261a2bcb79eadb2fab83c8477a745016e62967fd4776ce8",
+        "tools/fixtures/refresh-nest-angular-ssr-locks.mjs": "e0f989a689a1ae08ddd200f4edbc1620e3b8a9e418bf0118167f8dc3703ed807",
+        "tools/fixtures/validate-nest-angular-ssr-consumers.mjs": "83d3718a50179c5d350b096502400f830f84f7cd718e64659618bc7b84e63f23",
+        "tools/fixtures/validate-nest-angular-ssr-locked.mjs": "555a13fe1bc520dcc116483954d94b7d7a0e9dd17728e9e37cea1539572afdeb",
+        "tools/fixtures/validate-nest-angular-ssr-matrix.mjs": "410da1ee79409a3445e505e6437c9c5add8a2e4e2157432467342025f6e7d901",
+        "tools/fixtures/validate-nest-angular-ssr-split.mjs": "6a3f891b38a384b7055f9e5b2b0fcc407d95b2737878089b166851fcf887ea48",
+        "tools/release/consumer.mjs": "b97ebcf62dcbc3ccf5f12387aae788ef35e885aa4bd1fa8b7fbe674371a350f0",
+        "tools/release/ssr-certification.mjs": "7400298834b41dc336cbdff04a06046e2818091cf53da6477f0d07a9fbb02a83",
+        "yarn.lock": "58f65f8f3b5bf5efcad2e7623ee0bff84e5be9991550353cd0406339ebbf5bc7"
+      },
+      "npm": "11.19.1",
+      "sourceCommit": "9938077fc04843e7afc19da101e479707cd3a7c8",
+      "workingTree": " M packages/nest/angular-ssr/README.md\n M packages/nest/angular-ssr/package.json\n M tools/fixtures/nest-angular-ssr-locked-matrix.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package-lock.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package-lock.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A22/package-lock.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A22/package.json\n?? packages/nest/angular-ssr/LICENSE\n?? packages/nest/angular-ssr/NOTICE\n",
+      "archive": {
+        "file": "nest-angular-ssr-development.tgz",
+        "source": "external-verified-archive",
+        "sha256": "fb29101dbb98d044e39800ea4460b0f09c60635c9f3343461411a83e65384418",
+        "manifest": {
+          "name": "@anarchitects/nest-angular-ssr",
+          "version": "0.3.2",
+          "license": "Apache-2.0",
+          "type": "module",
+          "main": "./dist/index.cjs",
+          "module": "./dist/index.js",
+          "types": "./dist/index.d.ts",
+          "repository": {
+            "type": "git",
+            "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+            "directory": "packages/nest/angular-ssr"
+          },
+          "bugs": {
+            "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+          },
+          "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/nest/angular-ssr#readme",
+          "exports": {
+            "./package.json": "./package.json",
+            ".": {
+              "@anarchitecture-community/source": "./src/index.ts",
+              "types": "./dist/index.d.ts",
+              "import": "./dist/index.js",
+              "require": "./dist/index.cjs",
+              "default": "./dist/index.js"
+            }
+          },
+          "files": ["dist", "NOTICE", "!**/*.tsbuildinfo"],
+          "publishConfig": {
+            "access": "public"
+          },
+          "peerDependencies": {
+            "@angular/core": "~22.2.6",
+            "@angular/platform-browser": "~22.2.6",
+            "@angular/router": "~22.2.6",
+            "@angular/ssr": "~22.2.7",
+            "@nestjs/common": "~12.5.0",
+            "@nestjs/core": "~12.5.0",
+            "@nestjs/platform-fastify": "~12.5.0",
+            "fastify": "~5.12.8",
+            "reflect-metadata": "^0.2.0"
+          },
+          "nx": {
+            "name": "nest-angular-ssr",
+            "targets": {
+              "typecheck": {
+                "parallelism": false
+              },
+              "test": {
+                "executor": "@nx/vitest:test",
+                "outputs": ["{options.reportsDirectory}"],
+                "options": {
+                  "reportsDirectory": "coverage/packages/nest/angular-ssr"
+                }
+              },
+              "test-consumer-lifecycle": {
+                "executor": "nx:run-commands",
+                "cache": false,
+                "options": {
+                  "command": "node --test tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs"
+                },
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+                ]
+              },
+              "validate-consumers": {
+                "executor": "nx:run-commands",
+                "dependsOn": ["test-consumer-lifecycle"],
+                "options": {
+                  "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
+                },
+                "cache": false,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+                ]
+              },
+              "validate-matrix": {
+                "executor": "nx:run-commands",
+                "options": {
+                  "command": "node tools/fixtures/validate-nest-angular-ssr-matrix.mjs {args.cell}"
+                },
+                "cache": false,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+                ]
+              },
+              "validate-split": {
+                "executor": "nx:run-commands",
+                "options": {
+                  "command": "node tools/fixtures/validate-nest-angular-ssr-split.mjs"
+                },
+                "cache": false,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+                ]
+              },
+              "validate-locked-consumers": {
+                "executor": "nx:run-commands",
+                "dependsOn": [
+                  "build",
+                  "test-consumer-lifecycle",
+                  "test-locked-consumers"
+                ],
+                "cache": false,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+                  {
+                    "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+                  },
+                  "{workspaceRoot}/.github/workflows/ci.yml",
+                  {
+                    "env": "PLAYWRIGHT_BROWSERS_PATH"
+                  }
+                ],
+                "options": {
+                  "command": "node tools/fixtures/validate-nest-angular-ssr-locked.mjs"
+                },
+                "outputs": ["{workspaceRoot}/dist/validation/nest12-ssr-740"]
+              },
+              "refresh-consumer-locks": {
+                "executor": "nx:run-commands",
+                "cache": false,
+                "options": {
+                  "command": "node tools/fixtures/refresh-nest-angular-ssr-locks.mjs {args.cell}"
+                }
+              },
+              "test-locked-consumers": {
+                "executor": "nx:run-commands",
+                "cache": true,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+                  {
+                    "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+                  }
+                ],
+                "options": {
+                  "command": "node --test tools/fixtures/nest-angular-ssr-locked-support.test.mjs"
+                }
+              },
+              "install-consumer-browser": {
+                "executor": "nx:run-commands",
+                "cache": false,
+                "options": {
+                  "command": "playwright install --with-deps chromium"
+                }
+              }
+            }
+          },
+          "dependencies": {
+            "@fastify/static": "~10.1.11"
+          },
+          "engines": {
+            "node": ">=24.22.3 <25"
+          },
+          "devDependencies": {
+            "@angular/common": "22.2.6",
+            "@angular/compiler": "22.2.6",
+            "@angular/core": "22.2.6",
+            "@angular/platform-browser": "22.2.6",
+            "@angular/platform-server": "22.2.6",
+            "@angular/router": "22.2.6",
+            "@angular/ssr": "22.2.7",
+            "rxjs": "7.8.2"
+          }
+        }
+      },
+      "status": "passed",
+      "retainedReportSha256": "d5839cbcc2903051c211e385568c3fd6dde7df557434867c1d50a19fbdea17e5"
+    },
+    "maintenance": {
+      "releaseAudit": true,
+      "node": "v24.22.3",
+      "platform": "darwin",
+      "arch": "arm64",
+      "cells": [
+        {
+          "name": "N11-A21-min-tool",
+          "versions": {
+            "nest": "11.2.10",
+            "angular": "21.2.26",
+            "angularBuild": "21.2.30",
+            "typescript": "5.9.3",
+            "nx": "22.6.0",
+            "direct": true
+          },
+          "checks": [
+            {
+              "name": "install",
+              "status": "passed"
+            },
+            {
+              "name": "dependency-tree",
+              "status": "passed"
+            },
+            {
+              "name": "runtime-audit",
+              "status": "passed",
+              "evidence": {
+                "checkedAt": "2026-11-15T17:17:39.801Z",
+                "vulnerabilities": {
+                  "info": 0,
+                  "low": 0,
+                  "moderate": 0,
+                  "high": 0,
+                  "critical": 0,
+                  "total": 0
+                }
+              }
+            },
+            {
+              "name": "cjs-declarations",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-build",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-exports-security",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-module-http",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-async-http",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-explicit-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-declarations",
+              "status": "passed"
+            },
+            {
+              "name": "esm-build",
+              "status": "passed"
+            },
+            {
+              "name": "esm-exports-security",
+              "status": "passed"
+            },
+            {
+              "name": "esm-module-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-async-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-explicit-http",
+              "status": "passed"
+            }
+          ],
+          "environmentLockSha256": "428680827c6822f765c873d33c4ec515c53da3fe79dcf699771138463e05ebea",
+          "fastifyCopies": {
+            "node_modules/fastify": "5.12.8"
+          },
+          "boundLockSha256": "1879653d5cf511e01a229acdba8cf4d897584887424bc70ef23a734749e6baae",
+          "status": "passed"
+        },
+        {
+          "name": "N11-A21-next-tool",
+          "versions": {
+            "nest": "11.2.10",
+            "angular": "21.2.26",
+            "angularBuild": "21.2.30",
+            "typescript": "5.9.3",
+            "nx": "23.1.2",
+            "direct": true
+          },
+          "checks": [
+            {
+              "name": "install",
+              "status": "passed"
+            },
+            {
+              "name": "dependency-tree",
+              "status": "passed"
+            },
+            {
+              "name": "runtime-audit",
+              "status": "passed",
+              "evidence": {
+                "checkedAt": "2026-11-15T17:17:53.853Z",
+                "vulnerabilities": {
+                  "info": 0,
+                  "low": 0,
+                  "moderate": 0,
+                  "high": 0,
+                  "critical": 0,
+                  "total": 0
+                }
+              }
+            },
+            {
+              "name": "cjs-declarations",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-build",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-exports-security",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-module-http",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-async-http",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-explicit-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-declarations",
+              "status": "passed"
+            },
+            {
+              "name": "esm-build",
+              "status": "passed"
+            },
+            {
+              "name": "esm-exports-security",
+              "status": "passed"
+            },
+            {
+              "name": "esm-module-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-async-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-explicit-http",
+              "status": "passed"
+            }
+          ],
+          "environmentLockSha256": "9f6fee475698f941a2ff0fb698fff02094ab4d977ab512d5dc1024eb0a47e16a",
+          "fastifyCopies": {
+            "node_modules/fastify": "5.12.8"
+          },
+          "boundLockSha256": "ba5e14342ed1b592cd487b2817e3ecf6981a264171583ed16e0f446b407dfdbc",
+          "status": "passed"
+        },
+        {
+          "name": "N11-A22",
+          "versions": {
+            "nest": "11.2.10",
+            "angular": "22.2.6",
+            "angularBuild": "22.2.7",
+            "typescript": "6.0.3",
+            "nx": "23.2.1",
+            "direct": true,
+            "split": true
+          },
+          "checks": [
+            {
+              "name": "install",
+              "status": "passed"
+            },
+            {
+              "name": "dependency-tree",
+              "status": "passed"
+            },
+            {
+              "name": "runtime-audit",
+              "status": "passed",
+              "evidence": {
+                "checkedAt": "2026-11-15T17:18:09.621Z",
+                "vulnerabilities": {
+                  "info": 0,
+                  "low": 0,
+                  "moderate": 0,
+                  "high": 0,
+                  "critical": 0,
+                  "total": 0
+                }
+              }
+            },
+            {
+              "name": "cjs-declarations",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-build",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-exports-security",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-module-http",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-async-http",
+              "status": "passed"
+            },
+            {
+              "name": "cjs-explicit-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-declarations",
+              "status": "passed"
+            },
+            {
+              "name": "esm-build",
+              "status": "passed"
+            },
+            {
+              "name": "esm-exports-security",
+              "status": "passed"
+            },
+            {
+              "name": "esm-module-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-async-http",
+              "status": "passed"
+            },
+            {
+              "name": "esm-explicit-http",
+              "status": "passed"
+            },
+            {
+              "name": "split-build",
+              "status": "passed"
+            },
+            {
+              "name": "split-output-boundary",
+              "status": "passed"
+            },
+            {
+              "name": "split-http-hydration",
+              "status": "passed",
+              "evidence": {
+                "playwright": "1.64.0",
+                "chromium": "156.0.8078.4",
+                "executable": "/Users/johanvrolix/Library/Caches/ms-playwright/chromium-1248/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+                "replayedClicks": 1,
+                "hydratedClicks": 1,
+                "retainedSsrNode": true
+              }
+            }
+          ],
+          "environmentLockSha256": "febe9a551200bf8f7144e5c518f8b2dc92321d55a85f6627aa7c6f6f768ad526",
+          "fastifyCopies": {
+            "node_modules/fastify": "5.12.8"
+          },
+          "boundLockSha256": "6130e50caa3030fb939d6b4973128d25624a6d54e701841dcac61ee34ba6cd84",
+          "status": "passed"
+        }
+      ],
+      "inputs": {
+        ".github/workflows/ci.yml": "c904c32d8224b89583b2d070ed65356c427e67de7d1c4f1db6c79efeb6c9fab4",
+        ".github/workflows/release-prepare.yml": "c7a5f7bc07c1817f1cba31205db3b1e45d32e1a9b5022087d2a060f9cf1fa390",
+        "apps/fixtures/nest-angular-split/backend/.spec.swcrc": "1088d15cd8fe8068d19df786712d77f3f82bf64c9168a922753d09334058910f",
+        "apps/fixtures/nest-angular-split/backend/jest.config.cts": "b34588167d58cd931e5004aa27b086c4cebb616a749c2af16429ec55ede62c34",
+        "apps/fixtures/nest-angular-split/backend/package.json": "6c5c5cca707e89b22f2c9ab55aea3968668912abd03839d6d92be4f402f11b02",
+        "apps/fixtures/nest-angular-split/backend/project.json": "a5ef53014ac4092d0b7ec3c4422950e368cdcff9fe16260f70f28852274b1a4d",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.controller.spec.ts": "4327588ae3b11f6d5f0bb282095022e4ce4667ff484a34b9a238e77f3c1e92c1",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.controller.ts": "eb4c6c96034109ba6722a70812e6cbbb20110d3ba420d29a16606bbfa16f7ecb",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.module.spec.ts": "a1ac634c6fa2f8abad28320ad75b751c9e8c196a7f925987da58de69d379aba8",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.module.ts": "517585838b0676c514a9a23f722dc882b6d71ac4f514f5a36c7498d4141acf4b",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.service.spec.ts": "ae5fd20b6cd3d23cf44b5341cb927e7e3aab2c9dd6825a6534684eb93a70594f",
+        "apps/fixtures/nest-angular-split/backend/src/app/app.service.ts": "4c39152741ddfb578e12b53f507a53e8813c0702c57aa852dde5acd739af92ad",
+        "apps/fixtures/nest-angular-split/backend/src/assets/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "apps/fixtures/nest-angular-split/backend/src/main.ts": "60497160e8d93049073012f5750fafcc624800d1b309c5e920ff04e595c0c639",
+        "apps/fixtures/nest-angular-split/backend/tsconfig.app.json": "9ee99999e9b30538a7c528eb746428d5c9996e6ba0539e831f68c596aa578b96",
+        "apps/fixtures/nest-angular-split/backend/tsconfig.json": "db5ee7ada52a355c3351de566ea6ba26428ca0967f8bed512b655ced91bccc40",
+        "apps/fixtures/nest-angular-split/backend/tsconfig.spec.json": "380819224c5823a654c763eb3781896d6b3892080852a879b6846f06f52f1e1e",
+        "apps/fixtures/nest-angular-split/backend/webpack.config.js": "fc1a293408c5300508197dab4489a9200bc3019716aff75453ded6652addecd8",
+        "apps/fixtures/nest-angular-split/frontend/project.json": "35f2b7238ac2332770309d1a03a46f6fcc2119f08e95b656606ca57e0bc2c027",
+        "apps/fixtures/nest-angular-split/frontend/public/favicon.ico": "f8410ea5598b43087f77e64a6b8732f6a7ae6b0a09c94497b383e1e92df95c9c",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.config.server.ts": "115e541200ba96c75d9e45313d99b2344b3fe8cf5601c864eda7d2b79a342ecb",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.config.ts": "b72d91fa0a76d29209500c44c372907b0ff57b851295783ec949bd4d6d727868",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.css": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.html": "05cdc8e3f8f7208e8a84867e96ebcaa9ac34aa237dbf756d2682d733540e33d0",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.routes.server.ts": "65a6223628d4db6fc4c8334d1273a9f7e48d96fd788c84511730029e198689eb",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.routes.ts": "ec405f0cd6c869447e78875a98de468eb03271456be074594920010c27fa9b19",
+        "apps/fixtures/nest-angular-split/frontend/src/app/app.ts": "36f2ececf1def05177019c4c667f01f507288c7f5f624ff4e038292f72fcf078",
+        "apps/fixtures/nest-angular-split/frontend/src/index.html": "1366a98caeda064a24f545f3bf7ad2ae95ed326026988aaa62a92f5b35df5310",
+        "apps/fixtures/nest-angular-split/frontend/src/main.server.ts": "4055fc3b1f46038d17617797e0dbbf4c48c2c9dc0737946bc511d1f56d31f564",
+        "apps/fixtures/nest-angular-split/frontend/src/main.ts": "ecc610fb7d56c95a01a8aa6c274a63210d45b2944dd6b9a88b2c8f70b6351037",
+        "apps/fixtures/nest-angular-split/frontend/src/server.ts": "14253c9fef7d7f88f8e28519ff2fc5a350de9409e0e53fb92caabbdc44e8051b",
+        "apps/fixtures/nest-angular-split/frontend/src/styles.css": "c7295b915b6a250b910d30ff3b9d1991b6f43c9474d3afafc6cba59eee44383e",
+        "apps/fixtures/nest-angular-split/frontend/tsconfig.app.json": "e65e69124853ec928940d4b704e4ba3858e3941d143ca2adf43d692631bcf3e5",
+        "apps/fixtures/nest-angular-split/frontend/tsconfig.json": "80542092f2d69c78767adeddf027eff29a8051117cd3463060355a233acf72b5",
+        "apps/fixtures/nest-angular-split/tsconfig.base.json": "3c67105a969c48e29c20b13568afc9fe8ca0197d60b4b8bca0f635730fdedb30",
+        "apps/fixtures/nest-cjs-consumer/package.json": "016523ade35671abdd5abed19fcd2cc0cb128e0534868f5f3e89d596bc3bc9ca",
+        "apps/fixtures/nest-cjs-consumer/project.json": "f078d9690521d49cb423711268eb4f59eeb7bd7dbdc904511ad1c21f14aaecf4",
+        "apps/fixtures/nest-cjs-consumer/src/app/app.module.ts": "d488df7eee8267a6212cb05c6a6dc0294876f17f7593ae72e13a6dd9d8123902",
+        "apps/fixtures/nest-cjs-consumer/src/app/health.controller.ts": "197a42836cd42e79984128c40eca3ec83fc99bb68686d9b5a493d1b55f6727a2",
+        "apps/fixtures/nest-cjs-consumer/src/assets/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "apps/fixtures/nest-cjs-consumer/src/assets/browser/main.js": "b5490b7ad2b67654e69bff96c64262d8fe002465e9f3818f512d7614ca5f8314",
+        "apps/fixtures/nest-cjs-consumer/src/index.server.html": "8331284d00a9354c1c8e3af18249c466f4617fb4a424e4a7b5182f7e57c60c8e",
+        "apps/fixtures/nest-cjs-consumer/src/main.server.ts": "7e43d5f4a2c1b4db84874d2c5529498fc08e559c53ad8cb5614219c153009826",
+        "apps/fixtures/nest-cjs-consumer/src/main.ts": "d5a3e140a4fef5c0aa2d448732b6e47d045f398cc0940476a965a256f25f838f",
+        "apps/fixtures/nest-cjs-consumer/src/ssr/angular-ssr-fixture.ts": "5aba1034bc2ac87e11c06fbc38a74d24c1b78c0b58e35d45012c6cd972a1cf21",
+        "apps/fixtures/nest-cjs-consumer/tsconfig.app.json": "100bd98831c4d42d2a3bdf0c299e5492f42e552a786fa9a160375e5077fe9765",
+        "apps/fixtures/nest-cjs-consumer/tsconfig.json": "6501cb88b12372411564417e5a150095c44edd71c485b14de95e505998f690bb",
+        "apps/fixtures/nest-esm-consumer/package.json": "afc4aa3c632c5f18f8cc93ba9ebb6d523161a8755447a6c7da7293f5b9cc806d",
+        "apps/fixtures/nest-esm-consumer/project.json": "7f72655fa5036831053e4f5be00b3b727c7621d7f0ae0d6271f5654bbe3a0da5",
+        "apps/fixtures/nest-esm-consumer/src/app/app.module.ts": "a416daa7635559b59d9e2a360e53b4029f09bd7a0e7994edbb88e66d5303a356",
+        "apps/fixtures/nest-esm-consumer/src/app/health.controller.ts": "197a42836cd42e79984128c40eca3ec83fc99bb68686d9b5a493d1b55f6727a2",
+        "apps/fixtures/nest-esm-consumer/src/assets/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "apps/fixtures/nest-esm-consumer/src/assets/browser/main.js": "0051eca718fbd3e02ea0a118c3017de10682c56e913dabbcd8e6d3178875b93b",
+        "apps/fixtures/nest-esm-consumer/src/index.server.html": "26f1577a6ea6aa6965ede8a2949ef34021e346d4ad86d2ed2545438cb295f8f2",
+        "apps/fixtures/nest-esm-consumer/src/main.server.ts": "aad0242357fa88254647dcff5236ed02ecf8c49e4871d03138529cdc38cc4ec8",
+        "apps/fixtures/nest-esm-consumer/src/main.ts": "bafa8eca7da8630bd483a90064d3f560adc37bde0ee7663079087bb3ba96f1a3",
+        "apps/fixtures/nest-esm-consumer/src/ssr/angular-ssr-fixture.ts": "64fccba949d3398026e8e21e4e32f82a35a35f2582d80b4161577c64b1ffbf58",
+        "apps/fixtures/nest-esm-consumer/tsconfig.app.json": "9e02b9f276452e1c769b7b154f73b49f71e932db3360d2ed444eafc6420d0482",
+        "apps/fixtures/nest-esm-consumer/tsconfig.json": "6501cb88b12372411564417e5a150095c44edd71c485b14de95e505998f690bb",
+        "package.json": "cecf34cb69a14d4dd79e1fc11ad5e724f3044b765b83b37ff91c13d4eec1fcb2",
+        "packages/nest/angular-ssr/README.md": "56944c0180b1005a3b8834cf8ac35f75c5311d20c3832c507015b9f4b92178e5",
+        "packages/nest/angular-ssr/package.json": "874e91c3ac386771be4ee79b312c708654ff73b1398646e1f9058ac8b02182db",
+        "packages/nest/angular-ssr/src/index.ts": "c7e7cb0268400f243aa44d2390c39bcfd03a8701b67b679080a85e77875e3be2",
+        "packages/nest/angular-ssr/src/lib/core/angular-node-ssr-renderer-observability.spec.ts": "f9bb550f20fad1ed52743ce0e43dc00104149ac102fa8398878486b4c1dea805",
+        "packages/nest/angular-ssr/src/lib/core/angular-node-ssr-renderer.spec.ts": "b565fa1e7d80c7e36c50d70d74ed7c7b1ea17775df73e671c9df76775254b5f8",
+        "packages/nest/angular-ssr/src/lib/core/angular-node-ssr-renderer.ts": "1b3d24d0eeac38c907b4f5118352c6f9d617b5b563a2531729d909b119ef1825",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-build-output.spec.ts": "82245ba9bf5f45fbfe82f14d08e2b4f96ad151bd60b711932c107d1782854aea",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-build-output.ts": "fb6f9a5e449b02edc66359749866263043d67a61f79da284138de93c65e32e98",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-contract.ts": "e1cff57b073b15a9ab6cfee705bd238907b4191333b9c3fb31283d782eb6ff00",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-engine.ts": "1bb32b6d4841b88cd9e2e1a9a8b3957c960a11a104a318a09887e8a3c0106ba9",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-observability-examples.spec.ts": "012f05ae5c333061d0b475cf8a068e9d02199fe33fe9ebe7618ce50d7aad381b",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-observability-runtime.ts": "62194cbd38d76b2429dd8850463f2aade05ac676e6440b0428c9d8b9e79fb06e",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-observability.spec.ts": "fccde28fed176f6d948070b6e9d43fbcbb83fd0333a6d0fefb19f84ea3388d63",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-observability.ts": "7428ea62d160f836ddcf419f25bd5f5a07b4cc4b2577beb94c7628483066f177",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-registration-runtime.ts": "a5c4dc6920fee0535c317e037ab181be7a43cff514e9b4035b75a6b65bc5040b",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-registration.spec.ts": "6406fb622a3f4c9c56c9fd5201410b702d17c7d0d410cc7a11baac2ffbcd62a7",
+        "packages/nest/angular-ssr/src/lib/core/angular-ssr-registration.ts": "0db1aa0ef047b725aa95092cdafbf27d0afd3d3f8c64236896ac736d956499f4",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-bootstrap.spec.ts": "c9b259540df7d64645fdece75016e45ca76833d965a71754dcaec150c1baace0",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-bootstrap.ts": "a41d5ebde22cc52fcefc45bad9e103667034c4c1382429aa6b18e0430f546049",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-integration.spec.ts": "269f72cc05322405266e55dbc5d2c016579074297a278c0b52a2439d9781fc65",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-integration.ts": "e9cba048206ce79dcf8a9bfd67e7384a437f6f1b6ef41e31def6b21d96c3d2b7",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-module.spec.ts": "8567ac54e5265c0f6cc48d10b132313b82fe6baf88ce4fb0817074532141286b",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-module.ts": "5fb6097d531d135ae52941add67a9f87f70873105c596f2454342aa17d59c7b9",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-options.spec.ts": "757c2a0340d523d2a1eb532ba93cf25a0656bfe00d72b1009c64c6a0ef82a141",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-options.ts": "5d3a7de5542467bd690b995f35eca5d26c23dde8b9078083428aa15091857a72",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-routing-observability.spec.ts": "d63a75245815bee7c89186613eb1923551a9ad53df3168fc81441ed06afef157",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-routing.spec.ts": "cfbabb8912828f4157a4659692d031b5bdea3edc393ab216ae5c11191961802c",
+        "packages/nest/angular-ssr/src/lib/nest/nest-angular-ssr-routing.ts": "994e8fa226293da5e8cda6fbc4f03bc27e47bfa16ccf29af909256248ff9de11",
+        "packages/nest/angular-ssr/src/testing/angular-ssr-fixture.ts": "99c11d712d608f6240ed53f47cf47bcc29b2df8cb138bfa61200c1d73bfbd889",
+        "packages/nest/angular-ssr/src/testing/index.server.html": "6b45142e21fa281731ac90abfc5f98c33b72ed8904dde2304f6f1102548b728a",
+        "packages/nest/angular-ssr/src/testing/nest-fastify-fixture.ts": "a4d48341437d4e4122a86762e98886d3941251b6eb65d05422c56a3e7279ab1c",
+        "packages/nest/angular-ssr/vite.config.mts": "a0695bdeb5861e83e05d2e1ab34ce1c8fda1e1ba467593c4abc2fe85dd61f672",
+        "tools/fixtures/nest-angular-ssr-compatibility-matrix.json": "e2f65e5a4d909a76346e14bb04c2b0b7da411b72c2b72d46f3b66a6b880e70ae",
+        "tools/fixtures/nest-angular-ssr-consumer-attempt.mjs": "ac6e1d0107271525b22ea586c40462f029b41f623f642a80312290a1f223419a",
+        "tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs": "3df5feebdcc86bf91b64747e0a3ae173ac069c8fd502036431e430258f880136",
+        "tools/fixtures/nest-angular-ssr-http-conformance.mjs": "043e5d0b9ec0da3a67d7242ee2d74ac7c991f099d806fa7d50f7bc543b782a68",
+        "tools/fixtures/nest-angular-ssr-hydration.mjs": "035e0d0713b704947abb0cec8754f692b251313673f6421c8a94437a4f9bc1b0",
+        "tools/fixtures/nest-angular-ssr-locked-matrix.json": "ce72e118ae1f4fb64209b4d91ffc04b9595fe195767a09b2b46824d5ff8cca25",
+        "tools/fixtures/nest-angular-ssr-locked-support.mjs": "e3697845d208c1af2555f603b1da9c2f98feba66a0dce5f09f8fbdf799049ad8",
+        "tools/fixtures/nest-angular-ssr-locked-support.test.mjs": "4a1e3848423f3d1aece3d745bbb5977b9f3fc3cc28d5deabede18a90ae3bad9c",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package-lock.json": "428680827c6822f765c873d33c4ec515c53da3fe79dcf699771138463e05ebea",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package.json": "ede90dc1b7d808bff167127e954745c9ada2a0bc0f1722c7077f9bf0ad991adf",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package-lock.json": "9f6fee475698f941a2ff0fb698fff02094ab4d977ab512d5dc1024eb0a47e16a",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package.json": "5045fce0210b4733e6eb14c96d1652bfdad1c65d120d9f584f0ab59776f4c468",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A22/package-lock.json": "febe9a551200bf8f7144e5c518f8b2dc92321d55a85f6627aa7c6f6f768ad526",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A22/package.json": "1bbb239d9dd2658403fd5cd7632b892368fb6e4300d5773beae9713faa12655c",
+        "tools/fixtures/nest-angular-ssr-locks/N11-patched-floor/package-lock.json": "3381aa5c09dd4aae7395e43daddea85cae3a2c646a87efc8b6788af2c9817a4a",
+        "tools/fixtures/nest-angular-ssr-locks/N11-patched-floor/package.json": "06d5e67174ccffa648e1d757da79c7d335fde8140840674d54792670592c739d",
+        "tools/fixtures/nest-angular-ssr-locks/N12-current/package-lock.json": "3839c75659f42f0dd396f8255ccf97962072a872138ea3dd2ad5a791fb6ad65a",
+        "tools/fixtures/nest-angular-ssr-locks/N12-current/package.json": "b85de757f2d5950a46b1cbb05b3ef52c6fae97c08417b0a0be1f2997333851e8",
+        "tools/fixtures/nest-angular-ssr-locks/N12-reference/package-lock.json": "44ce4de1afbec9e2bc998c220dfbae121b6935fa1a1ec3a61d55eca77b929f8c",
+        "tools/fixtures/nest-angular-ssr-locks/N12-reference/package.json": "bd615aca3a38d20f05e9f44b6ac7dcb633773e6a6b8a28430c446f8ab9deffef",
+        "tools/fixtures/nest-angular-ssr-locks/N12-split/package-lock.json": "b5739957d61de0de7f70039a3ccec9ea6b736c800fdde1b981ec72181ca63191",
+        "tools/fixtures/nest-angular-ssr-locks/N12-split/package.json": "75b02ba25be55f1757778017bcb39688a3e367d29faeed7ebc6f6921607f81a3",
+        "tools/fixtures/nest-angular-ssr-security-conformance.mjs": "98cfc667660cfc9fc410cf9e6a1ef7323a7ee3aa16112f2384402fe29eaa5e73",
+        "tools/fixtures/probe-nest-angular-ssr-consumer.mjs": "39adab2de1c9c2cce261a2bcb79eadb2fab83c8477a745016e62967fd4776ce8",
+        "tools/fixtures/refresh-nest-angular-ssr-locks.mjs": "e0f989a689a1ae08ddd200f4edbc1620e3b8a9e418bf0118167f8dc3703ed807",
+        "tools/fixtures/validate-nest-angular-ssr-consumers.mjs": "83d3718a50179c5d350b096502400f830f84f7cd718e64659618bc7b84e63f23",
+        "tools/fixtures/validate-nest-angular-ssr-locked.mjs": "555a13fe1bc520dcc116483954d94b7d7a0e9dd17728e9e37cea1539572afdeb",
+        "tools/fixtures/validate-nest-angular-ssr-matrix.mjs": "410da1ee79409a3445e505e6437c9c5add8a2e4e2157432467342025f6e7d901",
+        "tools/fixtures/validate-nest-angular-ssr-split.mjs": "6a3f891b38a384b7055f9e5b2b0fcc407d95b2737878089b166851fcf887ea48",
+        "tools/release/consumer.mjs": "b97ebcf62dcbc3ccf5f12387aae788ef35e885aa4bd1fa8b7fbe674371a350f0",
+        "tools/release/ssr-certification.mjs": "7400298834b41dc336cbdff04a06046e2818091cf53da6477f0d07a9fbb02a83",
+        "yarn.lock": "58f65f8f3b5bf5efcad2e7623ee0bff84e5be9991550353cd0406339ebbf5bc7"
+      },
+      "npm": "11.19.1",
+      "sourceCommit": "9938077fc04843e7afc19da101e479707cd3a7c8",
+      "workingTree": " M packages/nest/angular-ssr/README.md\n M packages/nest/angular-ssr/package.json\n M tools/fixtures/nest-angular-ssr-locked-matrix.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package-lock.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package-lock.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A22/package-lock.json\n M tools/fixtures/nest-angular-ssr-locks/N11-A22/package.json\n?? packages/nest/angular-ssr/LICENSE\n?? packages/nest/angular-ssr/NOTICE\n",
+      "archive": {
+        "file": "nest-angular-ssr-maintenance-development.tgz",
+        "source": "external-verified-archive",
+        "sha256": "d1d33d839dd8a14e314efed62dd8128d13d24694abd01d1952069d4aff671151",
+        "manifest": {
+          "name": "@anarchitects/nest-angular-ssr",
+          "version": "0.3.2",
+          "license": "Apache-2.0",
+          "type": "module",
+          "main": "./dist/index.cjs",
+          "module": "./dist/index.js",
+          "types": "./dist/index.d.ts",
+          "repository": {
+            "type": "git",
+            "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+            "directory": "packages/nest/angular-ssr"
+          },
+          "bugs": {
+            "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+          },
+          "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/nest/angular-ssr#readme",
+          "exports": {
+            "./package.json": "./package.json",
+            ".": {
+              "@anarchitecture-community/source": "./src/index.ts",
+              "types": "./dist/index.d.ts",
+              "import": "./dist/index.js",
+              "require": "./dist/index.cjs",
+              "default": "./dist/index.js"
+            }
+          },
+          "files": ["dist", "NOTICE", "!**/*.tsbuildinfo"],
+          "publishConfig": {
+            "access": "public"
+          },
+          "peerDependencies": {
+            "@angular/core": "^21.0.0 || ^22.0.0",
+            "@angular/platform-browser": "^21.0.0 || ^22.0.0",
+            "@angular/router": "^21.0.0 || ^22.0.0",
+            "@angular/ssr": "^21.0.0 || ^22.0.0",
+            "@nestjs/common": "^11.0.0",
+            "@nestjs/core": "^11.0.0",
+            "@nestjs/platform-fastify": "^11.2.10",
+            "fastify": "^5.0.0",
+            "reflect-metadata": "^0.2.0"
+          },
+          "nx": {
+            "name": "nest-angular-ssr",
+            "targets": {
+              "typecheck": {
+                "parallelism": false
+              },
+              "test": {
+                "executor": "@nx/vitest:test",
+                "outputs": ["{options.reportsDirectory}"],
+                "options": {
+                  "reportsDirectory": "coverage/packages/nest/angular-ssr"
+                }
+              },
+              "test-consumer-lifecycle": {
+                "executor": "nx:run-commands",
+                "cache": false,
+                "options": {
+                  "command": "node --test tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs"
+                },
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+                ]
+              },
+              "validate-consumers": {
+                "executor": "nx:run-commands",
+                "dependsOn": ["test-consumer-lifecycle"],
+                "options": {
+                  "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
+                },
+                "cache": false,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+                ]
+              },
+              "validate-matrix": {
+                "executor": "nx:run-commands",
+                "options": {
+                  "command": "node tools/fixtures/validate-nest-angular-ssr-matrix.mjs {args.cell}"
+                },
+                "cache": false,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+                ]
+              },
+              "validate-split": {
+                "executor": "nx:run-commands",
+                "options": {
+                  "command": "node tools/fixtures/validate-nest-angular-ssr-split.mjs"
+                },
+                "cache": false,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+                ]
+              },
+              "validate-locked-consumers": {
+                "executor": "nx:run-commands",
+                "dependsOn": [
+                  "build",
+                  "test-consumer-lifecycle",
+                  "test-locked-consumers"
+                ],
+                "cache": false,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+                  {
+                    "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+                  }
+                ],
+                "options": {
+                  "command": "node tools/fixtures/validate-nest-angular-ssr-locked.mjs {args.cell}"
+                }
+              },
+              "refresh-consumer-locks": {
+                "executor": "nx:run-commands",
+                "cache": false,
+                "options": {
+                  "command": "node tools/fixtures/refresh-nest-angular-ssr-locks.mjs {args.cell}"
+                }
+              },
+              "test-locked-consumers": {
+                "executor": "nx:run-commands",
+                "cache": true,
+                "inputs": [
+                  "default",
+                  "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                  "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                  "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+                  {
+                    "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+                  }
+                ],
+                "options": {
+                  "command": "node --test tools/fixtures/nest-angular-ssr-locked-support.test.mjs"
+                }
+              }
+            }
+          },
+          "dependencies": {
+            "@fastify/static": "^10.1.7"
+          }
+        }
+      },
+      "status": "passed",
+      "retainedReportSha256": "ec95745f1463a481a4723f9f13076759e28f9238a179e6dc4a5f5465d805f3a6"
+    }
+  },
+  "artifacts": {
+    "feature": {
+      "inventory": [
+        {
+          "path": "package/LICENSE",
+          "size": 11373,
+          "sha256": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e"
+        },
+        {
+          "path": "package/NOTICE",
+          "size": 474,
+          "sha256": "3590914673f2455bea735b15f18b8a805b0f135145b2245c9b8f8335806f54f0"
+        },
+        {
+          "path": "package/README.md",
+          "size": 38172,
+          "sha256": "56944c0180b1005a3b8834cf8ac35f75c5311d20c3832c507015b9f4b92178e5"
+        },
+        {
+          "path": "package/dist/angular-ssr-registration-runtime-B0e6rCDQ.js",
+          "size": 1588,
+          "sha256": "9247bd8a8085e49a1a170d7254f8911dcb22e3cbec55a9266ef0992ad6980389"
+        },
+        {
+          "path": "package/dist/angular-ssr-registration-runtime-CmfroA09.cjs",
+          "size": 1321,
+          "sha256": "4614388edc789ed90b1a0bc2acc8e4acf14881f34f669b140d734a7bea4e879e"
+        },
+        {
+          "path": "package/dist/index.cjs",
+          "size": 11654,
+          "sha256": "2e0eaaf50cf4d14b1fa4ac72dc1a4520003d9029b23bbaf4b48ce39aeedd025d"
+        },
+        {
+          "path": "package/dist/index.d.ts",
+          "size": 592,
+          "sha256": "7baf114d0a35f9bfc24a0e090939161f1ed75d315ab2ebcd397c9ea578fca476"
+        },
+        {
+          "path": "package/dist/index.d.ts.map",
+          "size": 332,
+          "sha256": "7e9fc4a938d7a4026490202ca8c5f7fb5f8446f021363ae30fdf7551f35a2d07"
+        },
+        {
+          "path": "package/dist/index.js",
+          "size": 13751,
+          "sha256": "ba1718e14cdb12ee2811ec881034c452f8c2f0ee0e3cde1f8e887321a640a797"
+        },
+        {
+          "path": "package/dist/lib/core/angular-node-ssr-renderer.d.ts",
+          "size": 1311,
+          "sha256": "114107f20e1d941fad00b248174b5299c012fd04d6d41986644b5e88cc45b8f7"
+        },
+        {
+          "path": "package/dist/lib/core/angular-node-ssr-renderer.d.ts.map",
+          "size": 1142,
+          "sha256": "1a8d03f4e885bed99f3e87cbe51bbb0e8fa157ada039db7a67deb38fec9a1642"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-build-output.d.ts",
+          "size": 816,
+          "sha256": "d41271c6c980099de6ea79d0fd96342df6009f26c467050a5f447cecf8af3734"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-build-output.d.ts.map",
+          "size": 774,
+          "sha256": "68d036bd37f4e643f65ae8e8d9506ce21767a0cf18aeff45af75867478927e54"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-contract.d.ts",
+          "size": 754,
+          "sha256": "f327d64a0db322e77224fe06fd0e603477d56e1e07832553b2d7b6809d93ae4d"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-contract.d.ts.map",
+          "size": 431,
+          "sha256": "ef7c5034b305871d7f869fad21dc39f0b36f86bb51f5ef2a0d01c097204e1f50"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-engine.d.ts",
+          "size": 600,
+          "sha256": "172b810ec3ad9efb1cf785005a8131e039589df07a6fa0a3dcafec0e19e8b01d"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-engine.d.ts.map",
+          "size": 384,
+          "sha256": "fbe481e4ecccad0ab6b2c38fe850c7f42214f191180c55f374633728f048f4de"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-observability-runtime.d.ts",
+          "size": 745,
+          "sha256": "22f8175ffbcc2cc02650f91a00a11fac2b9831f83b646a1e51bf471f96074c58"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-observability-runtime.d.ts.map",
+          "size": 638,
+          "sha256": "639961f6b5ff21fb5e2b69e74570286b8149d29246edb2d7abee95c73e24c2d7"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-observability.d.ts",
+          "size": 3830,
+          "sha256": "c75d7cfba833f25d5874a330f2a830d5ea2625c200406e146166267b1956eb2d"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-observability.d.ts.map",
+          "size": 1886,
+          "sha256": "0a4bce357efcf4ca7ae9645894e661f78d793c7dbae13219ce265abd12407245"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-registration-runtime.d.ts",
+          "size": 452,
+          "sha256": "169e3cc1d52af4ed8b79d3331b7113186fa6a3eb3eb8f077a07812a8af614efc"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-registration-runtime.d.ts.map",
+          "size": 440,
+          "sha256": "31c7fdd27d6e687afe398a7a4af20be2f0a4be22209ea697ad67e330627cf030"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-registration.d.ts",
+          "size": 1183,
+          "sha256": "95732961615003103e489139b84244f1d13e5f4d9ed7785816b6daa77d752c7a"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-registration.d.ts.map",
+          "size": 1071,
+          "sha256": "9df8d466a1125eb79394d5dfda80d605c21b5b19cd01109e1a75a3aa79e31722"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-bootstrap.d.ts",
+          "size": 1629,
+          "sha256": "6ab828edfee1541c7fb3b4671d909f35b54e5ae7a4418220931ec497dcb0981f"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-bootstrap.d.ts.map",
+          "size": 1386,
+          "sha256": "d3cef5c13ec517c8afe86987699fca5e7cd6dc74de530ddaf37606c2025852fc"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-integration.d.ts",
+          "size": 1426,
+          "sha256": "5fb05d09063b038491e4647bef5156057eabba8cb6ae829f4a1c9c7825e13a53"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-integration.d.ts.map",
+          "size": 1219,
+          "sha256": "ed4b5da48f6f49a78a623a6b7d8efdc5db7693b3796296f8723a34d3f4b8004a"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-module.d.ts",
+          "size": 1672,
+          "sha256": "98ae722ba9e20ee041106b9fe243b002b03fb83fd8592f6ae6898235e7afa52d"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-module.d.ts.map",
+          "size": 1429,
+          "sha256": "ca69fc6f1847170af193d3c1b5d941bfa934606611bf07a1c9dee852a704f775"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-options.d.ts",
+          "size": 692,
+          "sha256": "eff127cf59163861a5557896c4993c45865d543f7f3b2e9ffc7912d2463a1f1e"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-options.d.ts.map",
+          "size": 577,
+          "sha256": "9e3f74f463226c481c2eb15185abbc7211d2742a4c400864c4bd9c5b636d67e9"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-routing.d.ts",
+          "size": 701,
+          "sha256": "611e6d588c1803e855dbb4b483d11d5a3debe9ba76fccb859e439e55b86d7aab"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-routing.d.ts.map",
+          "size": 658,
+          "sha256": "cfab987f5ace8861c7854710e230706910198c71c18f711b06bd0d731878ba53"
+        },
+        {
+          "path": "package/package.json",
+          "size": 6525,
+          "sha256": "6a32e161c4459e6b989fae59fec82bf9264525246be24368544b4ca0397044a8"
+        }
+      ],
+      "manifest": {
+        "name": "@anarchitects/nest-angular-ssr",
+        "version": "0.3.2",
+        "license": "Apache-2.0",
+        "type": "module",
+        "main": "./dist/index.cjs",
+        "module": "./dist/index.js",
+        "types": "./dist/index.d.ts",
+        "repository": {
+          "type": "git",
+          "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+          "directory": "packages/nest/angular-ssr"
+        },
+        "bugs": {
+          "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+        },
+        "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/nest/angular-ssr#readme",
+        "exports": {
+          "./package.json": "./package.json",
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs",
+            "default": "./dist/index.js"
+          }
+        },
+        "files": ["dist", "NOTICE", "!**/*.tsbuildinfo"],
+        "publishConfig": {
+          "access": "public"
+        },
+        "peerDependencies": {
+          "@angular/core": "~22.2.6",
+          "@angular/platform-browser": "~22.2.6",
+          "@angular/router": "~22.2.6",
+          "@angular/ssr": "~22.2.7",
+          "@nestjs/common": "~12.5.0",
+          "@nestjs/core": "~12.5.0",
+          "@nestjs/platform-fastify": "~12.5.0",
+          "fastify": "~5.12.8",
+          "reflect-metadata": "^0.2.0"
+        },
+        "nx": {
+          "name": "nest-angular-ssr",
+          "targets": {
+            "typecheck": {
+              "parallelism": false
+            },
+            "test": {
+              "executor": "@nx/vitest:test",
+              "outputs": ["{options.reportsDirectory}"],
+              "options": {
+                "reportsDirectory": "coverage/packages/nest/angular-ssr"
+              }
+            },
+            "test-consumer-lifecycle": {
+              "executor": "nx:run-commands",
+              "cache": false,
+              "options": {
+                "command": "node --test tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs"
+              },
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+              ]
+            },
+            "validate-consumers": {
+              "executor": "nx:run-commands",
+              "dependsOn": ["test-consumer-lifecycle"],
+              "options": {
+                "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
+              },
+              "cache": false,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+              ]
+            },
+            "validate-matrix": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "node tools/fixtures/validate-nest-angular-ssr-matrix.mjs {args.cell}"
+              },
+              "cache": false,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+              ]
+            },
+            "validate-split": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "node tools/fixtures/validate-nest-angular-ssr-split.mjs"
+              },
+              "cache": false,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+              ]
+            },
+            "validate-locked-consumers": {
+              "executor": "nx:run-commands",
+              "dependsOn": [
+                "build",
+                "test-consumer-lifecycle",
+                "test-locked-consumers"
+              ],
+              "cache": false,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+                {
+                  "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+                },
+                "{workspaceRoot}/.github/workflows/ci.yml",
+                {
+                  "env": "PLAYWRIGHT_BROWSERS_PATH"
+                }
+              ],
+              "options": {
+                "command": "node tools/fixtures/validate-nest-angular-ssr-locked.mjs"
+              },
+              "outputs": ["{workspaceRoot}/dist/validation/nest12-ssr-740"]
+            },
+            "refresh-consumer-locks": {
+              "executor": "nx:run-commands",
+              "cache": false,
+              "options": {
+                "command": "node tools/fixtures/refresh-nest-angular-ssr-locks.mjs {args.cell}"
+              }
+            },
+            "test-locked-consumers": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+                {
+                  "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+                }
+              ],
+              "options": {
+                "command": "node --test tools/fixtures/nest-angular-ssr-locked-support.test.mjs"
+              }
+            },
+            "install-consumer-browser": {
+              "executor": "nx:run-commands",
+              "cache": false,
+              "options": {
+                "command": "playwright install --with-deps chromium"
+              }
+            }
+          }
+        },
+        "dependencies": {
+          "@fastify/static": "~10.1.11"
+        },
+        "engines": {
+          "node": ">=24.22.3 <25"
+        },
+        "devDependencies": {
+          "@angular/common": "22.2.6",
+          "@angular/compiler": "22.2.6",
+          "@angular/core": "22.2.6",
+          "@angular/platform-browser": "22.2.6",
+          "@angular/platform-server": "22.2.6",
+          "@angular/router": "22.2.6",
+          "@angular/ssr": "22.2.7",
+          "rxjs": "7.8.2"
+        }
+      },
+      "readme": "56944c0180b1005a3b8834cf8ac35f75c5311d20c3832c507015b9f4b92178e5",
+      "license": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e"
+    },
+    "maintenance": {
+      "inventory": [
+        {
+          "path": "package/LICENSE",
+          "size": 11373,
+          "sha256": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e"
+        },
+        {
+          "path": "package/NOTICE",
+          "size": 474,
+          "sha256": "3590914673f2455bea735b15f18b8a805b0f135145b2245c9b8f8335806f54f0"
+        },
+        {
+          "path": "package/README.md",
+          "size": 36832,
+          "sha256": "0df699a6c87c7c37ae3879a0605a1507926e39b5174c01c20e989c7c1ec3c0ed"
+        },
+        {
+          "path": "package/dist/angular-ssr-registration-runtime-B0e6rCDQ.js",
+          "size": 1588,
+          "sha256": "9247bd8a8085e49a1a170d7254f8911dcb22e3cbec55a9266ef0992ad6980389"
+        },
+        {
+          "path": "package/dist/angular-ssr-registration-runtime-CmfroA09.cjs",
+          "size": 1321,
+          "sha256": "4614388edc789ed90b1a0bc2acc8e4acf14881f34f669b140d734a7bea4e879e"
+        },
+        {
+          "path": "package/dist/index.cjs",
+          "size": 11654,
+          "sha256": "2e0eaaf50cf4d14b1fa4ac72dc1a4520003d9029b23bbaf4b48ce39aeedd025d"
+        },
+        {
+          "path": "package/dist/index.d.ts",
+          "size": 592,
+          "sha256": "7baf114d0a35f9bfc24a0e090939161f1ed75d315ab2ebcd397c9ea578fca476"
+        },
+        {
+          "path": "package/dist/index.d.ts.map",
+          "size": 332,
+          "sha256": "7e9fc4a938d7a4026490202ca8c5f7fb5f8446f021363ae30fdf7551f35a2d07"
+        },
+        {
+          "path": "package/dist/index.js",
+          "size": 13751,
+          "sha256": "ba1718e14cdb12ee2811ec881034c452f8c2f0ee0e3cde1f8e887321a640a797"
+        },
+        {
+          "path": "package/dist/lib/core/angular-node-ssr-renderer.d.ts",
+          "size": 1311,
+          "sha256": "114107f20e1d941fad00b248174b5299c012fd04d6d41986644b5e88cc45b8f7"
+        },
+        {
+          "path": "package/dist/lib/core/angular-node-ssr-renderer.d.ts.map",
+          "size": 1142,
+          "sha256": "1a8d03f4e885bed99f3e87cbe51bbb0e8fa157ada039db7a67deb38fec9a1642"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-build-output.d.ts",
+          "size": 816,
+          "sha256": "d41271c6c980099de6ea79d0fd96342df6009f26c467050a5f447cecf8af3734"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-build-output.d.ts.map",
+          "size": 774,
+          "sha256": "68d036bd37f4e643f65ae8e8d9506ce21767a0cf18aeff45af75867478927e54"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-contract.d.ts",
+          "size": 754,
+          "sha256": "f327d64a0db322e77224fe06fd0e603477d56e1e07832553b2d7b6809d93ae4d"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-contract.d.ts.map",
+          "size": 431,
+          "sha256": "ef7c5034b305871d7f869fad21dc39f0b36f86bb51f5ef2a0d01c097204e1f50"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-engine.d.ts",
+          "size": 600,
+          "sha256": "172b810ec3ad9efb1cf785005a8131e039589df07a6fa0a3dcafec0e19e8b01d"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-engine.d.ts.map",
+          "size": 384,
+          "sha256": "fbe481e4ecccad0ab6b2c38fe850c7f42214f191180c55f374633728f048f4de"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-observability-runtime.d.ts",
+          "size": 745,
+          "sha256": "22f8175ffbcc2cc02650f91a00a11fac2b9831f83b646a1e51bf471f96074c58"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-observability-runtime.d.ts.map",
+          "size": 638,
+          "sha256": "639961f6b5ff21fb5e2b69e74570286b8149d29246edb2d7abee95c73e24c2d7"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-observability.d.ts",
+          "size": 3830,
+          "sha256": "c75d7cfba833f25d5874a330f2a830d5ea2625c200406e146166267b1956eb2d"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-observability.d.ts.map",
+          "size": 1886,
+          "sha256": "0a4bce357efcf4ca7ae9645894e661f78d793c7dbae13219ce265abd12407245"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-registration-runtime.d.ts",
+          "size": 452,
+          "sha256": "169e3cc1d52af4ed8b79d3331b7113186fa6a3eb3eb8f077a07812a8af614efc"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-registration-runtime.d.ts.map",
+          "size": 440,
+          "sha256": "31c7fdd27d6e687afe398a7a4af20be2f0a4be22209ea697ad67e330627cf030"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-registration.d.ts",
+          "size": 1183,
+          "sha256": "95732961615003103e489139b84244f1d13e5f4d9ed7785816b6daa77d752c7a"
+        },
+        {
+          "path": "package/dist/lib/core/angular-ssr-registration.d.ts.map",
+          "size": 1071,
+          "sha256": "9df8d466a1125eb79394d5dfda80d605c21b5b19cd01109e1a75a3aa79e31722"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-bootstrap.d.ts",
+          "size": 1629,
+          "sha256": "6ab828edfee1541c7fb3b4671d909f35b54e5ae7a4418220931ec497dcb0981f"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-bootstrap.d.ts.map",
+          "size": 1386,
+          "sha256": "d3cef5c13ec517c8afe86987699fca5e7cd6dc74de530ddaf37606c2025852fc"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-integration.d.ts",
+          "size": 1426,
+          "sha256": "5fb05d09063b038491e4647bef5156057eabba8cb6ae829f4a1c9c7825e13a53"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-integration.d.ts.map",
+          "size": 1219,
+          "sha256": "ed4b5da48f6f49a78a623a6b7d8efdc5db7693b3796296f8723a34d3f4b8004a"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-module.d.ts",
+          "size": 1672,
+          "sha256": "98ae722ba9e20ee041106b9fe243b002b03fb83fd8592f6ae6898235e7afa52d"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-module.d.ts.map",
+          "size": 1429,
+          "sha256": "ca69fc6f1847170af193d3c1b5d941bfa934606611bf07a1c9dee852a704f775"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-options.d.ts",
+          "size": 692,
+          "sha256": "eff127cf59163861a5557896c4993c45865d543f7f3b2e9ffc7912d2463a1f1e"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-options.d.ts.map",
+          "size": 577,
+          "sha256": "9e3f74f463226c481c2eb15185abbc7211d2742a4c400864c4bd9c5b636d67e9"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-routing.d.ts",
+          "size": 701,
+          "sha256": "611e6d588c1803e855dbb4b483d11d5a3debe9ba76fccb859e439e55b86d7aab"
+        },
+        {
+          "path": "package/dist/lib/nest/nest-angular-ssr-routing.d.ts.map",
+          "size": 658,
+          "sha256": "cfab987f5ace8861c7854710e230706910198c71c18f711b06bd0d731878ba53"
+        },
+        {
+          "path": "package/package.json",
+          "size": 5819,
+          "sha256": "f2b35ffd13b4aaced9e5fa3a91323a38a46522dfde289c48cb5c95574e732752"
+        }
+      ],
+      "manifest": {
+        "name": "@anarchitects/nest-angular-ssr",
+        "version": "0.3.2",
+        "license": "Apache-2.0",
+        "type": "module",
+        "main": "./dist/index.cjs",
+        "module": "./dist/index.js",
+        "types": "./dist/index.d.ts",
+        "repository": {
+          "type": "git",
+          "url": "git+https://github.com/anarchitects/anarchitecture-community.git",
+          "directory": "packages/nest/angular-ssr"
+        },
+        "bugs": {
+          "url": "https://github.com/anarchitects/anarchitecture-community/issues"
+        },
+        "homepage": "https://github.com/anarchitects/anarchitecture-community/tree/main/packages/nest/angular-ssr#readme",
+        "exports": {
+          "./package.json": "./package.json",
+          ".": {
+            "@anarchitecture-community/source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs",
+            "default": "./dist/index.js"
+          }
+        },
+        "files": ["dist", "NOTICE", "!**/*.tsbuildinfo"],
+        "publishConfig": {
+          "access": "public"
+        },
+        "peerDependencies": {
+          "@angular/core": "^21.0.0 || ^22.0.0",
+          "@angular/platform-browser": "^21.0.0 || ^22.0.0",
+          "@angular/router": "^21.0.0 || ^22.0.0",
+          "@angular/ssr": "^21.0.0 || ^22.0.0",
+          "@nestjs/common": "^11.0.0",
+          "@nestjs/core": "^11.0.0",
+          "@nestjs/platform-fastify": "^11.2.10",
+          "fastify": "^5.0.0",
+          "reflect-metadata": "^0.2.0"
+        },
+        "nx": {
+          "name": "nest-angular-ssr",
+          "targets": {
+            "typecheck": {
+              "parallelism": false
+            },
+            "test": {
+              "executor": "@nx/vitest:test",
+              "outputs": ["{options.reportsDirectory}"],
+              "options": {
+                "reportsDirectory": "coverage/packages/nest/angular-ssr"
+              }
+            },
+            "test-consumer-lifecycle": {
+              "executor": "nx:run-commands",
+              "cache": false,
+              "options": {
+                "command": "node --test tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs"
+              },
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+              ]
+            },
+            "validate-consumers": {
+              "executor": "nx:run-commands",
+              "dependsOn": ["test-consumer-lifecycle"],
+              "options": {
+                "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
+              },
+              "cache": false,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+              ]
+            },
+            "validate-matrix": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "node tools/fixtures/validate-nest-angular-ssr-matrix.mjs {args.cell}"
+              },
+              "cache": false,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+              ]
+            },
+            "validate-split": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "node tools/fixtures/validate-nest-angular-ssr-split.mjs"
+              },
+              "cache": false,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
+              ]
+            },
+            "validate-locked-consumers": {
+              "executor": "nx:run-commands",
+              "dependsOn": [
+                "build",
+                "test-consumer-lifecycle",
+                "test-locked-consumers"
+              ],
+              "cache": false,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+                {
+                  "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+                }
+              ],
+              "options": {
+                "command": "node tools/fixtures/validate-nest-angular-ssr-locked.mjs {args.cell}"
+              }
+            },
+            "refresh-consumer-locks": {
+              "executor": "nx:run-commands",
+              "cache": false,
+              "options": {
+                "command": "node tools/fixtures/refresh-nest-angular-ssr-locks.mjs {args.cell}"
+              }
+            },
+            "test-locked-consumers": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default",
+                "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
+                "{workspaceRoot}/tools/fixtures/nest-angular-ssr-locks/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
+                "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*",
+                {
+                  "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+                }
+              ],
+              "options": {
+                "command": "node --test tools/fixtures/nest-angular-ssr-locked-support.test.mjs"
+              }
+            }
+          }
+        },
+        "dependencies": {
+          "@fastify/static": "^10.1.7"
+        }
+      },
+      "readme": "0df699a6c87c7c37ae3879a0605a1507926e39b5174c01c20e989c7c1ec3c0ed",
+      "license": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e"
+    }
+  },
+  "candidateSources": {
+    "feature": {
+      "baseCommit": "9938077fc04843e7afc19da101e479707cd3a7c8",
+      "branch": "docs/ssr-release-readiness-741",
+      "changedFiles": {
+        "packages/nest/angular-ssr/README.md": "56944c0180b1005a3b8834cf8ac35f75c5311d20c3832c507015b9f4b92178e5",
+        "packages/nest/angular-ssr/package.json": "874e91c3ac386771be4ee79b312c708654ff73b1398646e1f9058ac8b02182db",
+        "tools/fixtures/nest-angular-ssr-locked-matrix.json": "ce72e118ae1f4fb64209b4d91ffc04b9595fe195767a09b2b46824d5ff8cca25",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package-lock.json": "428680827c6822f765c873d33c4ec515c53da3fe79dcf699771138463e05ebea",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package.json": "ede90dc1b7d808bff167127e954745c9ada2a0bc0f1722c7077f9bf0ad991adf",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package-lock.json": "9f6fee475698f941a2ff0fb698fff02094ab4d977ab512d5dc1024eb0a47e16a",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package.json": "5045fce0210b4733e6eb14c96d1652bfdad1c65d120d9f584f0ab59776f4c468",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A22/package-lock.json": "febe9a551200bf8f7144e5c518f8b2dc92321d55a85f6627aa7c6f6f768ad526",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A22/package.json": "1bbb239d9dd2658403fd5cd7632b892368fb6e4300d5773beae9713faa12655c",
+        "packages/nest/angular-ssr/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "packages/nest/angular-ssr/NOTICE": "3590914673f2455bea735b15f18b8a805b0f135145b2245c9b8f8335806f54f0"
+      }
+    },
+    "maintenance": {
+      "baseCommit": "4f10043d9cf49020d5e8583b5cfc2917de3efd9f",
+      "branch": "fix/ssr-maintenance-readiness-741",
+      "changedFiles": {
+        ".github/workflows/ci.yml": "ff4cea346b65b377f9644c0a44aeba8e4928a7e7b3e8d35741a7e2576190e3ab",
+        "packages/nest/angular-ssr/README.md": "0df699a6c87c7c37ae3879a0605a1507926e39b5174c01c20e989c7c1ec3c0ed",
+        "packages/nest/angular-ssr/package.json": "bbe3acbe105cf064a63e5620a41f4fd190572db4d1d9b06aaf9e10ee02e50dd8",
+        "tools/fixtures/nest-angular-ssr-locked-matrix.json": "6fc03df74248e9d448a138af59e4c2c04f6b2c61bba3cd5a76aa2cc32d5e2ba8",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package-lock.json": "428680827c6822f765c873d33c4ec515c53da3fe79dcf699771138463e05ebea",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-min-tool/package.json": "ede90dc1b7d808bff167127e954745c9ada2a0bc0f1722c7077f9bf0ad991adf",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package-lock.json": "9f6fee475698f941a2ff0fb698fff02094ab4d977ab512d5dc1024eb0a47e16a",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A21-next-tool/package.json": "5045fce0210b4733e6eb14c96d1652bfdad1c65d120d9f584f0ab59776f4c468",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A22/package-lock.json": "febe9a551200bf8f7144e5c518f8b2dc92321d55a85f6627aa7c6f6f768ad526",
+        "tools/fixtures/nest-angular-ssr-locks/N11-A22/package.json": "1bbb239d9dd2658403fd5cd7632b892368fb6e4300d5773beae9713faa12655c",
+        "packages/nest/angular-ssr/LICENSE": "72327ee7608bae3d4d4e1b67c0adcaa5204a510cb97b18d43bc5963c9a42b73e",
+        "packages/nest/angular-ssr/NOTICE": "3590914673f2455bea735b15f18b8a805b0f135145b2245c9b8f8335806f54f0"
+      }
+    }
+  },
+  "featureVersionPreview": {
+    "projectsVersionData": {
+      "nest-angular-ssr": {
+        "currentVersion": "0.3.2",
+        "newVersion": "0.4.0",
+        "dependentProjects": []
+      }
+    },
+    "histories": {
+      "nest-angular-ssr": {
+        "project": "nest-angular-ssr",
+        "channel": "npm",
+        "tags": ["0.1.0", "0.2.0", "0.2.1", "0.3.0", "0.3.1", "0.3.2"],
+        "releases": ["0.3.2", "0.3.1", "0.3.0", "0.2.1", "0.2.0"],
+        "registry": ["0.1.0", "0.2.0", "0.2.1", "0.3.0", "0.3.1", "0.3.2"],
+        "checkedAt": "2026-11-15T17:13:58.556Z"
+      }
+    },
+    "lineGate": {
+      "passed": false,
+      "reason": "Accepted maintenance-first ordering requires the patched Nest 11 release to be distributed first"
+    }
+  },
+  "maintenanceVersionPreview": {
+    "nest-angular-ssr": {
+      "currentVersion": "0.3.2",
+      "newVersion": "0.4.0",
+      "dependentProjects": []
+    }
+  },
+  "changelogPreviews": {
+    "feature": {
+      "projectChangelogs": {
+        "nest-angular-ssr": {
+          "releaseVersion": {
+            "rawVersion": "0.4.0",
+            "gitTag": "nest-angular-ssr@0.4.0",
+            "isPrerelease": false
+          },
+          "contents": "## 0.4.0 (2026-11-15)\n\n### \ud83d\ude80 Features\n\n- \u26a0\ufe0f  **nest-angular-ssr:** support the Nest 12 Fastify line ([#756](https://github.com/anarchitects/anarchitecture-community/pull/756))\n\n### \ud83e\ude79 Fixes\n\n- **ci:** narrow affected ownership and reuse workspace prerequisites ([#707](https://github.com/anarchitects/anarchitecture-community/pull/707))\n\n### \u2705 Tests\n\n- **nest-angular-ssr:** certify locked Fastify consumers ([#758](https://github.com/anarchitects/anarchitecture-community/pull/758))\n- **nest-angular-ssr:** add locked Nest 12 consumer fixtures ([#750](https://github.com/anarchitects/anarchitecture-community/pull/750))\n\n### \u26a0\ufe0f  Breaking Changes\n\n- **nest-angular-ssr:** support the Nest 12 Fastify line  ([#756](https://github.com/anarchitects/anarchitecture-community/pull/756))\n  the feature line requires Nest12.5, Angular22.2.6/SSR22.2.7 and Node24.22.3+, excluding Nest11 and Angular21/22.1. Nest11 consumers remain on the separately maintained 0.3.x line. Release version and channels require the existing authorized Nx workflow.\"\n  M\t.github/workflows/ci.yml\n  M\tapps/fixtures/nest-angular-split/backend/jest.config.cts\n  M\tapps/fixtures/nest-angular-split/backend/package.json\n  D\tapps/fixtures/nest-angular-split/backend/tsconfig.jest-esm.json\n  M\tapps/fixtures/nest-cjs-consumer/package.json\n  M\tapps/fixtures/nest-esm-consumer/package.json\n  M\tdocs/validation/nest-angular-ssr-consumers.md\n  A\tdocs/validation/nest12-ssr-compatibility-739-evidence.json\n  A\tdocs/validation/nest12-ssr-compatibility-739.md\n  M\tdocs/validation/nest12-ssr-release-lines-737.md\n  M\tpackage.json\n  M\tpackages/nest/angular-ssr/README.md\n  M\tpackages/nest/angular-ssr/package.json\n  M\ttools/ci/selection.test.mjs\n  M\ttools/fixtures/nest-angular-ssr-compatibility-matrix.json\n  M\ttools/fixtures/nest-angular-ssr-locked-matrix.json\n  M\ttools/fixtures/nest-angular-ssr-locked-support.mjs\n  M\ttools/fixtures/nest-angular-ssr-locked-support.test.mjs\n  M\ttools/fixtures/nest-angular-ssr-security-conformance.mjs\n  M\ttools/fixtures/validate-nest-angular-ssr-consumers.mjs\n  M\ttools/fixtures/validate-nest-angular-ssr-locked.mjs\n  M\ttools/fixtures/validate-nest-angular-ssr-matrix.mjs\n  M\ttools/fixtures/validate-nest-angular-ssr-split.mjs\n  M\tyarn.lock\n\n### \u2764\ufe0f Thank You\n\n- Johan Vrolix @vrxj81",
+          "postGitTask": null
+        }
+      }
+    },
+    "maintenance": {
+      "projectChangelogs": {
+        "nest-angular-ssr": {
+          "releaseVersion": {
+            "rawVersion": "0.4.0",
+            "gitTag": "nest-angular-ssr@0.4.0",
+            "isPrerelease": false
+          },
+          "contents": "## 0.4.0 (2026-11-15)\n\n### \ud83e\ude79 Fixes\n\n- \u26a0\ufe0f  **nest-angular-ssr:** require patched Nest 11 adapter ([4f10043](https://github.com/anarchitects/anarchitecture-community/commit/4f10043))\n- **ci:** narrow affected ownership and reuse workspace prerequisites ([#707](https://github.com/anarchitects/anarchitecture-community/pull/707))\n\n### \u2705 Tests\n\n- **nest-angular-ssr:** add locked Nest 12 consumer fixtures ([#750](https://github.com/anarchitects/anarchitecture-community/pull/750))\n\n### \u26a0\ufe0f  Breaking Changes\n\n- **nest-angular-ssr:** require patched Nest 11 adapter  ([4f10043](https://github.com/anarchitects/anarchitecture-community/commit/4f10043))\n  require @nestjs/platform-fastify ^11.2.10 in the Nest 11 maintenance source. Johan accepted the minimum and compatibility impact during #740; preserve a distinct version line through release preparation.\n\n### \u2764\ufe0f Thank You\n\n- Johan Vrolix @vrxj81",
+          "postGitTask": null
+        }
+      }
+    }
+  },
+  "priorAttempt": {
+    "path": "dist/validation/nest12-ssr-741-maintenance",
+    "status": "failed",
+    "failure": "N11-A21-min-tool/cjs-build: kill EPERM",
+    "runtimeAudits": "all three zero; failure not waived",
+    "repeatPath": "dist/validation/nest12-ssr-741-maintenance-repeat",
+    "repeatStatus": "passed"
+  }
+}
