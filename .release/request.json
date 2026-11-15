@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "baseline": "7ac811e3528e819c586079af66f52858a6227870",
+  "projects": ["nest-angular-ssr"],
+  "firstRelease": false,
+  "stabilize": false,
+  "line": "nest11",
+  "branch": "maintenance/nest-angular-ssr-0.3",
+  "controllerDigest": "bc4d183d46ab5b8735a91f48b5ef4cdd425f1a2c29dfe60f4228012167ec962c",
+  "compatibility": {
+    "nest-angular-ssr": {
+      "minimumBump": "major",
+      "evidence": "Johan accepted the breaking @nestjs/platform-fastify ^11.2.10 floor in #740 and maintenance-first sequencing in #748. PR #761 merged the floor and #741 packaging/consumer backport at 7ac811e3528e819c586079af66f52858a6227870; source CI 43754067086 passed all 12 jobs. #742 records the 2026-11-15 owner-approved Angular 21 transition exception through 2027-02-13. Public module/bootstrap and low-level APIs remain unchanged; release approval and final versioned artifact certification are separate."
+    }
+  },
+  "versions": {
+    "nest-angular-ssr": {
+      "currentVersion": "0.3.2",
+      "newVersion": "0.4.0",
+      "dependentProjects": []
+    }
+  },
+  "channels": {
+    "nest-angular-ssr": "nest11"
+  }
+}
