@@ -10,10 +10,10 @@ This package provides three usage levels:
 
 ## Support matrix
 
-This is the **unreleased Nest 11 maintenance successor** to `0.3.x`. It raises the
-Fastify adapter minimum to `^11.2.10` and must receive a distinct unused minor
-version before publication. The working `0.3.2` manifest is not a replacement for
-the already published package. No Nest 12 support is included.
+This is the **Nest 11 maintenance line**. Version `0.4.0` raises the Fastify adapter
+minimum to `^11.2.10`, a breaking installation change from `0.3.x`. Install only
+a version verified available in the registry; source version metadata does not
+establish publication. No Nest 12 support is included.
 
 | Nest common/core/platform-fastify | Angular framework | SSR/build | TypeScript | Nx tooling        | Consumer shapes                                                    |
 | --------------------------------- | ----------------- | --------- | ---------- | ----------------- | ------------------------------------------------------------------ |
@@ -63,8 +63,18 @@ framework `~22.2.6` and SSR `~22.2.7`; keep Fastify explicitly selected.
 
 Previous-major maintenance is 90 calendar days from this package's first verified
 generally available successor-major release, independently for Nest and Angular.
-Existing commitments are reviewed before dates are announced. No EOM date is
-invented here; older immutable artifacts remain available after maintenance ends.
+
+| Previous framework major | Maintenance ends                                                                                                        | Migration                                                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Angular 21 on this line  | **13 February 2027**, inclusive, under an approved transition extension                                                 | Move to a coherent, verified Angular 22 combination above; Nest 11 can remain while its own window is open. |
+| Nest 11                  | 90 calendar days after this package's first verified generally available Nest 12 release; that release is still pending | Move to the separately released Nest 12 combination.                                                        |
+
+Angular 21 receives security and critical-defect fixes only through that date;
+no new features or adapters are added to its line. The extension does not restart
+when another patch is released. After it ends, continued Nest 11 maintenance
+does not include Angular 21. Older immutable artifacts remain available. This is
+this package's support policy, not Angular's upstream support schedule or an
+automatic application upgrade.
 
 ## Runtime support
 
