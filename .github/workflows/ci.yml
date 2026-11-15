@@ -132,9 +132,7 @@ jobs:
       fail-fast: false
       matrix:
         cell:
-          - angular21-nx22
-          - angular21-nx23
-          - angular22-nx23
+          - angular22-current
     steps:
       - uses: actions/checkout@v6
         with:

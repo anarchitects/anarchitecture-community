@@ -71,16 +71,21 @@ async function validateCell(name, versions, tarballPath, npmCache) {
     const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
     for (const dependency of Object.keys(packageJson.dependencies)) {
       if (dependency.startsWith('@angular/')) {
-        packageJson.dependencies[dependency] = versions.angular;
+        packageJson.dependencies[dependency] =
+          dependency === '@angular/ssr'
+            ? versions.angularBuild
+            : versions.angular;
       }
     }
     packageJson.dependencies['@anarchitects/nest-angular-ssr'] = tarballPath;
-    // Minimum compatibility coverage intentionally includes Nest's bundled
-    // Fastify; deployment/security coverage uses the patched host override.
-    delete packageJson.overrides;
-    // Prove the first Nest 11 adapter release that supports static 10.
-    for (const dependency of ['@nestjs/common', '@nestjs/core', '@nestjs/platform-fastify']) {
-      packageJson.dependencies[dependency] = '11.1.29';
+    // Keep every Fastify copy on the reviewed patched version.
+    packageJson.overrides = { fastify: '$fastify' };
+    for (const dependency of [
+      '@nestjs/common',
+      '@nestjs/core',
+      '@nestjs/platform-fastify',
+    ]) {
+      packageJson.dependencies[dependency] = versions.nest;
     }
     packageJson.devDependencies.nx = versions.nx;
     packageJson.devDependencies.typescript = versions.typescript;

@@ -9,14 +9,18 @@ module.exports = {
         tsconfig: '<rootDir>/tsconfig.spec.json',
       },
     ],
-    '^.+/node_modules/content-disposition/.+\\.js$': [
-      'ts-jest',
+    // Nest 12 uses ESM and import.meta; SWC bridges both for CommonJS Jest.
+    '^.+/node_modules/(?:@nestjs|content-disposition)/.+\\.js$': [
+      '@swc/jest',
       {
-        tsconfig: '<rootDir>/tsconfig.jest-esm.json',
+        swcrc: false,
+        jsc: { target: 'es2022' },
       },
     ],
   },
-  transformIgnorePatterns: ['/node_modules/(?!content-disposition/)'],
+  transformIgnorePatterns: [
+    '/node_modules/(?!(?:@nestjs|content-disposition)/)',
+  ],
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: 'test-output/jest/coverage',
 };

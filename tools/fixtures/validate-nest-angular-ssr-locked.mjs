@@ -9,8 +9,9 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import { runFixtureAttempt } from './nest-angular-ssr-consumer-attempt.mjs';
 import { assertHydration } from './nest-angular-ssr-hydration.mjs';
 import {
@@ -23,6 +24,8 @@ import {
   json,
   nodeVersion,
   readJson,
+  selectCells,
+  verifyArchive,
 } from './nest-angular-ssr-locked-support.mjs';
 
 const publicApi = `import { NestAngularSsrModule, bootstrapNestAngularSsr, createNestAngularSsrIntegration, registerNestAngularSsrRoutes, type AngularSsrRegistrationOptions } from '@anarchitects/nest-angular-ssr';
@@ -41,15 +44,30 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const matrix = await readJson(
   new URL('./nest-angular-ssr-locked-matrix.json', import.meta.url),
 );
-const selected = process.argv[2] ?? 'all';
-if (selected !== 'all' && !Object.hasOwn(matrix, selected))
-  throw new Error(`Unknown cell ${selected}`);
+const { values, positionals } = parseArgs({
+  allowPositionals: true,
+  options: {
+    cell: { type: 'string' },
+    archive: { type: 'string' },
+    'archive-sha256': { type: 'string' },
+  },
+});
+const selected = values.cell ?? positionals[0] ?? 'nest12';
+assert.ok(
+  positionals.length <= 1,
+  'Supply only one cell or release-line selector',
+);
+const cellNames = selectCells(matrix, selected);
+assert.ok(
+  values.archive || !values['archive-sha256'],
+  '--archive-sha256 requires --archive',
+);
 assert.equal(
   process.versions.node,
   nodeVersion,
   'Use the exact reviewed Node proof version',
 );
-const outputBase = join(root, 'dist/validation/nest12-ssr-738');
+const outputBase = join(root, 'dist/validation/nest12-ssr-739');
 await mkdir(outputBase, { recursive: true });
 const output = await mkdtemp(join(outputBase, `${selected}-`));
 console.log(`Evidence: ${output}`);
@@ -83,28 +101,37 @@ try {
     await command('git', ['rev-parse', 'HEAD'], root)
   ).trim();
   report.workingTree = await command('git', ['status', '--short'], root);
-  const packed = JSON.parse(
-    await command(
-      'npm',
-      ['pack', '--ignore-scripts', '--json', '--pack-destination', output],
-      join(root, 'packages/nest/angular-ssr'),
-      { log: join(output, 'pack.log') },
-    ),
-  )[0];
-  const archive = join(output, packed.filename);
+  const packed = values.archive
+    ? undefined
+    : JSON.parse(
+        await command(
+          'npm',
+          ['pack', '--ignore-scripts', '--json', '--pack-destination', output],
+          join(root, 'packages/nest/angular-ssr'),
+          { log: join(output, 'pack.log') },
+        ),
+      )[0];
+  const archive = values.archive
+    ? resolve(values.archive)
+    : join(output, packed.filename);
   const bytes = await readFile(archive);
+  if (values.archive) {
+    verifyArchive(bytes, values['archive-sha256']);
+    await cp(archive, join(output, basename(archive)));
+  }
   const manifest = JSON.parse(
     await command('tar', ['-xOf', archive, 'package/package.json'], root),
   );
   report.archive = {
-    file: packed.filename,
+    file: basename(archive),
+    source: values.archive ? 'external-verified-archive' : 'working-tree-pack',
     sha256: digest(bytes),
-    integrity: packed.integrity,
+    ...(packed ? { integrity: packed.integrity } : {}),
     manifest,
   };
   for (const [name, versions] of Object.entries(matrix)) {
     checkInterruption();
-    if (selected !== 'all' && selected !== name) continue;
+    if (!cellNames.includes(name)) continue;
     const cellOutput = join(output, name);
     await mkdir(cellOutput);
     const cell = { name, versions, checks: [] };
@@ -451,7 +478,14 @@ async function nx(installation, args, cwd, options) {
 }
 
 async function inputHashes() {
-  const paths = ['packages/nest/angular-ssr/package.json'];
+  const paths = [
+    'package.json',
+    'yarn.lock',
+    '.github/workflows/ci.yml',
+    'packages/nest/angular-ssr/package.json',
+    'packages/nest/angular-ssr/README.md',
+    'packages/nest/angular-ssr/vite.config.mts',
+  ];
   const visit = async (directory) => {
     for (const entry of await readdir(join(root, directory), {
       withFileTypes: true,
@@ -464,6 +498,7 @@ async function inputHashes() {
     }
   };
   for (const directory of [
+    'packages/nest/angular-ssr/src',
     'apps/fixtures/nest-cjs-consumer',
     'apps/fixtures/nest-esm-consumer',
     'apps/fixtures/nest-angular-split',

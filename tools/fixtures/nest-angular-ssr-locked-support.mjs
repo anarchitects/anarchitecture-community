@@ -14,6 +14,33 @@ export const digest = (value, algorithm = 'sha256') =>
 export const readJson = async (path) =>
   JSON.parse(await readFile(path, 'utf8'));
 
+export function selectCells(matrix, selected) {
+  if (Object.hasOwn(matrix, selected)) return [selected];
+  assert.ok(
+    ['all', 'nest11', 'nest12'].includes(selected),
+    `Unknown cell ${selected}`,
+  );
+  return Object.keys(matrix).filter(
+    (name) =>
+      !matrix[name].historical &&
+      (selected === 'all' ||
+        matrix[name].nest.startsWith(`${selected.slice(4)}.`)),
+  );
+}
+
+export function verifyArchive(bytes, expectedSha256) {
+  assert.match(
+    expectedSha256 ?? '',
+    /^[a-f0-9]{64}$/,
+    'An external archive requires --archive-sha256',
+  );
+  assert.equal(
+    digest(bytes),
+    expectedSha256,
+    'External archive SHA256 mismatch',
+  );
+}
+
 // Clear ambient source conditions, aliases and npm peer-bypass configuration.
 // npm still uses its ordinary credential/config locations for registry access.
 export function fixtureEnv(extra = {}) {

@@ -35,10 +35,10 @@ export async function assertSsrSecurityConformance(
       expected.fastify,
     );
   } else {
-    assert.equal(manifest.dependencies['@fastify/static'], '^10.1.7');
+    assert.equal(manifest.dependencies['@fastify/static'], '~10.1.11');
     assert.equal(
       manifest.peerDependencies['@nestjs/platform-fastify'],
-      '^11.1.29',
+      '~12.5.0',
     );
   }
   const [major, minor, patch] = staticVersion.split('.').map(Number);
