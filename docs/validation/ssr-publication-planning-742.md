@@ -95,7 +95,8 @@ so no rollback of those surfaces should be needed. Retain before/after metadata.
    and #722 instead of silently treating closure as settings evidence.
 2. Resolve the prospective Angular 21 EOM decision and clean generated release
    notes described in #741. Johan confirmed no additional maintenance commitments.
-   Do not announce the historical 26 November calculation as an accepted date.
+   The [15 November decision below](#angular-21-transition-decision--15-november-2026)
+   resolves the date with an approved extension through 13 February 2027.
 3. Prepare the breaking **Nest 11** successor from the clean reviewed maintenance
    source using main's trusted controller, `line=nest11`, channel `nest11` and
    breaking compatibility evidence. Nx and fresh distribution history determine
@@ -162,3 +163,152 @@ final formatting/diff checks, and maintenance immutable workspace installation.
 The prepared maintenance files remain identical to the retained certification
 inputs; no repeat consumer certification was needed for commit-only delivery.
 Prospective PR-message checks preserve exact Nx scope and breaking minimum intent.
+
+## Integrated setup and source evidence
+
+Johan merged #762 into main at `bc977df6622b16e4dd82e34cdfbd6642ce20a093` and
+#761 into `maintenance/nest-angular-ssr-0.3` at
+`7ac811e3528e819c586079af66f52858a6227870`. Both exact push runs passed on attempt 1:
+[main 43753934402](https://github.com/anarchitects/anarchitecture-community/actions/runs/43753934402)
+(10 jobs) and [maintenance 43754067086](https://github.com/anarchitects/anarchitecture-community/actions/runs/43754067086)
+(12 jobs), including each required `main` check. This completes setup/source
+integration; it is not the later versioned-candidate CI or publication evidence.
+
+## Angular 21 transition decision — 15 November 2026
+
+**Accepted by Johan, SSR capability owner:** Angular 21 maintenance for
+`@anarchitects/nest-angular-ssr` ends **13 February 2027**, inclusive, through an
+explicit dated exception under Meta0022 clauses 4 and 8. The decision applies to
+the Nest 11 maintenance source, `maintenance/nest-angular-ssr-0.3`, and its patched
+successor releases. It does not extend another package's or Angular's upstream
+support commitment.
+
+| Field                        | Evidence / decision                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Historical successor trigger | `0.3.0`, published **28 August 2026 at 12:59:21.552 UTC**; npm metadata, the tag's Angular 21/22 peers and packed-consumer evidence in [PR #503](https://github.com/anarchitects/anarchitecture-community/pull/503).                                                                                                                                                                     |
+| Nominal trigger + 90 days    | **26 November 2026**, retained as the historical calculation, not a retroactive support withdrawal.                                                                                                                                                                                                                                                                                      |
+| Approved exception           | Maintenance through **13 February 2027**: 90 calendar days from the **15 November 2026** policy adoption/owner decision. Later patches do not restart it.                                                                                                                                                                                                                                |
+| Reason                       | Give consumers a prospective transition after adoption rather than only the eleven days remaining under the historical calculation.                                                                                                                                                                                                                                                      |
+| Commitments and consumers    | Johan confirmed no additional customer/application commitments. Known handoffs remain FitOverForty #150 and Reeves Corner Retreats #29; this does not claim adoption or assign their migration dates.                                                                                                                                                                                    |
+| Scope and effort             | Johan retains responsibility for security/critical-defect backports and the existing Angular 21 packed-consumer/security checks on the maintenance line through the date. This retains limited old-major validation effort; no new features, adapters, broad new matrix, additional staffing or open-ended support is committed. Hosted spending still needs its existing authorization. |
+| Migration and limitations    | Move to the verified Angular 22 combination while staying on Nest 11 if necessary. Preserve application-owned rollback and immutable artifacts. If a secure fix is unavailable, disclose the limitation/mitigation instead of promising unsupported coverage.                                                                                                                            |
+| End / review                 | Angular 21 has no maintenance promise after the date. Any further extension needs a new explicit dated owner decision before expiry; it is not automatic.                                                                                                                                                                                                                                |
+
+Nest 11's separate clock has **not started**: npm still has only releases through
+`0.3.2`, with `latest → 0.3.2`. Record the actual first verified generally available
+Nest 12 publication and its +90-calendar-day sunset when available. A `next`
+channel label alone does not establish GA acceptance. After Angular 21 EOM, any
+remaining Nest 11 window covers Angular 22. No peer range or archived artifact is
+withdrawn by this decision, and App POs retain migration/deployment authority.
+
+The complete 25 Meta / 9 Community ADR review was repeated for this lifecycle and
+version-preparation scope at Meta `4f0339d86f0ebfa073173ad307cb67c8d6042bdd` and
+Community `bc977df`. The maintenance branch's three historical ADR differences
+were read alongside current accepted Meta0022. CONTRIBUTING, OWNERSHIP, SDLC,
+Modern Angular overview/application/SSR/testing guides and release runbooks were
+reviewed. Applicable constraints: Meta0013/0017/0022 and Community0004/0005/0006/0007;
+Nx determines versions, owners decide lifecycle/release, APIs/Fastify behavior and
+packed public documentation remain protected. Proposed local lifecycle prose
+does not override accepted Meta policy. The approved dated exception resolves the
+transition question without changing the architecture or adapter scope.
+
+## Maintenance version proposal and release notes
+
+The clean main controller at `bc977df` prepared the reviewed maintenance source
+`7ac811e` using `line=nest11`, channel `nest11`, `minimumBump=major` and fresh
+GitHub tags/releases/npm history. **Nx derived `0.3.2 → 0.4.0`**, with no dependent
+project version changes. First-release and stabilization modes are false.
+The baseline is actually distributed; `0.4.0` was absent from all three histories.
+This is a local proposal, not a reserved or published version.
+
+The maintenance review branch contains the generated manifest and
+`.release/request.json`, the updated public README and a cleaned package
+`CHANGELOG.md`. The request binds the source baseline, exact project, compatibility
+impact, channel and controller digest
+`bc4d183d46ab5b8735a91f48b5ef4cdd425f1a2c29dfe60f4228012167ec962c`.
+The changelog retains the breaking `^11.2.10` floor and adds packaging, coherent
+patched combinations, migration and the approved sunset. It omits fixture/CI
+chronology that could imply Nest 12 support on this line and does not invent a
+publication date. The raw generated entry is retained locally at
+`/private/tmp/742-maintenance-changelog-generated.md` for comparison.
+
+The feature note copy below replaces the malformed trailing quote/file-status
+text from #739/#756 and its stale claim that future maintenance remains `0.3.x`.
+The original merged commit and published history remain unchanged. Apply this
+copy to the **new** feature changelog entry after maintenance is distributed and
+Nx derives its next globally unused version; do not prepare a colliding main
+`0.4.0` or reserve the illustrative `0.5.0` now. Notes remain part of the exact
+candidate's final owner review.
+
+### Nest 12 release-note copy — version pending
+
+**Breaking installation contract:** this feature line requires Node
+`>=24.22.3 <25`, Nest common/core/platform-fastify `~12.5.0`, Fastify `~5.12.8`,
+Angular framework `~22.2.6` and Angular SSR `~22.2.7`. It excludes Nest 11,
+Angular 21 and Angular 22.1. Keep Angular framework/compiler packages coherent;
+the verified build combination uses Angular build 22.2.7 and TypeScript 6.0.3.
+Nx is build/validation tooling, not a runtime dependency.
+
+**Preserved behavior:** `NestAngularSsrModule.forRoot` / `forRootAsync`,
+`bootstrapNestAngularSsr` and the documented low-level APIs retain their
+signatures. Fastify remains the supported adapter; Express and native Node are
+not included. CJS/ESM Nest hosts and split ESM Angular server/CJS Nest composition
+are covered. CJS hosts require Node's enabled `require(esm)` support.
+
+**Migration:** select the actually published Nest 12 package version, upgrade
+the coherent runtime/dependencies, build Angular before Nest, and validate SSR,
+hydration, API misses, assets, host/proxy rules, cookies, redirects, HEAD and
+not-found behavior in the application. Keep the prior reviewed application
+artifact and full lockfile for owner-authorized rollback. The package includes
+its own README, Apache-2.0 LICENSE and NOTICE.
+
+**Maintenance:** Nest 11 consumers use the separately versioned patched
+maintenance successor, whose adapter minimum is `^11.2.10`, on channel `nest11`.
+Angular 21 security/critical maintenance ends **13 February 2027**, inclusive;
+it can be migrated to Angular 22 while retaining Nest 11. Nest 11's 90-day window
+starts on the actual first verified generally available Nest 12 package release;
+record that release date and calculated EOM before claiming the clock has begun.
+Older immutable artifacts remain available. Application owners control adoption.
+
+**Distribution:** initial Nest 12 publication targets `next`; promotion to
+`latest` requires a separate reviewed decision. Neither a mutable channel nor a
+source manifest replaces inspection of the actual version and supported peers.
+
+## Local proposal validation and handoff
+
+[Machine-readable evidence](ssr-maintenance-version-742-evidence.json) binds the
+generated request, source/controller revisions, reviewed files and actual archive
+`anarchitects-nest-angular-ssr-0.4.0.tgz`, SHA-256
+`9bb1dd58241414f0a0e5bc6893df6a41f9572d365cff583800b2f18c2318be12`.
+Its **48 packed-consumer checks pass** across the two Angular 21 tooling cells
+and Angular 22 direct/split consumers. All three runtime audits report zero
+findings at their recorded times. Public CJS/ESM declarations and module/async/
+explicit bootstrap behavior, SSR routing/security and split hydration are covered.
+The existing 12 lifecycle and 9 locked-runner helper checks also pass.
+
+The maintenance build passed without a cache hit. The archive's README, LICENSE
+and NOTICE match the reviewed source byte-for-byte, including the accepted
+sunset notice. Main's separate development archive also contains its updated
+README/legal files; its unchanged `0.3.2` metadata is not a publishable candidate
+and was not recertified as a feature release. Dates, relative links, formatting
+and diff checks pass. Prospective scoped PR messages were checked through the
+existing policy API with each actual uncommitted file list and fresh histories.
+The first synthetic CI-event attempt lacked base/head metadata; it did not test
+the message and was replaced by that appropriate local API check.
+
+Prepared branches: `docs/ssr-lifecycle-notes-742` targets main, and
+`release/nest-angular-ssr-nest11-742` targets the protected maintenance branch.
+The new maintenance diff contains only the generated version/request, public
+README and reviewed changelog; no runtime implementation, dependency range or
+lockfile changed. The existing `^11.2.10` floor is already integrated.
+
+The owner-approved date decision is complete. On 15 November, Johan authorized
+committing, pushing and opening both concrete PRs with their normal CI runs;
+**Johan will inspect CI**. Review/integration of the notes and `0.4.0` proposal
+remains next. Exact versioned-source CI and
+separately authorized hosted preparation must still establish the final candidate;
+local bytes are not a hosted release record. #722 activation, npm trust and exact
+release authorization remain pending. The local preparation above started no
+hosted CI and performed no tag, registry mutation, publication, consumer handoff
+message or release activation. Delivery authorization excludes agent CI inspection,
+merges, reruns, hosted release preparation, npm changes, activation and publication.
