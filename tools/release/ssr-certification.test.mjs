@@ -44,6 +44,7 @@ function report(hash) {
     'split-http-hydration',
   ];
   return {
+    releaseAudit: true,
     status: 'passed',
     archive: { source: 'external-verified-archive', sha256: hash },
     cells: [
@@ -93,6 +94,12 @@ test('final SSR archive is selected by hash and all retained certification evide
 });
 
 for (const [name, mutate] of [
+  [
+    'missing release audit',
+    (r) => {
+      delete r.releaseAudit;
+    },
+  ],
   [
     'different bytes',
     (r) => {
@@ -158,4 +165,47 @@ test('changed archive fails before starting a consumer process', () => {
       /SSR archive changed/,
     );
   });
+});
+
+test('maintenance certification uses the main harness, all retained cells and fresh audits', () => {
+  for (const missingAudit of [false, true])
+    fixture(({ directory, pkg }) => {
+      const certify = () =>
+        certifySsrArchive(
+          pkg,
+          directory,
+          (_, args, options) => {
+            assert.ok(args.includes('--cell=nest11'));
+            assert.ok(args.includes('--release-audit'));
+            assert.equal(options.cwd, '/trusted-main');
+            assert.equal(options.env.NX_WORKSPACE_ROOT_PATH, '/trusted-main');
+            assert.equal(options.env.GH_TOKEN, '');
+            const output = args
+              .find((a) => a.startsWith('--output-directory='))
+              .split('=')[1];
+            mkdirSync(output);
+            const r = report(pkg.files[0].sha256);
+            const direct = r.cells[0].checks,
+              split = r.cells[1].checks.filter((c) =>
+                c.name.startsWith('split-'),
+              );
+            r.cells = ['N11-A21-min-tool', 'N11-A21-next-tool', 'N11-A22'].map(
+              (name) => ({
+                name,
+                status: 'passed',
+                checks: [
+                  ...direct.filter(
+                    (c) => !missingAudit || c.name !== 'runtime-audit',
+                  ),
+                  ...(name === 'N11-A22' ? split : []),
+                ],
+              }),
+            );
+            writeFileSync(join(output, 'result.json'), JSON.stringify(r));
+          },
+          { line: 'nest11', root: '/trusted-main' },
+        );
+      if (missingAudit) assert.throws(certify, /runtime-audit/);
+      else assert.equal(certify().length, 1);
+    });
 });

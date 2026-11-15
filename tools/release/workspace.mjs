@@ -10,6 +10,7 @@ import {
   validateVersion,
 } from './policy.mjs';
 import { collectHistories } from './history.mjs';
+import { releaseLine, SSR_PROJECT } from './lines.mjs';
 
 const requireNx = createRequire(import.meta.resolve('nx/package.json'));
 const yaml = requireNx('yaml');
@@ -147,6 +148,7 @@ export async function previewVersions(
   projects,
   firstRelease = false,
   stabilize = false,
+  line,
 ) {
   requireCondition(
     projects.length > 0 && projects.every((p) => context.projects.includes(p)),
@@ -175,7 +177,15 @@ export async function previewVersions(
       'Separate unreleased and released preview selections; first-release cannot reset history',
     );
   }
-  const result = await nxPreview(projects, firstRelease, stabilize);
+  if (line)
+    requireCondition(
+      projects.length === 1 &&
+        projects[0] === SSR_PROJECT &&
+        !firstRelease &&
+        !stabilize,
+      'SSR lines require one already-released project',
+    );
+  const result = await nxPreview(projects, firstRelease, stabilize, line);
   const expanded = Object.keys(result.projectsVersionData).filter(
     (p) => !histories[p],
   );
@@ -203,9 +213,15 @@ export async function nxPreview(
   projects,
   firstRelease = false,
   stabilize = false,
+  line,
 ) {
   const { ReleaseClient } = await import('nx/release');
-  const client = new ReleaseClient({ version: { preVersionCommand: '' } });
+  const client = new ReleaseClient({
+    version: { preVersionCommand: '' },
+    ...(line
+      ? { releaseTag: { checkAllBranchesWhen: releaseLine(line).allBranches } }
+      : {}),
+  });
   const result = await client.releaseVersion({
     projects,
     dryRun: true,

@@ -16,10 +16,27 @@ import {
   executeRecord,
   planRecord,
 } from './execution.mjs';
-import { repoApi, pages, mainCommit, tagIdentity, exactCI } from './github.mjs';
+import {
+  repoApi,
+  pages,
+  mainCommit,
+  branchCommit,
+  sourceProtection,
+  tagIdentity,
+  exactCI,
+} from './github.mjs';
+import {
+  MAINTENANCE_ANCHOR,
+  validateSsrManifest,
+  validateIntegratedRequest,
+} from './lines.mjs';
 
 const controllerPaths = [
   'tools/release',
+  'tools/fixtures',
+  'tools/ci',
+  '.github/workflows/ci.yml',
+  'packages/nest/angular-ssr/package.json',
   '.github/workflows/release.yml',
   '.github/workflows/publish.yml',
   '.github/workflows/release-prepare.yml',
@@ -96,7 +113,11 @@ export async function publication(p) {
   if (p.channel === 'npm') {
     const version = data.versions[p.version];
     if (!version)
-      return { missing: p.files, distTag: data['dist-tags']?.[p.distTag] };
+      return {
+        missing: p.files,
+        distTag: data['dist-tags']?.[p.distTag],
+        channels: data['dist-tags'] ?? {},
+      };
     assert(
       version.name === p.name &&
         version.version === p.version &&
@@ -109,6 +130,7 @@ export async function publication(p) {
       distTag: data['dist-tags']?.[p.distTag],
       integrity: version.dist.integrity,
       attestations: version.dist.attestations ?? null,
+      channels: data['dist-tags'] ?? {},
     };
   }
   const files = data.releases[p.version] ?? [];
@@ -185,6 +207,7 @@ export async function inspectRequest({
   digest,
   action,
   tag,
+  channel,
   env = process.env,
 }) {
   assert(
@@ -241,11 +264,11 @@ export async function inspectRequest({
       );
   }
   const comparison = await repoApi(
-    `/compare/${record.candidate.commit}...main`,
+    `/compare/${record.controller.commit}...main`,
   );
   assert(
     ['ahead', 'identical'].includes(comparison.status),
-    'Candidate is not integrated on main',
+    'Preparation controller is not integrated on main',
   );
   if (comparison.status === 'ahead') {
     // A queued dispatch checks out its original revision. Do not let it retain
@@ -268,7 +291,82 @@ export async function inspectRequest({
       'Release controls or ownership changed on main; prepare a new record',
     );
   }
-  await exactCI(record.candidate.commit, record.evidence.ciRunId);
+  const branch = record.candidate.branch ?? 'main';
+  if (record.schema === 2) {
+    await sourceProtection('main');
+    await sourceProtection(branch);
+    const source = await repoApi(
+      `/compare/${record.candidate.commit}...${encodeURIComponent(branch)}`,
+    );
+    assert(
+      ['ahead', 'identical'].includes(source.status),
+      'Candidate is not integrated on its protected source branch',
+    );
+    const requestFile = await repoApi(
+      `/contents/.release/request.json?ref=${record.candidate.commit}`,
+    );
+    assert(
+      requestFile.encoding === 'base64' &&
+        sha256(Buffer.from(requestFile.content, 'base64')) ===
+          record.requestDigest,
+      'Integrated request changed',
+    );
+    validateIntegratedRequest(
+      record,
+      JSON.parse(Buffer.from(requestFile.content, 'base64').toString('utf8')),
+    );
+    const rootTree = await repoApi(`/git/trees/${record.candidate.tree}`);
+    const lock = rootTree.tree?.find(
+      (entry) => entry.path === 'yarn.lock' && entry.type === 'blob',
+    );
+    assert(lock && !rootTree.truncated, 'Cannot verify source lock');
+    const blob = await repoApi(`/git/blobs/${lock.sha}`);
+    assert(
+      blob.encoding === 'base64' &&
+        sha256(Buffer.from(blob.content, 'base64')) === record.lockDigest,
+      'Source lock differs from reviewed record',
+    );
+    const p = record.packages[0];
+    const manifestAt = async (ref) => {
+      const file = await repoApi(
+        `/contents/packages/nest/angular-ssr/package.json?ref=${ref}`,
+      );
+      assert(file.encoding === 'base64', 'Cannot verify SSR source manifest');
+      return JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'));
+    };
+    const manifest = await manifestAt(record.candidate.commit);
+    assert(
+      manifest.version === p.version,
+      'Source version differs from reviewed archive',
+    );
+    validateSsrManifest(
+      record.line,
+      manifest,
+      await manifestAt(p.nxBaseline.commit),
+      p.compatibility,
+    );
+    assert(
+      (await tagIdentity(p.nxBaseline.tag))?.commit === p.nxBaseline.commit,
+      'Nx baseline tag moved',
+    );
+    if (record.line === 'nest11') {
+      const ancestry = await repoApi(
+        `/compare/${MAINTENANCE_ANCHOR}...${record.candidate.commit}`,
+      );
+      assert(
+        ['ahead', 'identical'].includes(ancestry.status),
+        'Maintenance candidate has unrelated ancestry',
+      );
+      const baseline = await repoApi(
+        `/compare/${p.nxBaseline.commit}...${record.candidate.commit}`,
+      );
+      assert(
+        ['ahead', 'identical'].includes(baseline.status),
+        'Nx baseline is not reachable from maintenance',
+      );
+    }
+  }
+  await exactCI(record.candidate.commit, record.evidence.ciRunId, branch);
   verifyFiles(record, directory);
   const run = await repoApi(`/actions/runs/${env.GITHUB_RUN_ID}`);
   const expectedWorkflow =
@@ -283,6 +381,7 @@ function readService() {
     history: freshHistory,
     tag: tagIdentity,
     main: mainCommit,
+    branch: branchCommit,
     publication,
     release: async (tag) => {
       const r = await repoApi(`/releases/tags/${encodeURIComponent(tag)}`, {
@@ -307,6 +406,7 @@ export async function execute({
   digest,
   action,
   tag,
+  channel,
   env = process.env,
 }) {
   const { record, run } = await inspectRequest({
@@ -324,7 +424,7 @@ export async function execute({
     action === 'release' ? 'community-release' : 'community-publish',
     env.GITHUB_SHA,
   );
-  const request = { action, tag, artifactId, digest };
+  const request = { action, tag, channel, artifactId, digest };
   const receipt = {
     schema: 1,
     repository: REPOSITORY,
@@ -346,8 +446,8 @@ export async function execute({
       verifyFiles(record, directory);
       if (op.kind === 'tag') {
         assert(
-          (await mainCommit()) === record.candidate.commit &&
-            !(await tagIdentity(p.tag)),
+          (await branchCommit(record.candidate.branch ?? 'main')) ===
+            record.candidate.commit && !(await tagIdentity(p.tag)),
           'Tag state changed',
         );
         const object = await repoApi('/git/tags', {
@@ -467,7 +567,15 @@ export async function execute({
         throw new Error(
           'dbt distribution is the approved Git tag; no registry upload',
         );
-      return await publication(p);
+      const after = await publication(p);
+      if (record.line === 'nest11')
+        assert(
+          ['latest', 'next'].every(
+            (name) => after.channels?.[name] === state.channels?.[name],
+          ),
+          'Maintenance mutation changed a feature channel',
+        );
+      return after;
     },
     verify: async (p, action) => {
       const tag = await tagIdentity(p.tag);
@@ -513,6 +621,7 @@ if (
     digest: process.env.RELEASE_DIGEST,
     action: process.env.RELEASE_ACTION,
     tag: process.env.RELEASE_TAG,
+    channel: process.env.RELEASE_CHANNEL || undefined,
   };
   const operation =
     process.argv[2] === 'locate'
@@ -552,7 +661,7 @@ if (
       : process.argv[2] === 'review'
         ? inspectRequest(options).then(async ({ record }) => {
             const { plan } = await planRecord(record, options, readService());
-            const summary = `## Release review\n\nAction: ${options.action}\n\nArtifact ID: ${options.artifactId}\n\nRecord SHA-256: ${options.digest}\n\nCandidate: ${record.candidate.commit}\n\nController: ${process.env.GITHUB_SHA}\n\nTag: ${options.tag ?? 'all recorded tags'}\n\nPackages:\n${record.packages.map((p) => `- ${p.project}@${p.version} (${p.channel}, ${p.distTag})`).join('\n')}\n\nRemaining mutations:\n${plan.map((op) => `- ${op.kind}: ${op.package.tag}${op.files ? ` (${op.files.map((f) => f.name).join(', ')})` : ''}`).join('\n') || 'None; verified reconciliation only'}\n\nInspect the retained release-record.json for compatibility, closure, inventories and exact CI evidence before approving.\n`;
+            const summary = `## Release review\n\nAction: ${options.action}\n\nArtifact ID: ${options.artifactId}\n\nRecord SHA-256: ${options.digest}\n\nCandidate: ${record.candidate.commit}\n\nController: ${process.env.GITHUB_SHA}\n\nChannel target: ${options.channel ?? 'recorded publication channel'}\n\nSource branch: ${record.candidate.branch ?? 'main'}\n\nTag: ${options.tag ?? 'all recorded tags'}\n\nPackages:\n${record.packages.map((p) => `- ${p.project}@${p.version} (${p.channel}, ${p.distTag})`).join('\n')}\n\nRemaining mutations:\n${plan.map((op) => `- ${op.kind}: ${op.package.tag}${op.files ? ` (${op.files.map((f) => f.name).join(', ')})` : ''}`).join('\n') || 'None; verified reconciliation only'}\n\nInspect the retained release-record.json for compatibility, closure, inventories and exact CI evidence before approving.\n`;
             writeFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
           })
         : execute(options);

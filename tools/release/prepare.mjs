@@ -25,7 +25,21 @@ import {
   SHA,
 } from './execution.mjs';
 import { controllerDigest, registry } from './controller.mjs';
-import { exactCI, mainCommit } from './github.mjs';
+import {
+  exactCI,
+  mainCommit,
+  branchCommit,
+  sourceProtection,
+  tagIdentity,
+} from './github.mjs';
+import {
+  releaseLine,
+  validateLineScope,
+  validateSsrManifest,
+  SSR_PROJECT,
+  SSR_NAME,
+  MAINTENANCE_ANCHOR,
+} from './lines.mjs';
 import { checkCommit } from './check.mjs';
 import { verifyConsumers } from './consumer.mjs';
 
@@ -40,6 +54,118 @@ const noGit = {
   stageChanges: false,
 };
 const auditScript = fileURLToPath(new URL('./audit.py', import.meta.url));
+const controllerRoot = fileURLToPath(new URL('../../', import.meta.url));
+const controllerGit = (args) =>
+  execFileSync('git', args, { cwd: controllerRoot, encoding: 'utf8' }).trim();
+
+function lineSelection(line, projects, channel) {
+  if (!projects.includes(SSR_PROJECT)) {
+    assert(
+      !line && !channel,
+      'SSR line/channel inputs cannot change other packages',
+    );
+    return;
+  }
+  const policy = releaseLine(line);
+  assert(
+    channel === (line === 'nest11' ? 'nest11' : 'next'),
+    'Prepare SSR publication on its initial channel; promotion needs a separate channel action',
+  );
+  validateLineScope(
+    line,
+    policy.branch,
+    projects.map((project) => ({
+      project,
+      name: SSR_NAME,
+      channel: 'npm',
+      distTag: channel,
+      dependencies: [],
+    })),
+  );
+  return policy;
+}
+
+export async function lineHistory(line, versions, commit, histories, channel) {
+  const policy = releaseLine(line);
+  const reachableVersions = git([
+    'tag',
+    '--merged',
+    commit,
+    '--list',
+    `${SSR_PROJECT}@*`,
+  ])
+    .split('\n')
+    .filter(Boolean)
+    .map((t) => t.slice(SSR_PROJECT.length + 1));
+  assert(
+    reachableVersions.every((v) => histories[SSR_PROJECT].tags.includes(v)),
+    'Reachable local tags include unverified remote history',
+  );
+  const current = versions[SSR_PROJECT].currentVersion;
+  assert(
+    histories[SSR_PROJECT].registry.includes(current),
+    'Nx baseline has not reached npm; reconcile history first',
+  );
+  const tag = `${SSR_PROJECT}@${current}`;
+  const local = git(['rev-parse', `${tag}^{commit}`]);
+  assert(
+    (await tagIdentity(tag))?.commit === local,
+    'Local Nx baseline differs from remote tag',
+  );
+  if (line === 'nest11') git(['merge-base', '--is-ancestor', local, commit]);
+  // Every remote tag must exist locally at the same immutable commit. Never hide
+  // the feature line from global collision checks to obtain a lower patch.
+  for (const version of histories[SSR_PROJECT].tags) {
+    const name = `${SSR_PROJECT}@${version}`;
+    assert(
+      git(['rev-parse', `${name}^{commit}`]) ===
+        (await tagIdentity(name))?.commit,
+      'Fetch/reconcile complete release tags before preparation',
+    );
+  }
+  if (line === 'nest12') {
+    const history = histories[SSR_PROJECT];
+    assert(
+      history.registry.some((version) => {
+        if (
+          !history.tags.includes(version) ||
+          !history.releases.includes(version)
+        )
+          return false;
+        if (
+          !git([
+            'ls-tree',
+            `${SSR_PROJECT}@${version}`,
+            '--',
+            'packages/nest/angular-ssr/package.json',
+          ])
+        )
+          return false;
+        const manifest = JSON.parse(
+          git([
+            'show',
+            `${SSR_PROJECT}@${version}:packages/nest/angular-ssr/package.json`,
+          ]),
+        );
+        return (
+          manifest.peerDependencies?.['@nestjs/platform-fastify'] ===
+            '^11.2.10' &&
+          manifest.peerDependencies?.['@nestjs/core'] === '^11.0.0'
+        );
+      }),
+      'Accepted maintenance-first ordering requires the patched Nest 11 release to be distributed first',
+    );
+  }
+  return {
+    sourceLine: {
+      name: line,
+      branch: policy.branch,
+      distTag: channel,
+      reachableVersions,
+    },
+    nxBaseline: { tag, commit: local },
+  };
+}
 
 export function selectedProjects(context, text) {
   const projects = text?.split(',') ?? [];
@@ -106,6 +232,8 @@ function credentialFree() {
     'RELEASE_TOKEN',
     'NODE_AUTH_TOKEN',
     'NPM_TOKEN',
+    'NPM_AUTH_TOKEN',
+    'ANARCHITECTS_BOT_PRIVATE_KEY',
     'UV_PUBLISH_TOKEN',
     'TWINE_PASSWORD',
     'ACTIONS_ID_TOKEN_REQUEST_TOKEN',
@@ -123,6 +251,8 @@ export async function version({
   compatibility: compatibilityPath,
   firstRelease = false,
   stabilize = false,
+  line,
+  channel,
 }) {
   credentialFree();
   assert(
@@ -131,6 +261,20 @@ export async function version({
   );
   const context = await workspace();
   const projects = selectedProjects(context, selection);
+  const policy = lineSelection(line, projects, channel);
+  if (policy)
+    assert(
+      controllerGit(['diff', 'HEAD', '--name-only']) === '' &&
+        controllerGit(['rev-parse', 'HEAD']) === (await mainCommit()),
+      'Use a clean current main checkout for trusted release tooling',
+    );
+  if (policy)
+    assert(
+      git(['branch', '--show-current']) === policy.branch,
+      'Prepare from the approved source branch',
+    );
+  if (line === 'nest11')
+    git(['merge-base', '--is-ancestor', MAINTENANCE_ANCHOR, 'HEAD']);
   const baseline = git(['rev-parse', 'HEAD']);
   const compatibility = read(compatibilityPath);
   if (stabilize)
@@ -145,11 +289,41 @@ export async function version({
     projects,
     firstRelease,
     stabilize,
+    line,
   );
   const expanded = Object.entries(preview.projectsVersionData)
     .filter(([, v]) => v.newVersion)
     .map(([p]) => p);
   assert(expanded.length > 0, 'Nx found no release changes');
+  if (policy) lineSelection(line, expanded, channel);
+  if (policy) {
+    const lineage = await lineHistory(
+      line,
+      preview.projectsVersionData,
+      baseline,
+      preview.histories,
+      channel,
+    );
+    const proposed = preview.projectsVersionData[SSR_PROJECT].newVersion;
+    const history = preview.histories[SSR_PROJECT];
+    assert(
+      ![...history.tags, ...history.releases, ...history.registry].includes(
+        proposed,
+      ),
+      'Nx version collides with existing global history',
+    );
+    validateSsrManifest(
+      line,
+      read('packages/nest/angular-ssr/package.json'),
+      JSON.parse(
+        git([
+          'show',
+          `${lineage.nxBaseline.tag}:packages/nest/angular-ssr/package.json`,
+        ]),
+      ),
+      compatibility[SSR_PROJECT],
+    );
+  }
   for (const p of expanded)
     assert(
       compatibility[p]?.evidence &&
@@ -161,7 +335,12 @@ export async function version({
   // Existing version actions need build outputs. They run only here without
   // publication credentials; the candidate gets rebuilt after integration.
   command(['nx', 'run-many', '-t', 'build', '-p', expanded.join(',')]);
-  const result = await prepareNxVersions(projects, firstRelease, stabilize);
+  const result = await prepareNxVersions(
+    projects,
+    firstRelease,
+    stabilize,
+    line,
+  );
   const actual = Object.entries(result.projectsVersionData)
     .filter(([, v]) => v.newVersion)
     .map(([p, v]) => [p, v.newVersion]);
@@ -181,9 +360,18 @@ export async function version({
       projects,
       firstRelease,
       stabilize,
+      ...(line
+        ? {
+            line,
+            branch: policy.branch,
+            controllerDigest: controllerDigest(controllerRoot),
+          }
+        : {}),
       compatibility,
       versions: result.projectsVersionData,
-      channels: Object.fromEntries(expanded.map((p) => [p, 'latest'])),
+      channels: Object.fromEntries(
+        expanded.map((p) => [p, channel ?? 'latest']),
+      ),
     }),
   );
   return { baseline, projects: expanded, request: '.release/request.json' };
@@ -193,10 +381,14 @@ export async function prepareNxVersions(
   projects,
   firstRelease = false,
   stabilize = false,
+  line,
 ) {
   const { ReleaseClient } = await import('nx/release');
   const client = new ReleaseClient({
     version: { preVersionCommand: '' },
+    ...(line
+      ? { releaseTag: { checkAllBranchesWhen: releaseLine(line).allBranches } }
+      : {}),
     changelog: {
       projectChangelogs: {
         file: '{projectRoot}/CHANGELOG.md',
@@ -224,22 +416,36 @@ export async function prepareNxVersions(
   return result;
 }
 
-export async function freeze({ ciRunId, out = 'release-payload' }) {
+export async function freeze({
+  ciRunId,
+  out = 'release-payload',
+  line: requestedLine,
+}) {
   credentialFree();
+  out = resolve(out);
   const commit = git(['rev-parse', 'HEAD']);
+  const controllerCommit = controllerGit(['rev-parse', 'HEAD']);
+  assert(
+    controllerGit(['diff', 'HEAD', '--name-only']) === '',
+    'Trusted preparation checkout is dirty',
+  );
   assert(
     process.env.GITHUB_REPOSITORY === REPOSITORY &&
       process.env.GITHUB_REF === 'refs/heads/main' &&
-      process.env.GITHUB_SHA === commit &&
+      process.env.GITHUB_SHA === controllerCommit &&
       process.env.GITHUB_RUN_ATTEMPT === '1',
     'Freeze only in the trusted main preparation workflow',
   );
   assert(
-    commit === (await mainCommit()),
-    'Prepare the current integrated candidate',
+    controllerCommit === (await mainCommit()),
+    'Prepare with the current main controller',
   );
   assert(git(['status', '--porcelain']) === '', 'Dirty candidate');
   const request = read('.release/request.json');
+  assert(
+    request.line === requestedLine,
+    'Requested line differs from integrated request',
+  );
   assert(
     request.schema === 1 && SHA.test(request.baseline),
     'Missing integrated version request',
@@ -247,18 +453,81 @@ export async function freeze({ ciRunId, out = 'release-payload' }) {
   git(['merge-base', '--is-ancestor', request.baseline, commit]);
   const context = await workspace();
   const projects = selectedProjects(context, request.projects.join(','));
-  const ci = await exactCI(commit, ciRunId);
+  const policy = lineSelection(
+    request.line,
+    projects,
+    request.channels?.[SSR_PROJECT],
+  );
+  const branch = policy?.branch ?? 'main';
+  assert(
+    commit === (await branchCommit(branch)),
+    'Prepare the current source head',
+  );
+  let protection;
+  if (policy) {
+    assert(
+      request.branch === branch,
+      'Version request uses a different source branch',
+    );
+    if (request.line === 'nest11')
+      assert(
+        request.controllerDigest === controllerDigest(controllerRoot),
+        'Version request uses a different controller',
+      );
+    await sourceProtection('main');
+    protection = await sourceProtection(branch);
+  }
+  if (request.line === 'nest11')
+    git(['merge-base', '--is-ancestor', MAINTENANCE_ANCHOR, commit]);
+  const ci = await exactCI(commit, ciRunId, branch);
   const preview = await previewVersions(
     context,
     projects,
     request.firstRelease,
     request.stabilize,
+    request.line,
   );
   const versions = Object.fromEntries(
     Object.entries(preview.projectsVersionData).filter(([, v]) => v.newVersion),
   );
   const releaseProjects = Object.keys(versions);
   assert(releaseProjects.length > 0, 'No versioned projects');
+  if (policy)
+    lineSelection(request.line, releaseProjects, request.channels[SSR_PROJECT]);
+  const lineage = policy
+    ? await lineHistory(
+        request.line,
+        versions,
+        commit,
+        preview.histories,
+        request.channels[SSR_PROJECT],
+      )
+    : {};
+  if (policy)
+    validateSsrManifest(
+      request.line,
+      read('packages/nest/angular-ssr/package.json'),
+      JSON.parse(
+        git([
+          'show',
+          `${lineage.nxBaseline.tag}:packages/nest/angular-ssr/package.json`,
+        ]),
+      ),
+      request.compatibility[SSR_PROJECT],
+    );
+  if (policy)
+    assert(
+      !preview.histories[SSR_PROJECT].registry.includes(
+        versions[SSR_PROJECT].newVersion,
+      ) &&
+        !preview.histories[SSR_PROJECT].tags.includes(
+          versions[SSR_PROJECT].newVersion,
+        ) &&
+        !preview.histories[SSR_PROJECT].releases.includes(
+          versions[SSR_PROJECT].newVersion,
+        ),
+      'Version identity already exists; recover with its original record',
+    );
   for (const p of releaseProjects)
     assert(
       request.versions[p]?.newVersion === versions[p].newVersion &&
@@ -287,7 +556,8 @@ export async function freeze({ ciRunId, out = 'release-payload' }) {
       files,
     });
   }
-  const gates = readinessTargets(releaseProjects);
+  const gates =
+    request.line === 'nest11' ? [] : readinessTargets(releaseProjects);
   command([
     'nx',
     'run-many',
@@ -391,6 +661,7 @@ export async function freeze({ ciRunId, out = 'release-payload' }) {
         id.channel === 'github'
           ? [data.root]
           : files.map((f) => join(directory, f.name)),
+      ...lineage,
     };
     const validation = await validateCandidate(context, candidate);
     packages.push({
@@ -408,6 +679,12 @@ export async function freeze({ ciRunId, out = 'release-payload' }) {
       history: validation.history,
       dependencies: [],
       distTag: request.channels[project],
+      ...(policy
+        ? {
+            channelTargets:
+              request.line === 'nest11' ? ['nest11'] : ['next', 'latest'],
+          }
+        : {}),
       notes: existsSync(join(data.root, 'CHANGELOG.md'))
         ? readFileSync(join(data.root, 'CHANGELOG.md'), 'utf8')
         : `${project} ${id.version}`,
@@ -457,23 +734,48 @@ export async function freeze({ ciRunId, out = 'release-payload' }) {
         });
       }
     }
-  const consumers = verifyConsumers(packages, out);
+  if (policy) validateLineScope(request.line, branch, packages);
+  const consumers = verifyConsumers(packages, out, {
+    line: request.line,
+    root: controllerRoot,
+  });
   assert(
     git(['diff', '--name-only']) === '' &&
       git(['diff', '--cached', '--name-only']) === '',
     'A build changed candidate sources; integrate writers before freezing',
   );
   const record = {
-    schema: 1,
+    schema: policy ? 2 : 1,
+    ...(policy
+      ? {
+          line: request.line,
+          requestDigest: sha256(readFileSync('.release/request.json')),
+        }
+      : {}),
     repository: REPOSITORY,
     owner: OWNER,
     baseline: request.baseline,
-    candidate: { commit, tree: git(['rev-parse', 'HEAD^{tree}']) },
-    controller: { commit, digest: controllerDigest() },
+    candidate: {
+      commit,
+      tree: git(['rev-parse', 'HEAD^{tree}']),
+      ...(policy
+        ? {
+            branch,
+            ...(request.line === 'nest11'
+              ? { anchor: MAINTENANCE_ANCHOR }
+              : {}),
+          }
+        : {}),
+    },
+    controller: {
+      commit: controllerCommit,
+      digest: controllerDigest(controllerRoot),
+    },
     lockDigest: sha256(readFileSync('yarn.lock')),
     preparation: { runId: Number(process.env.GITHUB_RUN_ID), attempt: 1 },
     evidence: {
       consumers,
+      ...(policy ? { sourceProtection: protection } : {}),
       tools: {
         node: process.version,
         npm: execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(),
@@ -501,6 +803,11 @@ export async function freeze({ ciRunId, out = 'release-payload' }) {
     },
     packages,
   };
+  assert(
+    controllerGit(['rev-parse', 'HEAD']) === controllerCommit &&
+      controllerGit(['diff', 'HEAD', '--name-only']) === '',
+    'Candidate work changed trusted controller files',
+  );
   const bytes = canonical(record);
   writeFileSync(join(out, 'release-record.json'), bytes);
   return {
@@ -523,6 +830,8 @@ if (
       stabilize: { type: 'boolean' },
       'ci-run': { type: 'string' },
       out: { type: 'string' },
+      line: { type: 'string' },
+      channel: { type: 'string' },
     },
   });
   const action = positionals[0];
@@ -533,11 +842,14 @@ if (
           compatibility: values.compatibility,
           firstRelease: values['first-release'],
           stabilize: values.stabilize,
+          line: values.line,
+          channel: values.channel,
         })
       : action === 'freeze'
         ? freeze({
             ciRunId: Number(values['ci-run'] ?? process.env.RELEASE_CI_RUN_ID),
             out: values.out,
+            line: values.line,
           })
         : Promise.reject(new Error('Use version or freeze'));
   promise

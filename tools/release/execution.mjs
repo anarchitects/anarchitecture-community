@@ -2,6 +2,8 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, lstatSync, realpathSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
+import { validateLineRecord, MAINTENANCE_BRANCH } from './lines.mjs';
+import { validateSsrCertification } from './certification-contract.mjs';
 
 export const REPOSITORY = 'anarchitects/anarchitecture-community';
 export const OWNER = Object.freeze({ login: 'vrxj81', id: 5003361 });
@@ -19,7 +21,7 @@ export const canonical = (value) => JSON.stringify(value, null, 2) + '\n';
 
 export function validateRecord(record) {
   assert(
-    record?.schema === 1 && record.repository === REPOSITORY,
+    [1, 2].includes(record?.schema) && record.repository === REPOSITORY,
     'Wrong release record/repository',
   );
   assert(
@@ -37,10 +39,20 @@ export function validateRecord(record) {
     DIGEST.test(record.controller.digest) && DIGEST.test(record.lockDigest),
     'Controller/lock digest required',
   );
-  assert(
-    record.controller.commit === record.candidate.commit,
-    'Preparation controller must be integrated with the candidate',
-  );
+  if (record.schema === 1) {
+    assert(
+      !record.line && !record.candidate.branch,
+      'Line-aware records require schema 2',
+    );
+    assert(
+      !record.packages?.some((p) => p.project === 'nest-angular-ssr'),
+      'SSR requires an explicit approved release line',
+    );
+    assert(
+      record.controller.commit === record.candidate.commit,
+      'Preparation controller must be integrated with the candidate',
+    );
+  } else validateLineRecord(record);
   assert(
     Number.isSafeInteger(record.preparation?.runId) &&
       record.preparation.runId > 0 &&
@@ -144,18 +156,39 @@ export function verifyFiles(record, directory) {
     }
   for (const evidence of record.evidence.consumers ?? []) {
     assert(
-      /^evidence\/[a-z0-9-]+-package-lock\.json$/.test(evidence.path),
+      /^evidence\/[a-z0-9-]+-package-lock\.json$/.test(evidence.path) ||
+        (/^evidence\/nest-angular-ssr-certification\/[a-zA-Z0-9_./-]+$/.test(
+          evidence.path,
+        ) &&
+          !evidence.path
+            .split('/')
+            .some((part) => part === '..' || part === '.' || !part)),
       'Unsafe consumer evidence path',
     );
     const path = resolve(directory, evidence.path);
     assert(
-      realpathSync(path).startsWith(realpathSync(directory) + sep),
+      realpathSync(path).startsWith(realpathSync(directory) + sep) &&
+        lstatSync(path).isFile() &&
+        !lstatSync(path).isSymbolicLink(),
       'Consumer evidence escaped artifact',
     );
     const bytes = readFileSync(path);
     assert(
       bytes.length === evidence.size && sha256(bytes) === evidence.sha256,
       'Consumer lock changed',
+    );
+  }
+  if (record.schema === 2) {
+    const path = 'evidence/nest-angular-ssr-certification/result.json';
+    assert(
+      record.evidence.consumers?.some((e) => e.path === path),
+      'Missing retained SSR certification',
+    );
+    validateSsrCertification(
+      JSON.parse(readFileSync(resolve(directory, path), 'utf8')),
+      record.line,
+      record.packages[0].files[0].sha256,
+      record.controller.commit,
     );
   }
 }
@@ -204,13 +237,13 @@ export function validateArtifactSource(artifact, run, record) {
       run.conclusion === 'success' &&
       run.event === 'workflow_dispatch' &&
       run.head_branch === 'main' &&
-      run.head_sha === record.candidate.commit &&
+      run.head_sha === record.controller.commit &&
       run.path === '.github/workflows/release-prepare.yml' &&
       run.repository?.full_name === REPOSITORY,
     'Untrusted preparation provenance',
   );
   assert(
-    artifact.workflow_run.head_sha === record.candidate.commit,
+    artifact.workflow_run.head_sha === record.controller.commit,
     'Artifact candidate mismatch',
   );
 }
@@ -222,11 +255,29 @@ export async function planRecord(record, request, service) {
     ['release', 'publish', 'channel'].includes(request.action),
     'Invalid action',
   );
-  const selected =
+  let selected =
     request.action === 'release'
       ? record.packages
       : record.packages.filter((p) => p.tag === request.tag);
   assert(selected.length > 0, 'Tag is outside approved scope');
+  if (request.action === 'channel' && record.schema === 2) {
+    assert(
+      selected.length === 1 &&
+        selected[0].channelTargets?.includes(request.channel),
+      'Channel action requires an explicitly recorded target',
+    );
+    selected = selected.map((p) => ({ ...p, distTag: request.channel }));
+  } else {
+    assert(
+      !request.channel,
+      'Channel override is only valid for a reviewed channel action',
+    );
+    if (request.action === 'publish' && record.line === 'nest12')
+      assert(
+        selected.every((p) => p.distTag === 'next'),
+        'Nest 12 first publication must use next',
+      );
+  }
   const plan = [];
   for (const p of selected) {
     await service.history(p);
@@ -242,8 +293,10 @@ export async function planRecord(record, request, service) {
       await service.publication(p);
       if (!tag) {
         assert(
-          (await service.main()) === record.candidate.commit,
-          'Main advanced; prepare a new candidate before creating tags',
+          (await (record.line === 'nest11'
+            ? service.branch(MAINTENANCE_BRANCH)
+            : service.main())) === record.candidate.commit,
+          'Source branch advanced; prepare a new candidate before creating tags',
         );
         plan.push({ kind: 'tag', package: p });
       }

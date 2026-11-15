@@ -14,6 +14,13 @@ acceptance before activation. No release, hosted run or CI monitoring is authori
 by this document. Johan (`vrxj81`, GitHub ID `5003361`) remains the confirmed owner
 for all 21 projects in [OWNERSHIP](../OWNERSHIP.md).
 
+For SSR, use the explicit [#748 line-specific procedure](validation/ssr-maintenance-release-controls-748.md#operator-handoff-after-separately-authorized-setup).
+It stages separate protected maintenance source and main-controller identities,
+an explicit `nest11` or `nest12` selection and line-specific channels. The generic
+procedure below applies to standard main-source releases; it no longer defaults
+SSR to `latest`. Johan accepted the detailed design on 15 November 2026;
+live maintenance verification remains pending, and #722 remains paused.
+
 ## Preparation and review
 
 1. Start from a clean, fully fetched checkout. Resolve publication discrepancies
@@ -152,7 +159,10 @@ See [GitHub's queue announcement](https://github.blog/changelog/2026-05-07-githu
 - If bytes match but an npm channel differs, ordinary publication stops. A separate
   `operation=channel` dispatch can move only the channel already recorded for that
   version, with new owner review. A different desired channel needs a new reviewed
-  record. The CLI guards require reviewed npm 11: at least 11.5.1 for publication,
+  record, except an SSR schema-2 record may explicitly list a later target (such
+  as `latest`); selecting it requires `channel=latest` on a fresh channel dispatch
+  and separate owner review. Maintenance records list only `nest11`.
+  The CLI guards require reviewed npm 11: at least 11.5.1 for publication,
   and 11.21.0 for channel operations. #722 must verify the installed CLI and the
   publisher's opt-in **Allow npm dist-tag** permission before channel use. See
   [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
