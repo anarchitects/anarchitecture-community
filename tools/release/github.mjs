@@ -62,6 +62,27 @@ export async function branchCommit(branch) {
   return commit;
 }
 
+export function protectionTimestamp(value) {
+  // GitHub renders the same revision in the caller's offset or UTC. Require
+  // an explicit zone and millisecond-or-coarser precision; never guess a zone
+  // or truncate a more precise revision when binding the owner's snapshot.
+  assert(
+    typeof value === 'string' &&
+      /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-]([01]\d|2[0-3]):[0-5]\d)$/.test(
+        value,
+      ),
+    'Invalid source protection revision timestamp',
+  );
+  const instant = Date.parse(value);
+  assert(
+    Number.isFinite(instant) &&
+      new Date(`${value.slice(0, 10)}T00:00:00Z`).toISOString().slice(0, 10) ===
+        value.slice(0, 10),
+    'Invalid source protection revision timestamp',
+  );
+  return new Date(instant).toISOString();
+}
+
 export function protectionRevision(ruleset) {
   return sha256(
     canonical(
@@ -75,7 +96,12 @@ export function protectionRevision(ruleset) {
           'conditions',
           'rules',
           'updated_at',
-        ].map((key) => [key, ruleset[key]]),
+        ].map((key) => [
+          key,
+          key === 'updated_at'
+            ? protectionTimestamp(ruleset[key])
+            : ruleset[key],
+        ]),
       ),
     ),
   );
@@ -109,8 +135,8 @@ export function validateProtection(branch, rules, rulesets, snapshots = []) {
         snapshot?.ownerId === OWNER.id &&
           snapshot.bypassActors?.length === 0 &&
           Array.isArray(snapshot.bypassActors) &&
-          typeof set.updated_at === 'string' &&
-          snapshot.updatedAt === set.updated_at &&
+          protectionTimestamp(snapshot.updatedAt) ===
+            protectionTimestamp(set.updated_at) &&
           snapshot.publicDigest === protectionRevision(set),
         'Hidden bypass list requires owner-reviewed matching ruleset revision',
       );

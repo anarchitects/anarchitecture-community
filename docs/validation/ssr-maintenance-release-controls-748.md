@@ -86,15 +86,24 @@ GitHub [returns bypass lists only to callers with ruleset write access](https://
 Preparation does not gain that authority. When the API hides the list, the
 controller requires a main-owned entry in `tools/release/source-protection.json`
 for that branch/ruleset: `id`, Johan's `ownerId: 5003361`, verified empty
-`bypassActors`, exact `updatedAt` and `publicDigest` from `protectionRevision()`.
+`bypassActors`, exact revision instant `updatedAt` and `publicDigest` from
+`protectionRevision()`. Revision timestamps are validated and normalized to UTC
+milliseconds before comparison and hashing; equivalent explicit offsets identify
+the same instant. Missing, timezone-free, invalid or sub-millisecond timestamps
+fail closed. No other ruleset fields are normalized or omitted from the digest.
 An owner-authorized settings read-back must verify the full list and the same
 public revision before the entry is reviewed and merged. Fresh API reads must
-still match that timestamp/digest and every required effective rule. Missing or
+still match that revision instant/digest and every required effective rule. Missing or
 changed evidence stops execution; a visible nonempty bypass list always rejects.
 This relies on GitHub's ruleset revision metadata plus the owner's attestation,
 not on hidden data being empty. The snapshot file is intentionally empty until
 the separately authorized settings reconciliation. No administrative token is
 placed in preparation or candidate jobs.
+
+The #742 correction migrates the two reviewed snapshots to canonical UTC and
+their corresponding digests after confirming unchanged rules and empty bypass
+lists. Older representation-dependent digests are not accepted as a fallback.
+See the [failure and correction record](ssr-publication-planning-742.md#protection-timestamp-correction--15-november-2026).
 
 The exact CI run must be a successful `ci.yml` push run on the selected source
 branch/SHA with the successful `main` aggregate and no failed jobs. New tags
