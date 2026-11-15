@@ -1,4 +1,23 @@
 {
   "schema": 1,
-  "branches": {}
+  "branches": {
+    "main": [
+      {
+        "id": 14374927,
+        "ownerId": 5003361,
+        "bypassActors": [],
+        "updatedAt": "2026-11-14T23:00:26.072+01:00",
+        "publicDigest": "eee086766eeda5bcefcbec8c4b56536f95e260da3c55005940c47eae0c6d5f5f"
+      }
+    ],
+    "maintenance/nest-angular-ssr-0.3": [
+      {
+        "id": 27324428,
+        "ownerId": 5003361,
+        "bypassActors": [],
+        "updatedAt": "2026-11-15T19:26:26.128+01:00",
+        "publicDigest": "eed9ecb9adda493fb7564fd250a3f2a44c8251041623ed3bd9d24faa431f4a39"
+      }
+    ]
+  }
 }
