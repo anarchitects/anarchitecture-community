@@ -10,19 +10,39 @@ This package provides three usage levels:
 
 ## Support matrix
 
-Release `0.3.x` supports Node 24, NestJS 11 (Fastify adapter 11.1.29 or later), Fastify 5, and these tested
-Angular/Nx combinations. Nx is test infrastructure, not a peer dependency of
-this library.
+The Nest 12 feature line is **unreleased**. Its bounded installation contract is
+Node `>=24.22.3 <25`, Nest common/core/platform-fastify `~12.5.0`, Fastify
+`~5.12.8`, and the coherent Angular combination below. Local packed-consumer
+checks pass; release certification and publication are still pending.
 
-| Angular | TypeScript | Nx             | Status    |
-| ------- | ---------- | -------------- | --------- |
-| 21.2    | 5.9        | 22.6 (minimum) | Supported |
-| 21.2    | 5.9        | 23.1           | Supported |
-| 22      | 6.0        | 23.1           | Supported |
+| Angular framework | Angular SSR/build | TypeScript | Nx tooling | Consumer shapes                                                    |
+| ----------------- | ----------------- | ---------- | ---------- | ------------------------------------------------------------------ |
+| 22.2.6            | 22.2.7            | 6.0.3      | 24.0.6     | CJS and ESM Nest; split Angular ESM server/CJS Nest with hydration |
 
-The cells are centrally defined in
-[`tools/fixtures/nest-angular-ssr-compatibility-matrix.json`](../../../tools/fixtures/nest-angular-ssr-compatibility-matrix.json)
-and run as isolated packed-tarball consumers in CI.
+Nx is validation/build tooling, not a runtime peer. The peer ranges admit patches
+within these minor trains; the rows identify exact tested combinations, not every
+possible cross-product. Native Node and Express are not supported by this implementation.
+
+The published `0.3.x` maintenance line remains for Nest 11 and Angular 21/22.
+Stay on that line if you cannot upgrade the host to the feature-line requirements.
+It receives bug/security fixes, not new features. Prefer a coherent patched Nest
+11 installation; a top-level Fastify upgrade alone does not repair vulnerable
+nested copies. For an older adapter such as 11.1.29, a consumer-root Fastify
+override and verification of the complete installed tree are required.
+
+### Migrating from the Nest 11 line
+
+Upgrade Nest common, core and platform-fastify together, use Node 24.22.3 or a
+later Node 24 patch, and use the coherent Angular 22.2 row. Angular 21, Angular 22.1 and Nest 11
+cannot install the Nest 12 feature-line artifact. Keep existing `forRoot`,
+`forRootAsync`, explicit bootstrap and low-level integration calls; their public
+signatures are unchanged. CJS hosts require Node's enabled `require(esm)` support
+because Nest 12 is ESM. Keep the Angular server bundle ESM in split deployments.
+
+Install only a reviewed published version once it is available. No Nest 12
+release or npm channel is established by this development branch; do not interpret
+the working manifest's pre-release-preparation version as a published artifact.
+For an existing Nest 11 application, pin its reviewed `0.3.x` release instead.
 
 ## Runtime support
 
@@ -46,8 +66,9 @@ The compatibility result above is backed by the fixture validation note at [`doc
 
 ## Requirements
 
-- NestJS 11 with `@nestjs/platform-fastify` 11.1.29 or later within major 11
-- Angular 21 or 22 SSR built on `@angular/ssr`
+- NestJS common/core/platform-fastify `~12.5.0`
+- Angular framework `~22.2.6` with SSR `~22.2.7`, paired as above
+- Node `>=24.22.3 <25`, Fastify `~5.12.8` and reflect-metadata `^0.2.0`
 - A built Angular `outputMode: "server"` application (recommended), or the
   legacy app-owned bootstrap/template inputs
 
@@ -59,10 +80,10 @@ Peer dependencies:
 - `@nestjs/platform-fastify`
 - `fastify`
 
-The static-file dependency is `@fastify/static ^10.1.7`, which supports Fastify
-5. Upgrade the Nest Fastify adapter to at least 11.1.29 before installing this
-maintenance update; older adapters declare incompatible optional static-plugin
-peers. No Nest 12 support is implied.
+The static-file dependency is `@fastify/static ~10.1.11`. The host selects and
+configures `FastifyAdapter` explicitly; the library does not switch HTTP adapters.
+Responses retain the existing buffered body behavior; streaming/backpressure parity
+with other HTTP adapters is not claimed.
 
 ### Static files and reverse proxies
 
@@ -646,27 +667,11 @@ can use the existing optional `applicationId` to distinguish applications.
 This identifier does not implement app selection or multi-app orchestration.
 Review exhaustive event switches when upgrading to newly added event variants.
 
-### Validation and release notes
+### Compatibility evidence
 
-The routing/observability end-to-end test follows success, null, error, API
-bypass, asset serving, and host rejection through a real Nest/Fastify app and
-the instrumented renderer, then checks metric updates and structured records.
-Other tests cover all three bootstrap paths, observer failures, concurrent
-renders, and deterministic timing.
-
-From the repository root, the complete release gate is:
-
-```sh
-yarn nx sync
-yarn nx run @anarchitecture-community/source:validate-nest-angular-ssr-release-gate
-```
-
-It runs package build/typecheck/test/lint, packed CommonJS and ESM consumers,
-the split Angular/Nest fixture, and all Angular/Nx compatibility cells. It
-requires Node 24, registry access, and local fixture ports 3311, 3312, and 3320.
-Review any fixture reference changes from `nx sync` separately from package
-changes. See [unreleased observability notes](RELEASE_NOTES.md) for the rollout
-and compatibility details.
+See the [compatibility review](https://github.com/anarchitects/anarchitecture-community/blob/main/docs/validation/nest12-ssr-compatibility-739.md)
+for exact artifact identities, tested combinations and limitations. Local validation
+does not establish a published release or support outside the declared combinations.
 
 ## Existing Option Shapes
 
@@ -720,7 +725,7 @@ The mutually exclusive pairs are enforced in code:
 
 ## Constraints and Non-Goals
 
-v1 intentionally does not do the following:
+This implementation does not do the following:
 
 - support Express or non-Fastify Nest adapters
 - use `ServeStaticModule`

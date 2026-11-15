@@ -9,6 +9,9 @@ import {
   command,
   fixtureEnv,
   subject,
+  selectCells,
+  verifyArchive,
+  digest,
 } from './nest-angular-ssr-locked-support.mjs';
 
 const environment = {
@@ -31,6 +34,31 @@ const manifest = {
   version: '0.3.2',
   peerDependencies: { fastify: '^5.0.0' },
 };
+
+test('release-line selection keeps maintenance and feature consumers distinct', () => {
+  const matrix = {
+    old: { nest: '11.1.29' },
+    current: { nest: '11.2.10' },
+    feature: { nest: '12.5.0' },
+    historical: { nest: '12.5.0', historical: true },
+  };
+  assert.deepEqual(selectCells(matrix, 'nest11'), ['old', 'current']);
+  assert.deepEqual(selectCells(matrix, 'nest12'), ['feature']);
+  assert.deepEqual(selectCells(matrix, 'all'), ['old', 'current', 'feature']);
+  assert.deepEqual(selectCells(matrix, 'historical'), ['historical']);
+  assert.deepEqual(selectCells(matrix, 'old'), ['old']);
+  assert.throws(() => selectCells(matrix, 'nest13'), /Unknown cell/);
+});
+
+test('external maintenance archives require the exact approved bytes', () => {
+  const bytes = Buffer.from('maintenance archive');
+  verifyArchive(bytes, digest(bytes));
+  assert.throws(() => verifyArchive(bytes), /requires --archive-sha256/);
+  assert.throws(
+    () => verifyArchive(bytes, digest(Buffer.from('other'))),
+    /SHA256 mismatch/,
+  );
+});
 
 test('binding retains all third-party resolutions and the real archive peer contract', () => {
   const { pkg, lock } = bindArchive(

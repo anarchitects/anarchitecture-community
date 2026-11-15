@@ -42,7 +42,9 @@ try {
     ['nx', 'run', 'nest-angular-split-backend:fixture-build', '--skipNxCache'],
     tempRoot,
   );
-  await assertSsrSecurityConformance(join(tempRoot, 'apps/fixtures/nest-angular-split/backend'));
+  await assertSsrSecurityConformance(
+    join(tempRoot, 'apps/fixtures/nest-angular-split/backend'),
+  );
 
   const nestBundle = await readFile(
     join(tempRoot, 'apps/fixtures/nest-angular-split/backend/dist/main.js'),
@@ -82,8 +84,10 @@ try {
       'x-forwarded-host': 'invalid.example',
     });
     for (const path of ['/', '/favicon.ico']) {
-      const response = await fetch(`http://127.0.0.1:${port}${path}`, { method: 'HEAD' });
-      if (response.status !== 200 || await response.text() !== '') {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+        method: 'HEAD',
+      });
+      if (response.status !== 200 || (await response.text()) !== '') {
         throw new Error(`HEAD ${path} failed.`);
       }
     }
@@ -103,7 +107,7 @@ async function prepareWorkspace(tarballPath) {
   const backendPackage = JSON.parse(await readFile(backendPackagePath, 'utf8'));
   backendPackage.dependencies['@anarchitects/nest-angular-ssr'] = tarballPath;
   backendPackage.devDependencies = {
-    '@nx/webpack': '23.1.2',
+    '@nx/webpack': '24.0.6',
     webpack: '5.107.2',
     'webpack-cli': '^7.0.0',
   };
@@ -131,21 +135,26 @@ async function prepareWorkspace(tarballPath) {
       {
         private: true,
         workspaces: ['apps/fixtures/nest-angular-split/backend'],
-        // FoF owns this independent server patch; prove coexistence with #584.
-        overrides: { fastify: '5.12.7' },
+        // Constrain every Fastify copy to the reviewed feature-line patch.
+        overrides: {
+          fastify: '5.12.8',
+          '@oxc-parser/binding-wasm32-wasi': {
+            '@napi-rs/wasm-runtime': '1.2.5',
+          },
+        },
         devDependencies: {
-          '@angular/build': '22.1.6',
-          '@angular/common': '22.1.4',
-          '@angular/compiler': '22.1.4',
-          '@angular/compiler-cli': '22.1.4',
-          '@angular/core': '22.1.4',
-          '@angular/platform-browser': '22.1.4',
-          '@angular/platform-server': '22.1.4',
-          '@angular/router': '22.1.4',
-          '@angular/ssr': '22.1.6',
-          '@nx/js': '23.1.2',
-          '@nx/webpack': '23.1.2',
-          nx: '23.1.2',
+          '@angular/build': '22.2.7',
+          '@angular/common': '22.2.6',
+          '@angular/compiler': '22.2.6',
+          '@angular/compiler-cli': '22.2.6',
+          '@angular/core': '22.2.6',
+          '@angular/platform-browser': '22.2.6',
+          '@angular/platform-server': '22.2.6',
+          '@angular/router': '22.2.6',
+          '@angular/ssr': '22.2.7',
+          '@nx/js': '24.0.6',
+          '@nx/webpack': '24.0.6',
+          nx: '24.0.6',
           tslib: '^2.8.0',
           typescript: '6.0.3',
           webpack: '5.107.2',
@@ -202,7 +211,9 @@ async function waitForServer(child, output) {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/api`);
       if (response.ok) return;
-    } catch {}
+    } catch {
+      // The server may still be starting; retry until the deadline below.
+    }
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
   }
   throw new Error(`Split fixture did not start.\n${output}`);
@@ -210,17 +221,24 @@ async function waitForServer(child, output) {
 
 async function assertResponse(path, status, includes, headers) {
   // Send Host and path verbatim; fetch may override Host/normalize the URL.
-  const { statusCode, body } = await new Promise((resolvePromise, rejectPromise) => {
-    const outgoing = request({ hostname: '127.0.0.1', port, path, headers }, (response) => {
-      let body = '';
-      response.setEncoding('utf8');
-      response.on('data', (chunk) => (body += chunk));
-      response.on('end', () => resolvePromise({ statusCode: response.statusCode, body }));
-      response.on('error', rejectPromise);
-    });
-    outgoing.on('error', rejectPromise);
-    outgoing.end();
-  });
+  const { statusCode, body } = await new Promise(
+    (resolvePromise, rejectPromise) => {
+      const outgoing = request(
+        { hostname: '127.0.0.1', port, path, headers },
+        (response) => {
+          let body = '';
+          response.setEncoding('utf8');
+          response.on('data', (chunk) => (body += chunk));
+          response.on('end', () =>
+            resolvePromise({ statusCode: response.statusCode, body }),
+          );
+          response.on('error', rejectPromise);
+        },
+      );
+      outgoing.on('error', rejectPromise);
+      outgoing.end();
+    },
+  );
   if (statusCode !== status || (includes && !body.includes(includes))) {
     throw new Error(
       `${path} returned ${statusCode}; expected ${status}. Body: ${body}`,

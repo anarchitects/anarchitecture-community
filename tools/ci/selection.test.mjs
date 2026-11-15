@@ -396,7 +396,7 @@ test('workflow gates every workload before allocation and retains the required m
     section('nest-angular-ssr-consumers'),
     /os: \[ubuntu-latest, macos-latest\]/,
   );
-  for (const cell of ['angular21-nx22', 'angular21-nx23', 'angular22-nx23']) {
+  for (const cell of ['angular22-current']) {
     assert.ok(section('nest-angular-ssr-compatibility').includes(`- ${cell}`));
   }
   assert.ok(

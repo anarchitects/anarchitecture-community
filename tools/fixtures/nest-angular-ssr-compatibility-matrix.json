@@ -1,20 +1,10 @@
 {
-  "angular21-nx22": {
-    "angular": "21.2.0",
-    "typescript": "5.9.3",
-    "nx": "22.6.0",
-    "node": "24"
-  },
-  "angular21-nx23": {
-    "angular": "21.2.0",
-    "typescript": "5.9.3",
-    "nx": "23.1.2",
-    "node": "24"
-  },
-  "angular22-nx23": {
-    "angular": "22.1.4",
+  "angular22-current": {
+    "nest": "12.5.0",
+    "angular": "22.2.6",
+    "angularBuild": "22.2.7",
     "typescript": "6.0.3",
-    "nx": "23.1.2",
-    "node": "24"
+    "nx": "24.0.6",
+    "node": "24.22.3"
   }
 }
