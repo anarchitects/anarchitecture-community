@@ -159,6 +159,13 @@ prospective policy requires Johan to review how that older release establishes
 the transition and record a migration/EOM decision before withdrawing Angular 21
 claims. No backdated support withdrawal is made by this PR.
 
+**Subsequent owner decision, 15 November 2026:** under #742, Johan accepted a
+dated Angular 21 transition exception through **13 February 2027**. The original
+28 August trigger and nominal 26 November sunset remain historical evidence;
+the extension gives 90 calendar days from policy adoption. See the
+[decision and release preparation](ssr-publication-planning-742.md#angular-21-transition-decision--15-november-2026)
+for its owner, bounded maintenance scope and independent Nest 11 clock.
+
 | Consumer                                                                                     | Upstream handoff                                                                                                                                      | Authority and remaining work                                                                                                                   |
 | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | [FitOverForty #150](https://github.com/anarchitects/fitoverforty/issues/150)                 | Bounded Nest 12/Angular 22.2/Node 24 support, preserved host/module APIs; attach exact published version, receipt and archive evidence when available | Planning remains in #150. App PO PWG owns migration/release/adoption; preserve the app host and sequence plugin adoption after framework work. |

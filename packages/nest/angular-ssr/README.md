@@ -38,9 +38,19 @@ The maintenance line receives security and critical-defect fixes only. New
 features target Nest 12. For each framework, the previous major's maintenance
 window is 90 calendar days from this package's first verified generally available
 release supporting its successor, subject to recorded existing commitments.
-Nest and Angular have separate clocks. No EOM date is announced here before the
-release/commitment inventory is complete. Published older artifacts remain
-available after maintenance ends.
+Nest and Angular have separate clocks:
+
+| Previous framework major       | Maintenance ends                                                                                                        | Migration                                                                                             |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Angular 21 on the Nest 11 line | **13 February 2027**, inclusive, under an approved transition extension                                                 | Move to a coherent, verified Angular 22 combination; Nest 11 can remain while its own window is open. |
+| Nest 11                        | 90 calendar days after this package's first verified generally available Nest 12 release; that release is still pending | Move to the Nest 12 combination below.                                                                |
+
+Angular 21 receives security and critical-defect fixes only through that date;
+no new features or adapters are added to its line. The extension does not restart
+when another patch is released. After it ends, continued Nest 11 maintenance
+does not include Angular 21. Published older artifacts remain available after
+maintenance ends. This is this package's support policy, not Angular's upstream
+support schedule or an automatic application upgrade.
 
 To migrate to the Nest 12 line:
 
