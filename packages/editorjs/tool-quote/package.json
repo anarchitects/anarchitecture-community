@@ -28,20 +28,25 @@
     "name": "editorjs-tool-quote",
     "targets": {
       "test": {
-        "executor": "@nx/vitest:test",
-        "outputs": [
-          "{options.reportsDirectory}"
+        "inputs": [
+          "quoteTests",
+          "^default",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
         ],
-        "options": {
-          "reportsDirectory": "coverage/packages/editorjs/tool-quote"
-        },
+        "outputs": [
+          "{projectRoot}/{options.coverage.reportsDirectory}",
+          "{projectRoot}/test-output/vitest/coverage"
+        ],
         "dependsOn": [
           "build"
         ],
-        "inputs": [
-          "quoteTests",
-          "^default"
-        ]
+        "options": {
+          "coverage.reportsDirectory": "../../../coverage/packages/editorjs/tool-quote"
+        }
       },
       "vite:test": {
         "dependsOn": [
@@ -103,6 +108,11 @@
         "outputs": [
           "{projectRoot}/out-tsc/typecheck"
         ],
+        "dependsOn": [
+          "build",
+          "^typecheck"
+        ],
+        "cache": true,
         "options": {
           "cwd": "packages/editorjs/tool-quote",
           "commands": [
@@ -110,12 +120,7 @@
             "tsc --project tsconfig.spec.json --noEmit --tsBuildInfoFile out-tsc/typecheck/spec.tsbuildinfo"
           ],
           "parallel": false
-        },
-        "dependsOn": [
-          "build",
-          "^typecheck"
-        ],
-        "cache": true
+        }
       },
       "lint": {
         "inputs": [
@@ -175,7 +180,8 @@
           "env": "CI"
         }
       ]
-    }
+    },
+    "// targets": "to see all targets run: nx show project editorjs-tool-quote --web"
   },
   "license": "Apache-2.0",
   "engines": {

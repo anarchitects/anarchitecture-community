@@ -28,20 +28,25 @@
     "name": "editorjs-tool-list",
     "targets": {
       "test": {
-        "executor": "@nx/vitest:test",
-        "outputs": [
-          "{options.reportsDirectory}"
+        "inputs": [
+          "listTests",
+          "^default",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
         ],
-        "options": {
-          "reportsDirectory": "coverage/packages/editorjs/tool-list"
-        },
+        "outputs": [
+          "{projectRoot}/{options.coverage.reportsDirectory}",
+          "{projectRoot}/test-output/vitest/coverage"
+        ],
         "dependsOn": [
           "build"
         ],
-        "inputs": [
-          "listTests",
-          "^default"
-        ]
+        "options": {
+          "coverage.reportsDirectory": "../../../coverage/packages/editorjs/tool-list"
+        }
       },
       "vite:test": {
         "dependsOn": [
@@ -103,6 +108,11 @@
         "outputs": [
           "{projectRoot}/out-tsc/typecheck"
         ],
+        "dependsOn": [
+          "build",
+          "^typecheck"
+        ],
+        "cache": true,
         "options": {
           "cwd": "packages/editorjs/tool-list",
           "commands": [
@@ -110,12 +120,7 @@
             "tsc --project tsconfig.spec.json --noEmit --tsBuildInfoFile out-tsc/typecheck/spec.tsbuildinfo"
           ],
           "parallel": false
-        },
-        "dependsOn": [
-          "build",
-          "^typecheck"
-        ],
-        "cache": true
+        }
       },
       "lint": {
         "inputs": [
@@ -175,7 +180,8 @@
           "env": "CI"
         }
       ]
-    }
+    },
+    "// targets": "to see all targets run: nx show project editorjs-tool-list --web"
   },
   "license": "Apache-2.0",
   "engines": {

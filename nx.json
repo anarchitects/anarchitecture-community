@@ -9,8 +9,12 @@
       {
         "runtime": "node packages/editorjs/html-angular/tools/packed/browser-identity.mjs"
       },
-      { "env": "PLAYWRIGHT_BROWSERS_PATH" },
-      { "env": "NODE_OPTIONS" }
+      {
+        "env": "PLAYWRIGHT_BROWSERS_PATH"
+      },
+      {
+        "env": "NODE_OPTIONS"
+      }
     ],
     "production": [
       "default",
@@ -125,6 +129,33 @@
     },
     {
       "plugin": "./packages/editorjs/html-angular/tools/packed/plugin.mjs"
+    },
+    {
+      "plugin": "@nx/vitest",
+      "options": {
+        "testMode": "watch",
+        "testTargetName": "test"
+      },
+      "include": [
+        "packages/better-auth/typeorm-adapter/**/*",
+        "packages/editorjs/angular/**/*",
+        "packages/editorjs/core/**/*",
+        "packages/editorjs/html/**/*",
+        "packages/editorjs/tool-header/**/*",
+        "packages/editorjs/tool-image/**/*",
+        "packages/editorjs/tool-list/**/*",
+        "packages/editorjs/tool-paragraph/**/*",
+        "packages/editorjs/tool-quote/**/*",
+        "packages/editorjs/upload-fetch/**/*",
+        "packages/governance/adapter-dbt/**/*",
+        "packages/governance/adapter-typescript/**/*",
+        "packages/governance/cli/**/*",
+        "packages/governance/core/**/*",
+        "packages/governance/extension-dbt/**/*",
+        "packages/governance/extension-typescript/**/*",
+        "packages/governance/runtime-dbt/**/*",
+        "packages/nest/angular-ssr/**/*"
+      ]
     }
   ],
   "generators": {
@@ -228,10 +259,6 @@
     }
   },
   "targetDefaults": {
-    "@nx/vitest:test": {
-      "cache": true,
-      "inputs": ["default", "^production"]
-    },
     "test": {
       "dependsOn": ["^build"]
     },
@@ -245,5 +272,8 @@
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
     }
+  },
+  "affected": {
+    "legacy": true
   }
 }
