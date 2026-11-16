@@ -2,9 +2,10 @@
 
 **Current status:** protected credential cutover is complete. See the
 [14 November read-back](release-cutover-2026-11-14.md) for merged delivery,
-successful checks, old-key retirement and remaining acceptance limits. Community
-remains paused. The plan and inventory below are the earlier same-day baseline;
-their pending-state statements are superseded by that read-back.
+successful checks, old-key retirement and recovery limits, and the
+[16 November completion review](release-cutover-2026-11-16.md) for current registry
+settings and protected execution evidence. Community remains paused. The plan
+and inventory below preserve the earlier same-day baseline.
 
 Initial status on 14 November 2026: owner-approved plan; implementation and
 credential cutover in progress. This is not release authorization or Community activation.

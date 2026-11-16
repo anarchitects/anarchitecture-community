@@ -1,12 +1,12 @@
 # Release permissions and cutover (#722)
 
-**Current read-back:** [14 November cutover update](release-cutover-2026-11-14.md).
-Protected App/signing migration and PyPI token retirement are complete; main bot
-bypass is removed; durable evidence custody and 90-day retention are recorded.
-Community remains paused. The update supersedes pending-state statements below;
-this earlier inventory preserves the baseline, design and cutover history.
+**Current read-back:** [16 November completion review](release-cutover-2026-11-16.md).
+Credential migration, legacy publisher retirement and settings reconciliation
+are complete; protected SSR releases were exercised. Owner review of the final
+record remains pending, and controls are paused. The update supersedes the
+pending-state statements below; this inventory preserves the historical baseline.
 
-Status: **in progress; activation blocked**. This record applies the
+Historical status: **in progress; activation blocked**. This record applies the
 [owner-accepted design](release-controls.md) to the
 [#721 implementation](release-execution.md). It does not authorize a release or
 claim that the staged controllers are operational. Johan (`vrxj81`, ID `5003361`)

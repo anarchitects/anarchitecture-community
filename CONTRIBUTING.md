@@ -229,14 +229,18 @@ no new universal release checklist or two-person review requirement.
 
 The checked-in routes are:
 
-- [Release (Manual)](.github/workflows/release.yml): manual dispatch on `main`,
-  selecting Nx projects and release inputs; the bot-assisted Nx release runs with
-  publishing skipped and creates the configured release records.
-- [Publish](.github/workflows/publish.yml): triggered by **`release.published`**,
-  or manual dispatch with an existing `<nx-project-name>@<version>` tag. It checks
-  out that tag, runs its selected validation and publishes through Nx. **A tag push
-  alone does not trigger this workflow.** npm uses trusted publishing/OIDC; registry
-  onboarding and any manual first-publication/recovery route need separate review.
+- [Preparation](.github/workflows/release-prepare.yml): authorized dispatch on main
+  validates the integrated Nx-derived version request and freezes exact archives,
+  Nx-generated notes and evidence. It does not publish or create tags.
+- [Release (Manual)](.github/workflows/release.yml): owner-authorized dispatch on
+  main with the retained artifact ID/digest. After `community-release` approval,
+  the App creates only the recorded candidate tags and GitHub Releases.
+- [Publish forwarder](.github/workflows/publish.yml): **`release.published`** or
+  authorized existing-tag dispatch forwards the immutable record to the main
+  [publisher](.github/workflows/publish-controller.yml). Its separate
+  `community-publish` approval gates exact-archive OIDC publication. It does not
+  rebuild candidate code. **A tag push alone does not publish.** Registry
+  onboarding, channel changes and manual recovery need their own review.
 - Governance's Python host and dbt package have their own distribution behavior;
   do not apply npm bootstrap assumptions to them. See
   [Governance release conventions](docs/governance-release-conventions.md) for
@@ -249,15 +253,17 @@ The first Community distribution must be `0.0.1`; do not reuse first-release mod
 for an already published package or overwrite published history. A workflow input
 accepting a version or release flag does not make every value policy-compliant.
 
-These are current execution paths, not proof of enforced owner authorization.
+These are the current protected execution paths; dated live evidence and limits
+are recorded in the [cutover completion review](docs/release-cutover-2026-11-16.md).
 The [#719 release-control design](docs/release-controls.md) records the owner-accepted
 owner handoff, immutable evidence and recovery controls; its
 [dated inventory](docs/release-controls-inventory-719.md) distinguishes observed
 settings from verification gaps. Design acceptance does not establish implemented
 protection. [Commit/version validators](docs/release-version-policy.md) cover #720;
-the [#721 execution runbook](docs/release-execution.md) describes staged release
-controllers and exact operator/recovery commands. Effective activation and access
-enforcement remain blocked on #722's settings read-back and owner acceptance.
+the [#721 execution runbook](docs/release-execution.md) describes release
+controllers and exact operator/recovery commands. #722's settings reconciliation
+is complete, with final record acceptance pending. Controls remain paused after
+the authorized SSR releases; completion does not authorize future activation.
 [#719](https://github.com/anarchitects/anarchitecture-community/issues/719) owns
 accepted controls and the complete release/retry/recovery handoff;
 [#720](https://github.com/anarchitects/anarchitecture-community/issues/720),
