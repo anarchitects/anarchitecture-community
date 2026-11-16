@@ -521,3 +521,72 @@ and Community0004/0007 preserve version, cache, ownership and evidence boundarie
 Meta0022 and Community0005/0006 preserve the accepted compatibility/lifecycle
 decisions. Proposed clauses do not override accepted decisions. No architectural
 conflict or new policy exception was identified.
+
+## Preparation browser prerequisite — 16 November 2026
+
+After #769/#770 merged, source `84db73d` passed all 12 jobs in
+[CI 43832331417](https://github.com/anarchitects/anarchitecture-community/actions/runs/43832331417).
+The authorized [preparation 43834744524](https://github.com/anarchitects/anarchitecture-community/actions/runs/43834744524)
+used main `447af9c`. Admission, package checks and packing passed, as did both
+Angular 21 cells and all 22 helper/lifecycle tests. The consumer-environment fix
+worked. `N11-A22/split-http-hydration` then failed because Chromium revision 1248
+was absent. Upload/handoff were skipped; no artifact was retained. That single-run
+authorization is consumed.
+
+Branch `fix/ssr-preparation-browser-742` adds the existing uncached
+`nest-angular-ssr:install-consumer-browser` target to `release-prepare.yml` for
+both `nest11` and `nest12`. It runs from the main controller after source admission
+and its immutable install, before final certification. The target installs
+Chromium and its OS dependencies through the pinned Playwright version, as regular
+SSR CI already does. Standard non-SSR preparation skips it. No package runtime,
+dependencies, fixture locks, versions, permissions or release gates change.
+
+Validation on Node 24.22.3/macOS arm64:
+
+- A fresh temporary browser cache reproduced the missing-executable failure.
+  The actual Nx install target then downloaded revision 1248 and successfully
+  launched Chromium `156.0.8078.4`. Controller and split consumer both use
+  Playwright `1.64.0`.
+- The real `validate-locked-consumers --cell=N11-A22 --release-audit` target used
+  that fresh cache and the retained local `0.4.0` archive with SHA-256
+  `9bb1dd58241414f0a0e5bc6893df6a41f9572d365cff583800b2f18c2318be12`.
+  All **18 checks passed**, including CJS/ESM and split SSR/hydration; the runtime
+  audit has **zero findings**. Hydration retained the SSR node and observed one
+  replayed click and one hydrated click. The final target ran uncached; two of
+  its three deterministic prerequisites reused local cache results.
+- All **47 release-policy tests** and release configuration checks pass. The new
+  regression guards browser provisioning after admission/install, before freeze,
+  from the controller, for both SSR lines, with failure propagation.
+- Existing CI-selection tests, formatting/whitespace and both prospective
+  commit/PR-message policy checks pass. The maintenance request differs only in
+  its controller digest; its existing formatting is preserved.
+
+The focused consumer report is locally retained at
+`/private/tmp/742-browser-consumer-gEkYSE/evidence/result.json`, SHA-256
+`eea32de7f0f5851d8538e9601f9b7794a24ec4d9f2e9aab63e5372f59e6aafe3`.
+This proves the local browser/consumer path, not Linux OS dependency installation,
+new hosted final bytes or complete hosted certification. The two Angular 21 cells
+were not rerun locally: they passed in the inspected preparation and do not use
+the browser. No runtime code or consumer harness changed.
+
+Companion branch `chore/ssr-browser-controller-742` changes only the maintenance
+request's controller digest to
+`5f44a2f14bc09a4ff1bf75b2648c30a06e992d6de8409190a9423f12eefc751b`,
+computed from the proposed Git tree with an isolated index. Confirm it after
+commit and integration. The baseline, `0.4.0`, compatibility and `nest11` channel
+remain unchanged. Johan authorized committing, pushing and opening both PRs with
+normal CI; **Johan will inspect CI**. He separately authorized one new Nest 11
+`0.4.0` preparation on main and its inspection after his merging both PRs,
+conditional on integrated controller/request digest agreement and successful
+exact refreshed maintenance-source CI, including verification of that result.
+This single-run authorization is unconsumed. Merges and reruns are not delegated.
+No hosted preparation, activation, registry mutation or publication occurred.
+#742 remains open; #722 activation and exact owner release approval are separate.
+
+Preflight re-enumerated and read all 25 Meta ADRs at `4f0339d` and all nine
+Community ADRs at `447af9c`, every status, plus CONTRIBUTING, OWNERSHIP, SDLC,
+release guidance and the Modern Angular repository/SSR/testing guides. Relevant
+accepted constraints are Meta0013/0015/0016–19/0022 and Community0004–0007:
+exact versioned evidence, safe uncached setup, owner authority, compatibility and
+public documentation boundaries. Proposed clauses retain their status. No
+architectural conflict or policy exception is introduced; Johan remains owner.

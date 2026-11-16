@@ -57,6 +57,9 @@ jobs:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
       - run: yarn install --immutable
+      - name: Install Chromium for SSR consumer certification
+        if: inputs.line == 'nest11' || inputs.line == 'nest12'
+        run: yarn nx run nest-angular-ssr:install-consumer-browser
       - run: python -m pip install 'dbt-core>=1.11,<1.12' 'dbt-duckdb>=1.10,<1.11'
       - uses: actions/checkout@v6
         if: inputs.line == 'nest11'

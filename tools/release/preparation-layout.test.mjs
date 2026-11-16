@@ -21,6 +21,30 @@ const job = yaml.parse(
   ),
 ).jobs.prepare;
 
+test('SSR preparation provisions its browser from the controller before certification', () => {
+  const browser = job.steps.findIndex((step) =>
+    step.run?.includes('nest-angular-ssr:install-consumer-browser'),
+  );
+  const install = job.steps.findIndex(
+    (step) => step.run === 'yarn install --immutable',
+  );
+  const admission = job.steps.findIndex((step) => step.id === 'source');
+  const freeze = job.steps.findIndex((step) => step.id === 'freeze');
+  assert.ok(admission >= 0 && install > admission && browser > install);
+  assert.ok(freeze > browser);
+  const step = job.steps[browser];
+  assert.equal(step.if, "inputs.line == 'nest11' || inputs.line == 'nest12'");
+  assert.equal(
+    step.run,
+    'yarn nx run nest-angular-ssr:install-consumer-browser',
+  );
+  assert.equal(
+    step['working-directory'] ?? job.defaults.run['working-directory'],
+    'controller',
+  );
+  assert.notEqual(step['continue-on-error'], true);
+});
+
 test('preparation runs each line in its own checkout and uploads the same output directory', () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'release checkouts-')));
   try {
