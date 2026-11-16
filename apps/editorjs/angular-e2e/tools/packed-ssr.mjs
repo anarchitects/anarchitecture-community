@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { buildMetadata } from './ssr-build-metadata.mjs';
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { prepareAngularCustomSsr } from './angular-custom-consumer.mjs';
@@ -142,35 +143,4 @@ export async function buildPackedSsr({ root, report, node, run, profile }) {
       if (error.code !== 'ENOENT') throw error;
     });
   }
-}
-
-async function buildMetadata(output) {
-  try {
-    return JSON.parse(await readFile(join(output, 'stats.json'), 'utf8'));
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
-  }
-  // Angular 22.2 separates browser/server metafiles. Keep both originals and
-  // expose their unchanged output records to the existing graph assertions.
-  const sources = ['browser-stats.json', 'server-stats.json'];
-  const [browser, server] = await Promise.all(
-    sources.map(async (file) =>
-      JSON.parse(await readFile(join(output, file), 'utf8')),
-    ),
-  );
-  for (const name of Object.keys(browser.outputs))
-    assert(
-      !(name in server.outputs),
-      `Ambiguous browser/server output: ${name}`,
-    );
-  const combined = {
-    sources,
-    inputs: { ...browser.inputs, ...server.inputs },
-    outputs: { ...browser.outputs, ...server.outputs },
-  };
-  await writeFile(
-    join(output, 'stats.json'),
-    JSON.stringify(combined, null, 2) + '\n',
-  );
-  return combined;
 }

@@ -6,6 +6,7 @@ import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { JSDOM } from 'jsdom';
+import { buildMetadata } from './ssr-build-metadata.mjs';
 import { editorServerOutputs } from './ssr-editor-outputs.mjs';
 import {
   fixtureRoot,
@@ -19,6 +20,7 @@ const output = buildDirectory();
 const report = reportDirectory('ssr');
 await rm(report, { recursive: true, force: true });
 await mkdir(report, { recursive: true });
+const stats = await buildMetadata(output);
 await cp(join(output, 'stats.json'), join(report, 'stats.json'));
 const lock = packed ? 'package-lock.json' : 'yarn.lock';
 await cp(join(fixtureRoot, lock), join(report, lock));
@@ -39,7 +41,6 @@ await writeFile(
     2,
   ),
 );
-const stats = JSON.parse(await readFile(join(output, 'stats.json'), 'utf8'));
 const editorOutputs = editorServerOutputs(stats, output);
 assert(
   editorOutputs.length > 0,

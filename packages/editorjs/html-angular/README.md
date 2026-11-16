@@ -12,15 +12,16 @@ The headless renderer and core are installed transitively. Use version **0.0.3 o
 later**; Angular renderer 0.0.1 and 0.0.2 are deprecated because their headless
 dependencies cannot be installed normally from npm.
 
-Supported Angular versions are **22.0.0**, **22.1.4** and **22.2.2** (the explicit peer alternatives). Each has packed CSR, SSR, prerender and hydration coverage with its matching compiler/CLI/build/SSR version and TypeScript **6.0.3**:
+Supported Angular versions are **22.0.0**, **22.1.4**, **22.2.2** and **22.2.6** (the explicit peer alternatives). Each has packed CSR, SSR, prerender and hydration coverage with its matching compiler/CLI/build/SSR version and TypeScript **6.0.3**:
 
 | Angular | Node    |
 | ------- | ------- |
 | 22.0.0  | 22.22.3 |
 | 22.1.4  | 24.15.0 |
 | 22.2.2  | 26.0.0  |
+| 22.2.6  | 24.15.0 |
 
-The APF is built with ng-packagr **22.1.1**. Browser evidence uses Playwright **1.64.0** / Chromium **156.0.8078.4**. The declared Node engine follows Angular's supported floors; other exact Node/Angular combinations and other browsers are not verified by this package. No continuous Angular minor range is implied.
+The APF is built with ng-packagr **22.2.6**. Browser evidence uses Playwright **1.64.0** / Chromium **156.0.8078.4**. The declared Node engine follows Angular's supported floors; other exact Node/Angular combinations and other browsers are not verified by this package. No continuous Angular minor range is implied.
 
 The published artifact is an Angular Package Format library with partial compilation. Its runtime dependencies are the headless renderer and ng-packagr's `tslib`; Angular core is a peer. The headless package privately uses `sanitize-html`. No authoring package or `@editorjs/*` dependency is required.
 

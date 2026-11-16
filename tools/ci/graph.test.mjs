@@ -155,11 +155,15 @@ test('complete-family CI retains all proof atoms, cacheable prerequisites and un
       .trim()
       .split(',');
   const families = [
-    [authoring, emit('apps/editorjs/angular-e2e/tools/packed-targets.mjs'), 89],
+    [
+      authoring,
+      emit('apps/editorjs/angular-e2e/tools/packed-targets.mjs'),
+      118,
+    ],
     [
       renderer,
       emit('packages/editorjs/html-angular/tools/packed/run.mjs', ['targets']),
-      16,
+      20,
     ],
   ];
   for (const [targets, requested, count] of families) {
@@ -223,6 +227,21 @@ test('complete-family CI retains all proof atoms, cacheable prerequisites and un
   );
   assert.ok(packed.includes(':install-browsers:ci'));
   assert.ok(packed.includes(':test-packed-harness'));
+  const cells = Object.keys(
+    JSON.parse(
+      readFileSync(
+        'apps/editorjs/angular-e2e/tools/compatibility-matrix.json',
+        'utf8',
+      ),
+    ),
+  );
+  for (const mode of ['csr', 'ssr'])
+    for (const cell of cells)
+      assert.ok(
+        packed.includes(`packed-${mode}-${cell}-prepare`),
+        `Missing clean-install preparation for ${mode}/${cell}`,
+      );
+
   assert.ok(
     packed.indexOf(':install-browsers:ci') <
       packed.indexOf(':test-packed-harness'),

@@ -16,6 +16,7 @@ import {
 } from './packed-phases.mjs';
 import { executionIdentityReader } from './packed-execution.mjs';
 import { createNodesV2 } from './packed-plugin.mjs';
+import { buildMetadata } from './ssr-build-metadata.mjs';
 import { editorServerOutputs } from './ssr-editor-outputs.mjs';
 import {
   pathsFor,
@@ -75,6 +76,40 @@ async function temporary(t) {
   return root;
 }
 
+test('SSR metadata preserves old graphs and combines split browser/server evidence', async (t) => {
+  const root = await temporary(t);
+  const browser = {
+    inputs: { 'browser.ts': {} },
+    outputs: { 'main.js': { inputs: {} } },
+  };
+  const server = {
+    inputs: { 'server.ts': {} },
+    outputs: { 'server.mjs': { inputs: {} } },
+  };
+  await writeFile(join(root, 'stats.json'), JSON.stringify(browser));
+  assert.deepEqual(await buildMetadata(root), browser);
+  await rm(join(root, 'stats.json'));
+  await writeFile(join(root, 'browser-stats.json'), JSON.stringify(browser));
+  await assert.rejects(buildMetadata(root), { code: 'ENOENT' });
+  await writeFile(join(root, 'server-stats.json'), JSON.stringify(server));
+  const combined = await buildMetadata(root);
+  assert.deepEqual(combined.outputs, { ...browser.outputs, ...server.outputs });
+  assert.deepEqual(combined.inputs, { ...browser.inputs, ...server.inputs });
+  assert.deepEqual(
+    JSON.parse(await readFile(join(root, 'stats.json'), 'utf8')),
+    combined,
+  );
+  assert.deepEqual(
+    JSON.parse(await readFile(join(root, 'browser-stats.json'), 'utf8')),
+    browser,
+  );
+  await rm(join(root, 'stats.json'));
+  await writeFile(join(root, 'server-stats.json'), JSON.stringify(browser));
+  await assert.rejects(buildMetadata(root), /Ambiguous browser\/server output/);
+  await writeFile(join(root, 'stats.json'), '{invalid');
+  await assert.rejects(buildMetadata(root), SyntaxError);
+});
+
 test('distributed graphs contain only cacheable tasks with isolated outputs and no fresh-install dependency', async () => {
   const workspace = resolve(project, '../../..');
   const [[, graph]] = await createNodesV2[1](
@@ -113,6 +148,7 @@ test('distributed graphs contain only cacheable tasks with isolated outputs and 
       'angular22-minimum',
       'angular22-reference',
       'angular22-current',
+      'angular22-patched',
     ]) {
       for (const phase of phasesFor(mode, cell)) {
         visit(targetFor(mode, cell, phase));
@@ -133,12 +169,13 @@ test('distributed graphs contain only cacheable tasks with isolated outputs and 
         'Composed authoring snapshots require the built public display archives',
       );
     }
-  assert.equal(visited.size, 89); // (7 CSR atoms + 22 SSR atoms) × 3 + 2 Nest adapters
+  assert.equal(visited.size, 118); // (7 CSR atoms + 22 SSR atoms) × 4 + 2 Nest adapters
   for (const mode of ['csr', 'ssr'])
     for (const cell of [
       'angular22-minimum',
       'angular22-reference',
       'angular22-current',
+      'angular22-patched',
     ])
       assert.equal(
         phasesFor(mode, cell).filter((phase) =>

@@ -11,7 +11,7 @@ export function pathsFor(workspace, runId, mode, cell, phase) {
   );
   assert(['csr', 'ssr'].includes(mode), 'Unknown consumer mode');
   assert(
-    /^angular22-(minimum|reference|current)$/.test(cell),
+    /^angular22-(minimum|reference|current|patched)$/.test(cell),
     'Unknown compatibility cell',
   );
   if (phase) assert(/^[a-z-]+$/.test(phase), 'Unknown phase');

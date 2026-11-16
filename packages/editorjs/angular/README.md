@@ -56,6 +56,7 @@ The packed component and its public examples are checked with these combinations
 | 22.0.0  | 2.31.7    | 22.22.3         | 6.0.3      | Chromium |
 | 22.1.4  | 2.31.7    | 24.15.0         | 6.0.3      | Chromium |
 | 22.2.2  | 2.31.7    | 26.0.0          | 6.0.3      | Chromium |
+| 22.2.6  | 2.31.7    | 24.15.0         | 6.0.3      | Chromium |
 
 These are tested combinations, not every version permutation or a full browser
 matrix. Chromium checks cover standalone editing and controls, plus zoneless Signal
@@ -175,7 +176,7 @@ npm install @angular/router@22.1.4 @angular/platform-server@22.1.4 @angular/ssr@
 
 Keep the application's Angular CLI/build/compiler packages at the same version.
 Configure routing and hydration once in the host, shared by browser and server.
-Neither editor entry point installs application providers. On the three tested
+Neither editor entry point installs application providers. On the four tested
 baselines, `provideClientHydration()` enables incremental hydration and replay.
 To select full hydration with replay, pass `true` to both configuration functions
 below. Do not mix different server and browser profiles.
@@ -668,8 +669,8 @@ is no package `ControlValueAccessor`, `NG_VALUE_ACCESSOR` provider, or shadow
 Signal Forms for new forms and Angular's
 [migration APIs](https://angular.dev/guide/forms/signals/migration) for gradual adoption.
 
-Native bindings support matched Angular/Forms **22.0.0, 22.1.4 and 22.2.2**
-within the following boundaries, which are identical on these three baselines:
+Native bindings support matched Angular/Forms **22.0.0, 22.1.4, 22.2.2 and 22.2.6**
+within the following boundaries. Version-specific update timing is described below:
 
 | Binding                                       | Supported boundary                                                                                                                                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -686,11 +687,17 @@ external model assignment coincides with an editor reset; it is excluded from th
 supported reset/write contract. Use a supported reactive or migration binding
 for these workflows.
 
-Direct legacy bindings and retained controls inside `compatForm` publish a
+On Angular 22.0.0, 22.1.4 and 22.2.2, direct legacy bindings publish a
 successfully saved edit immediately even with `updateOn: 'blur'` or `'submit'`.
-They mark dirty on publication and touched on the control's `touch` event. Do not
-use those options to defer this editor's model changes or assume submit flushes
-Editor.js. Use `save()` and validate the captured snapshot as described below.
+On Angular 22.2.6, Angular defers the legacy model update and dirty state until
+the control's `touch` event for `blur`, or the containing Angular form's submit
+for `submit`. A standalone `[formControl]` using `submit` needs a containing
+`[formGroup]` that owns that control. The editor's own value and change event
+still reflect the successful save before the legacy model commits it.
+
+Retained controls inside `compatForm` continue to publish immediately on all
+four tested versions. Do not assume submit flushes asynchronous Editor.js work:
+use `save()` and validate the captured snapshot as described below.
 
 Use `FormControl<OutputData>` with `nonNullable: true`. Calling `reset()` then
 restores its initial document; an explicit `reset({ blocks: [] })` clears it.

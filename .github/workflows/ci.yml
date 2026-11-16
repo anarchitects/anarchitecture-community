@@ -198,7 +198,7 @@ jobs:
           NX_CLOUD_DISTRIBUTED_EXECUTION: 'false'
         run: >-
           yarn nx run-many -p editorjs-angular-e2e
-          -t packed-csr-angular22-minimum-prepare,packed-csr-angular22-reference-prepare,packed-csr-angular22-current-prepare,packed-ssr-angular22-minimum-prepare,packed-ssr-angular22-reference-prepare,packed-ssr-angular22-current-prepare
+          -t packed-csr-angular22-minimum-prepare,packed-csr-angular22-reference-prepare,packed-csr-angular22-current-prepare,packed-ssr-angular22-minimum-prepare,packed-ssr-angular22-reference-prepare,packed-ssr-angular22-current-prepare,packed-csr-angular22-patched-prepare,packed-ssr-angular22-patched-prepare
           --parallel=3 --runId="$EDITORJS_PACKED_RUN_ID"
       - uses: actions/upload-artifact@v4
         id: inputs
