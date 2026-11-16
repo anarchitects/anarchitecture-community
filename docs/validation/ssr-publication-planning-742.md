@@ -390,3 +390,65 @@ Community0004 keeps operational evidence here. Meta0022 and Community0005/0006
 retain the accepted lifecycle/compatibility boundaries. No runtime API, adapter,
 dependency or lifecycle decision changes; proposals do not override accepted ADRs.
 No architectural conflict or new policy exception was identified.
+
+## Preparation checkout isolation — 16 November 2026
+
+Johan merged #765/#766 at main `871cb8d3e4d8a9056d4c62bb42bdda3fe0b58511`
+and maintenance `2d7348bda9992c6268da2a4f36c90549564e51f5`. Exact source
+[CI 43771710244](https://github.com/anarchitects/anarchitecture-community/actions/runs/43771710244)
+passed all 12 jobs on attempt 1. The single authorized
+[preparation 43821918512](https://github.com/anarchitects/anarchitecture-community/actions/runs/43821918512)
+passed protected-source admission, installed dependencies and built/packed the
+candidate, but failed before final consumer certification: Nx discovered the
+nested maintenance checkout inside the main controller workspace, producing
+duplicate projects and a second Playwright load. Upload/handoff were skipped;
+the artifact inventory was empty. No retained or certified hosted bytes exist
+from that run. Its one-run authorization is consumed.
+
+Johan requested the next correction under #742. Branch
+`fix/release-checkout-isolation-742` places main at `controller/`, with
+`maintenance-source/` and `release-payload/` as siblings. Shell steps default to
+the controller; maintenance install/build explicitly use the candidate. The
+setup-node cache reads the controller lockfile, and standard/Nest 12/Nest 11
+output arguments all resolve to the artifact uploader's directory. Main still
+owns admission, preparation and the final consumer harness. Exact source/CI
+bindings, permissions, credential-free candidate execution and paused release
+activation remain unchanged. This follows the documented
+[side-by-side checkout layout](https://github.com/actions/checkout/blob/v6/README.md#checkout-multiple-repos-side-by-side)
+and setup-node's
+[explicit cache dependency paths](https://github.com/actions/setup-node/blob/v6/docs/advanced-usage.md#caching-packages-data).
+
+Validation: **46 release-policy tests pass**, including a new regression that
+executes the actual freeze shell for all three lines with recording tools,
+checks candidate/controller selection, resolves the main entry point and output
+directory, exercises paths containing spaces and rejects unknown lines.
+Release-policy configuration and formatting/whitespace checks pass. Independent
+fresh Nx graphs from sibling copies of the actual main and maintenance trees
+each contain **28 projects**, with no nested checkout roots or duplicate-project/
+Playwright failures. These graph checks reuse each line's installed dependencies;
+they are not clean-install certification, hosted execution or renewed archive
+validation. No runtime, manifest or lock changed, so unrelated consumer suites
+were not rerun. Final hosted certification remains required.
+
+Companion branch `chore/ssr-isolated-controller-742` changes only the maintenance
+request's `controllerDigest` to
+`4e94c14ec301100fd13afbbbf238a62b4e40e9eb282b996a222ef55e4b9f6927`.
+The digest uses the existing controller path selection and the proposed Git tree
+from an isolated index; confirm it after committing and after main integration.
+The request's baseline, Nx-derived `0.4.0`, compatibility and `nest11` channel
+remain unchanged. Johan authorized committing, pushing and opening both PRs with
+their normal CI runs; **Johan will inspect CI**. He separately authorized one
+new Nest 11 `0.4.0` preparation on main and its inspection, conditional on his
+merging both PRs, integrated controller/request digest agreement and successful
+exact refreshed maintenance-source CI. This includes verifying that source-CI
+result. The conditional authorization is unconsumed. No merge or rerun is
+delegated. No additional hosted preparation, settings change, tag, npm mutation,
+activation or publication occurred. #742 remains open and publication-Blocked;
+#722 activation, exact release approval, archive custody and consumer handoff
+remain separate gates.
+
+The complete ADR/governance preflight recorded above remains applicable to this
+same release-control scope. Meta main is still `4f0339d`; all 25 Meta ADRs and
+nine Community ADRs are unchanged, as are CONTRIBUTING, OWNERSHIP and SDLC.
+Accepted controller ownership, cache, version and release authority remain in
+force; no architectural conflict or policy exception is introduced.

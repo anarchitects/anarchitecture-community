@@ -25,6 +25,9 @@ jobs:
   prepare:
     if: github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: controller
     env:
       NX_NO_CLOUD: 'true'
       NX_DAEMON: 'false'
@@ -35,6 +38,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
+          path: controller
           fetch-depth: 0
           persist-credentials: false
       - name: Admit the protected source before executing candidate code
@@ -47,6 +51,7 @@ jobs:
         with:
           node-version: '24.22.3'
           cache: yarn
+          cache-dependency-path: controller/yarn.lock
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -69,11 +74,11 @@ jobs:
         run: |
           case "$RELEASE_LINE" in
             nest11)
-              cd maintenance-source
-              node ../tools/release/prepare.mjs freeze --line=nest11 --out=../release-payload
+              cd ../maintenance-source
+              node ../controller/tools/release/prepare.mjs freeze --line=nest11 --out=../release-payload
               ;;
-            nest12) yarn nx run @anarchitecture-community/source:freeze-release-record --line=nest12 ;;
-            standard) yarn nx run @anarchitecture-community/source:freeze-release-record ;;
+            nest12) yarn nx run @anarchitecture-community/source:freeze-release-record --line=nest12 --out=../release-payload ;;
+            standard) yarn nx run @anarchitecture-community/source:freeze-release-record --out=../release-payload ;;
             *) exit 1 ;;
           esac
         env:
