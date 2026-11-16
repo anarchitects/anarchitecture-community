@@ -57,6 +57,13 @@ test(
           projects: ['lib'],
           projectsRelationship: 'independent',
           releaseTag: { pattern: '{projectName}@{version}' },
+          changelog: {
+            projectChangelogs: {
+              file: false,
+              createRelease: 'github',
+              renderOptions: { authors: false, versionTitleDate: false },
+            },
+          },
           version: {
             // Fixture shares installed modules; never resolve a second install.
             versionActionsOptions: { skipLockFileUpdate: true },
@@ -175,37 +182,72 @@ test(
       const headBefore = git(['rev-parse', 'HEAD']);
       const refsBefore = git(['show-ref']);
       const prepareModule = new URL('./prepare.mjs', import.meta.url).href;
-      execFileSync(
-        process.execPath,
-        [
-          '--input-type=module',
-          '-e',
-          `import { prepareNxVersions } from ${JSON.stringify(prepareModule)}; await prepareNxVersions(['lib'],true);`,
-        ],
-        {
-          cwd: dir,
-          encoding: 'utf8',
-          stdio: ['ignore', 'pipe', 'pipe'],
-          timeout: 30_000,
-          env: {
-            ...process.env,
-            NODE_OPTIONS: '',
-            VSCODE_INSPECTOR_OPTIONS: '',
-            NX_WORKSPACE_ROOT_PATH: dir,
-            NX_DAEMON: 'false',
-            NX_ISOLATE_PLUGINS: 'false',
-            NX_NO_CLOUD: 'true',
-            NX_INTERACTIVE: 'false',
-            CI: 'true',
+      const prepare = () => {
+        const output = execFileSync(
+          process.execPath,
+          [
+            '--input-type=module',
+            '-e',
+            `import { prepareNxVersions } from ${JSON.stringify(prepareModule)}; const r=await prepareNxVersions(['lib'],true); console.log('RESULT:'+JSON.stringify(r.changelogs));`,
+          ],
+          {
+            cwd: dir,
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'pipe'],
+            timeout: 30_000,
+            env: {
+              ...process.env,
+              NODE_OPTIONS: '',
+              VSCODE_INSPECTOR_OPTIONS: '',
+              NX_WORKSPACE_ROOT_PATH: dir,
+              NX_DAEMON: 'false',
+              NX_ISOLATE_PLUGINS: 'false',
+              NX_NO_CLOUD: 'true',
+              NX_INTERACTIVE: 'false',
+              CI: 'true',
+            },
           },
-        },
-      );
+        );
+        return JSON.parse(output.split('RESULT:')[1]);
+      };
+      const notes = prepare();
       assert.equal(
         JSON.parse(readFileSync(join(dir, 'packages/lib/package.json'), 'utf8'))
           .version,
         '0.0.1',
       );
-      assert.ok(existsSync(join(dir, 'packages/lib/CHANGELOG.md')));
+      assert.equal(existsSync(join(dir, 'packages/lib/CHANGELOG.md')), false);
+      assert.equal(notes.lib.version, '0.0.1');
+      assert.match(notes.lib.contents, /^## 0\.0\.1\n/);
+      assert.doesNotMatch(
+        notes.lib.contents,
+        /Thank You|\(\d{4}-\d{2}-\d{2}\)/,
+      );
+      assert.equal(git(['rev-parse', 'HEAD']), headBefore);
+      assert.equal(git(['show-ref']), refsBefore);
+      assert.equal(git(['diff', '--cached', '--name-only']), '');
+      assert.equal(existsSync(join(dir, 'UNSAFE')), false);
+
+      // Only nx.json enables files, at its configured path. The API returns the
+      // selected entry, not the cumulative file that also contains older releases.
+      const config = JSON.parse(readFileSync(join(dir, 'nx.json'), 'utf8'));
+      config.release.changelog.projectChangelogs.file =
+        '{projectRoot}/HISTORY.md';
+      writeJson(join(dir, 'nx.json'), config);
+      writeFileSync(
+        join(dir, 'packages/lib/HISTORY.md'),
+        '## 0.0.0\n\nHistorical entry.\n',
+      );
+      const fileNotes = prepare();
+      assert.deepEqual(fileNotes, notes);
+      const history = readFileSync(
+        join(dir, 'packages/lib/HISTORY.md'),
+        'utf8',
+      );
+      assert.ok(history.startsWith(notes.lib.contents));
+      assert.match(history, /Historical entry/);
+      assert.doesNotMatch(fileNotes.lib.contents, /Historical entry/);
+      assert.equal(existsSync(join(dir, 'packages/lib/CHANGELOG.md')), false);
       assert.equal(git(['rev-parse', 'HEAD']), headBefore);
       assert.equal(git(['show-ref']), refsBefore);
       assert.equal(git(['diff', '--cached', '--name-only']), '');

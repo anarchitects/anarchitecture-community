@@ -25,6 +25,7 @@ import {
   publishClosure,
   selectedProjects,
   readinessTargets,
+  releaseNotes,
 } from './prepare.mjs';
 import {
   publication,
@@ -63,6 +64,30 @@ const record = () => ({
   packages: [pkg()],
 });
 const request = { action: 'release', digest, artifactId: 42 };
+
+test('release notes bind complete Nx entries to versioned projects without rewriting contents', () => {
+  const versions = {
+    sample: { currentVersion: '0.0.1', newVersion: '0.0.2' },
+    unchanged: { currentVersion: '1.0.0', newVersion: null },
+  };
+  const entries = {
+    sample: { version: '0.0.2', contents: '## 0.0.2\n\nNx-generated text.\n' },
+  };
+  assert.deepEqual(releaseNotes(entries, versions), {
+    sample: entries.sample.contents,
+  });
+  for (const invalid of [
+    undefined,
+    {},
+    [],
+    { ...entries, extra: entries.sample },
+    { other: entries.sample },
+    { sample: { ...entries.sample, version: '0.0.1' } },
+    { sample: { ...entries.sample, contents: ' ' } },
+    { sample: { ...entries.sample, contents: 42 } },
+  ])
+    assert.throws(() => releaseNotes(invalid, versions), /Nx changelog/);
+});
 function service(overrides = {}) {
   const mutations = [],
     receipts = [],
