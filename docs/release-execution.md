@@ -50,13 +50,31 @@ live maintenance verification remains pending, and #722 remains paused.
    ```
 
    Nx calculates independent versions from Conventional Commits, expands version
-   effects, updates manifests/locks and writes project changelogs. The command
-   writes `.release/request.json`, but does not stage, commit, tag, push, create a
+   effects, updates manifests/locks and generates project changelog entries using
+   the `release.changelog` configuration in `nx.json`. The current `file: false`
+   policy keeps notes on GitHub without creating package `CHANGELOG.md` files.
+   To enable files, configure their path in `nx.json`; preparation must not
+   override that policy. Nx's returned entry (version and exact contents) is
+   retained in `.release/request.json` under `changelogs`, alongside the version
+   and compatibility evidence. The command does not stage, commit, tag, push, create a
    GitHub Release or publish. Existing build/version actions execute without
    publication credentials. Review the resulting diff, including the Python
    runtime manifest hook and dependent version changes; sign and submit it through
    normal main protection. Use all affected project scopes in its Conventional
    Commit title. Obtain any required permission for the PR's normal CI run.
+
+   Preparation uses Nx's `releaseVersion` and `releaseChangelog` APIs, with
+   `createRelease: false` and Git mutations disabled for this phase. The
+   configured renderer and file policy remain authoritative. There is no
+   secondary commit parser, changelog renderer or manual file-to-notes fallback.
+   Detailed migration guidance belongs in the package README.
+
+   New freezes require complete Nx entries bound to every selected version and
+   copy their contents unchanged into the immutable release record. They never
+   read an entire cumulative changelog or substitute a project/version label.
+   Pending requests created before this handoff need their Nx entries regenerated
+   and reviewed before fresh candidate CI/preparation. Existing frozen records
+   retain their original notes and identities; do not rewrite published evidence.
 
    Use `--first-release` only for a selection with no distribution history; Nx is
    explicitly given `0.0.1`. Ordinary releases retain the accepted **0.x** behavior.

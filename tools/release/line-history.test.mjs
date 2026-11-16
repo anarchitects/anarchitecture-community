@@ -97,6 +97,13 @@ test(
           projects: ['lib'],
           projectsRelationship: 'independent',
           releaseTag: { pattern: '{projectName}@{version}' },
+          changelog: {
+            projectChangelogs: {
+              file: false,
+              createRelease: 'github',
+              renderOptions: { authors: false },
+            },
+          },
           version: {
             conventionalCommits: true,
             adjustSemverBumpsForZeroMajorVersion: true,

@@ -165,4 +165,14 @@ export function validateIntegratedRequest(record, request) {
       request.controllerDigest === record.controller.digest,
       'Integrated request controller differs',
     );
+  // Original frozen records remain recoverable. New requests bind the exact Nx
+  // entry independently of whether nx.json enables a cumulative changelog file.
+  if (request.changelogs !== undefined)
+    requireLine(
+      request.changelogs?.[p.project]?.version === p.version &&
+        typeof request.changelogs[p.project].contents === 'string' &&
+        request.changelogs[p.project].contents.trim() &&
+        request.changelogs[p.project].contents === p.notes,
+      'Integrated Nx changelog differs',
+    );
 }

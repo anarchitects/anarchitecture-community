@@ -24,6 +24,7 @@ import {
   MAINTENANCE_BRANCH,
   MAINTENANCE_ANCHOR,
   validateSsrManifest,
+  validateIntegratedRequest,
 } from './lines.mjs';
 import {
   validateProtection,
@@ -100,6 +101,47 @@ function versionInput() {
     },
   };
 }
+
+test('integrated SSR notes match the reviewed Nx entry while historical requests remain recoverable', () => {
+  const r = record();
+  const p = r.packages[0];
+  const request = {
+    schema: 1,
+    line: r.line,
+    branch: r.candidate.branch,
+    baseline: r.baseline,
+    projects: [p.project],
+    channels: { [p.project]: p.distTag },
+    versions: { [p.project]: p.nxVersion },
+    compatibility: { [p.project]: p.compatibility },
+    controllerDigest: r.controller.digest,
+  };
+  validateIntegratedRequest(r, request);
+  p.notes = '## 0.3.3\n\nReviewed Nx entry.\n';
+  request.changelogs = {
+    [p.project]: { version: p.version, contents: p.notes },
+  };
+  validateIntegratedRequest(r, request);
+  for (const value of [
+    null,
+    {},
+    { [p.project]: { version: '0.3.4', contents: p.notes } },
+    { [p.project]: { version: p.version, contents: 'different entry' } },
+  ]) {
+    assert.throws(
+      () => validateIntegratedRequest(r, { ...request, changelogs: value }),
+      /Nx changelog/,
+    );
+  }
+  assert.throws(
+    () =>
+      validateIntegratedRequest(
+        { ...r, packages: [{ ...p, notes: p.notes.trim() }] },
+        request,
+      ),
+    /Nx changelog/,
+  );
+});
 
 test('a lower maintenance patch advances reachable history without discarding global history', () => {
   assert.equal(validateVersion(versionInput()).existingVersion, false);

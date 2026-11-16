@@ -4,6 +4,14 @@ Review date: 16 November 2026. Owner: Johan, SSR capability owner.
 Status: version proposal authorized for commit/push/PR; hosted preparation and
 publication have not run. Johan will inspect the normal PR CI.
 
+**Follow-up, 16 November:** PR #773 merged at
+`691f96b8dec8023c7074377090123361aa97597a`. Johan then requested alignment with
+Nx's configured GitHub-only changelog policy. The [changelog handoff correction](nx-release-changelog-773.md)
+supersedes this proposal's file-based notes mechanism; the derived version,
+package bytes and recorded consumer proof remain unchanged. The conditional
+hosted preparation authorization remains unconsumed until the correction is
+integrated and exact-main CI passes.
+
 ## Version and scope
 
 The installed Nx release engine derived **0.4.0 → 0.5.0** from complete release

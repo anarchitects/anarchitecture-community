@@ -369,6 +369,7 @@ export async function version({
         : {}),
       compatibility,
       versions: result.projectsVersionData,
+      changelogs: result.changelogs,
       channels: Object.fromEntries(
         expanded.map((p) => [p, channel ?? 'latest']),
       ),
@@ -389,12 +390,6 @@ export async function prepareNxVersions(
     ...(line
       ? { releaseTag: { checkAllBranchesWhen: releaseLine(line).allBranches } }
       : {}),
-    changelog: {
-      projectChangelogs: {
-        file: '{projectRoot}/CHANGELOG.md',
-        createRelease: false,
-      },
-    },
   });
   const result = await client.releaseVersion({
     projects,
@@ -406,14 +401,58 @@ export async function prepareNxVersions(
         : {}),
     ...noGit,
   });
-  await client.releaseChangelog({
+  const changelog = await client.releaseChangelog({
     projects,
     versionData: result.projectsVersionData,
     firstRelease,
     createRelease: false,
     ...noGit,
   });
-  return result;
+  const changelogs = Object.fromEntries(
+    Object.entries(changelog.projectChangelogs ?? {}).map(
+      ([project, entry]) => {
+        assert(
+          entry.postGitTask === null,
+          'Preparation must not schedule a remote release',
+        );
+        return [
+          project,
+          {
+            version: entry.releaseVersion.rawVersion,
+            contents: entry.contents,
+          },
+        ];
+      },
+    ),
+  );
+  releaseNotes(changelogs, result.projectsVersionData);
+  return { ...result, changelogs };
+}
+
+// Validate the Nx output's handoff identity; never parse commits, render notes,
+// read a cumulative changelog file or invent fallback release text here.
+export function releaseNotes(changelogs, versions) {
+  const selected = Object.entries(versions).filter(
+    ([, value]) => value.newVersion,
+  );
+  assert(
+    changelogs &&
+      !Array.isArray(changelogs) &&
+      Object.keys(changelogs).length === selected.length,
+    'Missing or unexpected Nx changelog entries; refresh the version request',
+  );
+  return Object.fromEntries(
+    selected.map(([project, value]) => {
+      const entry = changelogs[project];
+      assert(
+        entry?.version === value.newVersion &&
+          typeof entry.contents === 'string' &&
+          entry.contents.trim(),
+        `Missing or mismatched Nx changelog for ${project}; refresh the version request`,
+      );
+      return [project, entry.contents];
+    }),
+  );
 }
 
 export async function freeze({
@@ -539,6 +578,7 @@ export async function freeze({
       releaseProjects.length,
     'Unexpected dependent version effects',
   );
+  const notes = releaseNotes(request.changelogs, versions);
   // Check actual integrated commits since the preparation baseline too. The
   // baseline's older commits are covered by Nx intent and compatibility review.
   for (const sha of git([
@@ -685,9 +725,7 @@ export async function freeze({
               request.line === 'nest11' ? ['nest11'] : ['next', 'latest'],
           }
         : {}),
-      notes: existsSync(join(data.root, 'CHANGELOG.md'))
-        ? readFileSync(join(data.root, 'CHANGELOG.md'), 'utf8')
-        : `${project} ${id.version}`,
+      notes: notes[project],
     });
   }
   for (const p of packages)
