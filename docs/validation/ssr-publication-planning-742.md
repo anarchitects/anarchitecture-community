@@ -452,3 +452,72 @@ same release-control scope. Meta main is still `4f0339d`; all 25 Meta ADRs and
 nine Community ADRs are unchanged, as are CONTRIBUTING, OWNERSHIP and SDLC.
 Accepted controller ownership, cache, version and release authority remain in
 force; no architectural conflict or policy exception is introduced.
+
+## Consumer Nx environment isolation — 16 November 2026
+
+After #767/#768 merged, exact maintenance source `49b1c53` passed all 12 jobs in
+[CI 43825007802](https://github.com/anarchitects/anarchitecture-community/actions/runs/43825007802).
+The authorized [preparation 43827524088](https://github.com/anarchitects/anarchitecture-community/actions/runs/43827524088)
+used main `2062374`, passed admission, installed dependencies, built/packed the
+candidate and started final consumer certification. The sibling checkout fix
+worked: no duplicate graph or Playwright double-load failure remained. Final
+certification instead failed to find `consumer-cjs` / `consumer-esm`; the split
+consumer also lacked its expected output. Upload/handoff were skipped and no
+artifact was retained. That one-run authorization is consumed.
+
+The controller deliberately sets `NX_WORKSPACE_ROOT_PATH` to main when invoking
+the final harness. The harness's temporary consumer commands inherited it, so
+Nx selected main instead of the temporary workspace despite their correct cwd.
+`fixtureEnv()` now removes ambient `NX_*` settings along with existing source
+aliases/peer bypasses, then restores its explicit no-cloud, no-DTE, no-daemon,
+plugin-isolation and noninteractive settings. This also prevents inherited task
+hashes, output/cache and workspace-data paths selecting controller state. Parent
+environment and controller selection are unchanged. The change stays in the
+main-owned harness; no package runtime, manifest, lock, version or support policy
+changes. Existing fresh-install/audit/HTTP cache and DTE exceptions remain.
+
+Branch `fix/ssr-consumer-environment-742` includes a regression using the installed
+Nx CLI and two distinct temporary projects. With an inherited controller root,
+the old helper reproduces `Cannot find project 'consumer-cjs'`; the corrected
+helper builds that consumer and writes output in its own directory. It also
+checks stripped task/cache state, retained strict peers/no-cloud controls, explicit
+fixture options and an unchanged parent environment. All **10 locked-support**,
+**12 lifecycle** and **46 release-policy** tests pass. Release configuration,
+formatting/whitespace and both prospective commit/PR-message checks pass.
+
+The **real `certifySsrArchive()` entry point** was run locally from the maintenance
+checkout with an inherited maintenance root and explicit main harness root. It
+invoked the actual Nx certification target against the existing reviewed `0.4.0`
+archive, SHA-256 `9bb1dd58241414f0a0e5bc6893df6a41f9572d365cff583800b2f18c2318be12`.
+On Node 24.22.3/macOS arm64, all **48 checks** pass: 15 each for
+`N11-A21-min-tool` and `N11-A21-next-tool`, and 18 for `N11-A22`, including
+declarations, CJS/ESM build/HTTP/security and split SSR/hydration. All three fresh
+runtime audits have **zero findings**. The entry point validates and hashes 85
+evidence files. See the [machine-readable evidence](ssr-consumer-environment-742-evidence.json).
+The final target ran uncached; its deterministic helper prerequisite reused the
+just-passed local result. This is local harness evidence using retained local
+bytes, not a new hosted record, Linux certification or authorization to publish.
+
+Companion branch `chore/ssr-consumer-controller-742` changes only the maintenance
+request controller digest to
+`20dc68a7205e689f1e0c1d50d33cbb412c0afa16a18663ac92eb16acfc37f203`,
+computed from the proposed Git tree using an isolated index. Verify it after
+commit and integration. Baseline, `0.4.0`, compatibility and `nest11` channel are
+unchanged. Johan authorized committing, pushing and opening both PRs with normal
+CI; **Johan will inspect CI**. He separately authorized one new Nest 11 `0.4.0`
+preparation on main and its inspection after his merging both PRs, conditional on
+integrated controller/request digest agreement and successful exact refreshed
+maintenance-source CI, including verification of that source-CI result. This
+single-run authorization is unconsumed. Merges and reruns are not delegated.
+Johan owns merge and release intent; #722 activation, exact
+release approval, durable archive copies and consumer handoff remain pending.
+#742 remains open and publication-Blocked. No hosted CI, settings change, tag,
+registry mutation, activation or publication occurred during this correction.
+
+Preflight re-enumerated and read all 25 Meta ADRs at `4f0339d` and all nine
+Community ADRs at `2062374`, every status, plus contribution/ownership/SDLC,
+release runbooks and relevant Angular SSR/testing guidance. Meta0013/0015/0016–19
+and Community0004/0007 preserve version, cache, ownership and evidence boundaries;
+Meta0022 and Community0005/0006 preserve the accepted compatibility/lifecycle
+decisions. Proposed clauses do not override accepted decisions. No architectural
+conflict or new policy exception was identified.
