@@ -45,7 +45,7 @@ test(
     try {
       mkdirSync(join(dir, 'packages/lib'), { recursive: true });
       symlinkSync(join(root, 'node_modules'), join(dir, 'node_modules'), 'dir');
-      writeFileSync(join(dir, '.gitignore'), 'node_modules\n.nx\n');
+      writeFileSync(join(dir, '.gitignore'), 'node_modules\n.nx\ndist\n');
       writeJson(join(dir, 'package.json'), {
         name: 'policy-fixture',
         private: true,
@@ -93,8 +93,23 @@ test(
       commit('init(lib): baseline');
       git(['tag', 'lib@0.0.1']);
       const baseline = git(['rev-parse', 'HEAD']).trim();
-      const preview = (expected, firstRelease = false, stabilize = false) => {
-        const script = `import { nxPreview } from ${JSON.stringify(moduleUrl)}; const r=await nxPreview(['lib'],${firstRelease},${stabilize}); console.log('RESULT:'+JSON.stringify(r.projectsVersionData));`;
+      const preview = (
+        expected,
+        firstRelease = false,
+        stabilize = false,
+        build = false,
+      ) => {
+        const prepareUrl = new URL('./prepare.mjs', import.meta.url).href;
+        const script = `import { nxPreview } from ${JSON.stringify(moduleUrl)};
+          ${
+            build
+              ? `import { buildRequestedProjects } from ${JSON.stringify(prepareUrl)};
+          import { execFileSync } from 'node:child_process';
+          buildRequestedProjects({projects:['lib']}, {versions:{lib:{newVersion:${JSON.stringify(expected)}}}},
+            (args) => execFileSync(process.execPath, [${JSON.stringify(realpathSync(join(root, 'node_modules/.bin/nx')))}, ...args.slice(1)], {stdio:'inherit'}));`
+              : ''
+          }
+          const r=await nxPreview(['lib'],${firstRelease},${stabilize}); console.log('RESULT:'+JSON.stringify(r.projectsVersionData));`;
         const before = git(['show-ref']);
         const manifest = readFileSync(
           join(dir, 'packages/lib/package.json'),
@@ -167,6 +182,34 @@ test(
         commit(message);
         preview(expected);
       }
+      // Angular-style source + generated manifest roots must work on a clean
+      // preparation runner, without enabling the workspace-wide pre-version hook.
+      git(['reset', '--hard', stable]);
+      const builtManifest = join(dir, 'packages/lib/dist/package.json');
+      const sourceManifest = JSON.parse(
+        readFileSync(join(dir, 'packages/lib/package.json')),
+      );
+      sourceManifest.nx.release = {
+        version: {
+          manifestRootsToUpdate: ['{projectRoot}', '{projectRoot}/dist'],
+        },
+      };
+      sourceManifest.nx.targets = {
+        build: { command: 'node build.cjs', options: { cwd: 'packages/lib' } },
+      };
+      writeJson(join(dir, 'packages/lib/package.json'), sourceManifest);
+      writeFileSync(
+        join(dir, 'packages/lib/build.cjs'),
+        "const fs = require('node:fs'); fs.mkdirSync('dist', {recursive:true}); fs.copyFileSync('package.json', 'dist/package.json');",
+      );
+      commit('fix(lib): exercise clean preparation');
+      assert.equal(existsSync(builtManifest), false);
+      assert.throws(() => preview('1.2.4'), /does not have a package.json/);
+      preview('1.2.4', false, false, true);
+      assert.equal(
+        readFileSync(builtManifest, 'utf8'),
+        readFileSync(join(dir, 'packages/lib/package.json'), 'utf8'),
+      );
       // Remove tags only inside this disposable fixture to exercise initial release.
       git(['reset', '--hard', baseline]);
       git(['tag', '-d', 'lib@0.0.1', 'lib@1.2.3']);

@@ -96,7 +96,10 @@ both lines have published exact-byte evidence linked in the completion review.
    Preparation checks current main, the integrated request and fresh Nx/history
    results, and validates actual commits added since the request's source baseline.
    Earlier intent is represented by Nx's Conventional Commit calculation and the
-   owner's compatibility evidence. It runs package checks and applicable existing
+   owner's compatibility evidence. After exact-source CI admission, it builds
+   the reviewed request's versioned projects so Nx can inspect configured generated
+   manifests on a clean runner. The fresh Nx calculation still checks the complete
+   selection and dependent effects; this build does not choose versions. It runs package checks and applicable existing
    Nest, Governance and Better Auth gates. The exact main CI contract continues to
    supply Editor.js compatibility/security/packed coverage, including its reviewed
    affected selection; a prior pre-version run does not qualify.

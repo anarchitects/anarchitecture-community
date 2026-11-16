@@ -26,6 +26,7 @@ import {
   selectedProjects,
   readinessTargets,
   releaseNotes,
+  buildRequestedProjects,
 } from './prepare.mjs';
 import {
   publication,
@@ -64,6 +65,22 @@ const record = () => ({
   packages: [pkg()],
 });
 const request = { action: 'release', digest, artifactId: 42 };
+
+test('pre-preview builds reject empty, unknown and cross-line request scopes', () => {
+  const context = { projects: ['sample', 'nest-angular-ssr'] };
+  let builds = 0;
+  for (const invalid of [
+    {},
+    { versions: { sample: { newVersion: null } } },
+    { versions: { unknown: { newVersion: '0.0.2' } } },
+    { line: 'nest11', versions: { sample: { newVersion: '0.0.2' } } },
+  ]) {
+    assert.throws(() =>
+      buildRequestedProjects(context, invalid, () => builds++),
+    );
+  }
+  assert.equal(builds, 0);
+});
 
 test('release notes bind complete Nx entries to versioned projects without rewriting contents', () => {
   const versions = {
