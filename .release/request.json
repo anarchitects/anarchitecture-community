@@ -6,7 +6,7 @@
   "stabilize": false,
   "line": "nest11",
   "branch": "maintenance/nest-angular-ssr-0.3",
-  "controllerDigest": "27b4102058103cb724266faf71c8b8783c77f6db2dad379857cf81e3d4457ad5",
+  "controllerDigest": "4e94c14ec301100fd13afbbbf238a62b4e40e9eb282b996a222ef55e4b9f6927",
   "compatibility": {
     "nest-angular-ssr": {
       "minimumBump": "major",
