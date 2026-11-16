@@ -1,32 +1,29 @@
 {
   "schema": 1,
-  "baseline": "a50b0094315e5b4814553d1fde7d80d655fe7fb8",
-  "projects": ["nest-angular-ssr"],
+  "baseline": "5a4838eb91a0571771aa487a085d6d2b0dd272e5",
+  "projects": ["editorjs-html-angular"],
   "firstRelease": false,
   "stabilize": false,
-  "line": "nest12",
-  "branch": "main",
-  "controllerDigest": "5f44a2f14bc09a4ff1bf75b2648c30a06e992d6de8409190a9423f12eefc751b",
   "compatibility": {
-    "nest-angular-ssr": {
-      "minimumBump": "major",
-      "evidence": "Johan accepted #737's separate Nest 12 feature and Nest 11 maintenance lines, patched Angular 22.2 baseline, and #748 maintenance-first ordering. The Nest 11 0.4.0 baseline is distributed. This successor excludes Nest 11 and Angular 21, requires Nest ~12.5.0, Angular ~22.2.6 / SSR ~22.2.7 and Node >=24.22.3 <25, while preserving the public SSR facade and Fastify behavior. See docs/validation/nest12-ssr-release-lines-737.md, nest12-ssr-certification-740.md and nest12-ssr-readiness-741.md. Nx must derive an unused breaking 0.x successor from complete published history. Initial channel: next; no Express/native Node support or latest promotion is claimed. Final versioned archive certification and protected release authorization remain required."
+    "editorjs-html-angular": {
+      "minimumBump": "patch",
+      "evidence": "Johan requested the renderer release following merged PR #776 and accepted qualification of Angular 22.2.6. The change adds 22.2.6 to the existing exact Angular peer alternatives, preserving 22.0.0, 22.1.4 and 22.2.2, public component/directive/provider APIs, and renderer safety/isolation. See https://github.com/anarchitects/anarchitecture-community/pull/776 and docs/validation/nx24-angular226-776.md for packed CSR/SSR/hydration, security corpus, isolation and consumer evidence. Nx determines the version and generates release notes from the complete history; 0.x policy remains enabled. Intended channel: latest. This request prepares the candidate; exact integrated CI, immutable archive review, npm trusted-publisher onboarding and protected owner release/publication approvals remain required."
     }
   },
   "versions": {
-    "nest-angular-ssr": {
-      "currentVersion": "0.4.0",
-      "newVersion": "0.5.0",
+    "editorjs-html-angular": {
+      "currentVersion": "0.0.4",
+      "newVersion": "0.0.5",
       "dependentProjects": []
     }
   },
-  "channels": {
-    "nest-angular-ssr": "next"
-  },
   "changelogs": {
-    "nest-angular-ssr": {
-      "version": "0.5.0",
-      "contents": "## 0.5.0 (2026-11-16)\n\n### 🚀 Features\n\n- ⚠️  **nest-angular-ssr:** support the Nest 12 Fastify line ([#756](https://github.com/anarchitects/anarchitecture-community/pull/756))\n\n### 🩹 Fixes\n\n- **nest-angular-ssr:** complete release packaging and consumer guidance ([#760](https://github.com/anarchitects/anarchitecture-community/pull/760), [#741](https://github.com/anarchitects/anarchitecture-community/issues/741))\n\n### 📖 Documentation\n\n- **nest-angular-ssr:** record Angular 21 sunset and release notes ([#763](https://github.com/anarchitects/anarchitecture-community/pull/763), [#742](https://github.com/anarchitects/anarchitecture-community/issues/742))\n\n### 🏡 Chore\n\n- **nest-angular-ssr:** prepare 0.5.0 Nest 12 release ([#773](https://github.com/anarchitects/anarchitecture-community/pull/773))\n\n### ✅ Tests\n\n- **nest-angular-ssr:** certify locked Fastify consumers ([#758](https://github.com/anarchitects/anarchitecture-community/pull/758))\n\n### ⚠️  Breaking Changes\n\n- **nest-angular-ssr:** support the Nest 12 Fastify line  ([#756](https://github.com/anarchitects/anarchitecture-community/pull/756))\n  the feature line requires Nest12.5, Angular22.2.6/SSR22.2.7 and Node24.22.3+, excluding Nest11 and Angular21/22.1. Nest11 consumers remain on the separately maintained 0.3.x line. Release version and channels require the existing authorized Nx workflow.\"\n  M\t.github/workflows/ci.yml\n  M\tapps/fixtures/nest-angular-split/backend/jest.config.cts\n  M\tapps/fixtures/nest-angular-split/backend/package.json\n  D\tapps/fixtures/nest-angular-split/backend/tsconfig.jest-esm.json\n  M\tapps/fixtures/nest-cjs-consumer/package.json\n  M\tapps/fixtures/nest-esm-consumer/package.json\n  M\tdocs/validation/nest-angular-ssr-consumers.md\n  A\tdocs/validation/nest12-ssr-compatibility-739-evidence.json\n  A\tdocs/validation/nest12-ssr-compatibility-739.md\n  M\tdocs/validation/nest12-ssr-release-lines-737.md\n  M\tpackage.json\n  M\tpackages/nest/angular-ssr/README.md\n  M\tpackages/nest/angular-ssr/package.json\n  M\ttools/ci/selection.test.mjs\n  M\ttools/fixtures/nest-angular-ssr-compatibility-matrix.json\n  M\ttools/fixtures/nest-angular-ssr-locked-matrix.json\n  M\ttools/fixtures/nest-angular-ssr-locked-support.mjs\n  M\ttools/fixtures/nest-angular-ssr-locked-support.test.mjs\n  M\ttools/fixtures/nest-angular-ssr-security-conformance.mjs\n  M\ttools/fixtures/validate-nest-angular-ssr-consumers.mjs\n  M\ttools/fixtures/validate-nest-angular-ssr-locked.mjs\n  M\ttools/fixtures/validate-nest-angular-ssr-matrix.mjs\n  M\ttools/fixtures/validate-nest-angular-ssr-split.mjs\n  M\tyarn.lock\n\n### ❤️ Thank You\n\n- Johan Vrolix @vrxj81"
+    "editorjs-html-angular": {
+      "version": "0.0.5",
+      "contents": "## 0.0.5 (2026-11-16)\n\n### 🏡 Chore\n\n- **better-auth-typeorm-adapter,editorjs-angular,editorjs-core,editorjs-html,editorjs-html-angular,editorjs-tool-header,editorjs-tool-image,editorjs-tool-list,editorjs-tool-paragraph,editorjs-tool-quote,editorjs-upload-fetch,governance-adapter-dbt,governance-adapter-typescript,governance-cli,governance-core,governance-extension-dbt,governance-extension-typescript,governance-runtime-dbt,nest-angular-ssr:** migrate Nx to 24.0.6 and qualify Angular 22.2.6 ([#776](https://github.com/anarchitects/anarchitecture-community/pull/776))\n\n### ❤️ Thank You\n\n- Johan Vrolix @vrxj81"
     }
+  },
+  "channels": {
+    "editorjs-html-angular": "latest"
   }
 }
