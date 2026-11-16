@@ -58,6 +58,14 @@ separate maintenance checkout supplies builds and package bytes; the preparation
 entry point and final consumer harness come from the main checkout. Candidate
 release scripts are never selected as the privileged controller.
 
+The main checkout is `controller/` and maintenance is its sibling
+`maintenance-source/`, both directly under the Actions workspace. Never nest
+one Nx workspace inside the other: project discovery must remain independent.
+Shell steps default to `controller/`, maintenance installation/builds explicitly
+select the candidate, and setup-node reads `controller/yarn.lock`. All three
+preparation lines write to the sibling `release-payload/` directory consumed by
+the artifact uploader. The final consumer harness still runs from main.
+
 Preparation has contents/actions read permission, no environment, App key,
 registry token or publication OIDC. Candidate installs, package checks, final
 build/pack and consumer execution remain unprivileged. The mutation jobs retain

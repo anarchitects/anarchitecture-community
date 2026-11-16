@@ -390,7 +390,7 @@ test('workflow privilege boundaries and staged activation are explicit', () => {
   );
   assert.match(
     prepare.jobs.prepare.steps.find((s) => s.id === 'freeze').run,
-    /node \.\.\/tools\/release\/prepare\.mjs freeze --line=nest11/,
+    /node \.\.\/controller\/tools\/release\/prepare\.mjs freeze --line=nest11/,
   );
   assert.ok(
     workflow('ci').on.push.branches.includes(
