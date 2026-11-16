@@ -74,3 +74,41 @@ receipts and evidence copies to encrypted USB **Anarchitects** and **Asustor
 Lockerstor AS6604T**, with Johan as custodian. Restore paused controls after the
 authorized execution. No hosted CI, trusted-publisher change, activation, tag,
 GitHub Release or npm publication is performed by this local preparation.
+
+## Hosted preparation follow-up — 16 November 2026
+
+[PR #777](https://github.com/anarchitects/anarchitecture-community/pull/777)
+merged as `698d6405ee52dfaaf4ed8adf90ecace7353c0200`. All ten jobs in exact-source
+[CI 43902049823](https://github.com/anarchitects/anarchitecture-community/actions/runs/43902049823)
+passed. The single authorized
+[preparation 43910012170](https://github.com/anarchitects/anarchitecture-community/actions/runs/43910012170)
+failed before package checks or artifact upload: the renderer's configured
+`{projectRoot}/dist/package.json` was absent when Nx validated manifest roots
+during its version dry run. Existing local generated output had hidden this
+clean-runner failure. No tag, release or publication occurred.
+
+The focused correction builds only the reviewed request's versioned projects
+through Nx, after source admission and exact-source CI verification, before the
+fresh Nx calculation. Unknown, empty and invalid release-line selections are
+rejected before building. Nx still decides versions and dependent effects;
+the existing fresh comparison, compatibility checks, package gates, final build,
+archive inspection and consumer installation remain mandatory. The read-only
+preview still disables the workspace-wide pre-version hook. The request, package
+version, notes and dependencies are unchanged.
+
+The complete Meta/Community ADR inventory above was re-read for this tooling
+scope; Meta main remains `4f0339d86f0ebfa073173ad307cb67c8d6042bdd`. No new
+architectural decision or release-control exception is needed.
+
+The installed-Nx regression reproduces failure without generated manifests, then
+builds through Nx and obtains the expected version without modifying source
+manifests, the index, commits or tags, or running the configured pre-version hook.
+A real local renderer run with its prior `dist` moved outside the checkout also
+restored the build through Nx and passed fresh history/preview: 0.0.4 to 0.0.5,
+no dependent version changes, and no existing public 0.0.5. These are local
+checks; a successful hosted preparation remains required after review, merge and
+fresh exact-source CI. The failed dispatch consumed its single-run authorization.
+
+All 50 release-policy tests, release configuration validation, formatting,
+diff checks and the proposed unscoped commit/PR message passed locally. Changes
+are confined to preparation tooling, its regression tests and operational docs.

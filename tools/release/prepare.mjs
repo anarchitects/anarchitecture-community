@@ -227,6 +227,21 @@ export function readinessTargets(projects) {
   // uncached completeness gates. Here package checks precede the final pack.
   return targets;
 }
+
+export function buildRequestedProjects(context, request, run = command) {
+  const projects = selectedProjects(
+    context,
+    Object.entries(request.versions ?? {})
+      .filter(([, version]) => version.newVersion)
+      .map(([project]) => project)
+      .join(','),
+  );
+  lineSelection(request.line, projects, request.channels?.[SSR_PROJECT]);
+  // Nx validates every configured manifest root even in a dry run. Build the
+  // reviewed selection first; fresh Nx results below still verify its scope.
+  run(['nx', 'run-many', '-t', 'build', '-p', projects.join(',')]);
+}
+
 function credentialFree() {
   for (const name of [
     'RELEASE_TOKEN',
@@ -519,6 +534,7 @@ export async function freeze({
   if (request.line === 'nest11')
     git(['merge-base', '--is-ancestor', MAINTENANCE_ANCHOR, commit]);
   const ci = await exactCI(commit, ciRunId, branch);
+  buildRequestedProjects(context, request);
   const preview = await previewVersions(
     context,
     projects,
