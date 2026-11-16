@@ -1,3 +1,4 @@
+import { buildMetadata } from './ssr-build-metadata.mjs';
 import { spawn } from 'node:child_process';
 import {
   mkdirSync,
@@ -26,6 +27,7 @@ const lock = packed ? 'package-lock.json' : 'yarn.lock';
 copyFileSync(join(fixtureRoot, lock), `${output}/${lock}`);
 const require = createRequire(join(fixtureRoot, 'package.json'));
 const build = buildDirectory(suffix === 'default' ? '' : suffix);
+await buildMetadata(build);
 copyFileSync(`${build}/stats.json`, `${output}/stats-${name}.json`);
 if (evidence === 'isolation') {
   rmSync(`${output}/build-${name}`, { recursive: true, force: true });

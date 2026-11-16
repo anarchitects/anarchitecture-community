@@ -46,12 +46,12 @@
     "name": "better-auth-typeorm-adapter",
     "targets": {
       "test": {
-        "executor": "@nx/vitest:test",
         "outputs": [
-          "{options.reportsDirectory}"
+          "{projectRoot}/{options.coverage.reportsDirectory}",
+          "{projectRoot}/test-output/vitest/coverage"
         ],
         "options": {
-          "reportsDirectory": "coverage/packages/better-auth/typeorm-adapter"
+          "coverage.reportsDirectory": "../../../coverage/packages/better-auth/typeorm-adapter"
         }
       },
       "test-postgres": {
@@ -68,7 +68,8 @@
           "command": "vitest run --config vitest.better-auth.config.mts"
         }
       }
-    }
+    },
+    "// targets": "to see all targets run: nx show project better-auth-typeorm-adapter --web"
   },
   "peerDependencies": {
     "better-auth": "^1.7.0",

@@ -25,16 +25,6 @@
     "name": "editorjs-core",
     "targets": {
       "test": {
-        "executor": "@nx/vitest:test",
-        "outputs": [
-          "{options.reportsDirectory}"
-        ],
-        "options": {
-          "reportsDirectory": "coverage/packages/editorjs/core"
-        },
-        "dependsOn": [
-          "build"
-        ],
         "inputs": [
           "default",
           "^default",
@@ -49,8 +39,23 @@
           "{workspaceRoot}/tsconfig.json",
           {
             "env": "CI"
+          },
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
           }
-        ]
+        ],
+        "outputs": [
+          "{projectRoot}/{options.coverage.reportsDirectory}",
+          "{projectRoot}/test-output/vitest/coverage"
+        ],
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "coverage.reportsDirectory": "../../../coverage/packages/editorjs/core"
+        }
       },
       "vite:test": {
         "dependsOn": [
@@ -63,9 +68,6 @@
         ]
       },
       "test-ci--tests/package.spec.ts": {
-        "options": {
-          "env": {}
-        },
         "dependsOn": [
           "build"
         ],
@@ -84,7 +86,10 @@
           {
             "env": "CI"
           }
-        ]
+        ],
+        "options": {
+          "env": {}
+        }
       },
       "build": {
         "inputs": [
@@ -119,6 +124,11 @@
         "outputs": [
           "{projectRoot}/out-tsc/typecheck"
         ],
+        "dependsOn": [
+          "build",
+          "^typecheck"
+        ],
+        "cache": true,
         "options": {
           "cwd": "packages/editorjs/core",
           "commands": [
@@ -126,12 +136,7 @@
             "tsc --project tsconfig.spec.json --noEmit --tsBuildInfoFile out-tsc/typecheck/spec.tsbuildinfo"
           ],
           "parallel": false
-        },
-        "dependsOn": [
-          "build",
-          "^typecheck"
-        ],
-        "cache": true
+        }
       },
       "lint": {
         "inputs": [
@@ -168,7 +173,8 @@
           }
         ]
       }
-    }
+    },
+    "// targets": "to see all targets run: nx show project editorjs-core --web"
   },
   "description": "Framework-neutral contracts and utilities for Editor.js integrations.",
   "license": "Apache-2.0",

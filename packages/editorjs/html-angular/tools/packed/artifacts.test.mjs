@@ -158,6 +158,6 @@ test('display detector recognizes each authoring boundary independently', () => 
     assert.throws(() => assertDisplayInputs({ [path]: {} }), /Authoring/);
 });
 test('required phase inventory keeps all agreed cells and independent Angular outcomes', () => {
-  assert.equal(Object.keys(matrix).length, 7);
-  assert.equal(Object.keys(matrix).flatMap(phases).length, 16);
+  assert.equal(Object.keys(matrix).length, 8);
+  assert.equal(Object.keys(matrix).flatMap(phases).length, 20);
 });

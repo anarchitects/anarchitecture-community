@@ -54,15 +54,16 @@
     ],
     "targets": {
       "test": {
-        "executor": "@nx/vitest:test",
         "outputs": [
-          "{options.reportsDirectory}"
+          "{projectRoot}/{options.coverage.reportsDirectory}",
+          "{projectRoot}/test-output/vitest/coverage"
         ],
         "options": {
-          "reportsDirectory": "coverage/packages/governance/runtime-dbt"
+          "coverage.reportsDirectory": "../../../coverage/packages/governance/runtime-dbt"
         }
       }
-    }
+    },
+    "// targets": "to see all targets run: nx show project governance-runtime-dbt --web"
   },
   "dependencies": {
     "@anarchitects/governance-adapter-dbt": "^0.1.10",

@@ -51,36 +51,33 @@
         "parallelism": false
       },
       "test": {
-        "executor": "@nx/vitest:test",
         "outputs": [
-          "{options.reportsDirectory}"
+          "{projectRoot}/{options.coverage.reportsDirectory}",
+          "{projectRoot}/test-output/vitest/coverage"
         ],
         "options": {
-          "reportsDirectory": "coverage/packages/nest/angular-ssr"
+          "coverage.reportsDirectory": "../../../coverage/packages/nest/angular-ssr"
         }
       },
       "test-consumer-lifecycle": {
         "executor": "nx:run-commands",
         "cache": false,
-        "options": {
-          "command": "node --test tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs"
-        },
         "inputs": [
           "default",
           "{workspaceRoot}/tools/fixtures/*nest-angular-ssr*",
           "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
           "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
           "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
-        ]
+        ],
+        "options": {
+          "command": "node --test tools/fixtures/nest-angular-ssr-consumer-attempt.test.mjs"
+        }
       },
       "validate-consumers": {
         "executor": "nx:run-commands",
         "dependsOn": [
           "test-consumer-lifecycle"
         ],
-        "options": {
-          "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
-        },
         "cache": false,
         "inputs": [
           "default",
@@ -88,13 +85,13 @@
           "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
           "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
           "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
-        ]
+        ],
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-consumers.mjs all"
+        }
       },
       "validate-matrix": {
         "executor": "nx:run-commands",
-        "options": {
-          "command": "node tools/fixtures/validate-nest-angular-ssr-matrix.mjs {args.cell}"
-        },
         "cache": false,
         "inputs": [
           "default",
@@ -102,13 +99,13 @@
           "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
           "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
           "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
-        ]
+        ],
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-matrix.mjs {args.cell}"
+        }
       },
       "validate-split": {
         "executor": "nx:run-commands",
-        "options": {
-          "command": "node tools/fixtures/validate-nest-angular-ssr-split.mjs"
-        },
         "cache": false,
         "inputs": [
           "default",
@@ -116,7 +113,10 @@
           "{workspaceRoot}/apps/fixtures/nest-cjs-consumer/**/*",
           "{workspaceRoot}/apps/fixtures/nest-esm-consumer/**/*",
           "{workspaceRoot}/apps/fixtures/nest-angular-split/**/*"
-        ]
+        ],
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-split.mjs"
+        }
       },
       "validate-locked-consumers": {
         "executor": "nx:run-commands",
@@ -141,12 +141,12 @@
             "env": "PLAYWRIGHT_BROWSERS_PATH"
           }
         ],
-        "options": {
-          "command": "node tools/fixtures/validate-nest-angular-ssr-locked.mjs"
-        },
         "outputs": [
           "{workspaceRoot}/dist/validation/nest12-ssr-740"
-        ]
+        ],
+        "options": {
+          "command": "node tools/fixtures/validate-nest-angular-ssr-locked.mjs"
+        }
       },
       "refresh-consumer-locks": {
         "executor": "nx:run-commands",
@@ -180,7 +180,8 @@
           "command": "playwright install --with-deps chromium"
         }
       }
-    }
+    },
+    "// targets": "to see all targets run: nx show project nest-angular-ssr --web"
   },
   "dependencies": {
     "@fastify/static": "~10.1.11"

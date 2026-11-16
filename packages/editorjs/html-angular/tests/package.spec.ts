@@ -81,7 +81,7 @@ describe('published Angular boundary', () => {
       tslib: '^2.3.0',
     });
     expect(manifest.peerDependencies).toEqual({
-      '@angular/core': '22.0.0 || 22.1.4 || 22.2.2',
+      '@angular/core': '22.0.0 || 22.1.4 || 22.2.2 || 22.2.6',
     });
     expect(manifest.sideEffects).toBe(false);
     expect(manifest.exports['.'].default).toBe(

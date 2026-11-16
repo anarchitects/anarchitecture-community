@@ -55,8 +55,14 @@
       }
     },
     "test": {
-      "executor": "@nx/vitest:test",
-      "inputs": ["default", "^production", "{workspaceRoot}/LICENSE"],
+      "inputs": [
+        "default",
+        "^production",
+        "{workspaceRoot}/LICENSE",
+        {
+          "externalDependencies": ["vitest"]
+        }
+      ],
       "dependsOn": [
         "build",
         {
@@ -65,9 +71,12 @@
           "params": "ignore"
         }
       ],
-      "outputs": ["{options.reportsDirectory}"],
+      "outputs": [
+        "{projectRoot}/{options.coverage.reportsDirectory}",
+        "{workspaceRoot}/coverage/{projectRoot}"
+      ],
       "options": {
-        "reportsDirectory": "coverage/packages/editorjs/angular"
+        "coverage.reportsDirectory": "../../../coverage/packages/editorjs/angular"
       }
     },
     "test-ci--tests/package.spec.ts": {

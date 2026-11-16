@@ -10,6 +10,19 @@
       "executor": "@angular/build:application",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/yarn.lock",
+        {
+          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
+        },
+        {
+          "env": "NODE_OPTIONS"
+        },
+        "{workspaceRoot}/apps/fixtures/nest-angular-split/tsconfig.base.json"
+      ],
       "options": {
         "outputPath": "dist/apps/fixtures/nest-angular-split/frontend",
         "browser": "apps/fixtures/nest-angular-split/frontend/src/main.ts",
@@ -48,20 +61,7 @@
           "extractLicenses": false,
           "sourceMap": true
         }
-      },
-      "inputs": [
-        "default",
-        "^default",
-        "{workspaceRoot}/tsconfig.base.json",
-        "{workspaceRoot}/yarn.lock",
-        {
-          "runtime": "node -p \"JSON.stringify([process.version, process.platform, process.arch])\""
-        },
-        {
-          "env": "NODE_OPTIONS"
-        },
-        "{workspaceRoot}/apps/fixtures/nest-angular-split/tsconfig.base.json"
-      ]
+      }
     },
     "serve": {
       "continuous": true,
@@ -74,11 +74,18 @@
         "development": {
           "buildTarget": "nest-angular-split-frontend:fixture-build:development"
         }
+      },
+      "readyWhen": {
+        "signal": true
       }
     },
     "serve-static": {
       "continuous": true,
       "executor": "@nx/web:file-server",
+      "readyWhen": {
+        "signal": true
+      },
+      "dependsOn": ["fixture-build"],
       "options": {
         "buildTarget": "nest-angular-split-frontend:fixture-build",
         "staticFilePath": "dist/apps/fixtures/nest-angular-split/frontend/browser",
@@ -87,9 +94,6 @@
     },
     "typecheck": {
       "executor": "nx:run-commands",
-      "options": {
-        "command": "tsc --noEmit -p apps/fixtures/nest-angular-split/frontend/tsconfig.app.json"
-      },
       "cache": true,
       "inputs": [
         "default",
@@ -104,7 +108,10 @@
         },
         "{workspaceRoot}/apps/fixtures/nest-angular-split/tsconfig.base.json"
       ],
-      "outputs": []
+      "outputs": [],
+      "options": {
+        "command": "tsc --noEmit -p apps/fixtures/nest-angular-split/frontend/tsconfig.app.json"
+      }
     }
   }
 }

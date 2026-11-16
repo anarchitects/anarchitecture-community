@@ -16,5 +16,11 @@
     "editorjs": "2.31.7",
     "node": "26.0.0",
     "typescript": "6.0.3"
+  },
+  "angular22-patched": {
+    "angular": "22.2.6",
+    "editorjs": "2.31.7",
+    "node": "24.15.0",
+    "typescript": "6.0.3"
   }
 }

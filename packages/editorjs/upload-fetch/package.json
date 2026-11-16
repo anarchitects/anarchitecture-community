@@ -20,20 +20,25 @@
     "name": "editorjs-upload-fetch",
     "targets": {
       "test": {
-        "executor": "@nx/vitest:test",
-        "outputs": [
-          "{options.reportsDirectory}"
-        ],
-        "options": {
-          "reportsDirectory": "coverage/packages/editorjs/upload-fetch"
-        },
         "inputs": [
           "uploadTests",
-          "^default"
+          "^default",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "outputs": [
+          "{projectRoot}/{options.coverage.reportsDirectory}",
+          "{projectRoot}/test-output/vitest/coverage"
         ],
         "dependsOn": [
           "build"
-        ]
+        ],
+        "options": {
+          "coverage.reportsDirectory": "../../../coverage/packages/editorjs/upload-fetch"
+        }
       },
       "build": {
         "inputs": [
@@ -68,6 +73,11 @@
         "outputs": [
           "{projectRoot}/out-tsc/typecheck"
         ],
+        "dependsOn": [
+          "build",
+          "^typecheck"
+        ],
+        "cache": true,
         "options": {
           "cwd": "packages/editorjs/upload-fetch",
           "commands": [
@@ -75,12 +85,7 @@
             "tsc --project tsconfig.spec.json --noEmit --tsBuildInfoFile out-tsc/typecheck/spec.tsbuildinfo"
           ],
           "parallel": false
-        },
-        "dependsOn": [
-          "build",
-          "^typecheck"
-        ],
-        "cache": true
+        }
       },
       "lint": {
         "inputs": [
@@ -195,7 +200,8 @@
           "runtime": "npm --version"
         }
       ]
-    }
+    },
+    "// targets": "to see all targets run: nx show project editorjs-upload-fetch --web"
   },
   "dependencies": {
     "@anarchitects/editorjs-core": "^0.0.1"

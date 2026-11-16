@@ -41,15 +41,16 @@
     "name": "governance-adapter-typescript",
     "targets": {
       "test": {
-        "executor": "@nx/vitest:test",
         "outputs": [
-          "{options.reportsDirectory}"
+          "{projectRoot}/{options.coverage.reportsDirectory}",
+          "{projectRoot}/test-output/vitest/coverage"
         ],
         "options": {
-          "reportsDirectory": "coverage/packages/governance/adapter-typescript"
+          "coverage.reportsDirectory": "../../../coverage/packages/governance/adapter-typescript"
         }
       }
-    }
+    },
+    "// targets": "to see all targets run: nx show project governance-adapter-typescript --web"
   },
   "dependencies": {
     "@anarchitects/governance-core": "^0.4.4",

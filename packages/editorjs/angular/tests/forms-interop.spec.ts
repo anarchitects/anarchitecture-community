@@ -3,6 +3,7 @@ import '@angular/compiler';
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
+  VERSION as FORMS_VERSION,
   FormControl,
   FormGroup,
   FormsModule,
@@ -101,10 +102,12 @@ function rawEditor(options: EditorJsCreateOptions) {
   template: `
     @switch (binding) {
       @case ('control') {
-        <aa-editorjs-control
-          [formControl]="body"
-          (error)="errors.push($event)"
-        />
+        <form [formGroup]="group">
+          <aa-editorjs-control
+            [formControl]="body"
+            (error)="errors.push($event)"
+          />
+        </form>
       }
       @case ('name') {
         <form [formGroup]="group">
@@ -320,15 +323,35 @@ for (const binding of [
 
 for (const strategy of ['blur', 'submit'] as const) {
   for (const binding of ['control', 'name', 'model', 'compat'] as const) {
-    it(`${binding} publishes immediately with updateOn ${strategy}; no legacy deferral is promised`, async () => {
+    const deferred = FORMS_VERSION.full === '22.2.6' && binding !== 'compat';
+    it(`${binding} ${deferred ? 'defers legacy model publication' : 'publishes immediately'} with updateOn ${strategy} on Angular ${FORMS_VERSION.full}`, async () => {
       updateOn = strategy;
-      const { legacy, raw } = await setup(binding);
+      const { fixture, control, legacy, raw } = await setup(binding);
       raw.edit(document('Immediate'));
+      await vi.waitFor(() =>
+        expect(control.value()).toMatchObject(document('Immediate')),
+      );
+      await fixture.whenStable();
+      if (deferred) {
+        expect(legacy.value).toMatchObject(document('Initial'));
+        expect(legacy.pristine).toBe(true);
+        expect(legacy.untouched).toBe(true);
+        control.touch.emit();
+        await fixture.whenStable();
+        if (strategy === 'submit') {
+          expect(legacy.value).toMatchObject(document('Initial'));
+          fixture.nativeElement
+            .querySelector('form')
+            .dispatchEvent(
+              new Event('submit', { bubbles: true, cancelable: true }),
+            );
+        }
+      }
       await vi.waitFor(() =>
         expect(legacy.value).toMatchObject(document('Immediate')),
       );
       expect(legacy.dirty).toBe(true);
-      expect(legacy.untouched).toBe(true);
+      expect(legacy.touched).toBe(deferred);
     });
   }
 }

@@ -39,14 +39,15 @@
     "name": "governance-core",
     "targets": {
       "test": {
-        "executor": "@nx/vitest:test",
         "outputs": [
-          "{options.reportsDirectory}"
+          "{projectRoot}/{options.coverage.reportsDirectory}",
+          "{projectRoot}/test-output/vitest/coverage"
         ],
         "options": {
-          "reportsDirectory": "coverage/packages/governance/core"
+          "coverage.reportsDirectory": "../../../coverage/packages/governance/core"
         }
       }
-    }
+    },
+    "// targets": "to see all targets run: nx show project governance-core --web"
   }
 }

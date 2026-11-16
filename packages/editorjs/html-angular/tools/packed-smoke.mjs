@@ -139,7 +139,7 @@ try {
       tslib: '^2.3.0',
     });
     assert.deepEqual(manifest.peerDependencies, {
-      '@angular/core': '22.0.0 || 22.1.4 || 22.2.2',
+      '@angular/core': '22.0.0 || 22.1.4 || 22.2.2 || 22.2.6',
     });
     assert.equal(
       readdirSync(installed).some((name) =>
