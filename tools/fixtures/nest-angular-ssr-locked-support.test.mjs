@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import {
   assertFastifyTree,
@@ -132,6 +141,101 @@ test('peer-bypass and source-alias environment cannot leak into consumer command
     else process.env.NPM_CONFIG_FORCE = previousForce;
   }
 });
+
+test(
+  'temporary Nx builds cannot inherit the controller workspace or task state',
+  { timeout: 30_000 },
+  async () => {
+    const root = await realpath(
+      await mkdtemp(join(tmpdir(), 'ssr-nx-environment-')),
+    );
+    const require = createRequire(import.meta.url);
+    const nxPackage = require.resolve('nx/package.json');
+    const nxCli = join(dirname(nxPackage), require(nxPackage).bin.nx);
+    const controller = join(root, 'controller');
+    const consumer = join(root, 'consumer');
+    const inherited = {
+      NX_WORKSPACE_ROOT_PATH: controller,
+      NX_WORKSPACE_DATA_DIRECTORY: join(controller, '.nx/workspace-data'),
+      NX_CACHE_DIRECTORY: join(controller, '.nx/cache'),
+      NX_TASK_HASH: 'controller-task-hash',
+      NX_TASK_TARGET_PROJECT: 'controller',
+      NX_TASK_TARGET_TARGET: 'validate-locked-consumers',
+    };
+    const previous = Object.fromEntries(
+      Object.keys(inherited).map((key) => [key, process.env[key]]),
+    );
+    try {
+      for (const [directory, name] of [
+        [controller, 'controller'],
+        [consumer, 'consumer-cjs'],
+      ]) {
+        await mkdir(directory);
+        await writeFile(
+          join(directory, 'nx.json'),
+          JSON.stringify({ plugins: [] }),
+        );
+        await writeFile(
+          join(directory, 'package.json'),
+          JSON.stringify({ name, private: true }),
+        );
+        await writeFile(
+          join(directory, 'project.json'),
+          JSON.stringify({
+            name,
+            targets: {
+              build: {
+                executor: 'nx:run-commands',
+                cache: false,
+                options: { command: 'node build.cjs' },
+              },
+            },
+          }),
+        );
+        await symlink(
+          dirname(dirname(nxPackage)),
+          join(directory, 'node_modules'),
+          'dir',
+        );
+      }
+      await writeFile(
+        join(consumer, 'build.cjs'),
+        "require('node:fs').writeFileSync('built.txt', process.cwd());\n",
+      );
+      Object.assign(process.env, inherited);
+      await command(
+        process.execPath,
+        [nxCli, 'run', 'consumer-cjs:build'],
+        consumer,
+        { timeoutMs: 20_000 },
+      );
+      assert.equal(
+        await readFile(join(consumer, 'built.txt'), 'utf8'),
+        consumer,
+      );
+      const env = fixtureEnv({ NEST_SSR_API: 'module' });
+      for (const key of Object.keys(inherited))
+        assert.equal(env[key], undefined, key);
+      assert.equal(env.NX_NO_CLOUD, 'true');
+      assert.equal(env.NX_CLOUD_DISTRIBUTED_EXECUTION, 'false');
+      assert.equal(env.NX_DAEMON, 'false');
+      assert.equal(env.npm_config_strict_peer_deps, 'true');
+      assert.equal(env.NEST_SSR_API, 'module');
+      for (const [key, value] of Object.entries(inherited))
+        assert.equal(
+          process.env[key],
+          value,
+          'Parent environment must remain intact',
+        );
+    } finally {
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+);
 
 test(
   'a hung build is bounded, its log survives, and its child process is reaped',

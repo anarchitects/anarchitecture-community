@@ -41,13 +41,15 @@ export function verifyArchive(bytes, expectedSha256) {
   );
 }
 
-// Clear ambient source conditions, aliases and npm peer-bypass configuration.
+// Temporary consumers own their Nx workspace, task state and cache paths.
+// Clear inherited controller/Nx settings, source aliases and npm peer bypasses;
+// restore only the explicit isolated-run settings below.
 // npm still uses its ordinary credential/config locations for registry access.
 export function fixtureEnv(extra = {}) {
   const env = { ...process.env };
   for (const key of Object.keys(env)) {
     if (
-      /^(NODE_PATH|NODE_OPTIONS|TS_NODE.*|npm_config_.*|NPM_CONFIG_.*)$/i.test(
+      /^(NX_.*|NODE_PATH|NODE_OPTIONS|TS_NODE.*|npm_config_.*|NPM_CONFIG_.*)$/i.test(
         key,
       )
     )
