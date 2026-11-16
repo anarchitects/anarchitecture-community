@@ -1,7 +1,10 @@
 # Release cutover read-back — 14 November 2026
 
-Status: **credential cutover complete; Community remains paused**. This is the
-current operational update for [#722](https://github.com/anarchitects/anarchitecture-community/issues/722).
+Historical read-back: superseded by the [16 November completion review](release-cutover-2026-11-16.md).
+The registry/access statements below describe 14 November, not current blockers.
+
+Status on 14 November: **credential cutover complete; Community remains paused**.
+This records the operational update for [#722](https://github.com/anarchitects/anarchitecture-community/issues/722).
 It supersedes the pending-cutover statements in the earlier
 [permissions inventory](release-permissions.md),
 [shared bot plan](shared-bot-coordination-722.md) and

@@ -3,7 +3,8 @@
 **14 November #722 update:** main ruleset `14374927` now has no bypass actors.
 The strict `main`/GitHub Actions check, signatures, squash-only PRs and history
 safeguards are unchanged; separate owner/bot capability-tag creation remains.
-See the [cutover read-back and evidence](release-cutover-2026-11-14.md).
+See the [cutover read-back and evidence](release-cutover-2026-11-14.md) and
+[16 November completion review](release-cutover-2026-11-16.md).
 The dated reviews below preserve earlier settings and do not describe the
 current bot-bypass state.
 

@@ -1,16 +1,17 @@
 # Owner-authorized release execution
 
 For current settings, completed credential cutover and Johan's durable archive
-arrangement, see the [14 November read-back](release-cutover-2026-11-14.md).
-The legacy cleanup described in the activation handoff below is already merged;
-its merge prerequisite is historical. Community remains paused pending the
-remaining #722 controls and owner acceptance.
+arrangement, see the [16 November completion review](release-cutover-2026-11-16.md).
+Credential migration and legacy publisher retirement are complete. The activation
+handoff below describes the cutover procedure; it is not a list of unfinished
+settings. Owner review of the final record remains pending. Controls are paused
+after the separately authorized SSR 0.4.0 and 0.5.0 executions.
 
-This is the staged implementation of [#721](https://github.com/anarchitects/anarchitecture-community/issues/721)
-and the [accepted control design](release-controls.md). **It is not an activated
-release route.** The [#722 settings reconciliation](release-permissions.md) must
-verify settings, close legacy access and obtain owner
-acceptance before activation. No release, hosted run or CI monitoring is authorized
+This implements [#721](https://github.com/anarchitects/anarchitecture-community/issues/721)
+and the [accepted control design](release-controls.md). The protected route has
+executed real owner-authorized releases; current paused state is deliberate.
+Future activation still requires current settings review and owner release intent.
+No release, hosted run or CI monitoring is authorized
 by this document. Johan (`vrxj81`, GitHub ID `5003361`) remains the confirmed owner
 for all 21 projects in [OWNERSHIP](../OWNERSHIP.md).
 
@@ -19,7 +20,7 @@ It stages separate protected maintenance source and main-controller identities,
 an explicit `nest11` or `nest12` selection and line-specific channels. The generic
 procedure below applies to standard main-source releases; it no longer defaults
 SSR to `latest`. Johan accepted the detailed design on 15 November 2026;
-live maintenance verification remains pending, and #722 remains paused.
+both lines have published exact-byte evidence linked in the completion review.
 
 ## Preparation and review
 
