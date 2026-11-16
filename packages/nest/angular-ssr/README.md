@@ -10,11 +10,11 @@ This package provides three usage levels:
 
 ## Support matrix
 
-The Nest 12 feature line is **unreleased**. Its bounded installation contract is
+Version **0.5.0** targets the Nest 12 feature line. Its installation contract is
 Node `>=24.22.3 <25`, Nest common/core/platform-fastify `~12.5.0`, Fastify
-`~5.12.8`, and the coherent Angular combination below. Local packed-consumer
-certification covers the combinations below; publication is still pending. The
-source manifest is not an available Nest 12 registry release.
+`~5.12.8`, and the coherent Angular combination below. Packed-consumer
+certification covers the exact combinations below. Check registry availability
+before installing a version from a source checkout.
 
 | Angular framework | Angular SSR/build | TypeScript | Nx tooling | Consumer shapes                                                    |
 | ----------------- | ----------------- | ---------- | ---------- | ------------------------------------------------------------------ |
@@ -26,9 +26,9 @@ possible cross-product. Native Node and Express are not supported by this implem
 
 ### Nest 11 maintenance and migration
 
-Published `0.3.x` artifacts belong to the Nest 11 line. The next maintenance
-release raises `@nestjs/platform-fastify` to `^11.2.10`; this is a breaking
-installation minimum and requires a distinct successor minor. Upgrade Nest
+Published `0.3.x` and **0.4.0** artifacts belong to the Nest 11 line. Maintenance
+release **0.4.0** raises `@nestjs/platform-fastify` to `^11.2.10`; this is a breaking
+installation minimum. Upgrade Nest
 common/core/platform-fastify coherently to 11.2.10 or a separately verified patch.
 A root Fastify override does **not** fix vulnerabilities in the older adapter
 itself. Keep Angular framework packages coherent and use patched SSR/build
@@ -72,22 +72,19 @@ To migrate to the Nest 12 line:
    dependency lock together; do not combine Nest 11 peers with the Nest 12 package.
    The application owner controls deployment and rollback.
 
-The intended channels are `nest11` for maintenance and `next` for initial Nest 12
-availability, with separately reviewed promotion to `latest`. They are not yet
-established by this source tree. Pin a reviewed version and lockfile rather than
-relying on a mutable channel. Until a Nest 12 release is published, existing
-consumers must retain their reviewed Nest 11 package and address its dependency
-security findings.
+Use `nest11` for maintenance (0.4.0) and `next` for initial Nest 12 availability,
+with separately reviewed promotion to `latest`. A source checkout does not
+establish registry availability or channel state. Pin a reviewed version and
+lockfile rather than relying on a mutable channel. Nest 11 consumers must use
+their maintenance artifact and keep its dependency tree patched.
 
 ## Installation
 
-In an existing Nest/Fastify host, set `SSR_VERSION` to an **actually published
-Nest 12-compatible version** before running this command. There is no such
-registry version at this documentation review; do not substitute `0.3.2`.
+In an existing Nest/Fastify host, use **0.5.0** once it is available in the
+registry. Versions 0.3.x and 0.4.0 are for Nest 11 and cannot substitute for it.
 
 ```sh
-: "${SSR_VERSION:?Set an approved published Nest 12 SSR version}"
-npm install --save-exact "@anarchitects/nest-angular-ssr@${SSR_VERSION}" \
+npm install --save-exact @anarchitects/nest-angular-ssr@0.5.0 \
   @nestjs/common@12.5.0 @nestjs/core@12.5.0 @nestjs/platform-fastify@12.5.0 \
   fastify@5.12.8 reflect-metadata@0.2.2 rxjs@7.8.2 \
   @angular/common@22.2.6 @angular/compiler@22.2.6 @angular/core@22.2.6 \

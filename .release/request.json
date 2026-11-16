@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "baseline": "a50b0094315e5b4814553d1fde7d80d655fe7fb8",
+  "projects": ["nest-angular-ssr"],
+  "firstRelease": false,
+  "stabilize": false,
+  "line": "nest12",
+  "branch": "main",
+  "controllerDigest": "5f44a2f14bc09a4ff1bf75b2648c30a06e992d6de8409190a9423f12eefc751b",
+  "compatibility": {
+    "nest-angular-ssr": {
+      "minimumBump": "major",
+      "evidence": "Johan accepted #737's separate Nest 12 feature and Nest 11 maintenance lines, patched Angular 22.2 baseline, and #748 maintenance-first ordering. The Nest 11 0.4.0 baseline is distributed. This successor excludes Nest 11 and Angular 21, requires Nest ~12.5.0, Angular ~22.2.6 / SSR ~22.2.7 and Node >=24.22.3 <25, while preserving the public SSR facade and Fastify behavior. See docs/validation/nest12-ssr-release-lines-737.md, nest12-ssr-certification-740.md and nest12-ssr-readiness-741.md. Nx must derive an unused breaking 0.x successor from complete published history. Initial channel: next; no Express/native Node support or latest promotion is claimed. Final versioned archive certification and protected release authorization remain required."
+    }
+  },
+  "versions": {
+    "nest-angular-ssr": {
+      "currentVersion": "0.4.0",
+      "newVersion": "0.5.0",
+      "dependentProjects": []
+    }
+  },
+  "channels": {
+    "nest-angular-ssr": "next"
+  }
+}
