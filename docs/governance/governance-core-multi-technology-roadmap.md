@@ -1,5 +1,7 @@
 # Governance Core Multi-Technology Roadmap
 
+> **Historical migration roadmap (archived implementation context, November 2026).** The canonical `GovernanceWorkspace.nodes/relations` migration and removal of project/dependency compatibility contracts have since completed. Some older instructions below (for example retaining `GovernanceProject` and `GovernanceDependency`) **are not current runtime guidance**. For the active architecture-first product direction, current issue dependencies and evidence-aware implementation milestones, use [Bidirectional Architecture Reconciliation Roadmap](architecture-reconciliation-roadmap.md) and [Community #781](https://github.com/anarchitects/anarchitecture-community/issues/781). Canonical package READMEs and accepted ADRs remain authoritative for existing behavior.
+
 Status:
 Implementation and migration roadmap for GitHub issue #207. This roadmap follows ADR 0002 and the target model design from `docs/governance/target-canonical-governance-model.md`.
 
