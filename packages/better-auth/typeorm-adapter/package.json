@@ -72,13 +72,13 @@
     "// targets": "to see all targets run: nx show project better-auth-typeorm-adapter --web"
   },
   "peerDependencies": {
-    "better-auth": "^1.7.0",
+    "better-auth": "^1.7.7",
     "typeorm": "^1.0.0"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@types/pg": "^8.11.0",
-    "better-auth": "^1.7.0",
+    "better-auth": "^1.7.7",
     "pg": "^8.0.0",
     "testcontainers": "^10.0.0",
     "typeorm": "^1.0.0"
